@@ -571,6 +571,7 @@ export default function ArticleEditor({articleId}: {articleId?: number}) {
                         ) : null}
                         <MediaLibraryPicker
                             assetType="IMAGE"
+                            requirePublic
                             disabled={isSaving || heroUpload.isUploading || readOnly}
                             label={dict.podcast.titelbildMediathek}
                             onAuthRequired={handleAuthRequired}

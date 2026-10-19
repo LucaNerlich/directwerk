@@ -809,6 +809,7 @@ export default function EpisodeEditor({episodeId}: {episodeId?: number}): React.
                             {hasDigitalContent ? (
                                 <MediaLibraryPicker
                                     assetType="IMAGE"
+                                    requirePublic
                                     disabled={controlsDisabled}
                                     label={dict.podcast.titelbildMediathek}
                                     onAuthRequired={handleAuthRequired}
