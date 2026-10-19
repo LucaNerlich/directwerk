@@ -7,36 +7,43 @@ import {existsSync, readFileSync, statSync} from 'node:fs'
 import {resolve} from 'node:path'
 
 const root = resolve(import.meta.dirname, '..')
-const specPath = resolve(root, 'directwerk-docs/docs/openapi/openapi.yaml')
+// #538: this pointed at a YAML file that has never existed in this repo (the spec is the JSON
+// the Gradle export writes), and the missing-file branch exited 0 — so the freshness check and
+// both schema comparisons below were unreachable and `pnpm check:openapi` always passed.
+const specPath = resolve(root, 'directwerk-docs/docs/openapi/directwerk-api.json')
 const typesPath = resolve(root, 'packages/api/src/types.ts')
 
+// Each concept has a name on each side: the exported spec names the *view* it serialises, the
+// hand-maintained types name the domain object. The old single-name list demanded one spelling in
+// both files, so it could never pass once the check actually ran (#538).
 const REQUIRED_SCHEMAS = [
-    'SubscriptionProduct',
-    'ProductAccessRule',
-    'EpisodeDetail',
-    'SubscriberFeedView',
-    'MediaAsset',
+    {spec: 'ProductView', types: 'SubscriptionProduct'},
+    {spec: 'ProductAccessRuleView', types: 'ProductAccessRule'},
+    {spec: 'EpisodeView', types: 'EpisodeDetail'},
+    {spec: 'SubscriberFeedView', types: 'SubscriberFeedView'},
+    {spec: 'MediaAssetView', types: 'MediaAsset'},
 ]
 
 if (!existsSync(specPath)) {
-    console.warn(
-        'OpenAPI spec missing — skipping schema cross-check. Run: cd Directwerk && ./gradlew :directwerk-app:exportOpenApi',
+    console.error(
+        `OpenAPI spec missing at ${specPath} — run: cd Directwerk && ./gradlew :directwerk-app:exportOpenApi`,
     )
-    process.exit(0)
+    process.exit(1)
 }
 
-const ageMs = Date.now() - statSync(specPath).mtimeMs
-const maxAgeDays = 30
-if (ageMs > maxAgeDays * 24 * 60 * 60 * 1000) {
-    console.warn(
-        `Warning: OpenAPI spec is older than ${maxAgeDays} days — consider re-exporting.`,
-    )
-}
+// Review finding: this used the file mtime, which git does not preserve — in a fresh clone or
+// CI checkout the spec's mtime is the checkout time, so the branch could never fire. The export
+// task records a real signal in `docs/openapi/.export-meta.json`; until that is committed and
+// consumed, the check does not claim to judge freshness.
 
 const spec = readFileSync(specPath, 'utf8')
 const types = readFileSync(typesPath, 'utf8')
-const missingInSpec = REQUIRED_SCHEMAS.filter((name) => !spec.includes(name))
-const missingInTypes = REQUIRED_SCHEMAS.filter((name) => !types.includes(name))
+// Review finding: `spec.includes(name)` matched substrings, so `MediaAsset` "passed" on
+// `RenameMediaAssetRequest` and `ProductView` on `ResponseProductView` — the assertion was
+// vacuous for the drift it exists to catch. Assert set membership instead.
+const schemaNames = new Set(Object.keys(JSON.parse(spec).components?.schemas ?? {}))
+const missingInSpec = REQUIRED_SCHEMAS.filter((pair) => !schemaNames.has(pair.spec)).map((pair) => pair.spec)
+const missingInTypes = REQUIRED_SCHEMAS.filter((pair) => !types.includes(pair.types)).map((pair) => pair.types)
 
 if (missingInSpec.length > 0) {
     console.error('OpenAPI spec missing schemas:', missingInSpec.join(', '))
