@@ -21,7 +21,7 @@ const REQUIRED_SCHEMAS = [
     {spec: 'ProductAccessRuleView', types: 'ProductAccessRule'},
     {spec: 'EpisodeView', types: 'EpisodeDetail'},
     {spec: 'SubscriberFeedView', types: 'SubscriberFeedView'},
-    {spec: 'MediaAsset', types: 'MediaAsset'},
+    {spec: 'MediaAssetView', types: 'MediaAsset'},
 ]
 
 if (!existsSync(specPath)) {
@@ -31,17 +31,18 @@ if (!existsSync(specPath)) {
     process.exit(1)
 }
 
-const ageMs = Date.now() - statSync(specPath).mtimeMs
-const maxAgeDays = 30
-if (ageMs > maxAgeDays * 24 * 60 * 60 * 1000) {
-    console.warn(
-        `Warning: OpenAPI spec is older than ${maxAgeDays} days — consider re-exporting.`,
-    )
-}
+// Review finding: this used the file mtime, which git does not preserve — in a fresh clone or
+// CI checkout the spec's mtime is the checkout time, so the branch could never fire. The export
+// task records a real signal in `docs/openapi/.export-meta.json`; until that is committed and
+// consumed, the check does not claim to judge freshness.
 
 const spec = readFileSync(specPath, 'utf8')
 const types = readFileSync(typesPath, 'utf8')
-const missingInSpec = REQUIRED_SCHEMAS.filter((pair) => !spec.includes(pair.spec)).map((pair) => pair.spec)
+// Review finding: `spec.includes(name)` matched substrings, so `MediaAsset` "passed" on
+// `RenameMediaAssetRequest` and `ProductView` on `ResponseProductView` — the assertion was
+// vacuous for the drift it exists to catch. Assert set membership instead.
+const schemaNames = new Set(Object.keys(JSON.parse(spec).components?.schemas ?? {}))
+const missingInSpec = REQUIRED_SCHEMAS.filter((pair) => !schemaNames.has(pair.spec)).map((pair) => pair.spec)
 const missingInTypes = REQUIRED_SCHEMAS.filter((pair) => !types.includes(pair.types)).map((pair) => pair.types)
 
 if (missingInSpec.length > 0) {
