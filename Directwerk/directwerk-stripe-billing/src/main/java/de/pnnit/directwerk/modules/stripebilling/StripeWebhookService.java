@@ -166,15 +166,8 @@ public class StripeWebhookService {
         // `customer.subscription.deleted` was already consumed and is idempotency-suppressed, so
         // nothing later would take the access away again.
         if (status == SubscriptionStatus.ACTIVE
-                && event.subscriptionId() != null
-                && !event.subscriptionId().isBlank()
-                && hasLocalCanceledRow(tenantId, event.subscriptionId())) {
-            if (!isLiveActive(tenantId, event)) {
-                log.warn(
-                        "Skipping checkout-completed for canceled local row (subscription={})",
-                        event.subscriptionId());
-                return;
-            }
+                && shouldSkipReactivation(tenantId, event, "Skipping checkout-completed for canceled local row")) {
+            return;
         }
         stripeSubscriptionSyncService.upsertStripeSubscription(
                 tenantId,
@@ -211,13 +204,8 @@ public class StripeWebhookService {
         SubscriptionStatus mappedStatus = mapStripeStatus(event.stripeSubscriptionStatus());
         if (userId == null || productId == null) {
             if (mappedStatus == SubscriptionStatus.ACTIVE
-                    && hasLocalCanceledRow(tenantId, event.subscriptionId())) {
-                if (!isLiveActive(tenantId, event)) {
-                    log.warn(
-                            "Skipping stale sync for canceled local row (subscription={})",
-                            event.subscriptionId());
-                    return;
-                }
+                    && shouldSkipReactivation(tenantId, event, "Skipping stale sync for canceled local row")) {
+                return;
             }
             stripeSubscriptionSyncService.syncStripeSubscriptionByExternalId(
                     tenantId,
@@ -231,13 +219,9 @@ public class StripeWebhookService {
         // arriving after `deleted` must not resurrect paid entitlements. When
         // the local row is CANCELED, only apply ACTIVE if the subscription is
         // verifiably active at Stripe right now.
-        if (mappedStatus == SubscriptionStatus.ACTIVE && hasLocalCanceledRow(tenantId, event.subscriptionId())) {
-            if (!isLiveActive(tenantId, event)) {
-                log.warn(
-                        "Skipping stale subscription.updated for canceled local row (subscription={})",
-                        event.subscriptionId());
-                return;
-            }
+        if (mappedStatus == SubscriptionStatus.ACTIVE
+                && shouldSkipReactivation(tenantId, event, "Skipping stale subscription.updated for canceled local row")) {
+            return;
         }
         stripeSubscriptionSyncService.upsertStripeSubscription(
                 tenantId,
@@ -303,16 +287,40 @@ public class StripeWebhookService {
                 .orElse(null);
     }
 
-    private boolean hasLocalCanceledRow(Long tenantId, String externalSubscriptionId) {
-        // Lock the row for the rest of this transaction so a concurrent `deleted` cannot commit
-        // between this check and the subsequent upsert (check-then-act race across workers).
-        return subscriptionRepository
-                .findByTenantIdAndExternalSubscriptionIdForUpdate(tenantId, externalSubscriptionId)
+    /**
+     * Decides whether an ACTIVE-mapped event must be ignored because the local row was canceled.
+     *
+     * <p>The live-status request runs before the pessimistic row lock (issue #547): a provider
+     * HTTP call must never execute while a connection is pinned and a row lock is held. Only once
+     * the live status confirms the subscription is really active do we lock the row for the rest
+     * of the transaction, so a concurrent {@code customer.subscription.deleted} still cannot
+     * commit between the check and the upsert.</p>
+     */
+    private boolean shouldSkipReactivation(
+            Long tenantId,
+            StripeOperations.StripeWebhookPayload event,
+            String skipMessage
+    ) {
+        String externalSubscriptionId = event.subscriptionId();
+        if (externalSubscriptionId == null || externalSubscriptionId.isBlank()) {
+            return false;
+        }
+        boolean locallyCanceled = subscriptionRepository
+                .findByTenantIdAndExternalSubscriptionId(tenantId, externalSubscriptionId)
                 .map(subscription -> subscription.getStatus() == SubscriptionStatus.CANCELED)
                 .orElse(false);
+        if (!locallyCanceled) {
+            return false;
+        }
+        if (!isLiveActive(event)) {
+            log.warn("{} (subscription={})", skipMessage, externalSubscriptionId);
+            return true;
+        }
+        subscriptionRepository.findByTenantIdAndExternalSubscriptionIdForUpdate(tenantId, externalSubscriptionId);
+        return false;
     }
 
-    private boolean isLiveActive(Long tenantId, StripeOperations.StripeWebhookPayload event) {
+    private boolean isLiveActive(StripeOperations.StripeWebhookPayload event) {
         try {
             String liveStatus = stripeOperations.retrieveSubscriptionStatus(
                     event.connectedAccountId(),
