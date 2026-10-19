@@ -15,6 +15,7 @@ import de.pnnit.directwerk.modules.core.util.PublicContentUrlResolver;
 import de.pnnit.directwerk.modules.core.util.TokenHashUtil;
 import de.pnnit.directwerk.modules.email.EmailJobProducer;
 import de.pnnit.directwerk.modules.email.EmailTemplate;
+import de.pnnit.directwerk.modules.email.repository.ContentNotificationMarkerRepository;
 import de.pnnit.directwerk.modules.email.content.TenantContentBrandingResolver;
 import de.pnnit.directwerk.modules.newsletter.entity.Article;
 import de.pnnit.directwerk.modules.newsletter.entity.NewsletterList;
@@ -51,6 +52,8 @@ class NewsletterNotificationServiceTest {
     private TenantContentBrandingResolver tenantContentBrandingResolver;
     @Mock
     private EmailJobProducer emailJobProducer;
+    @Mock
+    private ContentNotificationMarkerRepository contentNotificationMarkerRepository;
 
     private NewsletterNotificationService service;
 
@@ -62,7 +65,8 @@ class NewsletterNotificationServiceTest {
                 feedTokenProtector,
                 publicContentUrlResolver,
                 tenantContentBrandingResolver,
-                emailJobProducer
+                emailJobProducer,
+                contentNotificationMarkerRepository
         );
     }
 
@@ -96,6 +100,8 @@ class NewsletterNotificationServiceTest {
                 subscription("grace@example.com", "enc-grace")
         ));
         when(feedTokenProtector.reveal(anyString())).thenAnswer(invocation -> "raw-" + invocation.getArgument(0));
+        when(contentNotificationMarkerRepository.claimNewsletterRecipient(eq(TENANT_ID), eq(ARTICLE_ID), anyString()))
+                .thenReturn(true);
         when(tenantContentBrandingResolver.resolve(TENANT_ID))
                 .thenReturn(new TenantContentBrandingResolver.BrandingContext("Acme", "Acme Magazine", "#123456"));
         when(publicContentUrlResolver.contentPageUrl(TENANT_ID, ContentType.ARTICLE, "hello-world"))
@@ -124,6 +130,34 @@ class NewsletterNotificationServiceTest {
         assertThat(tokenCaptor.getValue()).isEqualTo("raw-enc-ada");
         assertThat(correlationCaptor.getValue()).isEqualTo(
                 "content-notify-article-7-email-" + TokenHashUtil.sha256Hex("ada@example.com"));
+    }
+
+    @Test
+    void aRetriedFanOutSkipsRecipientsAlreadyClaimed() {
+        Article article = new Article();
+        article.getNewsletterLists().add(newsletterList(1L, NewsletterListStatus.ACTIVE));
+        when(articleRepository.findByIdAndTenantId(ARTICLE_ID, TENANT_ID)).thenReturn(Optional.of(article));
+        when(subscriptionRepository.findActiveByTenantIdAndListIdIn(TENANT_ID, Set.of(1L))).thenReturn(List.of(
+                subscription("ada@example.com", "enc-ada"),
+                subscription("grace@example.com", "enc-grace")
+        ));
+        when(feedTokenProtector.reveal(anyString())).thenAnswer(invocation -> "raw-" + invocation.getArgument(0));
+        when(tenantContentBrandingResolver.resolve(TENANT_ID))
+                .thenReturn(new TenantContentBrandingResolver.BrandingContext("Acme", "Acme Magazine", "#123456"));
+        when(publicContentUrlResolver.contentPageUrl(TENANT_ID, ContentType.ARTICLE, "hello-world"))
+                .thenReturn("https://tenant.example/articles/hello-world");
+        // The first run already claimed Ada; the retry must skip her and still reach Grace.
+        when(contentNotificationMarkerRepository.claimNewsletterRecipient(TENANT_ID, ARTICLE_ID, "ada@example.com"))
+                .thenReturn(false);
+        when(contentNotificationMarkerRepository.claimNewsletterRecipient(TENANT_ID, ARTICLE_ID, "grace@example.com"))
+                .thenReturn(true);
+
+        service.notifyArticlePublished(event());
+
+        verify(emailJobProducer, never()).enqueueTokenizedContentNotification(
+                any(), eq("ada@example.com"), any(), any(), any(), any());
+        verify(emailJobProducer).enqueueTokenizedContentNotification(
+                any(), eq("grace@example.com"), any(), any(), any(), any());
     }
 
     @Test
