@@ -1,57 +1,65 @@
 package de.pnnit.directwerk.modules.newsletter.service;
 
-import de.pnnit.directwerk.config.DirectwerkConfig;
-import de.pnnit.directwerk.modules.content.ContentPublishedEvent;
-import de.pnnit.directwerk.modules.content.PublicationLifecycleSupport;
-import de.pnnit.directwerk.modules.core.content.BulkPublication;
-import de.pnnit.directwerk.modules.core.notification.PublicationNotificationSupport;
-import de.pnnit.directwerk.modules.content.PublicationTexts;
-import de.pnnit.directwerk.modules.content.ScheduledPublishing;
-import de.pnnit.directwerk.modules.content.ScheduledPublishing.DueItem;
 import de.pnnit.directwerk.modules.content.ContentPublishedNotifier;
 import de.pnnit.directwerk.modules.content.ContentType;
+import de.pnnit.directwerk.modules.content.PublicationTexts;
 import de.pnnit.directwerk.modules.core.RequiresModule;
 import de.pnnit.directwerk.modules.core.authorization.ContentEntityType;
 import de.pnnit.directwerk.modules.core.authorization.ContentOperation;
+import de.pnnit.directwerk.modules.core.content.PublicationWorkflow;
 import de.pnnit.directwerk.modules.core.notification.SubscriberNotificationGate;
 import de.pnnit.directwerk.modules.core.service.MembershipPermissionService;
 import de.pnnit.directwerk.modules.core.service.ModuleGateService;
 import de.pnnit.directwerk.modules.core.service.ScheduledPublicationExecutor;
+import de.pnnit.directwerk.modules.digital.service.HtmlSanitizer;
 import de.pnnit.directwerk.modules.newsletter.ArticlesModule;
 import de.pnnit.directwerk.modules.newsletter.entity.Article;
 import de.pnnit.directwerk.modules.newsletter.entity.ArticleStatus;
 import de.pnnit.directwerk.modules.newsletter.exception.ArticleValidationException;
-import de.pnnit.directwerk.modules.content.PublicationTransitions;
-import de.pnnit.directwerk.modules.content.InvalidPublicationTransitionException;
-import de.pnnit.directwerk.modules.digital.service.HtmlSanitizer;
 import de.pnnit.directwerk.modules.newsletter.job.ArticleRssFeedRefreshJobProducer;
 import de.pnnit.directwerk.modules.newsletter.repository.ArticleRepository;
-import de.pnnit.directwerk.multitenancy.TenantContext;
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.LinkedHashSet;
 import java.util.List;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import java.util.function.BiConsumer;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+/**
+ * Newsletter binding of {@link PublicationWorkflow}: article loading, body
+ * validation, the newsletter-list notification gate and the article feed refresh.
+ */
 @Service
-@RequiredArgsConstructor
-@Slf4j
-public class ArticlePublicationWorkflowService {
+public class ArticlePublicationWorkflowService extends PublicationWorkflow<Article, ArticleStatus> {
 
     private final ArticleRepository articleRepository;
     private final ArticleService articleService;
     private final HtmlSanitizer htmlSanitizer;
+    @SuppressWarnings("unused")
     private final ModuleGateService moduleGateService;
-    private final ScheduledPublicationExecutor scheduledPublicationExecutor;
-    private final ContentPublishedNotifier contentPublishedNotifier;
-    private final SubscriberNotificationGate notificationGate;
     private final ArticleRssFeedRefreshJobProducer articleRssFeedRefreshScheduler;
     private final ObjectProvider<ArticlePublicationWorkflowService> self;
-    private final MembershipPermissionService permissionService;
+
+    public ArticlePublicationWorkflowService(
+            ArticleRepository articleRepository,
+            ArticleService articleService,
+            HtmlSanitizer htmlSanitizer,
+            ModuleGateService moduleGateService,
+            ScheduledPublicationExecutor scheduledPublicationExecutor,
+            ContentPublishedNotifier contentPublishedNotifier,
+            SubscriberNotificationGate notificationGate,
+            ArticleRssFeedRefreshJobProducer articleRssFeedRefreshScheduler,
+            ObjectProvider<ArticlePublicationWorkflowService> self,
+            MembershipPermissionService permissionService
+    ) {
+        super(scheduledPublicationExecutor, contentPublishedNotifier, notificationGate, permissionService);
+        this.articleRepository = articleRepository;
+        this.articleService = articleService;
+        this.htmlSanitizer = htmlSanitizer;
+        this.moduleGateService = moduleGateService;
+        this.articleRssFeedRefreshScheduler = articleRssFeedRefreshScheduler;
+        this.self = self;
+    }
 
     @Transactional
     @RequiresModule(ArticlesModule.KEY)
@@ -68,9 +76,7 @@ public class ArticlePublicationWorkflowService {
     @Transactional
     @RequiresModule(ArticlesModule.KEY)
     public Article publish(Long tenantId, Long articleId, boolean notifySubscribers, Instant publishedAt) {
-        Article article = articleService.requireArticle(tenantId, articleId);
-        permissionService.requireArticleAccess(ContentOperation.PUBLISH, article.getCreatedBy());
-        return publishInternal(tenantId, article, notifySubscribers, publishedAt, true);
+        return publishContent(tenantId, articleId, notifySubscribers, publishedAt);
     }
 
     @Transactional
@@ -82,127 +88,41 @@ public class ArticlePublicationWorkflowService {
     @Transactional
     @RequiresModule(ArticlesModule.KEY)
     public Article schedule(Long tenantId, Long articleId, Instant scheduledAt, boolean notifySubscribers) {
-        Article article = articleService.requireArticle(tenantId, articleId);
-        permissionService.requireArticleAccess(ContentOperation.SCHEDULE, article.getCreatedBy());
-        PublicationLifecycleSupport.schedule(
-                scheduledAt,
-                () -> article.getStatus() == ArticleStatus.DRAFT,
-                "articles",
-                () -> {
-                    article.setStatus(ArticleStatus.SCHEDULED);
-                    article.setScheduledAt(scheduledAt);
-                    article.setNotifySubscribersOnPublish(notifySubscribers);
-                }
-        );
-        return articleRepository.save(article);
+        return scheduleContent(tenantId, articleId, scheduledAt, notifySubscribers);
     }
 
     @Transactional
     @RequiresModule(ArticlesModule.KEY)
     public Article cancelSchedule(Long tenantId, Long articleId) {
-        Article article = articleService.requireArticle(tenantId, articleId);
-        permissionService.requireArticleAccess(ContentOperation.SCHEDULE, article.getCreatedBy());
-        PublicationLifecycleSupport.cancelSchedule(
-                () -> article.getStatus() == ArticleStatus.SCHEDULED,
-                "articles",
-                () -> {
-                    article.setStatus(ArticleStatus.DRAFT);
-                    article.setScheduledAt(null);
-                }
-        );
-        return articleRepository.save(article);
+        return cancelScheduleContent(tenantId, articleId);
     }
 
     @Transactional
     @RequiresModule(ArticlesModule.KEY)
     public Article unpublish(Long tenantId, Long articleId) {
-        Article article = articleService.requireArticle(tenantId, articleId);
-        permissionService.requireArticleAccess(ContentOperation.UNPUBLISH, article.getCreatedBy());
-        PublicationLifecycleSupport.unpublish(
-                () -> article.getStatus() == ArticleStatus.PUBLISHED,
-                "articles",
-                () -> {
-                    article.setStatus(ArticleStatus.DRAFT);
-                    article.setPublishedAt(null);
-                    article.setScheduledAt(null);
-                },
-                () -> articleRssFeedRefreshScheduler.requestRefreshAfterCommit(tenantId)
-        );
-        return articleRepository.save(article);
+        return unpublishContent(tenantId, articleId, true);
     }
 
     @Transactional
     @RequiresModule(ArticlesModule.KEY)
     public Article archive(Long tenantId, Long articleId) {
-        Article article = articleService.requireArticle(tenantId, articleId);
-        permissionService.requireArticleAccess(ContentOperation.ARCHIVE, article.getCreatedBy());
-        PublicationLifecycleSupport.archive(
-                () -> article.getStatus() == ArticleStatus.PUBLISHED,
-                "articles",
-                () -> {
-                    article.setStatus(ArticleStatus.ARCHIVED);
-                    article.setScheduledAt(null);
-                },
-                () -> articleRssFeedRefreshScheduler.requestRefreshAfterCommit(tenantId)
-        );
-        return articleRepository.save(article);
+        return archiveContent(tenantId, articleId);
     }
 
     @Transactional
     @RequiresModule(ArticlesModule.KEY)
     public Article unarchive(Long tenantId, Long articleId) {
-        Article article = articleService.requireArticle(tenantId, articleId);
-        permissionService.requireArticleAccess(ContentOperation.UNARCHIVE, article.getCreatedBy());
-        PublicationLifecycleSupport.unarchive(
-                () -> article.getStatus() == ArticleStatus.ARCHIVED,
-                "articles",
-                () -> {
-                    article.setStatus(ArticleStatus.DRAFT);
-                    article.setPublishedAt(null);
-                    article.setScheduledAt(null);
-                }
-        );
-        return articleRepository.save(article);
+        return unarchiveContent(tenantId, articleId);
     }
 
     public int publishDueScheduled() {
-        List<DueItem> dueItems = articleRepository.findByStatusAndScheduledAtLessThanEqualOrderByScheduledAtAscIdAsc(
-                ArticleStatus.SCHEDULED,
-                Instant.now()
-        ).stream()
-                .map(article -> new DueItem(article.getTenant().getId(), article.getId()))
-                .toList();
-        ArticlePublicationWorkflowService proxy = self.getObject();
-        return scheduledPublicationExecutor.publishDue(
-                ArticlesModule.KEY,
-                dueItems,
-                proxy::publishScheduledArticle,
-                "articles"
-        );
+        return publishDueScheduledContent();
     }
 
     @Transactional
     @RequiresModule(ArticlesModule.KEY)
     public void publishScheduledArticle(Long tenantId, Long articleId) {
-        Article article = articleService.requireArticle(tenantId, articleId);
-        if (PublicationLifecycleSupport.skipScheduledPublishIfStatusChanged(
-                article.getStatus() == ArticleStatus.SCHEDULED,
-                log,
-                "article",
-                articleId,
-                tenantId,
-                article.getStatus()
-        )) {
-            return;
-        }
-        if (permissionService.isDeniedForOwner(
-                tenantId, article.getCreatedBy(), ContentEntityType.ARTICLE, ContentOperation.PUBLISH)) {
-            log.warn(
-                    "Skipping scheduled publish for article {} (tenant {}): PUBLISH is restricted for creator {}",
-                    articleId, tenantId, article.getCreatedBy());
-            return;
-        }
-        publishInternal(tenantId, article, article.isNotifySubscribersOnPublish(), null, true);
+        publishScheduledContent(tenantId, articleId);
     }
 
     /**
@@ -218,13 +138,7 @@ public class ArticlePublicationWorkflowService {
             boolean notifySubscribers,
             Instant publishedAt
     ) {
-        List<Article> published = BulkPublication.apply(articleIds, articleId -> {
-            Article article = articleService.requireArticle(tenantId, articleId);
-            permissionService.requireArticleAccess(ContentOperation.PUBLISH, article.getCreatedBy());
-            return publishInternal(tenantId, article, notifySubscribers, publishedAt, false);
-        });
-        articleRssFeedRefreshScheduler.requestRefreshAfterCommit(tenantId);
-        return published;
+        return bulkPublishContent(tenantId, articleIds, notifySubscribers, publishedAt);
     }
 
     /**
@@ -234,35 +148,54 @@ public class ArticlePublicationWorkflowService {
     @Transactional
     @RequiresModule(ArticlesModule.KEY)
     public List<Article> bulkUnpublish(Long tenantId, List<Long> articleIds) {
-        List<Article> unpublished = BulkPublication.apply(articleIds, articleId -> {
-            Article article = articleService.requireArticle(tenantId, articleId);
-            permissionService.requireArticleAccess(ContentOperation.UNPUBLISH, article.getCreatedBy());
-            PublicationLifecycleSupport.unpublish(
-                    () -> article.getStatus() == ArticleStatus.PUBLISHED,
-                    "articles",
-                    () -> {
-                        article.setStatus(ArticleStatus.DRAFT);
-                        article.setPublishedAt(null);
-                        article.setScheduledAt(null);
-                    },
-                    null
-            );
-            return articleRepository.save(article);
-        });
-        articleRssFeedRefreshScheduler.requestRefreshAfterCommit(tenantId);
-        return unpublished;
+        return bulkUnpublishContent(tenantId, articleIds);
     }
 
-    private Article publishInternal(
-            Long tenantId,
-            Article article,
-            boolean notifySubscribers,
-            Instant requestedPublishedAt,
-            boolean refresh
-    ) {
-        PublicationTransitions.requireDraftOrScheduled(
-                article.getStatus() == ArticleStatus.DRAFT || article.getStatus() == ArticleStatus.SCHEDULED,
-                "articles");
+    @Override
+    protected Article requireEntity(Long tenantId, Long contentId) {
+        return articleService.requireArticle(tenantId, contentId);
+    }
+
+    @Override
+    protected Article save(Article entity) {
+        return articleRepository.save(entity);
+    }
+
+    @Override
+    protected List<Article> findDueScheduled(Instant now) {
+        return articleRepository.findByStatusAndScheduledAtLessThanEqualOrderByScheduledAtAscIdAsc(
+                ArticleStatus.SCHEDULED,
+                now
+        );
+    }
+
+    @Override
+    protected Phase phaseOf(ArticleStatus status) {
+        return switch (status) {
+            case DRAFT -> Phase.DRAFT;
+            case SCHEDULED -> Phase.SCHEDULED;
+            case PUBLISHED -> Phase.PUBLISHED;
+            case ARCHIVED -> Phase.ARCHIVED;
+        };
+    }
+
+    @Override
+    protected ArticleStatus statusFor(Phase phase) {
+        return switch (phase) {
+            case DRAFT -> ArticleStatus.DRAFT;
+            case SCHEDULED -> ArticleStatus.SCHEDULED;
+            case PUBLISHED -> ArticleStatus.PUBLISHED;
+            case ARCHIVED -> ArticleStatus.ARCHIVED;
+        };
+    }
+
+    @Override
+    protected void requirePermission(ContentOperation operation, Article article) {
+        permissionService.requireArticleAccess(operation, article.getCreatedBy());
+    }
+
+    @Override
+    protected void validateAndPrepareForPublish(Long tenantId, Article article) {
         if (article.getTitle() == null || article.getTitle().isBlank()) {
             throw new ArticleValidationException("Article title is required");
         }
@@ -272,39 +205,60 @@ public class ArticlePublicationWorkflowService {
             throw new ArticleValidationException("Article body is required");
         }
         article.setBody(sanitizedBody);
-
-        Instant publishedAt = PublicationTransitions.resolvePublishedAt(
-                requestedPublishedAt,
-                article.getPublishedAt()
-        );
-        article.setStatus(ArticleStatus.PUBLISHED);
-        article.setPublishedAt(publishedAt);
-        article.setScheduledAt(null);
-        Article published = articleRepository.save(article);
-
-        if (refresh) {
-            articleRssFeedRefreshScheduler.requestRefreshAfterCommit(tenantId);
-        }
-        maybeNotifySubscribers(tenantId, published, notifySubscribers);
-        return published;
     }
 
-    private void maybeNotifySubscribers(Long tenantId, Article published, boolean notifySubscribers) {
-        boolean sendNewsletter = notifySubscribers && !published.getNewsletterLists().isEmpty();
-        Instant notifiedAt = Instant.now();
-        PublicationNotificationSupport.maybeNotify(
-                tenantId,
-                ContentType.ARTICLE,
-                published.getId(),
-                published.getTitle(),
-                PublicationTexts.excerptOr(published.getExcerpt(), published.getBody()),
-                published.getSlug(),
-                published.getAccessPolicy().name(),
-                sendNewsletter,
-                notificationGate,
-                contentPublishedNotifier,
-                () -> articleRepository.claimEmailNotification(tenantId, published.getId(), notifiedAt),
-                () -> published.setEmailNotifiedAt(notifiedAt)
-        );
+    @Override
+    protected String notificationExcerpt(Article article) {
+        return PublicationTexts.excerptOr(article.getExcerpt(), article.getBody());
+    }
+
+    @Override
+    protected boolean shouldNotify(Article article, boolean notifySubscribers) {
+        return notifySubscribers && !article.getNewsletterLists().isEmpty();
+    }
+
+    @Override
+    protected String accessPolicyName(Article article) {
+        return article.getAccessPolicy().name();
+    }
+
+    @Override
+    protected int claimEmailNotification(Long tenantId, Long contentId, Instant notifiedAt) {
+        return articleRepository.claimEmailNotification(tenantId, contentId, notifiedAt);
+    }
+
+    @Override
+    protected void requestFeedRefresh(Long tenantId) {
+        articleRssFeedRefreshScheduler.requestRefreshAfterCommit(tenantId);
+    }
+
+    @Override
+    protected String moduleKey() {
+        return ArticlesModule.KEY;
+    }
+
+    @Override
+    protected String pluralLabel() {
+        return "articles";
+    }
+
+    @Override
+    protected String singularLabel() {
+        return "article";
+    }
+
+    @Override
+    protected ContentType contentType() {
+        return ContentType.ARTICLE;
+    }
+
+    @Override
+    protected ContentEntityType entityType() {
+        return ContentEntityType.ARTICLE;
+    }
+
+    @Override
+    protected BiConsumer<Long, Long> scheduledPublisher() {
+        return self.getObject()::publishScheduledArticle;
     }
 }
