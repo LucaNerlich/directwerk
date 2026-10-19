@@ -36,14 +36,27 @@ interface PlatformApiFailure {
 
 export type PlatformApiResult<T> = PlatformApiSuccess<T> | PlatformApiFailure
 
+type PlatformAuthorization =
+    | {ok: true; authorization: string}
+    | {ok: false; status: number}
+
+/**
+ * Issue #556: one in-flight refresh per presented refresh cookie.
+ *
+ * The three server-side consumers (server actions, route gates, page loads) can
+ * overlap while the access token is expired; the upstream rotates the refresh
+ * token, so concurrent grants would invalidate each other and sign one tab out.
+ * Share the first rotation's promise; late callers await it instead of spending
+ * the already-used refresh token.
+ */
+const inFlightPlatformRefreshes = new Map<string, Promise<PlatformAuthorization>>()
+
 /**
  * Exchanges the sealed refresh cookie for a fresh platform access token and
  * re-seals the (reused) refresh cookie. Server actions cannot read the
  * browser-side token store, so they authenticate through the cookie instead.
  */
-export async function resolvePlatformAuthorization(): Promise<
-    {ok: true; authorization: string} | {ok: false; status: number}
-> {
+export async function resolvePlatformAuthorization(): Promise<PlatformAuthorization> {
     const cookieStore = await cookies()
     const refreshToken = cookieStore.get(PLATFORM_REFRESH_COOKIE)?.value
 
@@ -51,6 +64,21 @@ export async function resolvePlatformAuthorization(): Promise<
         return {ok: false, status: 401}
     }
 
+    const inFlight = inFlightPlatformRefreshes.get(refreshToken)
+    if (inFlight !== undefined) {
+        return inFlight
+    }
+
+    const pending = performPlatformRefresh(refreshToken)
+    inFlightPlatformRefreshes.set(refreshToken, pending)
+    try {
+        return await pending
+    } finally {
+        inFlightPlatformRefreshes.delete(refreshToken)
+    }
+}
+
+async function performPlatformRefresh(refreshToken: string): Promise<PlatformAuthorization> {
     let upstreamRequest
     try {
         upstreamRequest = createConfiguredPlatformRefreshRequest(refreshToken)
