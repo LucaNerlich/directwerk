@@ -3,6 +3,7 @@
 import {useRouter} from 'next/navigation'
 
 import {Button} from '@directwerk/ui/components/button'
+import {writeLocaleCookie} from '@directwerk/ui/lib/i18n'
 
 import {LOCALE_COOKIE, locales, type Locale} from '@/lib/i18n/config'
 import {swapLangInPath} from '@/lib/i18n/paths'
@@ -11,7 +12,7 @@ import {useDictionary, useLocale} from './LocaleProvider'
 import {useSwapLangPath} from './useLocalizedPath'
 
 function persistLocale(lang: Locale): void {
-    document.cookie = `${LOCALE_COOKIE}=${lang};path=/;max-age=31536000;samesite=lax`
+    writeLocaleCookie(LOCALE_COOKIE, lang)
 }
 
 export default function LanguageSwitcher(): React.JSX.Element {

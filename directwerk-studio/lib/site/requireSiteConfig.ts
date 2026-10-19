@@ -5,8 +5,8 @@ import {redirect} from 'next/navigation'
 
 import type {SiteConfig} from '@directwerk/api/types'
 
-import {LOCALE_COOKIE, type Locale} from '@/lib/i18n/config'
-import {preferredLocale} from '@/lib/i18n/matchLocale'
+import {defaultLocale, LOCALE_COOKIE, locales, type Locale} from '@/lib/i18n/config'
+import {resolveLocalePreference} from '@directwerk/ui/lib/i18n'
 import {localizedPath} from '@/lib/i18n/paths'
 import {DEFAULT_STUDIO_SITE_CONFIG} from '@/lib/site/defaultStudioSiteConfig'
 import {fetchSiteConfigServerOptional} from '@/lib/site/fetchSiteConfigServer'
@@ -35,9 +35,11 @@ async function resolveLoginRedirect(lang?: Locale): Promise<string> {
     }
     const headerStore = await headers()
     const cookieStore = await cookies()
-    const preferred = preferredLocale(
-        headerStore.get('accept-language'),
+    const preferred = resolveLocalePreference(
         cookieStore.get(LOCALE_COOKIE)?.value,
+        headerStore.get('accept-language'),
+        locales,
+        defaultLocale,
     )
     return localizedPath(preferred, '/login')
 }

@@ -1,15 +1,13 @@
 import type {NextRequest} from 'next/server'
 import {NextResponse} from 'next/server'
 
-import {defaultLocale, isLocale, localeCookieName, locales} from '@/lib/i18n/config'
-import {matchAcceptLanguage} from '@/lib/i18n/match-locale'
+import {resolveLocalePreference} from '@directwerk/ui/lib/i18n'
+
+import {defaultLocale, localeCookieName, locales} from '@/lib/i18n/config'
 
 function resolveLocale(request: NextRequest): string {
-    const cookie = request.cookies.get(localeCookieName)?.value
-    if (cookie && isLocale(cookie)) {
-        return cookie
-    }
-    return matchAcceptLanguage(
+    return resolveLocalePreference(
+        request.cookies.get(localeCookieName)?.value,
         request.headers.get('accept-language'),
         locales,
         defaultLocale,

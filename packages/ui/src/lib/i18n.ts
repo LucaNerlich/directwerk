@@ -82,6 +82,33 @@ export function matchAcceptLanguage<T extends string>(
     return fallback
 }
 
+/**
+ * Locale preference shared by every app: an explicit cookie choice beats the
+ * `Accept-Language` header, which beats the fallback (issue #545).
+ */
+export function resolveLocalePreference<T extends string>(
+    cookieLocale: string | null | undefined,
+    acceptLanguage: string | null | undefined,
+    supported: readonly T[],
+    fallback: T,
+): T {
+    if (cookieLocale !== null && cookieLocale !== undefined && (supported as readonly string[]).includes(cookieLocale)) {
+        return cookieLocale as T
+    }
+    return matchAcceptLanguage(acceptLanguage, supported, fallback)
+}
+
+/**
+ * Writes the locale cookie with the attributes every app used to spell out
+ * separately: path-wide, one year, SameSite=Lax.
+ */
+export function writeLocaleCookie(name: string, locale: string, maxAgeSeconds = 31_536_000): void {
+    if (typeof document === 'undefined') {
+        return
+    }
+    document.cookie = `${name}=${encodeURIComponent(locale)};path=/;max-age=${maxAgeSeconds};samesite=lax`
+}
+
 /** {@link matchAcceptLanguage} for the shared `de`/`en` locale set. */
 export function matchLocale(header: string | null | undefined): Locale {
     return matchAcceptLanguage<Locale>(header, locales, defaultLocale)

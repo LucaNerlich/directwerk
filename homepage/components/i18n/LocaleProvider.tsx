@@ -1,5 +1,7 @@
 'use client'
 
+import {writeLocaleCookie} from '@directwerk/ui/lib/i18n'
+
 import {createContext, useContext} from 'react'
 
 import type {Locale} from '@/lib/i18n/config'
@@ -24,7 +26,7 @@ export function LocaleProvider({
     children: React.ReactNode
 }): React.JSX.Element {
     function setLocalePreference(next: Locale): void {
-        document.cookie = `${localeCookieName}=${next};path=/;max-age=${60 * 60 * 24 * 365};samesite=lax`
+        writeLocaleCookie(localeCookieName, next)
     }
 
     return (
