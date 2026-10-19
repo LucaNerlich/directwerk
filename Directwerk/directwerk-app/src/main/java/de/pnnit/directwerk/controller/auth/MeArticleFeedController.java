@@ -3,6 +3,7 @@ package de.pnnit.directwerk.controller.auth;
 import de.pnnit.directwerk.api.dto.FeedEnabledRequest;
 import de.pnnit.directwerk.api.dto.PublicCategoryView;
 import de.pnnit.directwerk.api.response.Response;
+import de.pnnit.directwerk.controller.support.ContentEndpointSupport;
 import de.pnnit.directwerk.modules.core.RequiresModule;
 import de.pnnit.directwerk.modules.core.util.FeedUrlResolver;
 import de.pnnit.directwerk.modules.digital.entity.Category;
@@ -18,7 +19,6 @@ import jakarta.validation.Valid;
 import java.time.Instant;
 import java.util.Comparator;
 import java.util.List;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -60,7 +60,7 @@ public class MeArticleFeedController {
         List<ArticleFeedView> feeds = articleFeedService.listFeeds(user.tenantId(), user.userId()).stream()
                 .map(feed -> toView(feed, request))
                 .toList();
-        return ResponseEntity.ok(Response.ok(feeds));
+        return ContentEndpointSupport.okList(feeds);
     }
 
     @PostMapping
@@ -78,7 +78,7 @@ public class MeArticleFeedController {
                 body.title(),
                 body.categoryIds()
         );
-        return ResponseEntity.status(HttpStatus.CREATED).body(Response.created(toView(feed, request)));
+        return ContentEndpointSupport.created(toView(feed, request));
     }
 
     @PutMapping("/{feedId}")
@@ -98,7 +98,7 @@ public class MeArticleFeedController {
                 body.title(),
                 body.categoryIds()
         );
-        return ResponseEntity.ok(Response.ok(toView(feed, request)));
+        return ContentEndpointSupport.ok(toView(feed, request));
     }
 
     @GetMapping("/preview")
@@ -114,7 +114,7 @@ public class MeArticleFeedController {
                 user.userId(),
                 categoryIds
         );
-        return ResponseEntity.ok(Response.ok(toPreviewView(preview)));
+        return ContentEndpointSupport.ok(toPreviewView(preview));
     }
 
     @GetMapping("/{feedId}/preview")
@@ -130,7 +130,7 @@ public class MeArticleFeedController {
                 user.userId(),
                 feedId
         );
-        return ResponseEntity.ok(Response.ok(toPreviewView(preview)));
+        return ContentEndpointSupport.ok(toPreviewView(preview));
     }
 
     @PutMapping("/{feedId}/enabled")
@@ -148,7 +148,7 @@ public class MeArticleFeedController {
                 feedId,
                 body.enabled()
         );
-        return ResponseEntity.ok(Response.ok(toView(feed, request)));
+        return ContentEndpointSupport.ok(toView(feed, request));
     }
 
     @PostMapping("/{feedId}/rotate-token")
@@ -164,7 +164,7 @@ public class MeArticleFeedController {
                 user.userId(),
                 feedId
         );
-        return ResponseEntity.ok(Response.ok(toView(feed, request)));
+        return ContentEndpointSupport.ok(toView(feed, request));
     }
 
     @DeleteMapping("/{feedId}")
@@ -176,7 +176,7 @@ public class MeArticleFeedController {
         DirectwerkUserPrincipal user = SecurityUtils.requireTenantPrincipal(principal);
 
         ArticleFeed feed = articleFeedService.deleteCustomFeed(user.tenantId(), user.userId(), feedId);
-        return ResponseEntity.ok(Response.ok(toView(feed, request)));
+        return ContentEndpointSupport.ok(toView(feed, request));
     }
 
     @PostMapping("/default/rotate-token")
@@ -187,7 +187,7 @@ public class MeArticleFeedController {
         DirectwerkUserPrincipal user = SecurityUtils.requireTenantPrincipal(principal);
 
         ArticleFeed feed = articleFeedService.rotateDefaultFeedToken(user.tenantId(), user.userId());
-        return ResponseEntity.ok(Response.ok(toView(feed, request)));
+        return ContentEndpointSupport.ok(toView(feed, request));
     }
 
     @PutMapping("/default/enabled")
@@ -203,7 +203,7 @@ public class MeArticleFeedController {
                 user.userId(),
                 body.enabled()
         );
-        return ResponseEntity.ok(Response.ok(toView(feed, request)));
+        return ContentEndpointSupport.ok(toView(feed, request));
     }
 
     private ArticleFeedView toView(ArticleFeed feed, HttpServletRequest request) {
