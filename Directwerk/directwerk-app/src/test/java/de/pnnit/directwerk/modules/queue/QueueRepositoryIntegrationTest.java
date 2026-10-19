@@ -78,6 +78,38 @@ class QueueRepositoryIntegrationTest {
     }
 
     @Test
+    void coalescedLookupReturnsTheNewestRowNotTheHighestUuid() {
+        // Issue #567: ids are random UUIDs, so the fallback must order by created_at. Here the older
+        // terminal row sorts highest by id — the pre-fix query returned it instead of the queued row.
+        jdbcTemplate.update("""
+                INSERT INTO jobs (id, queue_name, payload, priority, status, available_at,
+                                  max_attempts, tenant_id, correlation_id, created_at)
+                VALUES ('ffffffff-ffff-4fff-8fff-ffffffffffff', 'mail', '{}'::jsonb, 0, 'COMPLETED',
+                        now() - interval '1 hour', 3, 10, 'corr-newest-wins', now() - interval '1 hour')
+                """);
+        jdbcTemplate.update("""
+                INSERT INTO jobs (id, queue_name, payload, priority, status, available_at,
+                                  max_attempts, tenant_id, correlation_id, created_at)
+                VALUES ('00000000-0000-4000-8000-000000000001', 'mail', '{}'::jsonb, 0, 'QUEUED',
+                        now(), 3, 10, 'corr-newest-wins', now())
+                """);
+
+        QueueJob coalesced = queueRepository.enqueue(
+                "mail",
+                objectMapper.createObjectNode(),
+                0,
+                Instant.now(),
+                3,
+                10L,
+                "corr-newest-wins",
+                null
+        );
+
+        assertThat(coalesced.id()).isEqualTo(UUID.fromString("00000000-0000-4000-8000-000000000001"));
+        assertThat(coalesced.status()).isEqualTo(JobStatus.QUEUED);
+    }
+
+    @Test
     void concurrentWorkersNeverClaimTheSameJob() throws Exception {
         for (int i = 0; i < 20; i++) {
             enqueue("mail", i, Instant.now());
