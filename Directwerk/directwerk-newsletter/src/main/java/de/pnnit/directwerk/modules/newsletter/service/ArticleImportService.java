@@ -7,6 +7,7 @@ import de.pnnit.directwerk.modules.digital.entity.AssetType;
 import de.pnnit.directwerk.modules.digital.entity.AssetVisibility;
 import de.pnnit.directwerk.modules.digital.entity.MediaAsset;
 import de.pnnit.directwerk.modules.digital.importing.FeedImportSupport;
+import de.pnnit.directwerk.modules.digital.importing.ImportedTextLimits;
 import de.pnnit.directwerk.modules.digital.net.RemoteContentClient;
 import de.pnnit.directwerk.modules.digital.service.PublicCdnUrlResolver;
 import de.pnnit.directwerk.modules.newsletter.ArticlesModule;
@@ -167,7 +168,9 @@ public class ArticleImportService {
         List<RemoteAssetIngestApi.CleanupClaim> cleanupClaims = new ArrayList<>();
         AccessPolicy accessPolicy = command.accessPolicy() == null ? AccessPolicy.FREE : command.accessPolicy();
         Long heroAssetId = command.heroAssetId();
-        String body = command.body() == null ? "" : command.body();
+        // #637: the DTOs cap these at ImportedTextLimits; this path binds no DTO, so a feed item
+        // could store a body 50x larger than the API accepts. Clamp here to the same ceiling.
+        String body = clamp(command.body(), ImportedTextLimits.BODY_MAX);
         try {
             if (command.importInlineImages()) {
                 BodyRewrite rewritten = rewriteInlineImages(body, command.title(), cleanupClaims);
@@ -193,7 +196,7 @@ public class ArticleImportService {
                     slug,
                     command.title(),
                     body,
-                    command.excerpt(),
+                    clamp(command.excerpt(), ImportedTextLimits.EXCERPT_MAX),
                     heroAssetId,
                     accessPolicy,
                     command.requiredLevelSortOrder(),
@@ -215,7 +218,7 @@ public class ArticleImportService {
                         retrySlug,
                         command.title(),
                         body,
-                        command.excerpt(),
+                        clamp(command.excerpt(), ImportedTextLimits.EXCERPT_MAX),
                         heroAssetId,
                         accessPolicy,
                         command.requiredLevelSortOrder(),
@@ -351,6 +354,14 @@ public class ArticleImportService {
                         "Could not allocate a unique article slug"
                 )
         );
+    }
+
+    /** Null-tolerant clamp; the value is display text, so shortening it is safe. */
+    private static String clamp(String value, int maxLength) {
+        if (value == null) {
+            return "";
+        }
+        return value.length() <= maxLength ? value : value.substring(0, maxLength);
     }
 
     private static String importFilenameHint(String title, String url, String fallbackStem, String extension) {

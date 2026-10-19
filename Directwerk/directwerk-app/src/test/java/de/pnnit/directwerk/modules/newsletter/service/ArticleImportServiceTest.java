@@ -11,6 +11,7 @@ import static org.mockito.Mockito.when;
 
 import de.pnnit.directwerk.modules.digital.api.RemoteAssetIngestApi;
 import de.pnnit.directwerk.modules.digital.entity.AccessPolicy;
+import de.pnnit.directwerk.modules.digital.importing.ImportedTextLimits;
 import de.pnnit.directwerk.modules.digital.entity.MediaAsset;
 import de.pnnit.directwerk.modules.digital.net.RemoteContentClient;
 import de.pnnit.directwerk.modules.digital.service.PublicCdnUrlResolver;
@@ -206,6 +207,37 @@ class ArticleImportServiceTest {
         assertThat(rewritten).contains("href=\"" + source + "\"");
         assertThat(rewritten).contains("src=\"https://cdn.example.com/a.jpg\"");
         assertThat(rewritten).doesNotContain("src=\"" + source + "\"");
+    }
+
+    @Test
+    void clampsAnOversizedImportedBodyToTheSharedLimit() {
+        // #637: the DTOs cap body/excerpt, but this path binds no DTO — a feed item could store a
+        // body bounded only by the 5 MB feed. Both entry paths now share one ceiling.
+        String feedUrl = "https://example.com/feed.xml";
+        String identity = ArticleImportService.importIdentity(feedUrl, "guid-huge");
+        when(articleRepository.findByTenantIdAndImportIdentity(10L, identity)).thenReturn(Optional.empty());
+        when(articleRepository.existsByTenantIdAndSlug(10L, "title")).thenReturn(false);
+        Article created = new Article();
+        created.setId(2L);
+        when(articleService.createImportedDraft(
+                any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()
+        )).thenReturn(created);
+
+        String oversizedBody = "b".repeat(ImportedTextLimits.BODY_MAX + 5_000);
+        String oversizedExcerpt = "e".repeat(ImportedTextLimits.EXCERPT_MAX + 500);
+        service.importArticle(new ArticleImportService.ImportArticleCommand(
+                feedUrl, "guid-huge", "title", "Title", oversizedBody, oversizedExcerpt,
+                AccessPolicy.FREE, null, Set.of(), null, null, false, false, null
+        ));
+
+        ArgumentCaptor<String> bodyCaptor = ArgumentCaptor.forClass(String.class);
+        ArgumentCaptor<String> excerptCaptor = ArgumentCaptor.forClass(String.class);
+        verify(articleService).createImportedDraft(
+                eq(10L), any(), any(), bodyCaptor.capture(), excerptCaptor.capture(),
+                any(), any(), any(), any(), any(), any()
+        );
+        assertThat(bodyCaptor.getValue()).hasSize(ImportedTextLimits.BODY_MAX);
+        assertThat(excerptCaptor.getValue()).hasSize(ImportedTextLimits.EXCERPT_MAX);
     }
 
     @Test
