@@ -6,6 +6,7 @@ import java.time.Instant;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -16,6 +17,12 @@ public interface TenantMembershipRepository extends JpaRepository<TenantMembersh
 
     Optional<TenantMembership> findByUserIdAndTenantId(Long userId, Long tenantId);
 
+    /**
+     * #561: the tenant directory read model dereferences {@code membership.user.email/name} per
+     * row, and there is no {@code default_batch_fetch_size} in this repo, so listing N members
+     * issued 1 + N selects. The graph makes it one.
+     */
+    @EntityGraph(attributePaths = "user")
     List<TenantMembership> findByTenantId(Long tenantId);
 
     Optional<TenantMembership> findByTenantIdAndUserId(Long tenantId, Long userId);
