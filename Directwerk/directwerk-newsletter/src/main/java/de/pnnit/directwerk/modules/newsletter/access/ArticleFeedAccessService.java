@@ -1,5 +1,6 @@
 package de.pnnit.directwerk.modules.newsletter.access;
 
+import de.pnnit.directwerk.modules.digital.access.AbstractFeedAccessService;
 import de.pnnit.directwerk.modules.newsletter.api.ArticleAccessApi;
 import de.pnnit.directwerk.modules.newsletter.entity.Article;
 import de.pnnit.directwerk.modules.newsletter.feed.ArticleFeed;
@@ -13,7 +14,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
-public class ArticleFeedAccessService implements ArticleFeedAccess {
+public class ArticleFeedAccessService
+        extends AbstractFeedAccessService<Article, ArticleFeed>
+        implements ArticleFeedAccess {
 
     private final PublicArticleQueryService publicArticleQueryService;
     private final ArticleAccessApi articleAccessApi;
@@ -24,9 +27,7 @@ public class ArticleFeedAccessService implements ArticleFeedAccess {
             Long tenantId,
             Long userId,
             ArticleFeed feed) {
-        return entitledArticles(tenantId, userId).stream()
-                .filter(article -> ArticleFeedCategoryMatcher.includes(feed, article))
-                .toList();
+        return listEntitled(tenantId, userId, feed);
     }
 
     @Override
@@ -35,9 +36,7 @@ public class ArticleFeedAccessService implements ArticleFeedAccess {
             Long tenantId,
             Long userId,
             Set<Long> activeCategoryIds) {
-        return entitledArticles(tenantId, userId).stream()
-                .filter(article -> ArticleFeedCategoryMatcher.articleMatchesSelectedCategories(article, activeCategoryIds))
-                .toList();
+        return listEntitledForSelection(tenantId, userId, activeCategoryIds);
     }
 
     @Override
@@ -47,12 +46,27 @@ public class ArticleFeedAccessService implements ArticleFeedAccess {
             Long userId,
             ArticleFeed feed,
             Article article) {
-        return ArticleFeedCategoryMatcher.includes(feed, article)
-                && articleAccessApi.hasAccess(tenantId, userId, article.getId());
+        return hasAccess(tenantId, userId, feed, article);
     }
 
-    private List<Article> entitledArticles(Long tenantId, Long userId) {
+    @Override
+    protected List<Article> entitledContent(Long tenantId, Long userId) {
         List<Article> published = publicArticleQueryService.listPublishedArticles(tenantId);
         return articleAccessApi.filterAccessible(tenantId, userId, published);
+    }
+
+    @Override
+    protected boolean matchesFeed(ArticleFeed feed, Article article) {
+        return ArticleFeedCategoryMatcher.includes(feed, article);
+    }
+
+    @Override
+    protected boolean matchesSelection(Article article, Set<Long> selectionIds) {
+        return ArticleFeedCategoryMatcher.articleMatchesSelectedCategories(article, selectionIds);
+    }
+
+    @Override
+    protected boolean hasContentAccess(Long tenantId, Long userId, Article article) {
+        return articleAccessApi.hasAccess(tenantId, userId, article.getId());
     }
 }
