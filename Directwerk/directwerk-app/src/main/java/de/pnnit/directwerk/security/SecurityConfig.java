@@ -8,7 +8,7 @@ import com.nimbusds.jose.proc.SecurityContext;
 import de.pnnit.directwerk.api.exception.FilterExceptionResolver;
 import de.pnnit.directwerk.config.DirectwerkConfig;
 import de.pnnit.directwerk.modules.marketing.ContactFormLimits;
-import de.pnnit.directwerk.modules.marketing.ContactRequestBodySizeFilter;
+import de.pnnit.directwerk.modules.stripebilling.StripeWebhookLimits;
 import de.pnnit.directwerk.config.DirectwerkProperties;
 import de.pnnit.directwerk.multitenancy.TenantContextFilter;
 import de.pnnit.directwerk.multitenancy.TenantResolver;
@@ -350,10 +350,30 @@ public class SecurityConfig {
     }
 
     @Bean
-    FilterRegistrationBean<ContactRequestBodySizeFilter> contactRequestBodySizeFilterRegistration() {
-        FilterRegistrationBean<ContactRequestBodySizeFilter> registration = new FilterRegistrationBean<>();
-        registration.setFilter(new ContactRequestBodySizeFilter(ContactFormLimits.MAX_REQUEST_BODY_BYTES));
+    FilterRegistrationBean<JsonRequestBodySizeFilter> contactRequestBodySizeFilterRegistration() {
+        FilterRegistrationBean<JsonRequestBodySizeFilter> registration = new FilterRegistrationBean<>();
+        registration.setFilter(new JsonRequestBodySizeFilter(
+                ContactFormLimits.MAX_REQUEST_BODY_BYTES,
+                "/api/v1/public/contact"
+        ));
         registration.addUrlPatterns("/api/v1/public/contact");
+        registration.setOrder(Ordered.HIGHEST_PRECEDENCE);
+        return registration;
+    }
+
+    /**
+     * Caps the anonymous, signature-verified Stripe webhook body (issue #546): the handler binds
+     * the whole body to a String before the signature is checked, so an unbounded request could
+     * allocate hundreds of MB per concurrent call.
+     */
+    @Bean
+    FilterRegistrationBean<JsonRequestBodySizeFilter> stripeWebhookRequestBodySizeFilterRegistration() {
+        FilterRegistrationBean<JsonRequestBodySizeFilter> registration = new FilterRegistrationBean<>();
+        registration.setFilter(new JsonRequestBodySizeFilter(
+                StripeWebhookLimits.MAX_REQUEST_BODY_BYTES,
+                "/api/v1/webhooks/stripe"
+        ));
+        registration.addUrlPatterns("/api/v1/webhooks/stripe");
         registration.setOrder(Ordered.HIGHEST_PRECEDENCE);
         return registration;
     }
