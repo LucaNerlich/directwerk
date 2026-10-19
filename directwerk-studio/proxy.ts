@@ -3,9 +3,10 @@ import {NextResponse} from 'next/server'
 
 import {createDirectwerkProxyHandler} from '@directwerk/api/proxy/directwerkProxy'
 
+import {resolveLocalePreference} from '@directwerk/ui/lib/i18n'
+
 import {createDirectwerkContentSecurityPolicy} from '../packages/next-config/createDirectwerkNextConfig'
-import {LOCALE_COOKIE, locales} from './lib/i18n/config'
-import {preferredLocale} from './lib/i18n/matchLocale'
+import {defaultLocale, LOCALE_COOKIE, locales} from './lib/i18n/config'
 import {pathHasLocalePrefix} from './lib/i18n/paths'
 
 const handleDirectwerkProxy = createDirectwerkProxyHandler({
@@ -24,9 +25,13 @@ export function proxy(request: NextRequest) {
     const {pathname} = request.nextUrl
 
     if (!shouldSkipLocale(pathname) && !pathHasLocalePrefix(pathname)) {
-        const locale = preferredLocale(
-            request.headers.get('accept-language'),
+        // Issue #545: cookie beats Accept-Language, then the default locale — the same
+        // one policy every app uses.
+        const locale = resolveLocalePreference(
             request.cookies.get(LOCALE_COOKIE)?.value,
+            request.headers.get('accept-language'),
+            locales,
+            defaultLocale,
         )
         const url = request.nextUrl.clone()
         url.pathname =

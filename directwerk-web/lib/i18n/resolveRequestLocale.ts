@@ -1,13 +1,15 @@
 import type {NextRequest} from 'next/server'
 
-import {defaultLocale, isLocale, LOCALE_COOKIE, type Locale} from './config'
-import {negotiateLocale} from './negotiate'
+import {resolveLocalePreference} from '@directwerk/ui/lib/i18n'
 
-/** Cookie → Accept-Language → default `de`. */
+import {defaultLocale, LOCALE_COOKIE, locales, type Locale} from './config'
+
+/** Cookie → Accept-Language → default `de`, from the shared policy (issue #545). */
 export function resolveRequestLocale(request: NextRequest): Locale {
-    const cookieValue = request.cookies.get(LOCALE_COOKIE)?.value
-    if (cookieValue !== undefined && isLocale(cookieValue)) {
-        return cookieValue
-    }
-    return negotiateLocale(request.headers.get('accept-language')) ?? defaultLocale
+    return resolveLocalePreference(
+        request.cookies.get(LOCALE_COOKIE)?.value,
+        request.headers.get('accept-language'),
+        locales,
+        defaultLocale,
+    )
 }
