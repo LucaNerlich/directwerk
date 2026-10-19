@@ -9,6 +9,7 @@ import de.pnnit.directwerk.api.dto.PublishOptionsRequest;
 import de.pnnit.directwerk.api.dto.ReplaceCategoriesRequest;
 import de.pnnit.directwerk.api.dto.ReplaceNewsletterListsRequest;
 import de.pnnit.directwerk.api.response.Response;
+import de.pnnit.directwerk.controller.support.ContentEndpointSupport;
 import de.pnnit.directwerk.modules.core.RequiresModule;
 import de.pnnit.directwerk.modules.digital.DigitalContentModule;
 import de.pnnit.directwerk.modules.digital.entity.AccessPolicy;
@@ -32,7 +33,6 @@ import java.time.Instant;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -69,22 +69,19 @@ public class ArticleController {
             @RequestParam(defaultValue = "100") @Min(1) @Max(500) int limit
     ) {
         Long tenantId = TenantContext.requireTenantId();
-        List<ArticleView> articles = articleService.listArticles(tenantId, limit).stream()
-                .map(ArticleController::toView)
-                .toList();
-        return ResponseEntity.ok(Response.ok(articles));
+        return ContentEndpointSupport.okList(articleService.listArticles(tenantId, limit), ArticleController::toView);
     }
 
     @GetMapping("/{articleId}")
     ResponseEntity<Response<ArticleView>> getArticle(@PathVariable Long articleId) {
         Long tenantId = TenantContext.requireTenantId();
-        return ResponseEntity.ok(Response.ok(toView(articleService.requireArticle(tenantId, articleId))));
+        return ContentEndpointSupport.ok(articleService.requireArticle(tenantId, articleId), ArticleController::toView);
     }
 
     @PostMapping
     ResponseEntity<Response<ArticleView>> createDraft(@Valid @RequestBody CreateArticleRequest request) {
         Long tenantId = TenantContext.requireTenantId();
-                Article article = articleService.createDraft(
+        Article article = articleService.createDraft(
                 tenantId,
                 request.slug(),
                 request.title(),
@@ -96,7 +93,7 @@ public class ArticleController {
                 request.requiredLevelSortOrder(),
                 request.categoryIds()
         );
-        return ResponseEntity.status(HttpStatus.CREATED).body(Response.created(toView(article)));
+        return ContentEndpointSupport.created(article, ArticleController::toView);
     }
 
     @PutMapping("/{articleId}")
@@ -105,7 +102,7 @@ public class ArticleController {
             @Valid @RequestBody UpdateArticleRequest request
     ) {
         Long tenantId = TenantContext.requireTenantId();
-                Article article = articleService.updateDraft(
+        Article article = articleService.updateDraft(
                 tenantId,
                 articleId,
                 request.slug(),
@@ -118,7 +115,7 @@ public class ArticleController {
                 request.requiredLevelSortOrder(),
                 request.clearHeroAsset()
         );
-        return ResponseEntity.ok(Response.ok(toView(article)));
+        return ContentEndpointSupport.ok(article, ArticleController::toView);
     }
 
     @PutMapping("/{articleId}/categories")
@@ -127,9 +124,10 @@ public class ArticleController {
             @Valid @RequestBody ReplaceCategoriesRequest request
     ) {
         Long tenantId = TenantContext.requireTenantId();
-        return ResponseEntity.ok(Response.ok(toView(
-                articleService.replaceCategories(tenantId, articleId, request.categoryIds())
-        )));
+        return ContentEndpointSupport.ok(
+                articleService.replaceCategories(tenantId, articleId, request.categoryIds()),
+                ArticleController::toView
+        );
     }
 
     @PutMapping("/{articleId}/newsletter-lists")
@@ -138,9 +136,10 @@ public class ArticleController {
             @Valid @RequestBody ReplaceNewsletterListsRequest request
     ) {
         Long tenantId = TenantContext.requireTenantId();
-        return ResponseEntity.ok(Response.ok(toView(
-                articleService.replaceNewsletterLists(tenantId, articleId, request.newsletterListIds())
-        )));
+        return ContentEndpointSupport.ok(
+                articleService.replaceNewsletterLists(tenantId, articleId, request.newsletterListIds()),
+                ArticleController::toView
+        );
     }
 
     @PostMapping("/{articleId}/publish")
@@ -149,11 +148,12 @@ public class ArticleController {
             @RequestBody(required = false) PublishOptionsRequest request
     ) {
         Long tenantId = TenantContext.requireTenantId();
-        boolean notifySubscribers = request != null && Boolean.TRUE.equals(request.notifySubscribers());
-        Instant publishedAt = request != null ? request.publishedAt() : null;
-        return ResponseEntity.ok(Response.ok(toView(
-                articlePublicationWorkflowService.publish(tenantId, articleId, notifySubscribers, publishedAt)
-        )));
+        return ContentEndpointSupport.publish(
+                request,
+                (notifySubscribers, publishedAt) -> articlePublicationWorkflowService.publish(
+                        tenantId, articleId, notifySubscribers, publishedAt),
+                ArticleController::toView
+        );
     }
 
     @PostMapping("/{articleId}/schedule")
@@ -168,39 +168,43 @@ public class ArticleController {
                 request.scheduledAt(),
                 Boolean.TRUE.equals(request.notifySubscribers())
         );
-        return ResponseEntity.ok(Response.ok(toView(article)));
+        return ContentEndpointSupport.ok(article, ArticleController::toView);
     }
 
     @PostMapping("/{articleId}/cancel-schedule")
     ResponseEntity<Response<ArticleView>> cancelSchedule(@PathVariable Long articleId) {
         Long tenantId = TenantContext.requireTenantId();
-        return ResponseEntity.ok(Response.ok(toView(
-                articlePublicationWorkflowService.cancelSchedule(tenantId, articleId)
-        )));
+        return ContentEndpointSupport.ok(
+                articlePublicationWorkflowService.cancelSchedule(tenantId, articleId),
+                ArticleController::toView
+        );
     }
 
     @PostMapping("/{articleId}/unpublish")
     ResponseEntity<Response<ArticleView>> unpublish(@PathVariable Long articleId) {
         Long tenantId = TenantContext.requireTenantId();
-        return ResponseEntity.ok(Response.ok(toView(
-                articlePublicationWorkflowService.unpublish(tenantId, articleId)
-        )));
+        return ContentEndpointSupport.ok(
+                articlePublicationWorkflowService.unpublish(tenantId, articleId),
+                ArticleController::toView
+        );
     }
 
     @PostMapping("/{articleId}/archive")
     ResponseEntity<Response<ArticleView>> archive(@PathVariable Long articleId) {
         Long tenantId = TenantContext.requireTenantId();
-        return ResponseEntity.ok(Response.ok(toView(
-                articlePublicationWorkflowService.archive(tenantId, articleId)
-        )));
+        return ContentEndpointSupport.ok(
+                articlePublicationWorkflowService.archive(tenantId, articleId),
+                ArticleController::toView
+        );
     }
 
     @PostMapping("/{articleId}/unarchive")
     ResponseEntity<Response<ArticleView>> unarchive(@PathVariable Long articleId) {
         Long tenantId = TenantContext.requireTenantId();
-        return ResponseEntity.ok(Response.ok(toView(
-                articlePublicationWorkflowService.unarchive(tenantId, articleId)
-        )));
+        return ContentEndpointSupport.ok(
+                articlePublicationWorkflowService.unarchive(tenantId, articleId),
+                ArticleController::toView
+        );
     }
 
     @Operation(
@@ -218,13 +222,15 @@ public class ArticleController {
     @PostMapping("/bulk/publish")
     ResponseEntity<Response<List<ArticleView>>> bulkPublish(@Valid @RequestBody BulkPublishRequest request) {
         Long tenantId = TenantContext.requireTenantId();
-        boolean notifySubscribers = Boolean.TRUE.equals(request.notifySubscribers());
-        List<ArticleView> published = articlePublicationWorkflowService
-                .bulkPublish(tenantId, request.ids(), notifySubscribers, request.publishedAt())
-                .stream()
-                .map(ArticleController::toView)
-                .toList();
-        return ResponseEntity.ok(Response.ok(published));
+        return ContentEndpointSupport.okList(
+                articlePublicationWorkflowService.bulkPublish(
+                        tenantId,
+                        request.ids(),
+                        ContentEndpointSupport.notifySubscribers(request.notifySubscribers()),
+                        request.publishedAt()
+                ),
+                ArticleController::toView
+        );
     }
 
     @Operation(
@@ -242,12 +248,10 @@ public class ArticleController {
     @PostMapping("/bulk/unpublish")
     ResponseEntity<Response<List<ArticleView>>> bulkUnpublish(@Valid @RequestBody BulkIdsRequest request) {
         Long tenantId = TenantContext.requireTenantId();
-        List<ArticleView> unpublished = articlePublicationWorkflowService
-                .bulkUnpublish(tenantId, request.ids())
-                .stream()
-                .map(ArticleController::toView)
-                .toList();
-        return ResponseEntity.ok(Response.ok(unpublished));
+        return ContentEndpointSupport.okList(
+                articlePublicationWorkflowService.bulkUnpublish(tenantId, request.ids()),
+                ArticleController::toView
+        );
     }
 
     @Operation(
