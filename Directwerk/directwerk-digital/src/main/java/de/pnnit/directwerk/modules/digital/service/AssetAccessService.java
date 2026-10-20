@@ -59,7 +59,11 @@ public class AssetAccessService implements AssetAccessApi {
     @Override
     @Transactional(readOnly = true)
     public URL resolveDownloadUrl(MediaAsset asset, DirectwerkUserPrincipal principal) {
-        MediaAsset managed = requireLoadedAsset(asset);
+        return resolveLoadedDownloadUrl(requireLoadedAsset(asset), principal);
+    }
+
+    /** Same as {@link #resolveDownloadUrl} for a caller that already loaded the managed asset. */
+    private URL resolveLoadedDownloadUrl(MediaAsset managed, DirectwerkUserPrincipal principal) {
         MediaAssetTenantCheck.assertTenantMatch(managed);
         TenantAssetKeys.requireTenantPrefix(managed.getTenant().getSlug(), managed.getS3Key());
 
@@ -159,7 +163,7 @@ public class AssetAccessService implements AssetAccessApi {
             } else {
                 try {
                     resolved.add(new AssetAccessApi.ResolvedDownload(
-                            managed, resolveDownloadUrl(managed, principal)));
+                            managed, resolveLoadedDownloadUrl(managed, principal)));
                 } catch (EntitlementDeniedException | AccessDeniedException ignored) {
                     // Fail closed per asset — do not leak unauthorized files.
                 }
@@ -220,9 +224,9 @@ public class AssetAccessService implements AssetAccessApi {
         return left.requiredLevelSortOrder() <= right.requiredLevelSortOrder() ? left : right;
     }
 
-    private URL resolvePublicCdnUrl(MediaAsset asset) {
-        return publicCdnUrlResolver.resolve(asset)
-                .orElseThrow(() -> new EntitlementDeniedException(asset.getId()));
+    private URL resolvePublicCdnUrl(MediaAsset managed) {
+        return publicCdnUrlResolver.resolveLoaded(managed)
+                .orElseThrow(() -> new EntitlementDeniedException(managed.getId()));
     }
 
     private MediaAsset requireLoadedAsset(MediaAsset asset) {
