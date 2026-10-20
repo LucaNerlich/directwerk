@@ -75,6 +75,24 @@ class RssXmlWriterTest {
     }
 
     @Test
+    void keepsLongSingleElementDescriptionsUpToTheCap() {
+        String html = "<p>" + "x".repeat(5000) + "</p>";
+
+        String truncated = RssXmlWriter.truncateHtml(html, 4000);
+
+        assertThat(truncated).hasSize(4000);
+        assertThat(truncated).isEqualTo("<p>" + "x".repeat(3997));
+    }
+
+    @Test
+    void dropsAPartialFirstTagInsteadOfEmittingIt() {
+        String html = "<a href=\"" + "u".repeat(100) + "\">link</a>";
+
+        assertThat(RssXmlWriter.truncateHtml(html, 40)).isEmpty();
+        assertThat(RssXmlWriter.truncateHtml("text<em>x</em>", 5)).isEqualTo("text");
+    }
+
+    @Test
     void escapeTextStripsXmlInvalidControlCharacters() {
         assertThat(RssXmlWriter.escapeText("AB\u0001C\u000BD\u000CE\u001FF")).isEqualTo("ABCDEF");
     }

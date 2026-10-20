@@ -157,18 +157,22 @@ public final class RssXmlWriter {
         if (cut > 0 && Character.isHighSurrogate(html.charAt(cut - 1))) {
             cut--;
         }
+        int lastTagOpen = html.lastIndexOf('<', cut - 1);
         int lastTagClose = html.lastIndexOf('>', cut - 1);
-        if (lastTagClose >= 0) {
-            cut = lastTagClose + 1;
+        if (lastTagOpen > lastTagClose) {
+            // The cut lands inside a tag: stop before it opens (issue #685 review). Do not back
+            // up to the previous '>' unconditionally — that would collapse a description that is
+            // one long element to its opening tag.
+            cut = lastTagOpen;
         } else {
-            // No tag boundary: do not leave an unterminated entity (&amp / &#1234).
+            // Plain text at the cut: do not leave an unterminated entity (&amp / &#1234).
             int lastSemicolon = html.lastIndexOf(';', cut - 1);
             int lastAmpersand = html.lastIndexOf('&', cut - 1);
             if (lastAmpersand > lastSemicolon) {
                 cut = lastAmpersand;
             }
         }
-        return html.substring(0, cut).trim();
+        return html.substring(0, Math.max(cut, 0)).trim();
     }
 
     private static void appendElement(StringBuilder xml, String name, String value, int spaces) {
