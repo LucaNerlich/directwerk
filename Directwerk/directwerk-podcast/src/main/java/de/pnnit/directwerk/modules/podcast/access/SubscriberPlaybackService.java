@@ -25,7 +25,7 @@ public class SubscriberPlaybackService {
 
     public URL resolvePortalPlayback(MediaAsset audioAsset, Episode episode, DirectwerkUserPrincipal user) {
         if (isPublisher(user)) {
-            return assetAccessApi.resolvePreviewUrl(audioAsset, user, true);
+            return assetAccessApi.resolvePreviewUrl(audioAsset, user);
         }
         return assetAccessApi.resolveEpisodePortalUrl(
                 audioAsset,

@@ -75,12 +75,12 @@ class SubscriberPlaybackServiceTest {
                 List.of(new SimpleGrantedAuthority(RoleConstants.EDITOR))
         );
         URL expected = URI.create("https://cdn.example.test/preview.mp3").toURL();
-        when(assetAccessApi.resolvePreviewUrl(audioAsset, editor, true)).thenReturn(expected);
+        when(assetAccessApi.resolvePreviewUrl(audioAsset, editor)).thenReturn(expected);
 
         URL resolved = subscriberPlaybackService.resolvePortalPlayback(audioAsset, episode, editor);
 
         assertThat(resolved).isEqualTo(expected);
-        verify(assetAccessApi).resolvePreviewUrl(audioAsset, editor, true);
+        verify(assetAccessApi).resolvePreviewUrl(audioAsset, editor);
     }
 
     @Test

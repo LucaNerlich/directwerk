@@ -352,7 +352,7 @@ you on this tenant?” Subscription answers “which products/tiers unlock this 
 | `USER` | `{tenant}/private/user/{userId}/...` | 403 | owner only | owner only | owner only** | admin override optional*** |
 | `SYSTEM` | `{tenant}/private/system/...` | 403 | 403 | 403 | presign | presign |
 
-\* Draft preview: explicit `previewDraft=true` API flag — never bypass entitlements on published paid content.  
+\* Publisher preview: `EDITOR`/`TENANT_ADMIN` get a short-lived pre-signed GET for any non-tombstoned asset in their tenant (published content included); subscribers still need entitlements.  
 \** Editors do not automatically see another user’s `USER`-scoped files.  
 \*** Optional `TENANT_ADMIN` GDPR/support access — document as audited, explicit, post-MVP if needed.
 
@@ -498,8 +498,9 @@ public class AssetAccessService {
 Episodes the subscriber is not entitled to are **omitted** — not included with a locked placeholder
 URL.
 
-**Publisher preview:** `EDITOR` role bypasses entitlement for **draft** assets in tenant only via
-explicit `previewDraft` flag — never for published `CONTENT` assets owned by another product line.
+**Publisher preview:** `EDITOR`/`TENANT_ADMIN` get a short-lived pre-signed GET for any
+non-tombstoned asset in their tenant, published `CONTENT` included; subscribers still go through
+the entitlement checks above.
 
 ---
 

@@ -184,7 +184,7 @@ class AssetAccessServiceTest {
         when(privateObjectUrlSigner.signPrivateObject(any(String.class), any(Duration.class)))
                 .thenReturn(URI.create("https://s3.example/preview").toURL());
 
-        URL url = service.resolvePreviewUrl(asset, editor(9L, 10L), true);
+        URL url = service.resolvePreviewUrl(asset, editor(9L, 10L));
 
         assertThat(url.toString()).isEqualTo("https://s3.example/preview");
     }
@@ -198,7 +198,7 @@ class AssetAccessServiceTest {
         doThrow(new ModuleNotEnabledException(FeatureModuleKeys.PODCAST))
                 .when(moduleGateService).requireModule(FeatureModuleKeys.PODCAST);
 
-        assertThatThrownBy(() -> service.resolvePreviewUrl(asset, editor(9L, 10L), true))
+        assertThatThrownBy(() -> service.resolvePreviewUrl(asset, editor(9L, 10L)))
                 .isInstanceOf(ModuleNotEnabledException.class);
     }
 
@@ -229,7 +229,7 @@ class AssetAccessServiceTest {
         asset.setOwnerUserId(42L);
         givenLoaded(asset);
 
-        assertThatThrownBy(() -> service.resolvePreviewUrl(asset, editor(9L, 10L), true))
+        assertThatThrownBy(() -> service.resolvePreviewUrl(asset, editor(9L, 10L)))
                 .isInstanceOf(EntitlementDeniedException.class);
     }
 

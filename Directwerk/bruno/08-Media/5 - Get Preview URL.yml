@@ -6,10 +6,6 @@ info:
 http:
   method: GET
   url: "{{baseUrl}}/api/v1/media/{{mediaAssetId}}/preview-url"
-  params:
-    - name: previewDraft
-      value: "true"
-      type: query
   auth: inherit
 
 runtime:
