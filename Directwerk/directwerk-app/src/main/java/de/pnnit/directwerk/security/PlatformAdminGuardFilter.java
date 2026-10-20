@@ -1,8 +1,6 @@
 package de.pnnit.directwerk.security;
 
 import de.pnnit.directwerk.api.exception.FilterExceptionResolver;
-import de.pnnit.directwerk.multitenancy.PlatformAdminAccessDeniedException;
-import de.pnnit.directwerk.multitenancy.TenantMismatchException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -38,10 +36,9 @@ public class PlatformAdminGuardFilter extends OncePerRequestFilter {
 
         try {
             currentPlatformAdminService.requireActivePlatformAdmin();
-        } catch (PlatformAdminAccessDeniedException | TenantMismatchException ex) {
-            filterExceptionResolver.resolve(request, response, ex);
-            return;
         } catch (RuntimeException ex) {
+            // Issue #576: expected denial/mismatch exceptions and unexpected lookup failures
+            // resolve identically — both must leave the API as the standard error envelope.
             filterExceptionResolver.resolve(request, response, ex);
             return;
         }
