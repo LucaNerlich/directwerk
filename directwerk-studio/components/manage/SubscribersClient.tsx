@@ -32,6 +32,7 @@ import {
 import type {TenantSubscriberSubscription} from '@directwerk/api/types'
 import {useCachedTenantQuery} from '@directwerk/api/client/useCachedTenantQuery'
 import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
+import {useTwoStepConfirm} from '@/lib/hooks/useTwoStepConfirm'
 import {getClientTenantHost} from '@directwerk/api/tenant'
 
 const REVOCABLE = new Set(['ACTIVE', 'PAST_DUE', 'INCOMPLETE'])
@@ -67,7 +68,7 @@ export default function SubscribersClient(): React.JSX.Element {
     const [actionError, setActionError] = useState<string | null>(null)
     const [statusMessage, setStatusMessage] = useState<string | null>(null)
     const [isBusy, setIsBusy] = useState(false)
-    const [pendingRevokeId, setPendingRevokeId] = useState<number | null>(null)
+    const {pending: pendingRevokeId, arm: armRevoke, reset: resetRevoke} = useTwoStepConfirm<number>()
     const [query, setQuery] = useState('')
     const {viewMode, setViewMode} = useListViewMode()
 
@@ -93,8 +94,7 @@ export default function SubscribersClient(): React.JSX.Element {
     const errorMessage = actionError ?? loadError
 
     async function handleRevoke(item: TenantSubscriberSubscription, email: string): Promise<void> {
-        if (pendingRevokeId !== item.id) {
-            setPendingRevokeId(item.id)
+        if (!armRevoke(item.id)) {
             setStatusMessage(
                 item.source === 'STRIPE'
                     ? 'Nochmal bestätigen: das Stripe-Abo wird gekündigt.'
@@ -107,7 +107,7 @@ export default function SubscribersClient(): React.JSX.Element {
         setStatusMessage(null)
         try {
             await revokeSubscription( item.id)
-            setPendingRevokeId(null)
+            resetRevoke()
             setStatusMessage(`Zugang beendet: ${email}`)
             reload()
         } catch (error: unknown) {
@@ -117,7 +117,7 @@ export default function SubscribersClient(): React.JSX.Element {
             )
         } finally {
             setIsBusy(false)
-            setPendingRevokeId(null)
+            resetRevoke()
         }
     }
 
@@ -192,7 +192,7 @@ export default function SubscribersClient(): React.JSX.Element {
                                         <Button
                                             disabled={isBusy}
                                             onClick={() => {
-                                                setPendingRevokeId(null)
+                                                resetRevoke()
                                                 setStatusMessage(null)
                                             }}
                                             type="button"

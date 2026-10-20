@@ -30,6 +30,7 @@ import type {BillingDashboard, BillingMembership} from '@directwerk/api/types'
 import {formatMoney} from '@directwerk/api/format'
 
 import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
+import {useTwoStepConfirm} from '@/lib/hooks/useTwoStepConfirm'
 
 const REVOCABLE_STATUSES = new Set(['ACTIVE', 'PAST_DUE', 'INCOMPLETE'])
 
@@ -95,7 +96,7 @@ export default function PaymentsDashboardClient(): React.JSX.Element {
     const [errorMessage, setErrorMessage] = useState<string | null>(null)
     const [statusMessage, setStatusMessage] = useState<string | null>(null)
     const [isBusy, setIsBusy] = useState(false)
-    const [pendingRevokeId, setPendingRevokeId] = useState<number | null>(null)
+    const {pending: pendingRevokeId, arm: armRevoke, reset: resetRevoke} = useTwoStepConfirm<number>()
     const [query, setQuery] = useState('')
     const [statusFilter, setStatusFilter] = useState('all')
     const [sourceFilter, setSourceFilter] = useState('all')
@@ -176,8 +177,7 @@ export default function PaymentsDashboardClient(): React.JSX.Element {
     }
 
     async function handleRevoke(row: BillingMembership): Promise<void> {
-        if (pendingRevokeId !== row.id) {
-            setPendingRevokeId(row.id)
+        if (!armRevoke(row.id)) {
             setStatusMessage(
                 row.source === 'STRIPE'
                     ? 'Nochmal bestätigen: das Stripe-Abo wird gekündigt und der Zugang entfällt sofort.'
@@ -191,7 +191,7 @@ export default function PaymentsDashboardClient(): React.JSX.Element {
         setStatusMessage(null)
         try {
             const revoked = await revokeSubscription( row.id)
-            setPendingRevokeId(null)
+            resetRevoke()
             await reloadDashboard()
             setStatusMessage(`Zugang beendet: ${revoked.email}`)
         } catch (error: unknown) {
@@ -201,7 +201,7 @@ export default function PaymentsDashboardClient(): React.JSX.Element {
             )
         } finally {
             setIsBusy(false)
-            setPendingRevokeId(null)
+            resetRevoke()
         }
     }
 
@@ -464,7 +464,7 @@ export default function PaymentsDashboardClient(): React.JSX.Element {
                                                     <Button
                                                         disabled={isBusy}
                                                         onClick={() => {
-                                                            setPendingRevokeId(null)
+                                                            resetRevoke()
                                                             setStatusMessage(null)
                                                         }}
                                                         type="button"
