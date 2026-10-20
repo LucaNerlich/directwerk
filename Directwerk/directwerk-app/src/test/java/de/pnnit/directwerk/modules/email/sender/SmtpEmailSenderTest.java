@@ -64,6 +64,33 @@ class SmtpEmailSenderTest {
     }
 
     @Test
+    void keepsCallerSuppliedMessageIdAcrossSaveChanges() throws Exception {
+        MimeMessage mimeMessage = new MimeMessage(Session.getDefaultInstance(new Properties()));
+        when(mailSender.createMimeMessage()).thenReturn(mimeMessage);
+        String messageId = "<00000000-0000-0000-0000-000000000001@directwerk.local>";
+
+        smtpEmailSender.send(new OutboundEmail(
+                "user@example.com",
+                "noreply@directwerk.local",
+                "Directwerk",
+                "Reset your password",
+                "<p>body</p>",
+                "body",
+                "00000000-0000-0000-0000-000000000001",
+                "PASSWORD_RESET",
+                Map.of("Message-ID", messageId)
+        ));
+
+        ArgumentCaptor<MimeMessage> messageCaptor = ArgumentCaptor.forClass(MimeMessage.class);
+        verify(mailSender).send(messageCaptor.capture());
+        MimeMessage sentMessage = messageCaptor.getValue();
+        // JavaMailSenderImpl.doSend() saves the message right before Transport.sendMessage().
+        sentMessage.saveChanges();
+
+        assertThat(sentMessage.getHeader("Message-ID")).containsExactly(messageId);
+    }
+
+    @Test
     void sendWrapsTransportFailure() {
         MimeMessage mimeMessage = new MimeMessage(Session.getDefaultInstance(new Properties()));
         when(mailSender.createMimeMessage()).thenReturn(mimeMessage);

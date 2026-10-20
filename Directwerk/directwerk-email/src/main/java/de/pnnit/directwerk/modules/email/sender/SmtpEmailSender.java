@@ -63,21 +63,50 @@ public class SmtpEmailSender implements EmailSender {
             if (StringUtils.hasText(email.jobId())) {
                 message.setHeader("X-Directwerk-Job-Id", email.jobId().trim());
             }
+            String stableMessageId = null;
             if (email.headers() != null) {
                 for (var header : email.headers().entrySet()) {
                     if (StringUtils.hasText(header.getKey()) && header.getValue() != null) {
                         if ("Reply-To".equalsIgnoreCase(header.getKey())) {
                             EmailMessageValidator.requireAddress("Reply-To", header.getValue());
                             helper.setReplyTo(header.getValue().trim());
+                        } else if ("Message-ID".equalsIgnoreCase(header.getKey())) {
+                            stableMessageId = header.getValue();
                         } else {
                             message.setHeader(header.getKey(), header.getValue());
                         }
                     }
                 }
             }
+            if (stableMessageId != null) {
+                // Save first, then copy: the copy constructor serializes the source message.
+                message.saveChanges();
+                message = new StableMessageIdMimeMessage(message);
+                message.setHeader("Message-ID", stableMessageId);
+            }
             mailSender.send(message);
         } catch (MailException | MessagingException | UnsupportedEncodingException ex) {
             throw new EmailDeliveryException("Email delivery failed", ex);
+        }
+    }
+
+    /**
+     * Issue #580: Jakarta Mail overwrites Message-ID unconditionally in every
+     * {@code saveChanges()}, and Spring's JavaMailSenderImpl saves again right before handing the
+     * message to the transport — so a caller-supplied Message-ID never reached the wire. Keeping
+     * the header when it is already present preserves the stable id a retry needs for dedupe.
+     */
+    static final class StableMessageIdMimeMessage extends MimeMessage {
+
+        StableMessageIdMimeMessage(MimeMessage source) throws MessagingException {
+            super(source);
+        }
+
+        @Override
+        protected void updateMessageID() throws MessagingException {
+            if (getHeader("Message-ID") == null) {
+                super.updateMessageID();
+            }
         }
     }
 }
