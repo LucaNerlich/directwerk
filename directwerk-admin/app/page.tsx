@@ -169,7 +169,7 @@ export default function HomePage(): React.JSX.Element {
 
             <SectionHeader
                 action={<Link href="/tenants">All tenants</Link>}
-                description="Newest tenants. Search and filter on the tenants page."
+                description="Oldest tenants. Search and filter on the tenants page."
                 title="Tenants"
             />
 
