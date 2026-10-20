@@ -170,15 +170,26 @@ export default function MediaLibraryClient(): React.JSX.Element {
         const sequence = ++loadSequenceRef.current
         const currentFolderView = folderViewRef.current
         const currentIncludeSubfolders = includeSubfoldersRef.current
-        const [assetResult, folderResult] = await Promise.all([
-            listMedia( {
-                limit: 100,
-                folderId: currentFolderView ?? undefined,
-                recursive: currentIncludeSubfolders,
-                unassignedOnly: currentFolderView === null && !currentIncludeSubfolders,
-            }),
-            listMediaFolders(),
-        ])
+        let result: [MediaAsset[], MediaFolder[]]
+        try {
+            result = await Promise.all([
+                listMedia( {
+                    limit: 100,
+                    folderId: currentFolderView ?? undefined,
+                    recursive: currentIncludeSubfolders,
+                    unassignedOnly: currentFolderView === null && !currentIncludeSubfolders,
+                }),
+                listMediaFolders(),
+            ])
+        } catch (error) {
+            // A failed post-upload reload has no effect catch of its own, so a superseding
+            // load must end its own skeleton here instead of leaving it up forever.
+            if (sequence === loadSequenceRef.current && mountedRef.current) {
+                setIsLoading(false)
+            }
+            throw error
+        }
+        const [assetResult, folderResult] = result
         // Limits are display hints only — the backend enforces the truth, so a
         // failed fetch keeps the platform defaults instead of failing the page.
         let effective: MediaUploadLimits | null = null
@@ -188,7 +199,10 @@ export default function MediaLibraryClient(): React.JSX.Element {
             effective = null
         }
         // Issue #587: a slower, older response must not overwrite a newer load.
-        if (sequence !== loadSequenceRef.current) {
+        // Only the load whose rows are applied may end the skeleton: a discarded response must
+        // not show the previous folder's (empty) list, and an upload reload that supersedes the
+        // effect's load still has to clear it.
+        if (sequence !== loadSequenceRef.current || !mountedRef.current) {
             return
         }
         setAssets(assetResult)
@@ -208,6 +222,7 @@ export default function MediaLibraryClient(): React.JSX.Element {
                 },
             )
         }
+        setIsLoading(false)
     }
 
     useEffect(() => {
@@ -217,11 +232,6 @@ export default function MediaLibraryClient(): React.JSX.Element {
         setIsLoading(true)
         setErrorMessage(null)
         reload()
-            .then(() => {
-                if (active) {
-                    setIsLoading(false)
-                }
-            })
             .catch((error: unknown) => {
                 if (!active) {
                     return
