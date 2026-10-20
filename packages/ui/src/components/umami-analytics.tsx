@@ -33,10 +33,10 @@ interface UmamiAnalyticsProps {
  * `NEXT_PUBLIC_UMAMI_WEBSITE_ID` / `NEXT_PUBLIC_UMAMI_URL` environment
  * variables. Renders nothing unless both are set. Sampling, masking, and
  * retention knobs stay env-driven (`NEXT_PUBLIC_UMAMI_SAMPLE_RATE`,
- * `NEXT_PUBLIC_UMAMI_MAX_DURATION`).
+ * `NEXT_PUBLIC_UMAMI_MASK_LEVEL`, `NEXT_PUBLIC_UMAMI_MAX_DURATION`).
  */
 export default function UmamiAnalytics({
-    maskLevel = 'strict',
+    maskLevel = process.env.NEXT_PUBLIC_UMAMI_MASK_LEVEL ?? 'strict',
 }: UmamiAnalyticsProps): React.JSX.Element {
     const websiteId = process.env.NEXT_PUBLIC_UMAMI_WEBSITE_ID
     const umamiUrl = process.env.NEXT_PUBLIC_UMAMI_URL

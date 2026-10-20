@@ -68,7 +68,7 @@ export default async function LangLayout({
         <html lang={rawLang} className={`${geistSans.variable} ${geistMono.variable}`}>
             <body className="min-h-screen antialiased">
                 <div aria-hidden="true" className="aurora-bg" />
-                <UmamiAnalytics maskLevel="moderate" />
+                <UmamiAnalytics maskLevel={process.env.NEXT_PUBLIC_UMAMI_MASK_LEVEL ?? 'moderate'} />
                 <LocaleProvider dictionary={dictionary} lang={rawLang}>
                     <MarketingShell>{children}</MarketingShell>
                 </LocaleProvider>
