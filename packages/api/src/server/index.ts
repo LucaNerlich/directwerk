@@ -26,6 +26,13 @@ export {
     type TenantPassthroughAuthRouteConfig,
 } from './authRoutes'
 export {
+    createLogoutRoute,
+    createTenantRefreshTokenRevoker,
+    type LogoutRevokeStep,
+    type LogoutRouteConfig,
+    type TenantRefreshTokenRevokerConfig,
+} from './authRoutes'
+export {
     readAuthJsonBody,
     type AuthJsonBodyMessages,
     type AuthJsonBodyOptions,
