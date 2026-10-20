@@ -64,7 +64,7 @@ public class TenantContentEmailTemplateController {
         try {
             return ContentType.valueOf(raw.toUpperCase(Locale.ROOT));
         } catch (IllegalArgumentException ex) {
-            throw new IllegalArgumentException("Unsupported content type: " + raw.toUpperCase(Locale.ROOT));
+            throw new IllegalArgumentException("Unsupported content type: " + raw);
         }
     }
 
