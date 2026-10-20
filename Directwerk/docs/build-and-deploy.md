@@ -43,7 +43,6 @@ Frontends (separate Node apps, not in this Gradle build):
 
 | App | Port | Role |
 |-----|------|------|
-| [`example-fe`](../../example-fe) | 3000 | Subscriber / tenant demo |
 | [`directwerk-admin`](../../directwerk-admin) | 3001 | Platform admin (tenants, invites, job queue UI) |
 | [`directwerk-studio`](../../directwerk-studio) | 3003 | Creator studio |
 | [`directwerk-web`](../../directwerk-web) | 3004 | Public site and subscriber portal |
@@ -139,7 +138,7 @@ Created on first `local` startup (passwords from `.env`):
 | `admin-b@alpha-show.local` | Tenant B admin | `DIRECTWERK_DEV_SEED_PASSWORD` |
 | `editor@alpha-show.local` | Tenant A editor | `DIRECTWERK_DEV_SEED_PASSWORD` |
 
-Seeded tenant hosts (for multi-tenant demos / `example-fe`):
+Seeded tenant hosts (for multi-tenant demos):
 
 - `alpha-a.localhost` → tenant `alpha-show-a`
 - `alpha-b.localhost` → tenant `alpha-show-b`
@@ -172,8 +171,8 @@ cp .env.local.example .env.local
 # set OAuth secret = DIRECTWERK_PLATFORM_CLIENT_SECRET
 pnpm install && pnpm dev
 
-# Subscriber / tenant frontend (port 3000)
-cd ../example-fe
+# Subscriber / tenant frontend (port 3004)
+cd ../directwerk-web
 cp .env.local.example .env.local
 # set OAUTH_CLIENT_ID=directwerk-tenant-frontend
 # set OAUTH_CLIENT_SECRET=DIRECTWERK_TENANT_CLIENT_SECRET

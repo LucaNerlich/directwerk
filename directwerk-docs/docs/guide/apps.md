@@ -19,7 +19,6 @@ Directwerk ships as one **Spring Boot API** plus several **Next.js frontends**. 
 | [**directwerk-admin**](#directwerk-admin) | 3001 | `PLATFORM_ADMIN` | Platform superadmin — tenants, modules, job queue |
 | [**homepage**](#homepage) | 3005 | Public | Directwerk marketing site (not tenant-scoped) |
 | [**directwerk-docs**](#directwerk-docs) | 5173 | Public | This documentation site |
-| **example-fe** | 3000 | Demo | Legacy API harness / subscriber demo |
 
 The API runs on **8080** (`Directwerk/directwerk-app`).
 
@@ -150,7 +149,7 @@ From the repo root:
 cd Directwerk && docker compose up -d && ./gradlew :directwerk-app:bootRun
 
 # All frontends (tmux)
-./run-dev.sh
+./scripts/dev.sh
 ```
 
 Or start individual apps as needed. See [Quickstart](/guide/quickstart).

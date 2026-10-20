@@ -336,7 +336,6 @@ Slug pattern: `^[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,62}[a-zA-Z0-9])?$`.
 |---------|-------------|----------------|
 | **directwerk-studio** | Episode/article FREE/PAID select; **Manage → Produkte / Freischaltungen** (LEVEL/PACKAGE, PACKAGE rules, manual grant/revoke) when `SUBSCRIPTION` is on | Episode `requiredLevelSortOrder` editor; formats/categories CRUD; subscription inventory list (no GET API); Stripe checkout |
 | **directwerk-admin** | Tenant modules assign/unassign; create/suspend/reactivate tenants; **dual-session** tenant login + products/rules/grants on tenant detail (POC escape hatch; needs `TENANT_OAUTH_*`) | Platform impersonation; domains on `TenantView`; shared component library with studio |
-| **example-fe** | Public catalog, `/me/feeds`, me clients | Checkout/shop for products |
 
 Studio Manage is the intended creator path. The `directwerk-admin` tenant products UI is a dual-auth POC — platform JWT still never calls `/api/v1/tenant/*`.
 
