@@ -1,10 +1,10 @@
 /**
  * Unified BFF proxy policy table (CONTEXT.md Wave 8 item #68).
  *
- * Single source of truth for per-app JSON body limits, empty-body
- * tolerance, and HEAD support. Route wrappers spread their row into the
- * factory config (e.g. `createTenantProxyRouteHandler({fetchUpstream,
- * ...PROXY_POLICIES.studioTenant})`).
+ * Single source of truth for per-app JSON body limits. Tenant rows also carry the
+ * empty-body tolerance the tenant handler reads; platform rows carry the limit only —
+ * the platform handlers derive bodyless-DELETE tolerance from the method itself
+ * (issue #591; the old `allowHead` flag had no reader anywhere).
  *
  * Query-validator mapping (unchanged, stays with the handlers):
  * - tenant rows (`studioTenant`, `webTenant`) use `buildSafeProxyQuery`
@@ -13,39 +13,33 @@
  * - platform rows (`platform`, `adminTenant`) use
  *   `buildSafePlatformQueryString` in `platformRouteHandler.ts`.
  */
-export type ProxyPolicyRow = {
-    name: string
+export type TenantProxyPolicyRow = {
     jsonBodyLimit: number
     allowMissingBody: boolean
-    allowHead: boolean
 }
 
-export const PROXY_POLICIES: Record<
-    'studioTenant' | 'webTenant' | 'platform' | 'adminTenant',
-    ProxyPolicyRow
-> = {
+export type PlatformProxyPolicyRow = {
+    jsonBodyLimit: number
+}
+
+export const PROXY_POLICIES: {
+    studioTenant: TenantProxyPolicyRow
+    webTenant: TenantProxyPolicyRow
+    platform: PlatformProxyPolicyRow
+    adminTenant: PlatformProxyPolicyRow
+} = {
     studioTenant: {
-        name: 'studioTenant',
         jsonBodyLimit: 1_048_576,
         allowMissingBody: true,
-        allowHead: true,
     },
     webTenant: {
-        name: 'webTenant',
         jsonBodyLimit: 16_384,
         allowMissingBody: false,
-        allowHead: true,
     },
     platform: {
-        name: 'platform',
         jsonBodyLimit: 65_536,
-        allowMissingBody: false,
-        allowHead: true,
     },
     adminTenant: {
-        name: 'adminTenant',
         jsonBodyLimit: 65_536,
-        allowMissingBody: false,
-        allowHead: true,
     },
 }

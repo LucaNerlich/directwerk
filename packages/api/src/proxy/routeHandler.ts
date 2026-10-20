@@ -78,7 +78,7 @@ export function createTenantProxyRouteHandler(
         const {tenantHost, apiPath, method, bearerToken, query} = resolved
         let body: string | undefined
         // HEAD is treated exactly like GET: no body is read; the method is
-        // forwarded as HEAD (PROXY_POLICIES rows set allowHead: true).
+        // forwarded as HEAD unchanged.
         if (method !== 'GET' && method !== 'HEAD') {
             // Never trust Content-Length for the size gate — chunked/streamed
             // bodies can lie. readJsonBody reads the stream with a hard byte
