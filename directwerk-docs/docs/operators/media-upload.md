@@ -118,7 +118,7 @@ If the PUT never happened, confirm returns `400 UPLOAD_VALIDATION_FAILED`.
 | Visibility | How to get a URL |
 |------------|------------------|
 | **Public** | CDN: `{PUBLIC_CDN_BASE_URL}/{s3_key}` (also via `AssetAccessApi.resolveDownloadUrl`) |
-| **Private (publisher)** | `GET /api/v1/media/{id}/preview-url?previewDraft=true` — short-lived pre-signed GET |
+| **Private (publisher)** | `GET /api/v1/media/{id}/preview-url` — short-lived pre-signed GET for editors/admins |
 | **Private (subscriber)** | `AssetAccessApi.resolveDownloadUrl` after current LEVEL/PACKAGE entitlement checks; fail-closed if no entitlement adapter is wired |
 
 List / inspect metadata:

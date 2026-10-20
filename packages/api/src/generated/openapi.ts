@@ -7498,6 +7498,7 @@ export interface operations {
             query?: {
                 page?: number;
                 size?: number;
+                q?: string;
             };
             header?: never;
             path?: never;
@@ -10819,9 +10820,7 @@ export interface operations {
     };
     previewUrl: {
         parameters: {
-            query?: {
-                previewDraft?: boolean;
-            };
+            query?: never;
             header?: never;
             path: {
                 id: number;
