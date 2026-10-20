@@ -1,12 +1,9 @@
 package de.pnnit.directwerk.controller.support;
 
+import de.pnnit.directwerk.modules.core.util.TokenHashUtil;
 import de.pnnit.directwerk.modules.digital.entity.MediaAsset;
 import de.pnnit.directwerk.modules.digital.exception.MediaAssetNotFoundException;
 import de.pnnit.directwerk.multitenancy.TenantContext;
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.util.HexFormat;
 
 /**
  * Shared helpers for the podcast and newsletter content-import controllers.
@@ -23,13 +20,8 @@ public final class ImportControllerSupport {
      * @return the first 16 hex characters of the feed URL's SHA-256 digest
      */
     public static String feedHash(String feedUrl) {
-        try {
-            byte[] digest = MessageDigest.getInstance("SHA-256")
-                    .digest(feedUrl.getBytes(StandardCharsets.UTF_8));
-            return HexFormat.of().formatHex(digest).substring(0, 16);
-        } catch (NoSuchAlgorithmException ex) {
-            throw new IllegalStateException("SHA-256 unavailable", ex);
-        }
+        // Issue #577: same digest as TokenHashUtil.sha256Hex, truncated to the 16-char contract.
+        return TokenHashUtil.sha256Hex(feedUrl).substring(0, 16);
     }
 
     /**
