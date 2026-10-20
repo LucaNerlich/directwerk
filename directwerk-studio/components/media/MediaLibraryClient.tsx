@@ -122,6 +122,9 @@ export default function MediaLibraryClient(): React.JSX.Element {
     const authRedirect = useAuthRequired()
     const fileInputRef = useRef<HTMLInputElement>(null)
     const mountedRef = useRef(true)
+    const loadSequenceRef = useRef(0)
+    const folderViewRef = useRef<number | null>(null)
+    const includeSubfoldersRef = useRef(false)
     const [assets, setAssets] = useState<MediaAsset[]>([])
     const [folders, setFolders] = useState<MediaFolder[]>([])
     const [uploadLimits, setUploadLimits] = useState(() => MEDIA_TYPE_LIMITS)
@@ -154,16 +157,39 @@ export default function MediaLibraryClient(): React.JSX.Element {
     const [failedUpload, setFailedUpload] = useState<{file: File} | null>(null)
     const {viewMode, setViewMode} = useListViewMode('grid')
 
+    // Keep the refs current so a reload started before the user navigated (e.g. the post-upload
+    // refresh) loads the folder they are looking at now (issue #587).
+    useEffect(() => {
+        folderViewRef.current = folderView
+    }, [folderView])
+    useEffect(() => {
+        includeSubfoldersRef.current = includeSubfolders
+    }, [includeSubfolders])
+
     async function reload(): Promise<void> {
-        const [assetResult, folderResult] = await Promise.all([
-            listMedia( {
-                limit: 100,
-                folderId: folderView ?? undefined,
-                recursive: includeSubfolders,
-                unassignedOnly: folderView === null && !includeSubfolders,
-            }),
-            listMediaFolders(),
-        ])
+        const sequence = ++loadSequenceRef.current
+        const currentFolderView = folderViewRef.current
+        const currentIncludeSubfolders = includeSubfoldersRef.current
+        let result: [MediaAsset[], MediaFolder[]]
+        try {
+            result = await Promise.all([
+                listMedia( {
+                    limit: 100,
+                    folderId: currentFolderView ?? undefined,
+                    recursive: currentIncludeSubfolders,
+                    unassignedOnly: currentFolderView === null && !currentIncludeSubfolders,
+                }),
+                listMediaFolders(),
+            ])
+        } catch (error) {
+            // A failed post-upload reload has no effect catch of its own, so a superseding
+            // load must end its own skeleton here instead of leaving it up forever.
+            if (sequence === loadSequenceRef.current && mountedRef.current) {
+                setIsLoading(false)
+            }
+            throw error
+        }
+        const [assetResult, folderResult] = result
         // Limits are display hints only — the backend enforces the truth, so a
         // failed fetch keeps the platform defaults instead of failing the page.
         let effective: MediaUploadLimits | null = null
@@ -171,6 +197,13 @@ export default function MediaLibraryClient(): React.JSX.Element {
             effective = await getMediaUploadLimits()
         } catch {
             effective = null
+        }
+        // Issue #587: a slower, older response must not overwrite a newer load.
+        // Only the load whose rows are applied may end the skeleton: a discarded response must
+        // not show the previous folder's (empty) list, and an upload reload that supersedes the
+        // effect's load still has to clear it.
+        if (sequence !== loadSequenceRef.current || !mountedRef.current) {
+            return
         }
         setAssets(assetResult)
         setFolders(folderResult)
@@ -189,6 +222,7 @@ export default function MediaLibraryClient(): React.JSX.Element {
                 },
             )
         }
+        setIsLoading(false)
     }
 
     useEffect(() => {
@@ -198,11 +232,6 @@ export default function MediaLibraryClient(): React.JSX.Element {
         setIsLoading(true)
         setErrorMessage(null)
         reload()
-            .then(() => {
-                if (active) {
-                    setIsLoading(false)
-                }
-            })
             .catch((error: unknown) => {
                 if (!active) {
                     return

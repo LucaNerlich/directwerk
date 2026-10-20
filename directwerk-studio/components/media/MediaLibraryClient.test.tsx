@@ -571,4 +571,51 @@ describe('MediaLibraryClient', () => {
         )
         expect(await screen.findByText('Ordner in „Neu“ umbenannt.')).toBeInTheDocument()
     })
+    it('reloads the folder the user navigated into when an upload finishes', async () => {
+        vi.mocked(listMediaFolders).mockResolvedValue([testFolder(1, 'Interviews', null)])
+        vi.mocked(listMedia).mockResolvedValue([])
+        let resolveUpload: ((asset: MediaAsset) => void) | undefined
+        vi.mocked(uploadMediaFile).mockImplementation(
+            () =>
+                new Promise<MediaAsset>((resolve) => {
+                    resolveUpload = resolve
+                }),
+        )
+
+        renderWithLocale(<MediaLibraryClient />)
+
+        const folderTile = await screen.findByRole('button', {name: /Interviews/})
+        const dropzone = screen.getByText('Datei hierher ziehen').parentElement
+        expect(dropzone).not.toBeNull()
+        fireEvent.drop(dropzone as HTMLElement, {
+            dataTransfer: {files: [new File(['audio'], 'folge.mp3', {type: 'audio/mpeg'})]},
+        })
+        await waitFor(() => expect(uploadMediaFile).toHaveBeenCalled())
+
+        // Navigate into the folder while the upload is still running.
+        fireEvent.click(folderTile)
+        await waitFor(() =>
+            expect(vi.mocked(listMedia).mock.calls.at(-1)?.[0]).toMatchObject({folderId: 1}),
+        )
+
+        resolveUpload?.({
+            ...coverAsset,
+            id: 8,
+            assetType: 'AUDIO',
+            mimeType: 'audio/mpeg',
+            originalFilename: 'folge.mp3',
+            sizeBytes: 1024,
+            cdnUrl: null,
+            folderId: 1,
+        })
+
+        // The status is set after the post-upload reload, so this also waits for that reload.
+        await waitFor(() =>
+            expect(screen.getByRole('status')).toHaveTextContent('Hochgeladen: folge.mp3'),
+        )
+        // #587: the post-upload reload must load the folder the user is looking at, not the
+        // root captured when the upload started.
+        expect(vi.mocked(listMedia).mock.calls.at(-1)?.[0]).toMatchObject({folderId: 1})
+    })
+
 })
