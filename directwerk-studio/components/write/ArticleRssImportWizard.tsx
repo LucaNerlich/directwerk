@@ -377,7 +377,7 @@ export default function ArticleRssImportWizard(): React.JSX.Element {
                 <section className="flex max-w-2xl flex-col gap-4">
                     <SectionHeader
                         title={dict.write.feedAdresse}
-                        description="Öffentliche RSS-URL deines bisherigen Blogs oder CMS. Wir lesen nur die Metadaten — noch keine Bilder."
+                        description={dict.write.publicRssUrlHint}
                     />
                     <label className="grid gap-1.5">
                         <span className="text-sm font-medium">RSS-URL</span>

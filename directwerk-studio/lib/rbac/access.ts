@@ -8,6 +8,8 @@ import type {
     RbacOperation,
     RbacRestrictionScope,
 } from '@directwerk/api/types'
+
+import {t} from '@/lib/i18n/dictionary'
 import {
     RBAC_ENTITY_TYPES,
     RBAC_OWN_ONLY_OPERATIONS,
@@ -70,19 +72,26 @@ export function rbacAccessLabel(access: RbacEffectiveAccess): string {
  * integrators, so known failure modes are recognized by their stable message
  * fragments; unknown errors surface verbatim.
  */
-export function rbacErrorMessage(error: unknown): string {
+export function rbacErrorMessage(
+    error: unknown,
+    messages: {aktionEigeneInhalteBeschraenkt: string; aktionKontoEingeschraenktWendeDichTenant: string} = {
+        aktionEigeneInhalteBeschraenkt: 'Diese Aktion ist auf eigene Inhalte beschränkt.',
+        aktionKontoEingeschraenktWendeDichTenant:
+            'Diese Aktion wurde für dein Konto eingeschränkt. Wende dich an einen Tenant-Admin.',
+    },
+): string {
     const message = error instanceof Error ? error.message : 'Aktion fehlgeschlagen.'
     if (
         message.includes('restricted to the content creator') ||
         message.includes('NOT_CONTENT_OWNER')
     ) {
-        return 'Diese Aktion ist auf eigene Inhalte beschränkt.'
+        return messages.aktionEigeneInhalteBeschraenkt
     }
     if (
         message.includes('was restricted for your account') ||
         message.includes('OPERATION_DENIED_BY_POLICY')
     ) {
-        return 'Diese Aktion wurde für dein Konto eingeschränkt. Wende dich an einen Tenant-Admin.'
+        return messages.aktionKontoEingeschraenktWendeDichTenant
     }
     return message
 }
@@ -177,10 +186,6 @@ export const DEFAULT_DESK_ACCESS_MESSAGES: DeskAccessMessages = {
     foreignOnly: 'Du kannst nur eigene ${plural} ${verbInfinitive}.',
 }
 
-function fillTemplate(template: string, values: Record<string, string>): string {
-    return template.replace(/\$\{(\w+)\}/g, (_match, key: string) => values[key] ?? '')
-}
-
 /**
  * Computes desk permissions from the server-resolved rights matrix.
  *
@@ -224,7 +229,7 @@ export function deskAccess({
         if (access === 'DENIED') {
             return {
                 allowed: false,
-                reason: fillTemplate(messages.denied, {verb}),
+                reason: t(messages.denied, {verb}),
             }
         }
         // OWN_ONLY: unknown user id resolves permissively (the backend decides
@@ -236,8 +241,8 @@ export function deskAccess({
             allowed: false,
             reason:
                 ownerUserId === null
-                    ? fillTemplate(messages.ownOnly, {verb, plural})
-                    : fillTemplate(messages.foreignOnly, {plural, verbInfinitive}),
+                    ? t(messages.ownOnly, {verb, plural})
+                    : t(messages.foreignOnly, {plural, verbInfinitive}),
         }
     }
 

@@ -77,7 +77,9 @@ export function useDeskAccess({
             foreignOnly: dict.common.rbac.messages.duKannstNurEigene,
             plural: entity === 'EPISODE'
                 ? dict.common.rbac.plurals.episode
-                : dict.common.rbac.plurals.article,
+                : entity === 'MEDIA_ASSET' || entity === 'MEDIA_FOLDER'
+                    ? dict.common.rbac.plurals.media
+                    : dict.common.rbac.plurals.article,
         },
     })
 }

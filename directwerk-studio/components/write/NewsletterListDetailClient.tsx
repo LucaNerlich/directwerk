@@ -107,7 +107,7 @@ export default function NewsletterListDetailClient(): React.JSX.Element {
                     </label>
                     <div className="flex flex-wrap gap-2">
                         <Button disabled={busy} onClick={() => void save()} type="button">
-                            Speichern
+                            {dict.common.save}
                         </Button>
                         {list.status === 'ACTIVE' ? (
                             <Button
@@ -128,7 +128,7 @@ export default function NewsletterListDetailClient(): React.JSX.Element {
                                 type="button"
                                 variant="outline"
                             >
-                                Archivieren
+                                {dict.common.archive}
                             </Button>
                         ) : null}
                     </div>

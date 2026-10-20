@@ -10,6 +10,7 @@
     "all": "Alle",
     "archive": "Archivieren",
     "back": "Zurück",
+    "cancelSchedule": "Planung aufheben",
     "cancel": "Abbrechen",
     "close": "Schließen",
     "confirm": "Bestätigen",
@@ -54,6 +55,7 @@
         "delete": "löschen"
       },
       "plurals": {
+        "media": "Bonusdateien",
         "episode": "Folgen",
         "article": "Beiträge"
       },
@@ -77,6 +79,7 @@
     "withdraw": "Zurückziehen",
     "withdrawing": "Wird zurückgezogen…",
     "linkUrl": "Link-URL",
+    "unsaved": "Ungespeichert",
     "save": "Speichern",
     "saved": "Gespeichert.",
     "search": "Suchen",

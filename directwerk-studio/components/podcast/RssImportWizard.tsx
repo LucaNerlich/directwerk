@@ -535,7 +535,7 @@ export default function RssImportWizard(): React.JSX.Element {
                 <section className="flex max-w-2xl flex-col gap-4">
                     <SectionHeader
                         title={dict.podcast.feedAdresse}
-                        description="Öffentliche RSS-URL deines bisherigen Hosters. Wir lesen nur die Metadaten — noch keine MP3s."
+                        description={dict.podcast.oeffentlicheRssUrlDeinesBisherigenHosters}
                     />
                     <label className="grid gap-1.5">
                         <span className="text-sm font-medium">RSS-URL</span>
