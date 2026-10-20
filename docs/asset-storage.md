@@ -631,7 +631,7 @@ On episode publish (`access_policy = FREE`), `AssetPromotionService` moves audio
 | Public RSS | Permanent CDN URL in `<enclosure url="...">` |
 | Website | Direct CDN URL from `site-config` / episode payload |
 
-CDN origin points at bucket path `{tenant}/public/` or a dedicated public bucket. Cache-Control:
+CDN origin points at the single bucket's `{tenant}/public/` path. Cache-Control:
 `public, max-age=31536000, immutable` for UUID-keyed media.
 
 ### Private assets

@@ -37,8 +37,8 @@ same zone:
    enabled; used only for entitlement-gated paid delivery.
 
 Keep a **single** storage zone so FREE ↔ PAID stays a same-zone `CopyObject` (already implemented
-in `promoteToPublic` / `demoteToPrivate`). Dual storage zones are optional for compliance only
-(see [`asset-storage.md`](asset-storage.md) dual-bucket note).
+in `promoteToPublic` / `demoteToPrivate`). Dual storage zones are not supported today: one zone,
+with `public/` vs `private/` key prefixes (see [`asset-storage.md`](asset-storage.md)).
 
 **Today in code:** paid 302s use **Bunny Advanced Token Auth** on the private pull zone when
 `private-cdn-base-url` and `cdn-token-auth-key` are configured; otherwise **S3 pre-signed GET**.
