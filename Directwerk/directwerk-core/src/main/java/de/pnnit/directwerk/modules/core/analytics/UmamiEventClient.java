@@ -450,11 +450,15 @@ public class UmamiEventClient {
                     .build();
 
             PinnedClient replacement = new PinnedClient(pinnedAddresses, client);
+            // Acquire before publishing: an unpublished client cannot be retired, and after the
+            // put a concurrent retire defers the close until this request releases.
+            if (!replacement.tryAcquire()) {
+                throw new IOException("Fresh Umami client was retired before publication");
+            }
             PinnedClient previous = clients.put(expectedDnsHost, replacement);
             if (previous != null) {
                 previous.retire();
             }
-            replacement.tryAcquire();
             return replacement;
         }
 
