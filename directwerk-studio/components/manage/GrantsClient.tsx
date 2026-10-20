@@ -21,6 +21,7 @@ import LocaleLink from '@/components/i18n/LocaleLink'
 import {useDictionary} from '@/components/i18n/LocaleProvider'
 import {t} from '@/lib/i18n/dictionary'
 import {useEffect, useId, useState, type FormEvent} from 'react'
+import {useTwoStepConfirm} from '@/lib/hooks/useTwoStepConfirm'
 import {useRouter} from 'next/navigation'
 
 import {grantSubscription, listProducts, revokeSubscription} from '@/lib/api/subscriptionApi'
@@ -77,6 +78,7 @@ export default function GrantsClient(): React.JSX.Element {
     const [statusMessage, setStatusMessage] = useState<string | null>(null)
     const [isLoading, setIsLoading] = useState(true)
     const [isBusy, setIsBusy] = useState(false)
+    const {pending: pendingRevokeId, arm: armRevoke, reset: resetRevoke} = useTwoStepConfirm<number>()
     const [reloadToken, setReloadToken] = useState(0)
     const [emailError, setEmailError] = useState<string | null>(null)
     const {viewMode, setViewMode} = useListViewMode()
@@ -162,6 +164,13 @@ export default function GrantsClient(): React.JSX.Element {
     }
 
     async function handleRevoke(subscriptionId: number): Promise<void> {
+        // Issue #584: access removal is irreversible — require the same arm-then-confirm second
+        // step as the subscribers and payments lists instead of acting on the first click.
+        if (!armRevoke(subscriptionId)) {
+            setStatusMessage('Nochmal bestätigen: der Zugang entfällt sofort.')
+            return
+        }
+
         setIsBusy(true)
         setErrorMessage(null)
         setStatusMessage(null)
@@ -175,6 +184,7 @@ export default function GrantsClient(): React.JSX.Element {
                     grant.id === subscriptionId ? revoked : grant,
                 ),
             )
+            resetRevoke()
             setStatusMessage(`Widerrufen: ${revoked.email}`)
         } catch (error) {
             if (authRedirect(error)) return
@@ -183,6 +193,7 @@ export default function GrantsClient(): React.JSX.Element {
             )
         } finally {
             setIsBusy(false)
+            resetRevoke()
         }
     }
 
@@ -210,15 +221,31 @@ export default function GrantsClient(): React.JSX.Element {
         trailing: <Badge variant="secondary">{subscriptionStatusLabel(grant.status)}</Badge>,
         actions:
             grant.status === 'ACTIVE' ? (
-                <Button
-                    disabled={isBusy}
-                    onClick={() => void handleRevoke(grant.id)}
-                    size="sm"
-                    type="button"
-                    variant="outline"
-                >
-                    Widerrufen
-                </Button>
+                <div className="flex flex-wrap gap-2">
+                    <Button
+                        disabled={isBusy}
+                        onClick={() => void handleRevoke(grant.id)}
+                        size="sm"
+                        type="button"
+                        variant={pendingRevokeId === grant.id ? 'destructive' : 'outline'}
+                    >
+                        {pendingRevokeId === grant.id ? 'Wirklich widerrufen' : 'Widerrufen'}
+                    </Button>
+                    {pendingRevokeId === grant.id ? (
+                        <Button
+                            disabled={isBusy}
+                            onClick={() => {
+                                resetRevoke()
+                                setStatusMessage(null)
+                            }}
+                            size="sm"
+                            type="button"
+                            variant="ghost"
+                        >
+                            {dict.common.cancel}
+                        </Button>
+                    ) : null}
+                </div>
             ) : undefined,
     }))
 
