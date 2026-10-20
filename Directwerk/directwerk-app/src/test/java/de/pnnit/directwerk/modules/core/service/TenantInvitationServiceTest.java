@@ -23,6 +23,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import de.pnnit.directwerk.modules.core.audit.PlatformAuditService;
 
 @ExtendWith(MockitoExtension.class)
 class TenantInvitationServiceTest {
@@ -41,6 +42,9 @@ class TenantInvitationServiceTest {
 
     @Mock
     private UserProvisioningService userProvisioningService;
+
+    @Mock
+    private PlatformAuditService platformAuditService;
 
     @InjectMocks
     private TenantInvitationService tenantInvitationService;
@@ -74,6 +78,13 @@ class TenantInvitationServiceTest {
         assertThat(membershipCaptor.getValue().getRoles()).containsExactly(Role.EDITOR);
         assertThat(result.status()).isEqualTo("INVITED");
         assertThat(result.inviteToken()).isEqualTo("raw-invite-token");
+        // Issue #572: the invite is the moment editor/admin access is granted; it belongs in the
+        // platform audit trail like revocations and role changes.
+        verify(platformAuditService).record(
+                de.pnnit.directwerk.modules.core.audit.PlatformAuditActions.USER_INVITED,
+                1L,
+                java.util.Map.of("email", "editor@example.com", "role", "EDITOR")
+        );
         verify(invitationTokenService).issue(eq(user), any(TenantMembership.class), eq(InvitationType.TENANT_MEMBER));
         verify(transactionalEmailNotifier).sendTenantInvitation(
                 eq(1L),
