@@ -321,14 +321,73 @@ public class UmamiEventClient {
 
         private final ConcurrentMap<String, PinnedClient> clients = new ConcurrentHashMap<>();
 
-        private record PinnedClient(InetAddress[] addresses, CloseableHttpClient client) {
+        /**
+         * A pinned client with in-flight tracking: replacing a DNS entry retires the old client,
+         * which is closed only when no request is executing on it (issue #569).
+         */
+        static final class PinnedClient {
+            private final InetAddress[] addresses;
+            private final CloseableHttpClient client;
+            private final java.util.concurrent.atomic.AtomicInteger inFlight =
+                    new java.util.concurrent.atomic.AtomicInteger();
+            private final java.util.concurrent.atomic.AtomicBoolean retired =
+                    new java.util.concurrent.atomic.AtomicBoolean();
+            private final java.util.concurrent.atomic.AtomicBoolean closed =
+                    new java.util.concurrent.atomic.AtomicBoolean();
+
+            PinnedClient(InetAddress[] addresses, CloseableHttpClient client) {
+                this.addresses = addresses;
+                this.client = client;
+            }
+
+            InetAddress[] addresses() {
+                return addresses;
+            }
+
+            CloseableHttpClient client() {
+                return client;
+            }
+
+            boolean tryAcquire() {
+                inFlight.incrementAndGet();
+                if (retired.get()) {
+                    release();
+                    return false;
+                }
+                return true;
+            }
+
+            void release() {
+                if (inFlight.decrementAndGet() == 0 && retired.get()) {
+                    closeQuietly();
+                }
+            }
+
+            void retire() {
+                retired.set(true);
+                if (inFlight.get() == 0) {
+                    closeQuietly();
+                }
+            }
+
+            private void closeQuietly() {
+                if (!closed.compareAndSet(false, true)) {
+                    return;
+                }
+                try {
+                    client.close();
+                } catch (IOException ignored) {
+                    // Replacing a superseded pinned client; nothing to signal to the caller.
+                }
+            }
         }
 
         @Override
         public UmamiDelivery send(URI uri, String body, String userAgent, String clientIp) throws IOException {
             String expectedHost = uri.getHost();
             String expectedDnsHost = stripIpv6Brackets(expectedHost);
-            CloseableHttpClient client = clientFor(expectedDnsHost);
+            PinnedClient pinned = clientFor(expectedDnsHost);
+            CloseableHttpClient client = pinned.client();
 
             HttpPost request = new HttpPost(uri);
             request.setHeader("Accept", "application/json");
@@ -342,16 +401,21 @@ public class UmamiEventClient {
                     .build());
             // The URI keeps the original hostname, so the default TLS verifier checks it
             // while the custom resolver connects only to the already validated addresses.
-            return client.execute(request, response -> toDelivery(
-                    response.getCode(),
-                    response.getEntity() == null ? null : response.getEntity().getContent()));
+            try {
+                return client.execute(request, response -> toDelivery(
+                        response.getCode(),
+                        response.getEntity() == null ? null : response.getEntity().getContent()));
+            } finally {
+                // Close a retired client only once the last in-flight request has finished.
+                pinned.release();
+            }
         }
 
-        private CloseableHttpClient clientFor(String expectedDnsHost) throws IOException {
+        private PinnedClient clientFor(String expectedDnsHost) throws IOException {
             InetAddress[] pinnedAddresses = UmamiHostUrlValidator.resolvePublicAddresses(expectedDnsHost);
             PinnedClient cached = clients.get(expectedDnsHost);
-            if (cached != null && Arrays.equals(cached.addresses(), pinnedAddresses)) {
-                return cached.client();
+            if (cached != null && Arrays.equals(cached.addresses(), pinnedAddresses) && cached.tryAcquire()) {
+                return cached;
             }
 
             DnsResolver pinnedResolver = new DnsResolver() {
@@ -385,16 +449,13 @@ public class UmamiEventClient {
                     .disableRedirectHandling()
                     .build();
 
-            PinnedClient previous = clients.put(
-                    expectedDnsHost, new PinnedClient(pinnedAddresses, client));
+            PinnedClient replacement = new PinnedClient(pinnedAddresses, client);
+            PinnedClient previous = clients.put(expectedDnsHost, replacement);
             if (previous != null) {
-                try {
-                    previous.client().close();
-                } catch (IOException ignored) {
-                    // Replacing a superseded pinned client; nothing to signal to the caller.
-                }
+                previous.retire();
             }
-            return client;
+            replacement.tryAcquire();
+            return replacement;
         }
 
         static UmamiDelivery toDelivery(int statusCode, InputStream responseBody) throws IOException {
