@@ -369,7 +369,7 @@ Domain glossary and deepening modules for AI navigation. Terms here name **seams
 
 ### 68. Unified BFF proxy policy
 
-**Interface:** One body/query/limit table; each route declares its row (limits, empty-body tolerance, HEAD support).
+**Interface:** One limit table; tenant rows also declare empty-body tolerance, platform rows are limit-only, and HEAD is handled by the factories unconditionally.
 **Seam:** Tenant and platform handlers share trust assumptions (never trust `Content-Length`); per-app factories delegate.
 
 ## Wave 9 deepened modules (architecture review 2026-09-15)

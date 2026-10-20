@@ -14,13 +14,11 @@
  *   `buildSafePlatformQueryString` in `platformRouteHandler.ts`.
  */
 export type TenantProxyPolicyRow = {
-    name: string
     jsonBodyLimit: number
     allowMissingBody: boolean
 }
 
 export type PlatformProxyPolicyRow = {
-    name: string
     jsonBodyLimit: number
 }
 
@@ -31,21 +29,17 @@ export const PROXY_POLICIES: {
     adminTenant: PlatformProxyPolicyRow
 } = {
     studioTenant: {
-        name: 'studioTenant',
         jsonBodyLimit: 1_048_576,
         allowMissingBody: true,
     },
     webTenant: {
-        name: 'webTenant',
         jsonBodyLimit: 16_384,
         allowMissingBody: false,
     },
     platform: {
-        name: 'platform',
         jsonBodyLimit: 65_536,
     },
     adminTenant: {
-        name: 'adminTenant',
         jsonBodyLimit: 65_536,
     },
 }
