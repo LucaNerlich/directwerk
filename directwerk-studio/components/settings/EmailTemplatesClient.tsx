@@ -16,7 +16,6 @@ import Form from 'next/form'
 import {useRouter} from 'next/navigation'
 import {useActionState, useEffect, useState} from 'react'
 
-import {AUTH_REQUIRED} from '@directwerk/api/constants'
 import {getContentEmailTemplate, upsertContentEmailTemplate} from '@/lib/api/tenantSettingsApi'
 import type {ContentEmailTemplate, ContentEmailTemplateType} from '@directwerk/api/types'
 

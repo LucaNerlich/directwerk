@@ -14,7 +14,7 @@ import LocaleLink from '@/components/i18n/LocaleLink'
 import {useRouter} from 'next/navigation'
 
 import {useLocalizedPath} from '@/components/i18n/useLocalizedPath'
-import {useCallback, useEffect, useEffectEvent, useRef, useState} from 'react'
+import {useCallback, useEffect, useRef, useState} from 'react'
 
 import MediaLibraryPicker from '@/components/media/MediaLibraryPicker'
 import UploadProgress from '@/components/media/UploadProgress'

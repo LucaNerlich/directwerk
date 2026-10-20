@@ -1,7 +1,6 @@
 import 'server-only'
 
 import {ASSET_STATUSES, ASSET_TYPES, JOB_STATUSES} from '../constants'
-import type {JobListQuery, QueueJob} from '../types'
 import {isTrustedOrigin} from '../urls/urlPolicy'
 import {jsonError, NO_STORE_HEADERS} from '../proxy/upstreamResponse'
 

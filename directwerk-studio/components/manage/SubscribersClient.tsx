@@ -29,7 +29,7 @@ import {
     subscriptionSourceLabel,
     subscriptionStatusLabel,
 } from '@/lib/subscription/displayLabels'
-import type {TenantSubscriber, TenantSubscriberSubscription} from '@directwerk/api/types'
+import type {TenantSubscriberSubscription} from '@directwerk/api/types'
 import {useCachedTenantQuery} from '@directwerk/api/client/useCachedTenantQuery'
 import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
 import {getClientTenantHost} from '@directwerk/api/tenant'

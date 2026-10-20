@@ -7,7 +7,7 @@ import {parseStudioWorkspacesEnvelope} from '@directwerk/api/validation/catalog'
 
 import type {AcceptInviteInput, LoginInput} from '@directwerk/api/validation/input'
 import type {Me, StudioWorkspace, TokenResponse} from '@directwerk/api/types'
-import {jsonInit, postJson, studioGet} from './studioApiCore'
+import {postJson, studioGet} from './studioApiCore'
 
 export async function acceptInvite(input: AcceptInviteInput): Promise<void> {
     await postJson('/api/auth/accept-invite', null, input)
