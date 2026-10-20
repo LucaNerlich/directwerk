@@ -31,13 +31,9 @@ public class EntitlementService {
     private final ProductAccessRuleRepository productAccessRuleRepository;
 
     public AccessSummary resolveAccess(Long tenantId, Long userId) {
-        List<Subscription> activeSubscriptions = subscriptionRepository.findActiveWithProducts(
-                tenantId,
-                userId,
-                SubscriptionStatus.ACTIVE
-        ).stream()
-                .filter(this::isCurrentlyActive)
-                .toList();
+        // Issue #578: one copy of the ACTIVE-and-not-expired rule; the summary and every gate
+        // must not be able to drift apart.
+        List<Subscription> activeSubscriptions = activeSubscriptions(tenantId, userId);
 
         List<LevelEntitlement> activeLevels = activeSubscriptions.stream()
                 .map(Subscription::getProduct)
