@@ -1,14 +1,7 @@
 'use client'
 
 import type {PublishOptions, ScheduleOptions} from '@directwerk/api/types'
-import {
-    authenticatedRequest,
-    INVALID_RESPONSE,
-    jsonInit,
-    postJson,
-    proxyRequest,
-    request,
-} from './studioTransport'
+import {authenticatedRequest, INVALID_RESPONSE, jsonInit, proxyRequest} from './studioTransport'
 
 
 export async function studioGet<T>(

@@ -5,7 +5,7 @@ import {
     usePublicationBulkActions,
 } from '@/lib/publication/usePublicationBulkActions'
 import type {PublicationStatus} from '@directwerk/api/types'
-import {renderHook, act, waitFor} from '@testing-library/react'
+import {renderHook, act} from '@testing-library/react'
 
 describe('usePublicationBulkActions', () => {
     const items = [

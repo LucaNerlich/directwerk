@@ -3,11 +3,7 @@ import {renderWithLocale} from '@/lib/i18n/testUtils'
 import {describe, expect, it, vi} from 'vitest'
 
 import TeamClient from '@/components/team/TeamClient'
-import {
-    listTenantUsers,
-    listUserRestrictions,
-    replaceUserRestrictions,
-} from '@/lib/api/tenantSettingsApi'
+import {listTenantUsers, replaceUserRestrictions} from '@/lib/api/tenantSettingsApi'
 import {MeProvider} from '@/lib/auth/MeProvider'
 import type {TenantUser} from '@directwerk/api/types'
 

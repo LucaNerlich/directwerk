@@ -14,7 +14,7 @@ import LocaleLink from '@/components/i18n/LocaleLink'
 import {useRouter} from 'next/navigation'
 
 import {useLocalizedPath} from '@/components/i18n/useLocalizedPath'
-import {useCallback, useEffect, useEffectEvent, useRef, useState} from 'react'
+import {useCallback, useEffect, useRef, useState} from 'react'
 
 import MediaLibraryPicker from '@/components/media/MediaLibraryPicker'
 import UploadProgress from '@/components/media/UploadProgress'
@@ -138,7 +138,6 @@ export default function EpisodeEditor({episodeId}: {episodeId?: number}): React.
 
     const persistTags = useCallback(
         async (current: EpisodeDetail): Promise<EpisodeDetail> => {
-            const host = getClientTenantHost()
             const [afterFormats, afterCategories] = await Promise.all([
                 replaceEpisodeFormats( current.id, Array.from(selectedFormatIds)),
                 replaceEpisodeCategories( current.id, Array.from(selectedCategoryIds)),
@@ -160,7 +159,6 @@ export default function EpisodeEditor({episodeId}: {episodeId?: number}): React.
             throw new Error('Bitte zuerst eine Sendung anlegen.')
         }
 
-        const host = getClientTenantHost()
         const payload = episodeFields()
 
         if (episodeId === undefined) {
@@ -248,7 +246,6 @@ export default function EpisodeEditor({episodeId}: {episodeId?: number}): React.
 
         async function loadAudio(assetId: number): Promise<void> {
             try {
-                const host = getClientTenantHost()
                 const [url, asset] = await Promise.all([
                     getMediaPreviewUrl( assetId),
                     getMedia( assetId),
@@ -320,7 +317,6 @@ export default function EpisodeEditor({episodeId}: {episodeId?: number}): React.
 
         async function load(): Promise<void> {
             try {
-                const host = getClientTenantHost()
                 const [seriesList, formatList, categoryList, episodeList, loadedEpisode] =
                     await Promise.all([
                     listSeries(),

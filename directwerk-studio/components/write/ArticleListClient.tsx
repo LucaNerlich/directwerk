@@ -32,7 +32,6 @@ import type {ArticleDetail, CategorySummary} from '@directwerk/api/types'
 import {createPublicationBulkLabels} from '@/lib/publication/publicationBulkLabels'
 import {usePublicationListPage} from '@/lib/publication/usePublicationListPage'
 import {settledBulkResult} from '@/lib/publication/usePublicationBulkActions'
-import {getClientTenantHost} from '@directwerk/api/tenant'
 import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
 
 export default function ArticleListClient() {
@@ -167,7 +166,6 @@ export default function ArticleListClient() {
             if (eligible.length === 0) {
                 return
             }
-            const host = getClientTenantHost()
             const apply = (id: number): Promise<ArticleDetail> => {
                 switch (operation.kind) {
                     case 'categories':

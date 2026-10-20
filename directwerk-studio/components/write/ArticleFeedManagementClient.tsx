@@ -18,7 +18,6 @@ import {hasModule} from '@/lib/api/client'
 import {listArticleFeeds, setArticleFeedEnabled} from '@/lib/api/subscriptionApi'
 import type {ArticleFeedAdminView} from '@directwerk/api/types'
 import {useSiteConfig} from '@/lib/site/SiteConfigProvider'
-import {getClientTenantHost} from '@directwerk/api/tenant'
 import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
 import {useDictionary} from '@/components/i18n/LocaleProvider'
 
@@ -51,7 +50,6 @@ export default function ArticleFeedManagementClient(): React.JSX.Element {
 
         async function load(): Promise<void> {
             try {
-                const host = getClientTenantHost()
                 const loadedFeeds = showArticleFeeds
                     ? await listArticleFeeds()
                     : []

@@ -23,7 +23,6 @@ import type {
     ProductAccessScopeType,
     SeriesSummary,
 } from '@directwerk/api/types'
-import {getClientTenantHost} from '@directwerk/api/tenant'
 import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
 
 interface ProductRulesEditorProps {
@@ -70,7 +69,6 @@ export default function ProductRulesEditor({
 
     useEffect(() => {
         let active = true
-        const host = getClientTenantHost()
 
         Promise.all([
             listProductRules( productId),

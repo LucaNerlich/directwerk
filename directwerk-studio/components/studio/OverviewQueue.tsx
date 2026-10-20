@@ -28,7 +28,6 @@ import type {
     SeriesSummary,
     StudioDesk,
 } from '@directwerk/api/types'
-import {getClientTenantHost} from '@directwerk/api/tenant'
 import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
 
 const AWAITING_STATUSES = new Set(['DRAFT', 'SCHEDULED'])
@@ -90,7 +89,6 @@ export default function OverviewQueue({desks}: OverviewQueueProps): React.JSX.El
             setErrorMessage(null)
             setIsLoading(true)
             try {
-                const host = getClientTenantHost()
                 const [loadedArticles, loadedEpisodes, loadedSeries] = await Promise.all([
                     showWrite ? listArticles() : Promise.resolve([]),
                     showPodcast ? listEpisodes() : Promise.resolve([]),

@@ -1,6 +1,6 @@
 import {describe, expect, it} from 'vitest'
 
-import {defaultActiveDesk, defaultHomePath, deskHome, hasDesk, hasModule, resolveActiveDesk} from '@/lib/api/client'
+import {defaultActiveDesk, defaultHomePath, deskHome, hasModule, resolveActiveDesk} from '@/lib/api/client'
 import type {SiteConfig} from '@directwerk/api/types'
 
 const sampleConfig: SiteConfig = {

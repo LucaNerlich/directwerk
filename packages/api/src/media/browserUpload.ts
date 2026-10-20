@@ -4,7 +4,6 @@ import {isRecord, parseMediaAssetEnvelope} from '../validation'
 import {
     isMediaUploadRetryResponse,
     MEDIA_UPLOAD_HEADERS,
-    type MediaUploadRetryResponse,
 } from './uploadProtocol'
 
 // The `{assetId, retryConfirm:true}` recovery contract is defined once in

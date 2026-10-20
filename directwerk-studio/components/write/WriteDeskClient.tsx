@@ -21,7 +21,6 @@ import {listCategories} from '@/lib/api/catalogApi'
 import {listArticles} from '@/lib/api/writeApi'
 import type {SetupStep} from '@/lib/studio/setupStep'
 import type {ArticleSummary, CategorySummary} from '@directwerk/api/types'
-import {getClientTenantHost} from '@directwerk/api/tenant'
 import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
 
 export default function WriteDeskClient(): React.JSX.Element {
@@ -40,7 +39,6 @@ export default function WriteDeskClient(): React.JSX.Element {
 
         async function load(): Promise<void> {
             try {
-                const host = getClientTenantHost()
                 const [loadedArticles, loadedCategories] = await Promise.all([
                     listArticles(),
                     listCategories(),

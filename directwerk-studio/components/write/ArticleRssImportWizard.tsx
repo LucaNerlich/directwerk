@@ -30,7 +30,6 @@ import type {
     ArticleRssImportPreview,
     CategorySummary,
 } from '@directwerk/api/types'
-import {getClientTenantHost} from '@directwerk/api/tenant'
 import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
 import {useDictionary} from '@/components/i18n/LocaleProvider'
 
@@ -224,7 +223,6 @@ export default function ArticleRssImportWizard(): React.JSX.Element {
         setErrorMessage(null)
         setStreamProgress(null)
         setBusy(true)
-        const host = getClientTenantHost()
         try {
             // Hero ingest stays server-side (same transaction as article create) so a
             // failed / alreadyImported response never leaves client-owned orphan assets.

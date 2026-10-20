@@ -23,7 +23,6 @@ import {listSeries} from '@/lib/api/podcastApi'
 import {listSubscriberFeeds, setSubscriberFeedEnabled} from '@/lib/api/subscriptionApi'
 import type {SeriesSummary, SubscriberFeedAdminView} from '@directwerk/api/types'
 import {useSiteConfig} from '@/lib/site/SiteConfigProvider'
-import {getClientTenantHost} from '@directwerk/api/tenant'
 import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
 import {useDictionary} from '@/components/i18n/LocaleProvider'
 
@@ -63,7 +62,6 @@ export default function FeedManagementClient(): React.JSX.Element {
         setErrorMessage(null)
         async function load(): Promise<void> {
             try {
-                const host = getClientTenantHost()
                 const [loadedSeries, loadedFeeds] = await Promise.all([
                     listSeries(),
                     showSubscriberFeeds ? listSubscriberFeeds() : Promise.resolve([]),

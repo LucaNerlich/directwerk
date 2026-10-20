@@ -22,7 +22,6 @@ import {AUTH_REQUIRED} from '@directwerk/api/constants'
 import {isPubliclyRenderable} from '@directwerk/api/media/readiness'
 import {listMedia, listMediaFolders} from '@/lib/api/mediaApi'
 import type {MediaAsset, MediaFolder} from '@directwerk/api/types'
-import {getClientTenantHost} from '@directwerk/api/tenant'
 import {buildFolderTree, flattenFolderTree} from '@/lib/media/folders'
 import {formatBytes} from '@directwerk/api/format/bytes'
 import {assetTypeLabel} from '@/lib/subscription/displayLabels'
@@ -90,7 +89,6 @@ export default function MediaInlinePickerDialog({
 
         async function load(): Promise<void> {
             try {
-                const host = getClientTenantHost()
                 const loadedFoldersPromise = listMediaFolders().catch(() => [])
                 const loadedAssets = await listMedia()
                 const loadedFolders = await loadedFoldersPromise

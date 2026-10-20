@@ -15,7 +15,6 @@ import {listSeries, publishSeries, unpublishSeries} from '@/lib/api/podcastApi'
 import {createPublicationBulkLabels} from '@/lib/publication/publicationBulkLabels'
 import {runSequentialPublicationBulkAction} from '@/lib/publication/usePublicationBulkActions'
 import {usePublicationListPage} from '@/lib/publication/usePublicationListPage'
-import {getClientTenantHost} from '@directwerk/api/tenant'
 import type {SeriesSummary} from '@directwerk/api/types'
 
 type SeriesListItem = SeriesSummary & {publishedAt: null}
@@ -62,13 +61,11 @@ export default function SeriesPageClient(): React.JSX.Element {
         },
         // Series have no bulk endpoint: sequential per-item updates in one action.
         publishMany: async (ids) => {
-            const host = getClientTenantHost()
             return runSequentialPublicationBulkAction(ids, async (id) =>
                 toListItem(await publishSeries( id)),
             )
         },
         unpublishMany: async (ids) => {
-            const host = getClientTenantHost()
             return runSequentialPublicationBulkAction(ids, async (id) =>
                 toListItem(await unpublishSeries( id)),
             )

@@ -155,7 +155,6 @@ export default function MediaLibraryClient(): React.JSX.Element {
     const {viewMode, setViewMode} = useListViewMode('grid')
 
     async function reload(): Promise<void> {
-        const host = getClientTenantHost()
         const [assetResult, folderResult] = await Promise.all([
             listMedia( {
                 limit: 100,
@@ -431,7 +430,6 @@ export default function MediaLibraryClient(): React.JSX.Element {
         setErrorMessage(null)
         setStatusMessage(null)
         try {
-            const host = getClientTenantHost()
             const results = await Promise.allSettled(
                 targets.map((asset) => deleteMedia( asset.id)),
             )
@@ -506,7 +504,6 @@ export default function MediaLibraryClient(): React.JSX.Element {
         setIsBusy(true)
         setFolderDialogError(null)
         try {
-            const host = getClientTenantHost()
             const folder =
                 folderDialog.mode === 'create'
                     ? await createMediaFolder( name, parentId)
@@ -559,7 +556,6 @@ export default function MediaLibraryClient(): React.JSX.Element {
         setErrorMessage(null)
         setStatusMessage(null)
         try {
-            const host = getClientTenantHost()
             const results = await Promise.allSettled(
                 targets.map((asset) => moveMediaAsset( asset.id, targetId)),
             )
