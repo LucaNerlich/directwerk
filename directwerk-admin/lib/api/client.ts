@@ -17,7 +17,6 @@ import type {
     TenantListPage,
 } from '@directwerk/api/types'
 import {
-    parseEffectiveRightsEnvelope,
     parseEffectiveRightsListEnvelope,
 } from '@directwerk/api/validation'
 import {isQueueJob} from '@directwerk/api/validation/admin'
