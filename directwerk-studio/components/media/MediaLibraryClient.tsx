@@ -122,6 +122,9 @@ export default function MediaLibraryClient(): React.JSX.Element {
     const authRedirect = useAuthRequired()
     const fileInputRef = useRef<HTMLInputElement>(null)
     const mountedRef = useRef(true)
+    const loadSequenceRef = useRef(0)
+    const folderViewRef = useRef<number | null>(null)
+    const includeSubfoldersRef = useRef(false)
     const [assets, setAssets] = useState<MediaAsset[]>([])
     const [folders, setFolders] = useState<MediaFolder[]>([])
     const [uploadLimits, setUploadLimits] = useState(() => MEDIA_TYPE_LIMITS)
@@ -154,13 +157,25 @@ export default function MediaLibraryClient(): React.JSX.Element {
     const [failedUpload, setFailedUpload] = useState<{file: File} | null>(null)
     const {viewMode, setViewMode} = useListViewMode('grid')
 
+    // Keep the refs current so a reload started before the user navigated (e.g. the post-upload
+    // refresh) loads the folder they are looking at now (issue #587).
+    useEffect(() => {
+        folderViewRef.current = folderView
+    }, [folderView])
+    useEffect(() => {
+        includeSubfoldersRef.current = includeSubfolders
+    }, [includeSubfolders])
+
     async function reload(): Promise<void> {
+        const sequence = ++loadSequenceRef.current
+        const currentFolderView = folderViewRef.current
+        const currentIncludeSubfolders = includeSubfoldersRef.current
         const [assetResult, folderResult] = await Promise.all([
             listMedia( {
                 limit: 100,
-                folderId: folderView ?? undefined,
-                recursive: includeSubfolders,
-                unassignedOnly: folderView === null && !includeSubfolders,
+                folderId: currentFolderView ?? undefined,
+                recursive: currentIncludeSubfolders,
+                unassignedOnly: currentFolderView === null && !currentIncludeSubfolders,
             }),
             listMediaFolders(),
         ])
@@ -171,6 +186,10 @@ export default function MediaLibraryClient(): React.JSX.Element {
             effective = await getMediaUploadLimits()
         } catch {
             effective = null
+        }
+        // Issue #587: a slower, older response must not overwrite a newer load.
+        if (sequence !== loadSequenceRef.current) {
+            return
         }
         setAssets(assetResult)
         setFolders(folderResult)
