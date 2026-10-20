@@ -24,8 +24,7 @@ Requires Directwerk API at `DIRECTWERK_API_URL` (default `http://localhost:8080`
 | `/account` | Profile, access, feeds, billing portal |
 | `/downloads` | Subscriber bonus files |
 
-`example-fe` remains the two-tenant API harness; this app is the Host-based
-reference site.
+This app is the Host-based reference site for tenants and subscribers.
 
 ## Adding a page
 

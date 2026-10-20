@@ -32,7 +32,6 @@ Detailed product and architecture reference:
 | [`homepage/`](homepage/) | Marketing site + `/developers` API excerpt (port **3005**) |
 | [`directwerk-docs/`](directwerk-docs/) | Public VitePress docs (dev **5173**, container **8088**) |
 | [`packages/ui`](packages/ui), [`packages/api`](packages/api) | Shared Next.js UI and typed API client |
-| [`example-fe/`](example-fe/) | Retained API demo harness (port **3000**) |
 | [`docs/`](docs/) | Internal implementation and product docs |
 
 Package namespace: `de.pnnit.directwerk`.

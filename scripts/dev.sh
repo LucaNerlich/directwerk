@@ -18,7 +18,7 @@ SESSION="publish-$MODE"
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 APPS=(directwerk-studio homepage directwerk-admin directwerk-web)
-# The docs site has no production start script, so it only runs in dev.
+# Dev-only, matching the old start launcher: the docs site serves on 3006, not 5173.
 if [ "$MODE" = "dev" ]; then
     APPS+=(directwerk-docs)
 fi
