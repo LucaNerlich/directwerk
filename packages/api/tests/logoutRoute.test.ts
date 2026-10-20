@@ -58,9 +58,17 @@ describe('createLogoutRoute', () => {
             }),
         )
         const absent = await POST(new Request('http://localhost/api/auth/logout', {method: 'POST'}))
+        const sameOrigin = await POST(
+            new Request('http://localhost/api/auth/logout', {
+                method: 'POST',
+                headers: {origin: 'http://localhost', host: 'localhost'},
+            }),
+        )
 
         expect(foreign.status).toBe(403)
         expect(absent.status).toBe(204)
+        // A guard that rejected every browser request would pass the two assertions above.
+        expect(sameOrigin.status).toBe(204)
     })
 })
 
