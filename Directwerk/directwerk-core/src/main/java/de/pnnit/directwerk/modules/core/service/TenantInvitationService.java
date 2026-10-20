@@ -1,5 +1,7 @@
 package de.pnnit.directwerk.modules.core.service;
 
+import de.pnnit.directwerk.modules.core.audit.PlatformAuditActions;
+import de.pnnit.directwerk.modules.core.audit.PlatformAuditService;
 import de.pnnit.directwerk.modules.core.exception.ConflictException;
 import de.pnnit.directwerk.modules.core.exception.ConflictCodes;
 import de.pnnit.directwerk.modules.core.entity.InvitationType;
@@ -15,6 +17,7 @@ import de.pnnit.directwerk.modules.core.util.EmailNormalizer;
 import de.pnnit.directwerk.modules.email.TransactionalEmailNotifier;
 import java.time.Instant;
 import java.util.EnumSet;
+import java.util.Map;
 import java.util.Locale;
 import java.util.Optional;
 import java.util.Set;
@@ -42,6 +45,7 @@ public class TenantInvitationService {
     private final InvitationTokenService invitationTokenService;
     private final TransactionalEmailNotifier transactionalEmailNotifier;
     private final UserProvisioningService userProvisioningService;
+    private final PlatformAuditService platformAuditService;
 
     @Transactional
     public InvitationResult invite(Long tenantId, String email, String name, String roleName) {
@@ -100,6 +104,11 @@ public class TenantInvitationService {
                 role.name(),
                 inviteToken
         );
+        platformAuditService.record(
+                PlatformAuditActions.USER_INVITED,
+                tenant.getId(),
+                Map.of("email", user.getEmail(), "role", role.name())
+        );
         return new InvitationResult(user.getEmail(), role.name(), membership.getStatus().name(), inviteToken);
     }
 
@@ -138,6 +147,11 @@ public class TenantInvitationService {
                 tenant.getSlug(),
                 role.name(),
                 inviteToken
+        );
+        platformAuditService.record(
+                PlatformAuditActions.USER_INVITED,
+                tenant.getId(),
+                Map.of("email", user.getEmail(), "role", role.name(), "resend", true)
         );
         return new InvitationResult(user.getEmail(), role.name(), membership.getStatus().name(), inviteToken);
     }
