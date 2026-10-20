@@ -26,7 +26,14 @@ public class PublicCdnUrlResolver {
         if (asset == null || asset.getId() == null) {
             return Optional.empty();
         }
-        MediaAsset managed = mediaAssetRepository.findById(asset.getId()).orElse(null);
+        return resolveLoaded(mediaAssetRepository.findById(asset.getId()).orElse(null));
+    }
+
+    /**
+     * Batch overload: the caller already loaded the managed asset, so skip the extra
+     * {@code findById} (issue #568).
+     */
+    Optional<URL> resolveLoaded(MediaAsset managed) {
         if (managed == null || !PublicAssetPolicy.isPublicCdnEligible(managed.getTenant().getSlug(), managed)) {
             return Optional.empty();
         }

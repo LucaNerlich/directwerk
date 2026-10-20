@@ -105,7 +105,7 @@ class AssetAccessServiceTest {
     void resolveDownloadUrlReturnsCdnUrlForPublicAsset() throws Exception {
         MediaAsset asset = givenLoaded(publicAsset(10L, "alpha-show-a", "alpha-show-a/public/images/test.jpg"));
         URL cdn = URI.create("https://cdn.example.test/alpha-show-a/public/images/test.jpg").toURL();
-        when(publicCdnUrlResolver.resolve(asset)).thenReturn(Optional.of(cdn));
+        when(publicCdnUrlResolver.resolveLoaded(asset)).thenReturn(Optional.of(cdn));
 
         URL url = service.resolveDownloadUrl(asset, subscriber(42L, 10L));
 
@@ -234,6 +234,28 @@ class AssetAccessServiceTest {
     }
 
     // --- batch downloads ------------------------------------------------------------------
+
+    @Test
+    void resolveDownloadUrlsDoesNotReReadAssetsItAlreadyLoaded() throws Exception {
+        MediaAsset first = publicAsset(10L, "alpha-show-a", "alpha-show-a/public/images/a.jpg");
+        first.setId(1L);
+        MediaAsset second = publicAsset(10L, "alpha-show-a", "alpha-show-a/public/images/b.jpg");
+        second.setId(2L);
+        when(mediaAssetRepository.findAllWithTenantByIdIn(List.of(1L, 2L)))
+                .thenReturn(List.of(first, second));
+        URL firstUrl = URI.create("https://cdn.example.test/a.jpg").toURL();
+        URL secondUrl = URI.create("https://cdn.example.test/b.jpg").toURL();
+        when(publicCdnUrlResolver.resolveLoaded(first)).thenReturn(Optional.of(firstUrl));
+        when(publicCdnUrlResolver.resolveLoaded(second)).thenReturn(Optional.of(secondUrl));
+
+        List<AssetAccessApi.ResolvedDownload> resolved =
+                service.resolveDownloadUrls(List.of(first, second), subscriber(42L, 10L));
+
+        assertThat(resolved).hasSize(2);
+        // Issue #568: the batch already loaded these rows; no per-asset findById round-trip.
+        verify(mediaAssetRepository, never()).findById(1L);
+        verify(mediaAssetRepository, never()).findById(2L);
+    }
 
     @Test
     void resolveDownloadUrlsGrantsFreePublicationAssetWithoutPackageRule() throws Exception {
