@@ -36,17 +36,6 @@ export function deskHome(desk: SiteConfig['studioDesks'][number]): string {
     }
 }
 
-export function defaultHomePath(home: SiteConfig['studioHome']): string {
-    switch (home) {
-        case 'WRITE_DESK':
-            return deskHome('WRITE')
-        case 'PODCAST_DESK':
-            return deskHome('PODCAST')
-        default:
-            return '/'
-    }
-}
-
 
 export function defaultActiveDesk(config: SiteConfig): StudioDesk | null {
     if (config.studioDesks.length === 0) {

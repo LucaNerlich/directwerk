@@ -1,6 +1,6 @@
 import {describe, expect, it} from 'vitest'
 
-import {defaultActiveDesk, defaultHomePath, deskHome, hasModule, resolveActiveDesk} from '@/lib/api/client'
+import {defaultActiveDesk, deskHome, hasModule, resolveActiveDesk} from '@/lib/api/client'
 import type {SiteConfig} from '@directwerk/api/types'
 
 const sampleConfig: SiteConfig = {
@@ -26,12 +26,6 @@ describe('site helpers', () => {
     it('detects enabled modules', () => {
         expect(hasModule(sampleConfig, 'PODCAST')).toBe(true)
         expect(hasModule(sampleConfig, 'SUBSCRIPTION')).toBe(false)
-    })
-
-    it('maps studio home to default paths', () => {
-        expect(defaultHomePath('WRITE_DESK')).toBe('/write')
-        expect(defaultHomePath('PODCAST_DESK')).toBe('/podcast')
-        expect(defaultHomePath('OVERVIEW')).toBe('/')
     })
 
     it('maps desks to their home paths', () => {

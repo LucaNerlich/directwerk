@@ -17,7 +17,6 @@ import type {
     TenantListPage,
 } from '@directwerk/api/types'
 import {
-    parseEffectiveRightsEnvelope,
     parseEffectiveRightsListEnvelope,
 } from '@directwerk/api/validation'
 import {isQueueJob} from '@directwerk/api/validation/admin'
@@ -46,17 +45,6 @@ export async function postPlatformData<T>(
 
 export async function deletePlatformData<T>(path: string): Promise<T> {
     return platformApi.delete<T>(path)
-}
-
-export async function getMemberEffectiveRights(
-    tenantId: string,
-    userId: number,
-): Promise<EffectiveRights> {
-    return platformApi.getEnvelope(
-        `tenants/${tenantId}/users/${userId}/effective-rights`,
-        parseEffectiveRightsEnvelope,
-        'Invalid rights response.',
-    )
 }
 
 /**

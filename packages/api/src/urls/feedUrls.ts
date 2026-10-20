@@ -88,24 +88,6 @@ export function tenantPodcastFeed(origin: string, tenantSlug: string): string {
     return `${normalizeOrigin(origin)}/feeds/${encodeURIComponent(tenantSlug)}/podcast.xml`
 }
 
-/** Public per-series feed: `/feeds/{tenantSlug}/{seriesSlug}.xml`. */
-export function seriesFeed(
-    origin: string,
-    tenantSlug: string,
-    seriesSlug: string,
-): string {
-    return `${normalizeOrigin(origin)}/feeds/${encodeURIComponent(tenantSlug)}/${encodeURIComponent(seriesSlug)}.xml`
-}
-
-/** Token-authenticated subscriber feed: `/feeds/{tenantSlug}/u/{feedToken}.xml`. */
-export function subscriberFeed(
-    origin: string,
-    tenantSlug: string,
-    feedToken: string,
-): string {
-    return `${normalizeOrigin(origin)}/feeds/${encodeURIComponent(tenantSlug)}/u/${encodeURIComponent(feedToken)}.xml`
-}
-
 /** Public episode enclosure proxy: `/feeds/{tenantSlug}/e/{episodeSlug}.mp3`. */
 export function publicEnclosure(
     origin: string,
@@ -125,19 +107,6 @@ export function privateEnclosure(
     return (
         `${normalizeOrigin(origin)}/feeds/${encodeURIComponent(tenantSlug)}/u/${encodeURIComponent(feedToken)}` +
         `/e/${encodeURIComponent(episodeSlug)}.mp3`
-    )
-}
-
-/** Browser-safe series feed URL with encoded path segments. */
-export function publicSeriesFeedUrl(
-    originHost: string,
-    tenantSlug: string,
-    seriesSlug: string,
-): string {
-    const origin = normalizeOrigin(originHost)
-    return (
-        `${origin}/feeds/${encodeURIComponent(tenantSlug)}/` +
-        `${encodeURIComponent(seriesSlug)}.xml`
     )
 }
 
