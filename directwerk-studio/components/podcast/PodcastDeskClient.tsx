@@ -1,19 +1,14 @@
 'use client'
 
 import LocaleLink from '@/components/i18n/LocaleLink'
+
+import DeskLanding from '@/components/studio/DeskLanding'
 import {useDictionary} from '@/components/i18n/LocaleProvider'
 import {useRouter} from 'next/navigation'
 import {useEffect, useState} from 'react'
 
 import {Button} from '@directwerk/ui/components/button'
-import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
-import {Badge} from '@directwerk/ui/components/badge'
-import EmptyState from '@directwerk/ui/components/empty-state'
-import {EntityListSection} from '@directwerk/ui/components/entity-list-section'
 import type {EntityListViewItem} from '@directwerk/ui/components/entity-list-view'
-import PageHeader from '@directwerk/ui/components/page-header'
-import PageStack from '@directwerk/ui/components/page-stack'
-import SectionHeader from '@directwerk/ui/components/section-header'
 import {useListViewMode} from '@directwerk/ui/hooks/use-list-view-mode'
 
 import PublicationStatusBadge from '@/components/publication/PublicationStatusBadge'
@@ -130,128 +125,78 @@ export default function PodcastDeskClient(): React.JSX.Element {
     }))
 
     return (
-        <PageStack>
-            <PageHeader
-                eyebrow={dict.desks.podcast}
-                title={dict.desks.createContent}
-                description={p.publishEpisodeByEpisode}
-                actions={
-                    setupComplete ? (
-                        <div className="flex flex-wrap gap-2">
-                            <Button nativeButton={false} render={<LocaleLink href="/podcast/import" />} size="lg" variant="outline">
-                                {p.importRss}
-                            </Button>
-                            <Button nativeButton={false} render={<LocaleLink href="/podcast/episodes/new" />} size="lg">
-                                {p.newEpisode}
-                            </Button>
-                        </div>
-                    ) : (
-                        <Button nativeButton={false} render={<LocaleLink href={nextStep.href} />} size="lg">
-                            {nextStep.actionLabel}
+        <DeskLanding
+            actions={
+                setupComplete ? (
+                    <div className="flex flex-wrap gap-2">
+                        <Button nativeButton={false} render={<LocaleLink href="/podcast/import" />} size="lg" variant="outline">
+                            {p.importRss}
                         </Button>
-                    )
-                }
-            />
-
-            {errorMessage !== null ? (
-                <Alert variant="destructive">
-                    <AlertDescription>{errorMessage}</AlertDescription>
-                </Alert>
-            ) : null}
-
-            <section aria-labelledby="podcast-flow-heading" className="flex flex-col gap-4">
-                <SectionHeader
-                    description={p.basicsThenPublish}
-                    id="podcast-flow-heading"
-                    title={p.howEpisodeWorks}
-                />
-                <ol className="grid gap-3">
-                    {steps.map((step) => (
-                        <li
-                            key={step.id}
-                            className="flex flex-col gap-3 rounded-xl border bg-card p-4 sm:flex-row sm:items-center sm:justify-between"
-                        >
-                            <div className="min-w-0">
-                                <div className="flex flex-wrap items-center gap-2">
-                                    <p className="font-medium">{step.title}</p>
-                                    <Badge variant={step.done ? 'secondary' : 'outline'}>
-                                        {step.done ? dict.common.done : dict.common.openStep}
-                                    </Badge>
-                                </div>
-                                <p className="mt-1 text-sm text-muted-foreground">
-                                    {step.description}
-                                </p>
-                            </div>
-                            <Button
-                                nativeButton={false}
-                                render={<LocaleLink href={step.href} />}
-                                size="sm"
-                                variant={
-                                    step.primary && setupComplete
-                                        ? 'default'
-                                        : step.done
-                                          ? 'outline'
-                                          : 'secondary'
-                                }
-                            >
-                                {step.actionLabel}
-                            </Button>
-                        </li>
-                    ))}
-                </ol>
-            </section>
-
-            {!setupComplete ? (
-                <EmptyState
-                    title={p.emptyShowsTitle}
-                    description={p.createShowThenFormats}
-                    action={
-                        <Button nativeButton={false} render={<LocaleLink href="/podcast/series/new" />}>
-                            {p.createFirstShow}
+                        <Button nativeButton={false} render={<LocaleLink href="/podcast/episodes/new" />} size="lg">
+                            {p.newEpisode}
                         </Button>
-                    }
-                />
-            ) : null}
-
-            {setupComplete && draftEpisodes.length > 0 ? (
-                <section className="flex flex-col gap-3">
-                    <SectionHeader title={p.openDrafts} />
-                    <EntityListSection
-                        items={draftEpisodeItems}
-                        linkComponent={LocaleLink}
-                        onViewModeChange={setViewMode}
-                        showSelection={false}
-                        viewMode={viewMode}
-                    />
-                    {draftEpisodes.length > 5 ? (
-                        <p className="text-sm text-muted-foreground">
-                            <LocaleLink href="/podcast/episodes">{p.showAllEpisodes}</LocaleLink>
-                        </p>
-                    ) : null}
-                </section>
-            ) : null}
-
-            {setupComplete && publishedSeries.length === 0 ? (
-                <p className="text-sm text-muted-foreground">
-                    {p.draftShowBeforeLink}{' '}
-                    <LocaleLink href={`/podcast/series/${series[0].id}`}>
-                        {p.sendungVeroeffentlichen}
-                    </LocaleLink>
-                    {p.draftShowAfterLink}
-                </p>
-            ) : null}
-
-            {setupComplete ? (
-                <p className="text-sm text-muted-foreground">
-                    <LocaleLink href="/podcast/episodes">{p.toEpisodeList}</LocaleLink>
-                    {' · '}
-                    <LocaleLink href="/podcast/import">{p.importRss}</LocaleLink>
-                    {' · '}
-                    <LocaleLink href="/podcast/series">{dict.nav.podcast.series}</LocaleLink>
-                    {' · '}
-                    <LocaleLink href="/podcast/formats">{dict.nav.podcast.formats}</LocaleLink>
-                </p>
-            ) : null}
-        </PageStack>
+                    </div>
+                ) : (
+                    <Button nativeButton={false} render={<LocaleLink href={nextStep.href} />} size="lg">
+                        {nextStep.actionLabel}
+                    </Button>
+                )
+            }
+            activatePrimary={setupComplete}
+            description={p.publishEpisodeByEpisode}
+            drafts={
+                setupComplete
+                    ? {
+                          title: p.openDrafts,
+                          items: draftEpisodeItems,
+                          viewMode,
+                          onViewModeChange: setViewMode,
+                          showAllHref: '/podcast/episodes',
+                          showAllLabel: p.showAllEpisodes,
+                      }
+                    : undefined
+            }
+            emptyState={
+                !setupComplete
+                    ? {
+                          title: p.emptyShowsTitle,
+                          description: p.createShowThenFormats,
+                          actionLabel: p.createFirstShow,
+                          actionHref: '/podcast/series/new',
+                      }
+                    : undefined
+            }
+            errorMessage={errorMessage}
+            extra={
+                setupComplete && publishedSeries.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">
+                        {p.draftShowBeforeLink}{' '}
+                        <LocaleLink href={`/podcast/series/${series[0].id}`}>
+                            {p.sendungVeroeffentlichen}
+                        </LocaleLink>
+                        {p.draftShowAfterLink}
+                    </p>
+                ) : undefined
+            }
+            eyebrow={dict.desks.podcast}
+            flowDescription={p.basicsThenPublish}
+            flowId="podcast-flow-heading"
+            flowTitle={p.howEpisodeWorks}
+            footer={
+                setupComplete ? (
+                    <>
+                        <LocaleLink href="/podcast/episodes">{p.toEpisodeList}</LocaleLink>
+                        {' · '}
+                        <LocaleLink href="/podcast/import">{p.importRss}</LocaleLink>
+                        {' · '}
+                        <LocaleLink href="/podcast/series">{dict.nav.podcast.series}</LocaleLink>
+                        {' · '}
+                        <LocaleLink href="/podcast/formats">{dict.nav.podcast.formats}</LocaleLink>
+                    </>
+                ) : undefined
+            }
+            steps={steps}
+            title={dict.desks.createContent}
+        />
     )
 }
