@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import java.util.Locale;
 
 @RestController
 @RequiresModule(EmailNotifyModule.KEY)
@@ -59,9 +60,9 @@ public class TenantContentEmailTemplateController {
         return ResponseEntity.ok(Response.ok(view));
     }
 
-    private static ContentType parseContentType(String raw) {
+    static ContentType parseContentType(String raw) {
         try {
-            return ContentType.valueOf(raw.toUpperCase());
+            return ContentType.valueOf(raw.toUpperCase(Locale.ROOT));
         } catch (IllegalArgumentException ex) {
             throw new IllegalArgumentException("Unsupported content type: " + raw);
         }
