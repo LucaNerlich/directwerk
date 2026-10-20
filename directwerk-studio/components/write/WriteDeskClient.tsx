@@ -1,19 +1,14 @@
 'use client'
 
 import LocaleLink from '@/components/i18n/LocaleLink'
+
+import DeskLanding from '@/components/studio/DeskLanding'
 import {useDictionary} from '@/components/i18n/LocaleProvider'
 import {useRouter} from 'next/navigation'
 import {useEffect, useState} from 'react'
 
 import {Button} from '@directwerk/ui/components/button'
-import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
-import {Badge} from '@directwerk/ui/components/badge'
-import EmptyState from '@directwerk/ui/components/empty-state'
-import {EntityListSection} from '@directwerk/ui/components/entity-list-section'
 import type {EntityListViewItem} from '@directwerk/ui/components/entity-list-view'
-import PageHeader from '@directwerk/ui/components/page-header'
-import PageStack from '@directwerk/ui/components/page-stack'
-import SectionHeader from '@directwerk/ui/components/section-header'
 import {useListViewMode} from '@directwerk/ui/hooks/use-list-view-mode'
 
 import PublicationStatusBadge from '@/components/publication/PublicationStatusBadge'
@@ -124,102 +119,53 @@ export default function WriteDeskClient(): React.JSX.Element {
     }))
 
     return (
-        <PageStack>
-            <PageHeader
-                eyebrow={dict.desks.write}
-                title={dict.desks.createContent}
-                description={w.publishArticleByArticle}
-                actions={
-                    <div className="flex flex-wrap gap-2">
-                        <Button nativeButton={false} render={<LocaleLink href="/write/import" />} size="lg" variant="outline">
-                            {w.importRss}
-                        </Button>
-                        <Button nativeButton={false} render={<LocaleLink href="/write/articles/new" />} size="lg">
-                            {dict.shell.home.newArticle}
-                        </Button>
-                    </div>
-                }
-            />
-
-            {errorMessage !== null ? (
-                <Alert variant="destructive">
-                    <AlertDescription>{errorMessage}</AlertDescription>
-                </Alert>
-            ) : null}
-
-            <section aria-labelledby="write-flow-heading" className="flex flex-col gap-4">
-                <SectionHeader
-                    description={w.optionalCategoriesThenWrite}
-                    id="write-flow-heading"
-                    title={w.howArticleWorks}
-                />
-                <ol className="grid gap-3">
-                    {steps.map((step) => (
-                        <li
-                            key={step.id}
-                            className="flex flex-col gap-3 rounded-xl border bg-card p-4 sm:flex-row sm:items-center sm:justify-between"
-                        >
-                            <div className="min-w-0">
-                                <div className="flex flex-wrap items-center gap-2">
-                                    <p className="font-medium">{step.title}</p>
-                                    <Badge variant={step.done ? 'secondary' : 'outline'}>
-                                        {step.done ? dict.common.done : dict.common.openStep}
-                                    </Badge>
-                                </div>
-                                <p className="mt-1 text-sm text-muted-foreground">
-                                    {step.description}
-                                </p>
-                            </div>
-                            <Button
-                                nativeButton={false}
-                                render={<LocaleLink href={step.href} />}
-                                size="sm"
-                                variant={step.primary ? 'default' : step.done ? 'outline' : 'secondary'}
-                            >
-                                {step.actionLabel}
-                            </Button>
-                        </li>
-                    ))}
-                </ol>
-            </section>
-
-            {!hasArticles ? (
-                <EmptyState
-                    title={w.noArticleYet}
-                    description={w.writeFirstDraftLater}
-                    action={
-                        <Button nativeButton={false} render={<LocaleLink href={nextStep.href} />}>
-                            {nextStep.actionLabel}
-                        </Button>
-                    }
-                />
-            ) : null}
-
-            {draftArticles.length > 0 ? (
-                <section className="flex flex-col gap-3">
-                    <SectionHeader title={w.openDrafts} />
-                    <EntityListSection
-                        items={draftArticleItems}
-                        linkComponent={LocaleLink}
-                        onViewModeChange={setViewMode}
-                        showSelection={false}
-                        viewMode={viewMode}
-                    />
-                    {draftArticles.length > 5 ? (
-                        <p className="text-sm text-muted-foreground">
-                            <LocaleLink href="/write/articles">{w.showAllArticles}</LocaleLink>
-                        </p>
-                    ) : null}
-                </section>
-            ) : null}
-
-            <p className="text-sm text-muted-foreground">
-                <LocaleLink href="/write/articles">{w.toArticleList}</LocaleLink>
-                {' · '}
-                <LocaleLink href="/manage/categories">{dict.nav.verwaltung.categories}</LocaleLink>
-                {' · '}
-                <LocaleLink href="/bonus">{dict.nav.verwaltung.bonus}</LocaleLink>
-            </p>
-        </PageStack>
+        <DeskLanding
+            actions={
+                <div className="flex flex-wrap gap-2">
+                    <Button nativeButton={false} render={<LocaleLink href="/write/import" />} size="lg" variant="outline">
+                        {w.importRss}
+                    </Button>
+                    <Button nativeButton={false} render={<LocaleLink href="/write/articles/new" />} size="lg">
+                        {dict.shell.home.newArticle}
+                    </Button>
+                </div>
+            }
+            activatePrimary
+            description={w.publishArticleByArticle}
+            drafts={{
+                title: w.openDrafts,
+                items: draftArticleItems,
+                viewMode,
+                onViewModeChange: setViewMode,
+                showAllHref: '/write/articles',
+                showAllLabel: w.showAllArticles,
+            }}
+            emptyState={
+                !hasArticles
+                    ? {
+                          title: w.noArticleYet,
+                          description: w.writeFirstDraftLater,
+                          actionLabel: nextStep.actionLabel,
+                          actionHref: nextStep.href,
+                      }
+                    : undefined
+            }
+            errorMessage={errorMessage}
+            eyebrow={dict.desks.write}
+            flowDescription={w.optionalCategoriesThenWrite}
+            flowId="write-flow-heading"
+            flowTitle={w.howArticleWorks}
+            footer={
+                <>
+                    <LocaleLink href="/write/articles">{w.toArticleList}</LocaleLink>
+                    {' · '}
+                    <LocaleLink href="/manage/categories">{dict.nav.verwaltung.categories}</LocaleLink>
+                    {' · '}
+                    <LocaleLink href="/bonus">{dict.nav.verwaltung.bonus}</LocaleLink>
+                </>
+            }
+            steps={steps}
+            title={dict.desks.createContent}
+        />
     )
 }
