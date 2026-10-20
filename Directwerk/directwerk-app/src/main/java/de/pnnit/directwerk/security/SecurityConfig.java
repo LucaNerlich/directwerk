@@ -49,7 +49,6 @@ import org.springframework.security.oauth2.server.authorization.token.OAuth2Acce
 import org.springframework.security.oauth2.server.authorization.token.OAuth2RefreshTokenGenerator;
 import org.springframework.security.oauth2.server.authorization.token.OAuth2TokenGenerator;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.authentication.LoginUrlAuthenticationEntryPoint;
 
 @Configuration
 @EnableWebSecurity
@@ -91,7 +90,7 @@ public class SecurityConfig {
                 )
                 .authorizeHttpRequests(authorize -> authorize.anyRequest().authenticated())
                 .csrf(csrf -> csrf.ignoringRequestMatchers(authorizationServerConfigurer.getEndpointsMatcher()));
-        // Issue #374: the HTML LoginUrlAuthenticationEntryPoint("/login") was removed — no /login
+        // Issue #374: the HTML login entry point was removed — no /login
         // mapping or permitAll exists, so it only redirected HTML clients to a JSON 401. The JSON
         // entry points on the API chain remain.
 
