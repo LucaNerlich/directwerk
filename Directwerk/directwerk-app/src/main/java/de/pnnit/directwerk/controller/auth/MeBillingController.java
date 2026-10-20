@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 
 @RestController
 @Validated
@@ -35,6 +36,7 @@ public class MeBillingController {
         this.stripeCustomerPortalService = stripeCustomerPortalService;
     }
 
+    @ApiResponse(responseCode = "201", description = "Created")
     @PostMapping("/checkout-sessions")
     ResponseEntity<Response<CheckoutSessionView>> createCheckoutSession(
             @AuthenticationPrincipal DirectwerkUserPrincipal principal,
@@ -51,6 +53,7 @@ public class MeBillingController {
         return ResponseEntity.status(HttpStatus.CREATED).body(Response.created(new CheckoutSessionView(url)));
     }
 
+    @ApiResponse(responseCode = "201", description = "Created")
     @PostMapping("/portal")
     ResponseEntity<Response<CheckoutSessionView>> createPortalSession(
             @AuthenticationPrincipal DirectwerkUserPrincipal principal,

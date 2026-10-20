@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 
 @RestController
 @RequestMapping("/api/v1/public")
@@ -53,6 +54,7 @@ public class PublicNewsletterController {
         return ResponseEntity.ok(Response.ok(toPublicView(list)));
     }
 
+    @ApiResponse(responseCode = "202", description = "Accepted")
     @PostMapping("/newsletter-lists/{slug}/subscribe")
     @RequiresModule(EmailNotifyModule.KEY)
     ResponseEntity<Response<Void>> subscribe(

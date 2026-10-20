@@ -34,6 +34,7 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 
 @RestController
 @PreAuthorize("hasRole('TENANT_ADMIN')")
@@ -107,6 +108,7 @@ public class TenantAdminController {
      * @param request the domain details, including its host and primary status
      * @return a created response containing the added domain
      */
+    @ApiResponse(responseCode = "201", description = "Created")
     @PostMapping("/domains")
     ResponseEntity<Response<DomainView>> addDomain(@Valid @RequestBody AddDomainRequest request) {
         TenantDomain domain = tenantDomainService.addDomain(
@@ -158,6 +160,7 @@ public class TenantAdminController {
      * @param request the invitation details, including the user's email, name, and role
      * @return the created invitation response, or a conflict response if the user is already a member
      */
+    @ApiResponse(responseCode = "201", description = "Created")
     @PostMapping("/users/invite")
     ResponseEntity<Response<de.pnnit.directwerk.api.dto.InviteUserResponse>> inviteUser(
             @Valid @RequestBody InviteRequest request

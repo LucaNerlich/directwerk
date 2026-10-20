@@ -43,6 +43,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import tools.jackson.databind.ObjectMapper;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 
 @RestController
 @RequiresModule(ArticlesModule.KEY)
@@ -79,6 +80,8 @@ public class ArticleImportController {
         return ResponseEntity.ok(Response.ok(toPreviewView(preview)));
     }
 
+    @ApiResponse(responseCode = "201", description = "Created")
+    @ApiResponse(responseCode = "202", description = "Accepted")
     @PostMapping("/assets")
     ResponseEntity<Response<MediaAssetView>> ingestAsset(@Valid @RequestBody IngestAssetRequest request) {
         boolean waitForCompletion = request.waitForCompletion() == null || request.waitForCompletion();
@@ -111,6 +114,8 @@ public class ArticleImportController {
         return ResponseEntity.ok(Response.ok(mediaAssetViewMapper.toView(asset)));
     }
 
+    @ApiResponse(responseCode = "201", description = "Created")
+    @ApiResponse(responseCode = "200", description = "OK")
     @PostMapping("/articles")
     ResponseEntity<Response<ImportedArticleView>> importArticle(@Valid @RequestBody ImportArticleRequest request) {
         boolean importHero = request.importHero() == null || request.importHero();
@@ -143,6 +148,7 @@ public class ArticleImportController {
         );
     }
 
+    @ApiResponse(responseCode = "202", description = "Accepted")
     @PostMapping("/bulk")
     ResponseEntity<Response<BulkImportQueuedView>> importBulk(
             @Valid @RequestBody BulkImportRequest request,

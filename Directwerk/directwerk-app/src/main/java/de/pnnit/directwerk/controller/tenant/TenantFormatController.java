@@ -25,6 +25,7 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 
 @RestController
 @RequiresModule(PodcastModule.KEY)
@@ -48,6 +49,7 @@ public class TenantFormatController {
         return ResponseEntity.ok(Response.ok(formats));
     }
 
+    @ApiResponse(responseCode = "201", description = "Created")
     @PostMapping
     @PreAuthorize("hasRole('TENANT_ADMIN')")
     ResponseEntity<Response<FormatView>> createFormat(@Valid @RequestBody CreateFormatRequest request) {

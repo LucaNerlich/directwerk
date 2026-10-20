@@ -36,6 +36,7 @@ import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 
 @RestController
 @Validated
@@ -90,6 +91,7 @@ public class PlatformTenantController {
         ));
     }
 
+    @ApiResponse(responseCode = "201", description = "Created")
     @PostMapping
     ResponseEntity<Response<TenantCreationResponse>> createTenant(@Valid @RequestBody CreateTenantRequest request) {
                 TenantCreationResult result = tenantManagementService.createTenant(

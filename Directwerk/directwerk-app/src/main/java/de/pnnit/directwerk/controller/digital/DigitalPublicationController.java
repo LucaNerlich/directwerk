@@ -26,6 +26,7 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 
 @RestController
 @RequiresModule(BonusContentModule.KEY)
@@ -53,6 +54,7 @@ public class DigitalPublicationController {
         return ResponseEntity.ok(Response.ok(toView(digitalPublicationService.require(tenantId, publicationId))));
     }
 
+    @ApiResponse(responseCode = "201", description = "Created")
     @PostMapping
     ResponseEntity<Response<DigitalPublicationView>> create(@Valid @RequestBody CreateDigitalPublicationRequest request) {
         Long tenantId = TenantContext.requireTenantId();
@@ -110,6 +112,7 @@ public class DigitalPublicationController {
         return ResponseEntity.ok(Response.ok(toView(digitalPublicationService.unarchive(tenantId, publicationId))));
     }
 
+    @ApiResponse(responseCode = "204", description = "No content")
     @DeleteMapping("/{publicationId}")
     ResponseEntity<Void> delete(@PathVariable Long publicationId) {
         Long tenantId = TenantContext.requireTenantId();

@@ -29,6 +29,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import tools.jackson.databind.JsonNode;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 
 /**
  * Platform-admin queue inspection and manual enqueue API.
@@ -49,6 +50,7 @@ public class PlatformQueueController {
         this.queueService = queueService;
     }
 
+    @ApiResponse(responseCode = "201", description = "Created")
     @PostMapping
     ResponseEntity<Response<QueueJob>> enqueue(@Valid @RequestBody EnqueueJobRequest request) {
         QueueJob job = queueService.enqueue(

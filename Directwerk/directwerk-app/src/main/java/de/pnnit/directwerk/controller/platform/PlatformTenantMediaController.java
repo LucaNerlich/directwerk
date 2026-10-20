@@ -32,6 +32,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.validation.annotation.Validated;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 
 /**
  * Platform ops view of a tenant's media assets (directwerk-admin Storage page).
@@ -89,6 +90,7 @@ public class PlatformTenantMediaController {
         )));
     }
 
+    @ApiResponse(responseCode = "201", description = "Created")
     @PostMapping("/upload-url")
     ResponseEntity<Response<UploadUrlResponse>> createUploadUrl(
             @PathVariable Long tenantId,

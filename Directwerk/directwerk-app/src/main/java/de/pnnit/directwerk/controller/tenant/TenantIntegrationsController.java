@@ -25,6 +25,7 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 
 @RestController
 @Validated
@@ -107,6 +108,7 @@ public class TenantIntegrationsController {
         return ResponseEntity.status(HttpStatus.OK).body(Response.ok(TenantEspConnectionService.toView(saved)));
     }
 
+    @ApiResponse(responseCode = "204", description = "No content")
     @DeleteMapping("/esp")
     ResponseEntity<Void> disconnectEsp() {
         Long tenantId = TenantContext.requireTenantId();

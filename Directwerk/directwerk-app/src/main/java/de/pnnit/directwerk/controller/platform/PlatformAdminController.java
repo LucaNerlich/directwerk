@@ -25,6 +25,7 @@ import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 
 @RestController
 @Validated
@@ -80,6 +81,7 @@ public class PlatformAdminController {
      * @param request the validated administrator invitation details
      * @return the created administrator's details, invitation status, and optionally an invitation token
      */
+    @ApiResponse(responseCode = "201", description = "Created")
     @PostMapping("/invite")
     ResponseEntity<Response<PlatformAdminInvitationResponse>> inviteAdmin(
             @Valid @RequestBody InvitePlatformAdminRequest request
