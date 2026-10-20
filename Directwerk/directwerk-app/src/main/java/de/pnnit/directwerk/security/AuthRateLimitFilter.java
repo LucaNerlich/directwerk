@@ -5,14 +5,11 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.util.HexFormat;
 import java.util.List;
 import java.util.Set;
 import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
+import de.pnnit.directwerk.modules.core.util.TokenHashUtil;
 
 public class AuthRateLimitFilter extends OncePerRequestFilter {
 
@@ -105,21 +102,11 @@ public class AuthRateLimitFilter extends OncePerRequestFilter {
         String usernameKey;
         if (keyPrefix.length() + normalized.length() > MAX_USERNAME_KEY_LENGTH) {
             // Username too long for direct keying; use a fixed-size SHA-256 digest instead
-            usernameKey = keyPrefix + sha256Hex(normalized);
+            usernameKey = keyPrefix + TokenHashUtil.sha256Hex(normalized);
         } else {
             usernameKey = keyPrefix + normalized;
         }
         return List.of(ipKey, usernameKey);
-    }
-
-    private static String sha256Hex(String input) {
-        try {
-            MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            byte[] hash = digest.digest(input.getBytes(StandardCharsets.UTF_8));
-            return HexFormat.of().formatHex(hash);
-        } catch (NoSuchAlgorithmException e) {
-            throw new IllegalStateException("SHA-256 algorithm not available", e);
-        }
     }
 
     private String extractClientIp(HttpServletRequest request) {
