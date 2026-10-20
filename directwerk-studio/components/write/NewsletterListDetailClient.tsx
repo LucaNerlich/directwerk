@@ -6,6 +6,7 @@ import {useMemo, useState} from 'react'
 
 import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
 import {Button} from '@directwerk/ui/components/button'
+import {useDictionary} from '@/components/i18n/LocaleProvider'
 import {Input} from '@directwerk/ui/components/input'
 import PageHeader from '@directwerk/ui/components/page-header'
 import PageStack from '@directwerk/ui/components/page-stack'
@@ -25,6 +26,7 @@ import {useAuthedQuery} from '@directwerk/api/client/useAuthedQuery'
 import {useSiteConfig} from '@/lib/site/SiteConfigProvider'
 
 export default function NewsletterListDetailClient(): React.JSX.Element {
+    const dict = useDictionary()
     const params = useParams<{listId: string}>()
     // Issue #420: a non-numeric segment yielded NaN, which was passed straight into the API call
     // instead of short-circuiting. Guard it and render a not-found state.
@@ -88,7 +90,7 @@ export default function NewsletterListDetailClient(): React.JSX.Element {
                 description={list ? `Slug: ${list.slug}` : undefined}
                 actions={
                     <Button nativeButton={false} render={<LocaleLink href="/write/lists" />} variant="outline">
-                        Zurück
+                        {dict.common.back}
                     </Button>
                 }
             />
@@ -105,7 +107,7 @@ export default function NewsletterListDetailClient(): React.JSX.Element {
                     </label>
                     <div className="flex flex-wrap gap-2">
                         <Button disabled={busy} onClick={() => void save()} type="button">
-                            Speichern
+                            {dict.common.save}
                         </Button>
                         {list.status === 'ACTIVE' ? (
                             <Button
@@ -126,7 +128,7 @@ export default function NewsletterListDetailClient(): React.JSX.Element {
                                 type="button"
                                 variant="outline"
                             >
-                                Archivieren
+                                {dict.common.archive}
                             </Button>
                         ) : null}
                     </div>

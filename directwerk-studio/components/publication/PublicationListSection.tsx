@@ -95,6 +95,7 @@ function PublicationRowActions<T extends PublicationListItem>({
     onUnarchive?: (item: T) => void
     onDelete?: (item: T) => void
 }): React.JSX.Element {
+    const dict = useDictionary()
     const publishBlocked = publishBlockedReason !== undefined && publishBlockedReason !== null
     return (
         <>
@@ -109,7 +110,7 @@ function PublicationRowActions<T extends PublicationListItem>({
                         size="sm"
                         type="button"
                     >
-                        {isBusy ? 'Wird veröffentlicht…' : 'Veröffentlichen'}
+                        {isBusy ? dict.common.publishing : dict.common.publish}
                     </Button>
                 </>
             ) : null}
@@ -121,7 +122,7 @@ function PublicationRowActions<T extends PublicationListItem>({
                     type="button"
                     variant="outline"
                 >
-                    {isBusy ? 'Wird zurückgezogen…' : 'Zurückziehen'}
+                    {isBusy ? dict.common.withdrawing : dict.common.withdraw}
                 </Button>
             ) : null}
             {item.status === 'SCHEDULED' && onCancelSchedule !== undefined ? (
@@ -155,7 +156,7 @@ function PublicationRowActions<T extends PublicationListItem>({
                     type="button"
                     variant="destructive"
                 >
-                    {isBusy ? 'Wird gelöscht…' : 'Löschen'}
+                    {isBusy ? dict.common.deleting : dict.common.delete}
                 </Button>
             ) : null}
         </>
@@ -390,7 +391,7 @@ export default function PublicationListSection<T extends PublicationListItem>(
                             type="button"
                         >
                             {isBulkBusy
-                                ? 'Wird veröffentlicht…'
+                                ? dict.common.publishing
                                 : `${publishableCount} veröffentlichen`}
                         </Button>
                     ) : null}
@@ -403,7 +404,7 @@ export default function PublicationListSection<T extends PublicationListItem>(
                             variant="outline"
                         >
                             {isBulkBusy
-                                ? 'Wird zurückgezogen…'
+                                ? dict.common.withdrawing
                                 : `${unpublishableCount} zurückziehen`}
                         </Button>
                     ) : null}
@@ -427,7 +428,7 @@ export default function PublicationListSection<T extends PublicationListItem>(
                             variant="destructive"
                         >
                             {isBulkBusy
-                                ? 'Wird gelöscht…'
+                                ? dict.common.deleting
                                 : `${selectedIds.size} löschen`}
                         </Button>
                     ) : null}

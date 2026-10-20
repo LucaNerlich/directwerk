@@ -10,6 +10,7 @@
     "all": "All",
     "archive": "Archive",
     "back": "Back",
+    "cancelSchedule": "Cancel scheduling",
     "cancel": "Cancel",
     "close": "Close",
     "confirm": "Confirm",
@@ -41,10 +42,28 @@
     "optional": "optional",
     "publish": "Publish",
     "rbac": {
+      "verbs": {
+        "create": "Create",
+        "edit": "Edit",
+        "publish": "Publish",
+        "delete": "Delete"
+      },
+      "verbsInfinitive": {
+        "create": "create",
+        "edit": "edit",
+        "publish": "publish",
+        "delete": "delete"
+      },
+      "plurals": {
+        "media": "bonus files",
+        "episode": "episodes",
+        "article": "articles"
+      },
       "messages": {
         "aktionEigeneInhalteBeschraenkt": "This action is limited to your own content.",
         "aktionKontoEingeschraenktWendeDichTenant": "This action was restricted for your account. Contact a tenant admin.",
-        "eigeneBeschraenkt": "${verb} is limited to your own ${plural}.",
+        "duKannstNurEigene": "You can only ${verbInfinitive} your own ${plural}.",
+      "eigeneBeschraenkt": "${verb} is limited to your own ${plural}.",
         "keinZugriff": "No access",
         "kontoEingeschraenktWendeDichTenantAdmin": "${verb} was restricted for your account. Contact a tenant admin.",
         "loeschen": "delete",
@@ -54,6 +73,13 @@
     "required": "required",
     "restore": "Restore",
     "retry": "Try again",
+    "publishing": "Publishing…",
+    "deleting": "Deleting…",
+    "saving": "Saving…",
+    "withdraw": "Withdraw",
+    "withdrawing": "Withdrawing…",
+    "linkUrl": "Link URL",
+    "unsaved": "Unsaved",
     "save": "Save",
     "saved": "Saved.",
     "search": "Search",
@@ -249,6 +275,8 @@
     "createContent": "Create content"
   },
   "write": {
+    "feedAdresse": "Feed address",
+    "zBKolumne": "e.g. column",
     "accessForAllArticles": "Access for all articles",
     "actionFailed": "Action failed.",
     "allFree": "All free",
@@ -372,6 +400,8 @@
     "articlePlural": "Articles"
   },
   "podcast": {
+    "feedAdresse": "Feed address",
+    "sendungFestlegen": "Select the show",
     "1FolgeAktualisiert": "1 episode updated.",
     "anlegenGesperrt": "Locked after creation.",
     "anlegenOptionalSofortVeroeffentlichen": "Create and optionally publish immediately.",

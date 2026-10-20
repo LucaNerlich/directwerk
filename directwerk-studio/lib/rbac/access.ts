@@ -8,6 +8,8 @@ import type {
     RbacOperation,
     RbacRestrictionScope,
 } from '@directwerk/api/types'
+
+import {t} from '@/lib/i18n/dictionary'
 import {
     RBAC_ENTITY_TYPES,
     RBAC_OWN_ONLY_OPERATIONS,
@@ -70,19 +72,26 @@ export function rbacAccessLabel(access: RbacEffectiveAccess): string {
  * integrators, so known failure modes are recognized by their stable message
  * fragments; unknown errors surface verbatim.
  */
-export function rbacErrorMessage(error: unknown): string {
+export function rbacErrorMessage(
+    error: unknown,
+    messages: {aktionEigeneInhalteBeschraenkt: string; aktionKontoEingeschraenktWendeDichTenant: string} = {
+        aktionEigeneInhalteBeschraenkt: 'Diese Aktion ist auf eigene Inhalte beschränkt.',
+        aktionKontoEingeschraenktWendeDichTenant:
+            'Diese Aktion wurde für dein Konto eingeschränkt. Wende dich an einen Tenant-Admin.',
+    },
+): string {
     const message = error instanceof Error ? error.message : 'Aktion fehlgeschlagen.'
     if (
         message.includes('restricted to the content creator') ||
         message.includes('NOT_CONTENT_OWNER')
     ) {
-        return 'Diese Aktion ist auf eigene Inhalte beschränkt.'
+        return messages.aktionEigeneInhalteBeschraenkt
     }
     if (
         message.includes('was restricted for your account') ||
         message.includes('OPERATION_DENIED_BY_POLICY')
     ) {
-        return 'Diese Aktion wurde für dein Konto eingeschränkt. Wende dich an einen Tenant-Admin.'
+        return messages.aktionKontoEingeschraenktWendeDichTenant
     }
     return message
 }
@@ -152,6 +161,32 @@ function effectiveAccessOf(
 }
 
 /**
+ * Localized templates and verbs for {@link deskAccess} (issue #565). The defaults are the
+ * German copy, so callers that do not pass `messages` keep today's strings; the studio passes
+ * its dictionary so an English session sees English reasons.
+ */
+export interface DeskAccessMessages {
+    verbs: Record<'create' | 'edit' | 'publish' | 'delete', string>
+    verbsInfinitive: Record<'create' | 'edit' | 'publish' | 'delete', string>
+    /** `${verb} wurde für dein Konto eingeschränkt. …` */
+    denied: string
+    /** `${verb} ist auf eigene ${plural} beschränkt.` */
+    ownOnly: string
+    /** `Du kannst nur eigene ${plural} ${verbInfinitive}.` */
+    foreignOnly: string
+    /** Plural for the content kind; empty keeps the German default from `kind`. */
+    plural?: string
+}
+
+export const DEFAULT_DESK_ACCESS_MESSAGES: DeskAccessMessages = {
+    verbs: {create: 'Anlegen', edit: 'Bearbeiten', publish: 'Veröffentlichen', delete: 'Löschen'},
+    verbsInfinitive: {create: 'anlegen', edit: 'bearbeiten', publish: 'veröffentlichen', delete: 'löschen'},
+    denied: '${verb} wurde für dein Konto eingeschränkt. Wende dich an einen Tenant-Admin.',
+    ownOnly: '${verb} ist auf eigene ${plural} beschränkt.',
+    foreignOnly: 'Du kannst nur eigene ${plural} ${verbInfinitive}.',
+}
+
+/**
  * Computes desk permissions from the server-resolved rights matrix.
  *
  * UI adaptation is convenience-only — the backend enforces authoritatively per
@@ -160,6 +195,7 @@ function effectiveAccessOf(
  * mirror the backend's fail-closed NOT_CONTENT_OWNER.
  *
  * @param kind publication kind label for messages ("Folge" or "Beitrag").
+ * @param messages localized templates and verbs; defaults to the German copy.
  */
 export function deskAccess({
     effective,
@@ -167,16 +203,25 @@ export function deskAccess({
     ownerUserId,
     myUserId,
     kind,
+    messages = DEFAULT_DESK_ACCESS_MESSAGES,
 }: {
     effective: EffectiveRights['effective'] | null
     entity: RbacEntityType
     ownerUserId: number | null
     myUserId: number | null
     kind: string
+    messages?: DeskAccessMessages
 }): DeskAccess {
     const isOwn = myUserId === null || ownerUserId === null ? null : ownerUserId === myUserId
+    const plural = messages.plural !== undefined && messages.plural.length > 0
+        ? messages.plural
+        : (kind === 'Folge' ? 'Folgen' : 'Beiträge')
 
-    function check(operation: RbacOperation, verb: string, verbInfinitive: string): {allowed: boolean; reason: string | null} {
+    function check(
+        operation: RbacOperation,
+        verb: string,
+        verbInfinitive: string,
+    ): {allowed: boolean; reason: string | null} {
         const access = effectiveAccessOf(effective, entity, operation)
         if (access === 'FULL') {
             return {allowed: true, reason: null}
@@ -184,7 +229,7 @@ export function deskAccess({
         if (access === 'DENIED') {
             return {
                 allowed: false,
-                reason: `${verb} wurde für dein Konto eingeschränkt. Wende dich an einen Tenant-Admin.`,
+                reason: t(messages.denied, {verb}),
             }
         }
         // OWN_ONLY: unknown user id resolves permissively (the backend decides
@@ -192,20 +237,19 @@ export function deskAccess({
         if (myUserId === null || isOwn === true) {
             return {allowed: true, reason: null}
         }
-        const plural = kind === 'Folge' ? 'Folgen' : 'Beiträge'
         return {
             allowed: false,
             reason:
                 ownerUserId === null
-                    ? `${verb} ist auf eigene ${plural} beschränkt.`
-                    : `Du kannst nur eigene ${plural} ${verbInfinitive}.`,
+                    ? t(messages.ownOnly, {verb, plural})
+                    : t(messages.foreignOnly, {plural, verbInfinitive}),
         }
     }
 
-    const creation = check('CREATE', 'Anlegen', 'anlegen')
-    const edit = check('UPDATE', 'Bearbeiten', 'bearbeiten')
-    const publish = check('PUBLISH', 'Veröffentlichen', 'veröffentlichen')
-    const deletion = check('DELETE', 'Löschen', 'löschen')
+    const creation = check('CREATE', messages.verbs.create, messages.verbsInfinitive.create)
+    const edit = check('UPDATE', messages.verbs.edit, messages.verbsInfinitive.edit)
+    const publish = check('PUBLISH', messages.verbs.publish, messages.verbsInfinitive.publish)
+    const deletion = check('DELETE', messages.verbs.delete, messages.verbsInfinitive.delete)
 
     return {
         canCreate: creation.allowed,

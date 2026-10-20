@@ -48,6 +48,43 @@ function renderLayout(body = '<p>Text</p>') {
     )
 }
 
+describe('PublicationEditorLayout locale', () => {
+    it('renders the localized save action in an English session', () => {
+        renderWithLocale(
+            <PublicationEditorLayout
+                accessPolicy="FREE"
+                body="<p>Text</p>"
+                errorMessage={null}
+                isSaving={false}
+                kind="article"
+                notifySubscribers={false}
+                onAccessPolicyChange={vi.fn()}
+                onArchive={vi.fn()}
+                onBodyChange={vi.fn()}
+                onCancelSchedule={vi.fn()}
+                onNotifyChange={vi.fn()}
+                onPublish={vi.fn()}
+                onPublishedAtChange={vi.fn()}
+                onSave={vi.fn()}
+                onSchedule={vi.fn()}
+                onScheduledAtChange={vi.fn()}
+                onTitleChange={vi.fn()}
+                onUnarchive={vi.fn()}
+                onUnpublish={vi.fn()}
+                publishedAt=""
+                scheduledAt=""
+                showNotify={false}
+                status="DRAFT"
+                title="Post"
+            />,
+            {lang: 'en'},
+        )
+
+        expect(screen.getByRole('button', {name: 'Save'})).toBeInTheDocument()
+        expect(screen.queryByRole('button', {name: 'Speichern'})).not.toBeInTheDocument()
+    })
+})
+
 describe('PublicationEditorLayout tabs', () => {
     it('links tabs and panels and supports arrow-key navigation with wraparound', async () => {
         const user = userEvent.setup()

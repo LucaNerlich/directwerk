@@ -200,15 +200,15 @@ export default function PublicationEditorLayout({
                     </Button>
                     <PublicationStatusBadge status={status} />
                     {isDirty && !isSaving ? (
-                        <Badge variant="outline">Ungespeichert</Badge>
+                        <Badge variant="outline">{dict.common.unsaved}</Badge>
                     ) : null}
                     <p aria-live="polite" className="min-w-16 text-xs text-muted-foreground" role="status">
-                        {isSaving ? 'Speichert…' : (saveHint ?? '')}
+                        {isSaving ? dict.common.saving : (saveHint ?? '')}
                     </p>
                     <div className="ml-auto flex flex-wrap items-center gap-2">
                         {isDraft ? (
                             <Button disabled={isSaving || readOnly} onClick={onSave} size="sm" type="button" variant="outline">
-                                {isSaving ? 'Speichert…' : 'Speichern'}
+                                {isSaving ? dict.common.saving : dict.common.save}
                             </Button>
                         ) : null}
                         {(isDraft || isScheduled) ? (
@@ -219,27 +219,27 @@ export default function PublicationEditorLayout({
                                 title={blockedReason ?? undefined}
                                 type="button"
                             >
-                                Veröffentlichen
+                                {dict.common.publish}
                             </Button>
                         ) : null}
                         {isPublished ? (
                             <>
                                 <Button disabled={isSaving || readOnly} onClick={onUnpublish} size="sm" type="button" variant="outline">
-                                    Zurückziehen
+                                    {dict.common.withdraw}
                                 </Button>
                                 <Button disabled={isSaving || readOnly} onClick={onArchive} size="sm" type="button" variant="outline">
-                                    Archivieren
+                                    {dict.common.archive}
                                 </Button>
                             </>
                         ) : null}
                         {isScheduled ? (
                             <Button disabled={isSaving || readOnly} onClick={onCancelSchedule} size="sm" type="button" variant="outline">
-                                Planung aufheben
+                                {dict.common.cancelSchedule}
                             </Button>
                         ) : null}
                         {isArchived ? (
                             <Button disabled={isSaving || readOnly} onClick={onUnarchive} size="sm" type="button">
-                                Wiederherstellen
+                                {dict.common.restore}
                             </Button>
                         ) : null}
                     </div>
@@ -263,7 +263,7 @@ export default function PublicationEditorLayout({
             <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 py-6">
             {errorMessage !== null && (
                 <Alert variant="destructive">
-                    <AlertDescription>{rbacErrorMessage(new Error(errorMessage))}</AlertDescription>
+                    <AlertDescription>{rbacErrorMessage(new Error(errorMessage), dict.common.rbac.messages)}</AlertDescription>
                 </Alert>
             )}
             {readOnlyReason !== null ? (
@@ -555,7 +555,7 @@ export default function PublicationEditorLayout({
                                         )}
                                         {isScheduled && (
                                             <Button type="button" variant="outline" onClick={onCancelSchedule}>
-                                                Planung aufheben
+                                                {dict.common.cancelSchedule}
                                             </Button>
                                         )}
                                     </div>
