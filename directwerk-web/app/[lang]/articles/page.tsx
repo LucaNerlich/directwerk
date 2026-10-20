@@ -18,7 +18,8 @@ import CatalogRow, {LockedCatalogAction} from '@/components/CatalogRow'
 import {ListPanelSkeleton} from '@/components/ContentLoadingSkeleton'
 import {PublicFeedStrip} from '@/components/PublicFeedFooter'
 import SubscriberContextBanner from '@/components/SubscriberContextBanner'
-import {usePublicArticles} from '@/lib/catalog/usePublicArticles'
+import {usePublicCatalog} from '@/lib/catalog/usePublicCatalog'
+import {listMyArticles, listPublicArticles} from '@/lib/api/client'
 import {findUnlockProduct, unlockHref} from '@/lib/catalog/unlock'
 import {usePublicProducts} from '@/lib/catalog/usePublicProducts'
 import {useSubscriberAuth} from '@/lib/auth/useSubscriberAuth'
@@ -37,16 +38,17 @@ export default function ArticlesPage() {
     const {catalog, common, format, nav} = useDictionary()
     const tenantHost = getWebClientTenantHost()
     const {isAuthenticated} = useSubscriberAuth()
-    const {siteConfig, articles, errorMessage, isLoading} = usePublicArticles({
+    const {siteConfig, items: articles, errorMessage, isLoading} = usePublicCatalog({
         tenantHost,
         isAuthenticated,
         authRequiredMessage: catalog.articleAuthRequired,
         loadErrorMessage: catalog.articleLoadFailed,
+        loadMine: listMyArticles,
+        loadPublic: listPublicArticles,
     })
     const products = usePublicProducts()
     const unlockTarget = unlockHref(findUnlockProduct(products), lang)
-    const publicArticleFeedUrl =
-        siteConfig === null ? null : webPublicArticleFeedUrl(siteConfig, tenantHost)
+    const publicArticleFeedUrl = webPublicArticleFeedUrl(siteConfig, tenantHost)
     const [visibleCount, setVisibleCount] = useState(PAGE_SIZE)
     useEffect(() => {
         setVisibleCount(PAGE_SIZE)

@@ -20,6 +20,7 @@ import {ListPanelSkeleton} from '@/components/ContentLoadingSkeleton'
 import {PublicFeedStrip} from '@/components/PublicFeedFooter'
 import SubscriberContextBanner from '@/components/SubscriberContextBanner'
 import {usePublicCatalog} from '@/lib/catalog/usePublicCatalog'
+import {listMyEpisodes, listPublicEpisodes, listPublicSeries} from '@/lib/api/client'
 import {findUnlockProduct, unlockHref} from '@/lib/catalog/unlock'
 import {usePublicProducts} from '@/lib/catalog/usePublicProducts'
 import {useSubscriberAuth} from '@/lib/auth/useSubscriberAuth'
@@ -39,16 +40,18 @@ export default function EpisodesPage() {
     const {catalog, common, format: formatCopy, nav} = useDictionary()
     const tenantHost = getWebClientTenantHost()
     const {isAuthenticated} = useSubscriberAuth()
-    const {siteConfig, series, episodes, errorMessage, isLoading} = usePublicCatalog({
+    const {siteConfig, series, items: episodes, errorMessage, isLoading} = usePublicCatalog({
         tenantHost,
         isAuthenticated,
         authRequiredMessage: catalog.episodeAuthRequired,
         loadErrorMessage: catalog.episodeLoadFailed,
+        loadMine: listMyEpisodes,
+        loadPublic: listPublicEpisodes,
+        loadSeries: listPublicSeries,
     })
     const products = usePublicProducts()
     const unlockTarget = unlockHref(findUnlockProduct(products), lang)
-    const publicPodcastFeedUrl =
-        siteConfig === null ? null : webPublicPodcastFeedUrl(siteConfig, tenantHost)
+    const publicPodcastFeedUrl = webPublicPodcastFeedUrl(siteConfig, tenantHost)
     const [visibleCount, setVisibleCount] = useState(PAGE_SIZE)
     useEffect(() => {
         setVisibleCount(PAGE_SIZE)
