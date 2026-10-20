@@ -150,7 +150,7 @@ From the repo root:
 cd Directwerk && docker compose up -d && ./gradlew :directwerk-app:bootRun
 
 # All frontends (tmux)
-./run-dev.sh
+./scripts/dev.sh
 ```
 
 Or start individual apps as needed. See [Quickstart](/guide/quickstart).
