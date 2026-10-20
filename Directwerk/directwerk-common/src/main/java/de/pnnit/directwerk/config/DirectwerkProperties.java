@@ -216,7 +216,6 @@ public record DirectwerkProperties(
             String provider,
             String region,
             String bucket,
-            String publicBucket,
             String endpoint,
             boolean forcePathStyle,
             String accessKey,

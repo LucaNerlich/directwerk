@@ -101,7 +101,6 @@ class PrivateObjectUrlSignerTest {
                 "bunny",                 // provider
                 "eu-central",            // region
                 "test-bucket",           // bucket
-                "public-bucket",         // publicBucket
                 "https://s3.example.test", // endpoint
                 false,                   // forcePathStyle
                 null,                    // accessKey

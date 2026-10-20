@@ -677,7 +677,6 @@ class RemoteAssetIngestServiceTest {
                 "hetzner",
                 "nbg1",
                 "directwerk-dev",
-                null,
                 "https://s3.example.com",
                 true,
                 "key",
