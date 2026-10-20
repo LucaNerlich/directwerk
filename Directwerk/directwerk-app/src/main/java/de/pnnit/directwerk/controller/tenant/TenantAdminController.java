@@ -160,6 +160,7 @@ public class TenantAdminController {
      * @param request the invitation details, including the user's email, name, and role
      * @return the created invitation response, or a conflict response if the user is already a member
      */
+    @ApiResponse(responseCode = "201", description = "Created")
     @PostMapping("/users/invite")
     ResponseEntity<Response<de.pnnit.directwerk.api.dto.InviteUserResponse>> inviteUser(
             @Valid @RequestBody InviteRequest request

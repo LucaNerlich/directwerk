@@ -81,6 +81,7 @@ public class ArticleImportController {
     }
 
     @ApiResponse(responseCode = "201", description = "Created")
+    @ApiResponse(responseCode = "202", description = "Accepted")
     @PostMapping("/assets")
     ResponseEntity<Response<MediaAssetView>> ingestAsset(@Valid @RequestBody IngestAssetRequest request) {
         boolean waitForCompletion = request.waitForCompletion() == null || request.waitForCompletion();
@@ -114,6 +115,7 @@ public class ArticleImportController {
     }
 
     @ApiResponse(responseCode = "201", description = "Created")
+    @ApiResponse(responseCode = "200", description = "OK")
     @PostMapping("/articles")
     ResponseEntity<Response<ImportedArticleView>> importArticle(@Valid @RequestBody ImportArticleRequest request) {
         boolean importHero = request.importHero() == null || request.importHero();

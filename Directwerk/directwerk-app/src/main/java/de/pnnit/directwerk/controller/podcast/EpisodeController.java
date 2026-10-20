@@ -76,6 +76,7 @@ public class EpisodeController {
         return ContentEndpointSupport.ok(episodeService.requireEpisode(tenantId, episodeId), publicEpisodeViewMapper::toStudioView);
     }
 
+    @ApiResponse(responseCode = "201", description = "Created")
     @PostMapping
     ResponseEntity<Response<EpisodeView>> createDraft(@Valid @RequestBody CreateEpisodeRequest request) {
         Long tenantId = TenantContext.requireTenantId();

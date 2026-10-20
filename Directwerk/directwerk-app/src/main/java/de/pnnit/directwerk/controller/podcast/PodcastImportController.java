@@ -99,6 +99,7 @@ public class PodcastImportController {
      * @return the created media asset view
      */
     @ApiResponse(responseCode = "201", description = "Created")
+    @ApiResponse(responseCode = "202", description = "Accepted")
     @PostMapping("/assets")
     ResponseEntity<Response<MediaAssetView>> ingestAsset(@Valid @RequestBody IngestAssetRequest request) {
         boolean waitForCompletion = request.waitForCompletion() == null || request.waitForCompletion();
@@ -139,6 +140,7 @@ public class PodcastImportController {
      * @return the imported episode view with HTTP 201 when newly imported, or HTTP 200 when already imported
      */
     @ApiResponse(responseCode = "201", description = "Created")
+    @ApiResponse(responseCode = "200", description = "OK")
     @PostMapping("/episodes")
     ResponseEntity<Response<ImportedEpisodeView>> importEpisode(@Valid @RequestBody ImportEpisodeRequest request) {
         PodcastImportService.ImportedEpisode imported = podcastImportService.importEpisode(

@@ -78,6 +78,7 @@ public class ArticleController {
         return ContentEndpointSupport.ok(articleService.requireArticle(tenantId, articleId), ArticleController::toView);
     }
 
+    @ApiResponse(responseCode = "201", description = "Created")
     @PostMapping
     ResponseEntity<Response<ArticleView>> createDraft(@Valid @RequestBody CreateArticleRequest request) {
         Long tenantId = TenantContext.requireTenantId();

@@ -25,6 +25,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 
 @RestController
 @PreAuthorize("hasRole('PLATFORM_ADMIN')")
@@ -57,6 +58,7 @@ public class PlatformTenantUserController {
         return ResponseEntity.ok(Response.ok(new TenantUserListResponse(users)));
     }
 
+    @ApiResponse(responseCode = "201", description = "Created")
     @PostMapping("/invite")
     ResponseEntity<Response<de.pnnit.directwerk.api.dto.InviteUserResponse>> inviteUser(
             @PathVariable Long tenantId,
@@ -108,6 +110,7 @@ public class PlatformTenantUserController {
     /**
      * Re-sends an invitation email for a pending tenant membership.
      */
+    @ApiResponse(responseCode = "201", description = "Created")
     @PostMapping("/{userId}/resend-invite")
     ResponseEntity<Response<de.pnnit.directwerk.api.dto.InviteUserResponse>> resendInvite(
             @PathVariable Long tenantId,

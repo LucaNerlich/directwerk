@@ -31,6 +31,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 
 @RestController
 @PreAuthorize("isAuthenticated()")
@@ -63,6 +64,7 @@ public class MeArticleFeedController {
         return ContentEndpointSupport.okList(feeds);
     }
 
+    @ApiResponse(responseCode = "201", description = "Created")
     @PostMapping
     @RequiresModule({ArticleRssModule.KEY, SubscriptionModule.MODULE_KEY, ArticleFeedBuilderModule.KEY})
     ResponseEntity<Response<ArticleFeedView>> createCustomFeed(
