@@ -3,8 +3,6 @@ package de.pnnit.directwerk.security;
 import de.pnnit.directwerk.api.exception.FilterExceptionResolver;
 import de.pnnit.directwerk.modules.core.entity.Role;
 import de.pnnit.directwerk.modules.core.entity.TenantMembership;
-import de.pnnit.directwerk.multitenancy.PlatformTenantAccessDeniedException;
-import de.pnnit.directwerk.multitenancy.TenantContextMissingException;
 import de.pnnit.directwerk.multitenancy.TenantMismatchException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -54,13 +52,11 @@ public class TenantMembershipGuardFilter extends OncePerRequestFilter {
             if (!hasRequiredRole(membership.getRoles(), scope)) {
                 throw new TenantMismatchException("Active tenant membership required");
             }
-        } catch (TenantMismatchException | PlatformTenantAccessDeniedException | TenantContextMissingException ex) {
-            filterExceptionResolver.resolve(request, response, ex);
-            return;
         } catch (RuntimeException ex) {
-            // Unexpected membership-lookup failures (e.g. membership store unavailable) must still
-            // leave the API as the standard error envelope via the catch-all mapping — never as
-            // the container's default error page, which this pre-dispatch filter would otherwise cause.
+            // Issue #576: expected tenant exceptions and unexpected membership-lookup failures
+            // (e.g. membership store unavailable) resolve identically — both must leave the API as
+            // the standard error envelope via the catch-all mapping, never as the container's
+            // default error page, which this pre-dispatch filter would otherwise cause.
             filterExceptionResolver.resolve(request, response, ex);
             return;
         }
