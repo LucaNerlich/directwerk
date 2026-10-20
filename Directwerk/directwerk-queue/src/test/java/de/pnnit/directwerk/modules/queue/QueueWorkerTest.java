@@ -1,6 +1,7 @@
 package de.pnnit.directwerk.modules.queue;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -126,6 +127,24 @@ class QueueWorkerTest {
 
         when(queueService.renew(eq(job.id()), anyString(), eq(60L))).thenThrow(new IllegalStateException("db down"));
         assertThat(worker.renewLeaseOnce(job, 60L)).isTrue();
+    }
+
+    @Test
+    void heartbeatTickThrowsAndStopsTheHeartbeatWhenTheLeaseIsLost() {
+        QueueService queueService = mock(QueueService.class);
+        DirectwerkConfig config = configWithQueueEnabled(true);
+        QueueJob job = new QueueJob(
+                UUID.randomUUID(), "email", null, 0, JobStatus.PROCESSING, Instant.now(), 1, 5,
+                "worker-1", Instant.now().plusSeconds(60), null, 1L, null, null,
+                Instant.now(), Instant.now());
+        when(queueService.renew(eq(job.id()), anyString(), eq(60L))).thenReturn(Optional.empty());
+        QueueWorker worker = new QueueWorker(queueService, config, mock(JobHandlerRegistry.class));
+
+        // Throwing is how the scheduled executor suppresses further firings; if the call site
+        // ever discards renewLeaseOnce's result again, this fails.
+        assertThatThrownBy(() -> worker.heartbeatTick(job, 60L))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessage("lease lost");
     }
 
     private static DirectwerkConfig configWithQueueEnabled(boolean enabled) {

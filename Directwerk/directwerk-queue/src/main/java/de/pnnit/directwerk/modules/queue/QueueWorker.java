@@ -140,6 +140,20 @@ public class QueueWorker {
     }
 
     /**
+     * One scheduled heartbeat tick: renew the lease and stop the heartbeat on loss.
+     *
+     * <p>Throwing suppresses further firings; completion/failure of our run is rejected as stale
+     * by the repository guards (issue #583 review: the call site, not just the helper, must be
+     * pinned so the result cannot be discarded again).</p>
+     */
+    void heartbeatTick(QueueJob job, long leaseSeconds) {
+        if (!renewLeaseOnce(job, leaseSeconds)) {
+            log.warn("Lease lost during execution: job id={} queue={}", job.id(), job.queue());
+            throw new IllegalStateException("lease lost");
+        }
+    }
+
+    /**
      * Runs one heartbeat renewal and reports whether this worker still owns the lease.
      *
      * <p>Issue #583: {@code renew} signals a lost lease with an empty Optional (it never throws
@@ -168,14 +182,12 @@ public class QueueWorker {
                     directwerkConfig.queue().leaseSeconds()
             );
             long periodSeconds = Math.max(1, leaseSeconds / 3);
-            return leaseHeartbeat.scheduleAtFixedRate(() -> {
-                if (!renewLeaseOnce(job, leaseSeconds)) {
-                    // Another node owns the job now. Throwing suppresses further firings;
-                    // completion/failure of our run is rejected as stale by the repository guards.
-                    log.warn("Lease lost during execution: job id={} queue={}", job.id(), job.queue());
-                    throw new IllegalStateException("lease lost");
-                }
-            }, periodSeconds, periodSeconds, TimeUnit.SECONDS);
+            return leaseHeartbeat.scheduleAtFixedRate(
+                    () -> heartbeatTick(job, leaseSeconds),
+                    periodSeconds,
+                    periodSeconds,
+                    TimeUnit.SECONDS
+            );
         } catch (RuntimeException schedulingFailure) {
             // Heartbeat is an optimization — never block job execution on it.
             log.warn("Lease heartbeat could not be scheduled for job id={} queue={}",
