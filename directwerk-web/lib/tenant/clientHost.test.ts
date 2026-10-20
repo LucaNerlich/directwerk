@@ -1,8 +1,17 @@
 // @vitest-environment jsdom
 
-import {afterEach, describe, expect, it} from 'vitest'
+import {afterEach, describe, expect, it, vi} from 'vitest'
 
 import {TENANT_HOST_COOKIE} from '@directwerk/api/tenant'
+
+// #570 review: pin that the page host is the only input — the cookie reader must not be reached.
+const {readTenantHostCookieFromDocument} = vi.hoisted(() => ({
+    readTenantHostCookieFromDocument: vi.fn(() => null),
+}))
+vi.mock('@directwerk/api/tenant', async (importOriginal) => {
+    const actual = await importOriginal<typeof import('@directwerk/api/tenant')>()
+    return {...actual, readTenantHostCookieFromDocument}
+})
 
 import {getWebClientTenantHost} from './clientHost'
 
@@ -43,12 +52,16 @@ describe('getWebClientTenantHost', () => {
         })
     })
 
-    it('accepts a cookie that matches the page host', () => {
+    it('never reads the tenant-host cookie', () => {
         document.cookie = `${TENANT_HOST_COOKIE}=alpha.example.com`
+        readTenantHostCookieFromDocument.mockClear()
 
         withHostname('alpha.example.com', () => {
             expect(getWebClientTenantHost()).toBe('alpha.example.com')
         })
+
+        // Issue #570 removed the no-op read; this fails if it comes back.
+        expect(readTenantHostCookieFromDocument).not.toHaveBeenCalled()
     })
 
     it('returns an empty host when the page hostname is not a valid host', () => {
