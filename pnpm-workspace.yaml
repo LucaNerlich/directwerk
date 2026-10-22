@@ -9,3 +9,8 @@ packages:
 ignoredBuiltDependencies:
     - sharp
     - unrs-resolver
+minimumReleaseAge: 1440
+minimumReleaseAgeIgnoreMissingTime: false
+trustPolicy: no-downgrade
+trustPolicyIgnoreAfter: 525948
+blockExoticSubdeps: true

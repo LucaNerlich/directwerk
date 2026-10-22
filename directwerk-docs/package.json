@@ -11,13 +11,16 @@
     "export-openapi": "bash scripts/export-openapi.sh"
   },
   "dependencies": {
-    "serve": "^14.2.4"
+    "serve": "^14.2.6"
   },
   "devDependencies": {
     "vitepress": "2.0.0-alpha.19",
     "vitepress-openapi-docs": "^1.8.1",
     "vitepress-plugin-mermaid-diagram": "^0.3.2",
-    "vue": "^3.5.42"
+    "vue": "^3.5.44"
   },
-  "packageManager": "pnpm@12.0.0-rc.5"
+  "engines": {
+    "node": "24",
+    "pnpm": "12"
+  }
 }
