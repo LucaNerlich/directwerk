@@ -8,7 +8,7 @@
 # Local:
 #   docker build -f directwerk-docs/Dockerfile -t directwerk-docs:local .
 
-FROM node:22-alpine AS build
+FROM node:24-alpine AS build
 WORKDIR /workspace
 
 ENV PNPM_HOME="/root/.local/share/pnpm"
@@ -44,7 +44,7 @@ RUN pnpm --filter directwerk-docs build \
     && mkdir -p /deploy/docs/.vitepress \
     && cp -a directwerk-docs/docs/.vitepress/dist /deploy/docs/.vitepress/dist
 
-FROM node:22-alpine AS runtime
+FROM node:24-alpine AS runtime
 WORKDIR /app
 
 ENV NODE_ENV=production

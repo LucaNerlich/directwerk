@@ -8,7 +8,7 @@
 # Local:
 #   docker build -f directwerk-studio/Dockerfile -t directwerk-studio:local .
 
-FROM node:22-alpine AS build
+FROM node:24-alpine AS build
 WORKDIR /workspace
 
 ENV PNPM_HOME="/root/.local/share/pnpm"
@@ -31,7 +31,7 @@ RUN mkdir -p directwerk-studio/public \
     && cp -a directwerk-studio/.next /deploy/.next \
     && cp -a directwerk-studio/public /deploy/public
 
-FROM node:22-alpine AS runtime
+FROM node:24-alpine AS runtime
 WORKDIR /app
 
 ENV NODE_ENV=production
