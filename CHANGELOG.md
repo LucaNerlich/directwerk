@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-10-22
+
+### Changed
+
+- Updated the frontend toolchain: Next.js 16.4.2, React 19.3.1, refreshed testing dependencies, Node 24 / pnpm 12 engine constraints, and workspace policies for minimum release age and dependency trust.
+
 ## [0.1.0] - 2026-10-20
 
 First tagged release of the Directwerk platform (REST API, creator studio, public site, admin, homepage and docs).
