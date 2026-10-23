@@ -151,7 +151,7 @@ describe('ArticleListClient', () => {
             expect(screen.getByText('Archived Post')).toBeInTheDocument()
         })
 
-        expect(listArticles).toHaveBeenCalledWith()
+        expect(listArticles).toHaveBeenCalledWith({limit: 100, offset: 0})
         expect(screen.getByText('Interview')).toBeInTheDocument()
         expect(screen.getByText('News')).toBeInTheDocument()
         expect(screen.getByRole('button', {name: 'Zurückziehen'})).toBeInTheDocument()

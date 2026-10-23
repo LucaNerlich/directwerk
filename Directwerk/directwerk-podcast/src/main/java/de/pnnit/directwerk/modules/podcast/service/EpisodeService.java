@@ -58,8 +58,15 @@ public class EpisodeService {
      */
     @Transactional(readOnly = true)
     public List<Episode> listEpisodes(Long tenantId, int limit) {
+        return listEpisodes(tenantId, limit, 0);
+    }
+
+    /** Offset variant so a tenant can reach episodes past the first page (#733). */
+    @Transactional(readOnly = true)
+    public List<Episode> listEpisodes(Long tenantId, int limit, int offset) {
+        int pageSize = Math.max(limit, 1);
         return episodeRepository.findByTenantIdOrderByCreatedAtDescIdDesc(
-                tenantId, PageRequest.of(0, limit));
+                tenantId, PageRequest.of(Math.max(offset, 0) / pageSize, pageSize));
     }
 
     @Transactional(readOnly = true)

@@ -125,6 +125,8 @@ export default function EpisodeListClient() {
         toggleSelectAll,
         publishableCount,
         unpublishableCount,
+        hasMore,
+        loadMore,
         handlePublish,
         handleUnpublish,
         handleCancelSchedule,
@@ -135,7 +137,7 @@ export default function EpisodeListClient() {
         handleBulkDelete,
         runBulkEdit,
     } = usePublicationListPage<EpisodeDetail>({
-        load: () => listEpisodes(),
+        load: (page) => listEpisodes(page),
         publish: (id) => publishEpisode( id),
         unpublish: (id) => unpublishEpisode( id),
         cancelSchedule: (id) => cancelScheduleEpisode( id),
@@ -354,6 +356,8 @@ export default function EpisodeListClient() {
                 <>
                     <PublicationListSection
                         allSelected={allSelected}
+                        hasMore={hasMore}
+                        onLoadMore={() => void loadMore()}
                         busyItemId={busyEpisodeId}
                         contentLabelPlural={p.episodePlural}
                         editorBasePath="/podcast/episodes"

@@ -66,10 +66,12 @@ public class ArticleController {
 
     @GetMapping
     ResponseEntity<Response<List<ArticleView>>> listArticles(
-            @RequestParam(defaultValue = "100") @Min(1) @Max(500) int limit
+            @RequestParam(defaultValue = "100") @Min(1) @Max(500) int limit,
+            @RequestParam(defaultValue = "0") @Min(0) int offset
     ) {
         Long tenantId = TenantContext.requireTenantId();
-        return ContentEndpointSupport.okList(articleService.listArticles(tenantId, limit), ArticleController::toView);
+        return ContentEndpointSupport.okList(
+                articleService.listArticles(tenantId, limit, offset), ArticleController::toView);
     }
 
     @GetMapping("/{articleId}")

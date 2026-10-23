@@ -57,6 +57,9 @@ interface PublicationListSectionProps<T extends PublicationListItem> {
     /** Non-null disables the row's publish action, shows the reason, and excludes drafts from bulk selection. */
     publishBlockedReason?: (item: T) => string | null
     onBulkEdit?: () => void
+    /** True while older rows exist beyond the loaded page (#733). */
+    hasMore?: boolean
+    onLoadMore?: () => void
 }
 
 function formatPublishedAt(value: string | null): string | null {
@@ -446,6 +449,13 @@ export default function PublicationListSection<T extends PublicationListItem>(
             viewMode={viewMode}
                 />
             )}
+            {props.hasMore === true && props.onLoadMore !== undefined ? (
+                <div className="flex justify-center pt-2">
+                    <Button onClick={props.onLoadMore} type="button" variant="outline">
+                        Weitere Einträge laden
+                    </Button>
+                </div>
+            ) : null}
         </div>
     )
 }
