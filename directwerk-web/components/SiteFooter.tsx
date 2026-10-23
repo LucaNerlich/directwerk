@@ -21,7 +21,8 @@ export default function SiteFooter(): React.JSX.Element {
     const showFeeds =
         config.enabledModules.includes('PODCAST_RSS') ||
         config.enabledModules.includes('ARTICLE_RSS')
-    const showDownloads = config.enabledModules.includes('DIGITAL_CONTENT')
+    // Downloads is a BONUS_CONTENT surface (see SiteHeader and MeDownloadsController).
+    const showDownloads = config.enabledModules.includes('BONUS_CONTENT')
 
     return (
         <footer className="mt-16 border-t">
