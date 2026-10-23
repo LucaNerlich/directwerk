@@ -1,5 +1,7 @@
 import 'server-only'
 
+import {cache} from 'react'
+
 import {directwerkFetch} from '@/lib/server/api'
 import {extractApiErrorCode} from '@directwerk/api/envelope'
 import {createWebPublicParsers} from '@/lib/publicContent/parsers'
@@ -96,10 +98,13 @@ export async function fetchPublicProductsServer(
  * backend answers 404 (unknown slug); throws for other failures so the route
  * can render its error boundary.
  */
-export async function fetchPublicArticleServer(
+// generateMetadata and the page body each call this for the same slug, and every
+// upstream GET records a view — React's request-scoped cache collapses them to one
+// (the node:http transport is not memoized by Next's fetch cache).
+export const fetchPublicArticleServer = cache(async (
     host: string,
     slug: string,
-): Promise<PublicArticle | null> {
+): Promise<PublicArticle | null> => {
     const response = await directwerkFetch({
         path: `/api/v1/public/articles/${encodeURIComponent(slug)}`,
         tenantHost: host,
@@ -121,17 +126,17 @@ export async function fetchPublicArticleServer(
     }
 
     return parsed.data
-}
+})
 
 /**
  * Fetches a single public episode by slug from the public catalog.
  * Returns `null` when the slug is not part of the public catalog (unknown or
  * paid/unpublished); throws for transport/validation failures.
  */
-export async function fetchPublicEpisodeServer(
+export const fetchPublicEpisodeServer = cache(async (
     host: string,
     slug: string,
-): Promise<PublicEpisode | null> {
+): Promise<PublicEpisode | null> => {
     const response = await directwerkFetch({
         path: '/api/v1/public/episodes',
         tenantHost: host,
@@ -150,7 +155,7 @@ export async function fetchPublicEpisodeServer(
     }
 
     return parsed.data.find((item) => item.slug === slug) ?? null
-}
+})
 
 /**
  * Lists public article slugs and titles for sitemap generation. Returns an
@@ -213,10 +218,10 @@ export async function fetchPublicEpisodeSlugsServer(
  * list is missing/archived. Other failures (including undeployed routes) throw
  * so the client can fall back to the share-link subscribe form.
  */
-export async function fetchPublicNewsletterListServer(
+export const fetchPublicNewsletterListServer = cache(async (
     host: string,
     slug: string,
-): Promise<PublicNewsletterList | null> {
+): Promise<PublicNewsletterList | null> => {
     const response = await directwerkFetch({
         path: `/api/v1/public/newsletter-lists/${encodeURIComponent(slug)}`,
         tenantHost: host,
@@ -244,7 +249,7 @@ export async function fetchPublicNewsletterListServer(
     }
 
     return parsed.data
-}
+})
 
 /**
  * Lists active public newsletter lists. Throws on upstream failure so the page
