@@ -1,6 +1,6 @@
 'use client'
 
-import {useCallback, useState} from 'react'
+import {useCallback, useRef, useState} from 'react'
 
 import type {AccessPolicy} from '@directwerk/api/types'
 import {
@@ -55,9 +55,16 @@ export function usePublicationEditorFields(): PublicationEditorFieldsState {
         [],
     )
 
+    // The datetime-local field only carries minutes, so re-sending its value would rewrite a
+    // preserved instant (e.g. an imported pubDate) at minute precision. Remember what the field
+    // was loaded with and treat an untouched value as "keep the stored instant".
+    const loadedPublishedAtRef = useRef('')
+
     const applyPublicationPublishedAt = useCallback(
         (publishedAtIso: string | null | undefined) => {
-            setPublishedAt(toDatetimeLocalValue(publishedAtIso))
+            const localValue = toDatetimeLocalValue(publishedAtIso)
+            loadedPublishedAtRef.current = localValue
+            setPublishedAt(localValue)
         },
         [],
     )
@@ -81,6 +88,10 @@ export function usePublicationEditorFields(): PublicationEditorFieldsState {
                 valid: false,
                 message: 'Veröffentlichungsdatum darf nicht in der Zukunft liegen.',
             }
+        }
+        if (publishedAt === loadedPublishedAtRef.current) {
+            // Untouched: let the server keep the exact stored instant.
+            return {valid: true, iso: null}
         }
         const iso = parsePublishedAt()
         if (iso === null) {
