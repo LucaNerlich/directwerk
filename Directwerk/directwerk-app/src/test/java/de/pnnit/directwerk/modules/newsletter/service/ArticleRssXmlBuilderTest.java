@@ -30,6 +30,22 @@ class ArticleRssXmlBuilderTest {
     }
 
     @Test
+    void longBodyIsTruncatedToTheDescriptionBound() {
+        // #720: an imported archive of full-length bodies made the feed multi-megabyte.
+        Tenant tenant = tenant();
+        String longBody = "<p>" + "x".repeat(ArticleRssXmlBuilder.MAX_DESCRIPTION_CHARS + 500) + "</p>";
+        Article article = article(9L, "long-post", "Long Post", longBody, AccessPolicy.FREE);
+
+        String xml = builder.buildFeed(tenant, List.of(article), "https://alpha.example.test", null);
+
+        long bodyXs = xml.chars().filter(ch -> ch == 'x').count();
+        assertThat(bodyXs)
+                .isLessThanOrEqualTo(ArticleRssXmlBuilder.MAX_DESCRIPTION_CHARS)
+                .isGreaterThan(ArticleRssXmlBuilder.MAX_DESCRIPTION_CHARS - 100L);
+        assertThat(xml.length()).isLessThan(longBody.length() + 2_000);
+    }
+
+    @Test
     void paidArticleFallsBackToExcerptInsteadOfFullBody() {
         Tenant tenant = tenant();
         Article article = article(2L, "paid-post", "Paid Post", "<p>Secret body</p>", AccessPolicy.PAID);

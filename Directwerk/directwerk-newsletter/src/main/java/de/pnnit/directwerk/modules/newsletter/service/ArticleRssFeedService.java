@@ -17,6 +17,9 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class ArticleRssFeedService {
 
+    /** Same item cap as the podcast feed, so the document stays bounded (#720). */
+    static final int MAX_FEED_ITEMS = 300;
+
     private final PublicArticleQueryService publicArticleQueryService;
     private final ArticleFeedAccess articleFeedAccess;
     private final ArticleRssXmlBuilder articleRssXmlBuilder;
@@ -32,6 +35,7 @@ public class ArticleRssFeedService {
         String originBaseUrl = PublicUrlBuilder.baseUrl(scheme, host, port);
         List<Article> articles = publicArticleQueryService.listPublishedArticles(tenant.getId()).stream()
                 .filter(article -> PublicSurfacePolicy.includesInPublicRss(article.getAccessPolicy().name()))
+                .limit(MAX_FEED_ITEMS)
                 .toList();
         return articleRssXmlBuilder.buildFeed(
                 tenant,
@@ -55,7 +59,10 @@ public class ArticleRssFeedService {
             throw new ArticleFeedNotFoundException();
         }
         String originBaseUrl = PublicUrlBuilder.baseUrl(scheme, host, port);
-        List<Article> articles = articleFeedAccess.listEntitledArticles(tenant.getId(), feed.getUser().getId(), feed);
+        List<Article> articles = articleFeedAccess.listEntitledArticles(tenant.getId(), feed.getUser().getId(), feed)
+                .stream()
+                .limit(MAX_FEED_ITEMS)
+                .toList();
         return articleRssXmlBuilder.buildFeed(
                 tenant,
                 articles,
