@@ -119,6 +119,39 @@ class StripeSubscriptionSyncServiceTest {
     }
 
     @Test
+    void stripeUpsertRebindsACanceledStripeRowToANewSubscription() {
+        // #705: a canceled row is terminal at Stripe, so a returning customer's new
+        // subscription must take the row over instead of paying into a void.
+        User user = user();
+        when(userRepository.findById(USER_ID)).thenReturn(Optional.of(user));
+        SubscriptionProduct product = product();
+        when(subscriptionProductService.requireProduct(TENANT_ID, PRODUCT_ID)).thenReturn(product);
+
+        Subscription existing = subscription(SubscriptionSource.STRIPE, SubscriptionStatus.CANCELED);
+        existing.setExternalSubscriptionId("sub_old");
+        when(subscriptionRepository.findByTenantIdAndExternalSubscriptionIdForUpdate(TENANT_ID, "sub_new"))
+                .thenReturn(Optional.empty());
+        when(subscriptionRepository.findByTenantIdAndUserIdAndProductIdForUpdate(TENANT_ID, USER_ID, PRODUCT_ID))
+                .thenReturn(Optional.of(existing));
+        when(subscriptionRepository.save(any(Subscription.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        Subscription result = service.upsertStripeSubscription(
+                TENANT_ID,
+                USER_ID,
+                PRODUCT_ID,
+                "sub_new",
+                "cus_1",
+                SubscriptionStatus.ACTIVE,
+                null,
+                null
+        );
+
+        assertThat(result.getExternalSubscriptionId()).isEqualTo("sub_new");
+        assertThat(result.getStatus()).isEqualTo(SubscriptionStatus.ACTIVE);
+    }
+
+    @Test
     void stripeUpsertAdoptsCanceledManualRow() {
         User user = user();
         when(userRepository.findById(USER_ID)).thenReturn(Optional.of(user));

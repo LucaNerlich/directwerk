@@ -100,7 +100,11 @@ public class StripeSubscriptionSyncService {
             // so a second checkout used to rebind this row to the new subscription and orphan the
             // old one (still billed, no local row left to cancel it). Refuse instead of rebinding.
             String currentExternalId = subscription.getExternalSubscriptionId();
-            if (currentExternalId != null
+            // A CANCELED row is terminal at Stripe: the stored id is no longer billed, so a new
+            // checkout for the same product may take the row over instead of paying into a void.
+            boolean currentIdStillBillable = previousStatus != SubscriptionStatus.CANCELED;
+            if (currentIdStillBillable
+                    && currentExternalId != null
                     && !currentExternalId.isBlank()
                     && !currentExternalId.equals(externalSubscriptionId)) {
                 throw new IllegalStateException(
