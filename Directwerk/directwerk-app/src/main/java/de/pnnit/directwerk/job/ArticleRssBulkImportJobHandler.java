@@ -1,7 +1,9 @@
 package de.pnnit.directwerk.job;
 
 import de.pnnit.directwerk.modules.email.TransactionalEmailService;
+import de.pnnit.directwerk.modules.digital.exception.UploadValidationException;
 import de.pnnit.directwerk.modules.newsletter.exception.ArticleRssImportException;
+import de.pnnit.directwerk.modules.newsletter.exception.ArticleValidationException;
 import de.pnnit.directwerk.modules.newsletter.service.ArticleImportService;
 import de.pnnit.directwerk.modules.queue.JobHandler;
 import de.pnnit.directwerk.modules.queue.QueueJob;
@@ -94,7 +96,11 @@ public class ArticleRssBulkImportJobHandler implements JobHandler {
                 article -> article.alreadyImportedArticleId() != null,
                 ArticleImportService.PreviewArticle::guid,
                 ArticleImportService.PreviewArticle::title,
-                ArticleRssImportException.class,
+                // A broken hero image or an invalid item must not abort the run; genuine
+                // infrastructure failures still propagate so the job retries (#727).
+                ex -> ex instanceof ArticleRssImportException
+                        || ex instanceof UploadValidationException
+                        || ex instanceof ArticleValidationException,
                 article -> {
                     ArticleImportService.ImportedArticle result = articleImportService.importArticle(
                             new ArticleImportService.ImportArticleCommand(
