@@ -125,6 +125,42 @@ class RssBulkImportJobHandlerTest {
     }
 
     @Test
+    void countsAnEpisodeImportedByAnotherRunAsSkipped() {
+        // #747: the summary hardcoded IMPORTED and discarded ImportedEpisode.alreadyImported,
+        // so a race with another import reported new episodes that were never added.
+        when(podcastImportService.preview("https://example.com/feed.xml")).thenReturn(preview());
+        when(podcastImportService.importEpisode(any()))
+                .thenAnswer(invocation -> new PodcastImportService.ImportedEpisode(
+                        mock(Episode.class), true));
+
+        handler.handle(job(new RssBulkImportPayload(
+                3L,
+                "https://example.com/feed.xml",
+                Set.of(),
+                AccessPolicy.FREE,
+                null,
+                true,
+                true,
+                "editor@example.com",
+                "Eddie",
+                7L
+        )));
+
+        @SuppressWarnings("unchecked")
+        var emailVars = ArgumentCaptor.forClass(Map.class);
+        verify(emailService).sendFromPayload(
+                any(UUID.class),
+                eq(10L),
+                eq("editor@example.com"),
+                eq(EmailTemplate.RSS_BULK_IMPORT_FINISHED),
+                emailVars.capture()
+        );
+        assertThat(emailVars.getValue())
+                .containsEntry("importedCount", "0")
+                .containsEntry("skippedCount", "3");
+    }
+
+    @Test
     void rejectsInvalidPayload() {
         assertThatThrownBy(() -> handler.handle(job(new RssBulkImportPayload(
                 null, "", null, null, null, true, true, "", null, null))))
