@@ -96,7 +96,7 @@ describe('FormatEditor', () => {
         await waitFor(() => expect(createFormat).toHaveBeenCalledWith({
             slug: 'interview',
             name: 'Interview',
-            description: undefined,
+            description: '',
             // #530: 0 clears/creates a floor of "every active level"; omitting the field
             // left a stale floor in place on update.
             requiredLevelSortOrder: 0,

@@ -150,8 +150,8 @@ export default function ArticleEditor({articleId}: {articleId?: number}) {
                 title: title.trim() || 'Ohne Titel',
                 slug: resolvedSlug,
                 body,
-                excerpt: excerpt.trim() || undefined,
-                seoDescription: seoDescription.trim() || undefined,
+                excerpt: excerpt.trim(),
+                seoDescription: seoDescription.trim(),
                 accessPolicy,
                 heroAssetId: heroAssetId ?? undefined,
                 // #530: 0 clears the stored floor; omitting the field would keep it.
