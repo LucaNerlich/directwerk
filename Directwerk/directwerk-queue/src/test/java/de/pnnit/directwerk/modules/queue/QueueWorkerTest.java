@@ -64,6 +64,23 @@ class QueueWorkerTest {
     }
 
     @Test
+    void pollAllKeepsPollingAfterOneQueueThrows() {
+        QueueService queueService = mock(QueueService.class);
+        JobHandlerRegistry registry = mock(JobHandlerRegistry.class);
+        DirectwerkConfig config = configWithQueueEnabled(true);
+        when(registry.registeredQueues()).thenReturn(Set.of("broken", "email"));
+        when(registry.handlerFor("broken")).thenReturn(mock(JobHandler.class));
+        when(registry.handlerFor("email")).thenReturn(null);
+        when(queueService.resolveLeaseSeconds(eq("broken"), anyLong()))
+                .thenThrow(new IllegalArgumentException("Queue lease exceeds the configured safe range."));
+
+        new QueueWorker(queueService, config, registry).pollAll();
+
+        verify(registry).handlerFor("broken");
+        verify(registry).handlerFor("email");
+    }
+
+    @Test
     void pollAllDoesNothingWhenQueueDisabled() {
         QueueService queueService = mock(QueueService.class);
         JobHandlerRegistry registry = mock(JobHandlerRegistry.class);

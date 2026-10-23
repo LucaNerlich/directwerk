@@ -66,7 +66,13 @@ public class QueueWorker {
             return;
         }
         for (String queueName : handlerRegistry.registeredQueues()) {
-            poll(queueName);
+            // One broken queue (misconfigured lease, transient claim failure) must not
+            // starve every queue that happens to be polled after it.
+            try {
+                poll(queueName);
+            } catch (RuntimeException ex) {
+                log.error("Polling queue={} failed; continuing with the remaining queues", queueName, ex);
+            }
         }
     }
 
