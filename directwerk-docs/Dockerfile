@@ -19,7 +19,7 @@ RUN apk add --no-cache bash \
 
 COPY . /ctx
 
-RUN cp /ctx/package.json /ctx/pnpm-lock.yaml /ctx/pnpm-workspace.yaml /ctx/.npmrc . \
+RUN cp /ctx/package.json /ctx/pnpm-lock.yaml /ctx/pnpm-workspace.yaml . \
     && mkdir -p directwerk-docs \
     && if [ -f /ctx/directwerk-docs/package.json ]; then \
          cp -a /ctx/directwerk-docs/. ./directwerk-docs/; \
