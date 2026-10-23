@@ -43,8 +43,8 @@ class DelegatingEmailTemplateSourceTest {
         when(tenantContentEmailTemplateService.findTemplate(TENANT_ID, ContentType.ARTICLE))
                 .thenReturn(Optional.of(override));
 
-        assertThat(source.resolveSubject(EmailTemplate.CONTENT_ARTICLE_PUBLISHED, TENANT_ID)).isEqualTo("Custom subject");
-        assertThat(source.resolveBody(EmailTemplate.CONTENT_ARTICLE_PUBLISHED, TENANT_ID)).isEqualTo("<p>Custom body</p>");
+        assertThat(source.resolveSubject(EmailTemplate.NEWSLETTER_ARTICLE_PUBLISHED, TENANT_ID)).isEqualTo("Custom subject");
+        assertThat(source.resolveBody(EmailTemplate.NEWSLETTER_ARTICLE_PUBLISHED, TENANT_ID)).isEqualTo("<p>Custom body</p>");
         verify(classpathEmailTemplateSource, never()).resolveSubject(any(), any());
         verify(classpathEmailTemplateSource, never()).resolveBody(any(), any());
     }
@@ -89,10 +89,10 @@ class DelegatingEmailTemplateSourceTest {
 
     @Test
     void bypassesTenantLookupWhenTenantIdIsNull() {
-        when(classpathEmailTemplateSource.resolveBody(EmailTemplate.CONTENT_ARTICLE_PUBLISHED, null))
+        when(classpathEmailTemplateSource.resolveBody(EmailTemplate.NEWSLETTER_ARTICLE_PUBLISHED, null))
                 .thenReturn("<p>Default body</p>");
 
-        assertThat(source.resolveBody(EmailTemplate.CONTENT_ARTICLE_PUBLISHED, null)).isEqualTo("<p>Default body</p>");
+        assertThat(source.resolveBody(EmailTemplate.NEWSLETTER_ARTICLE_PUBLISHED, null)).isEqualTo("<p>Default body</p>");
         verify(tenantContentEmailTemplateService, never()).findTemplate(any(), any());
     }
 }

@@ -37,7 +37,6 @@ public class RssFeedDeliveryFacade {
                 redirect,
                 analyticsSource,
                 requestHost,
-                false,
                 clientUserAgent,
                 isRangeRequest,
                 clientIp
@@ -76,7 +75,6 @@ public class RssFeedDeliveryFacade {
                 redirect,
                 analyticsSource,
                 requestHost,
-                true,
                 clientUserAgent,
                 isRangeRequest,
                 clientIp

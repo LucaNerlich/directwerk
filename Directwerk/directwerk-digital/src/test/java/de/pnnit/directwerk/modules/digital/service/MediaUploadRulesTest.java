@@ -12,35 +12,35 @@ class MediaUploadRulesTest {
 
     @Test
     void acceptsAllowedAudioMimeAndSize() {
-        MediaUploadRules.validateMimeAndSize(AssetType.AUDIO, "audio/mpeg", 1024);
+        MediaUploadRules.validateMimeAndSize(AssetType.AUDIO, "audio/mpeg", 1024, null);
     }
 
     @Test
     void rejectsDisallowedMime() {
-        assertThatThrownBy(() -> MediaUploadRules.validateMimeAndSize(AssetType.IMAGE, "application/pdf", 100))
+        assertThatThrownBy(() -> MediaUploadRules.validateMimeAndSize(AssetType.IMAGE, "application/pdf", 100, null))
                 .isInstanceOf(UploadValidationException.class);
     }
 
     @Test
     void rejectsOversizedImage() {
         assertThatThrownBy(() -> MediaUploadRules.validateMimeAndSize(
-                AssetType.IMAGE, "image/jpeg", 11L * 1024 * 1024
+                AssetType.IMAGE, "image/jpeg", 11L * 1024 * 1024, null
         )).isInstanceOf(UploadValidationException.class);
     }
 
     @Test
     void allowsLargeAudioWithinFiveGigabyteLimit() {
-        MediaUploadRules.validateMimeAndSize(AssetType.AUDIO, "audio/mpeg", 5L * 1024 * 1024 * 1024);
+        MediaUploadRules.validateMimeAndSize(AssetType.AUDIO, "audio/mpeg", 5L * 1024 * 1024 * 1024, null);
         assertThatThrownBy(() -> MediaUploadRules.validateMimeAndSize(
-                AssetType.AUDIO, "audio/mpeg", 5L * 1024 * 1024 * 1024 + 1
+                AssetType.AUDIO, "audio/mpeg", 5L * 1024 * 1024 * 1024 + 1, null
         )).isInstanceOf(UploadValidationException.class);
     }
 
     @Test
     void allowsLargeVideoWithinFiveGigabyteLimit() {
-        MediaUploadRules.validateMimeAndSize(AssetType.VIDEO, "video/mp4", 5L * 1024 * 1024 * 1024);
+        MediaUploadRules.validateMimeAndSize(AssetType.VIDEO, "video/mp4", 5L * 1024 * 1024 * 1024, null);
         assertThatThrownBy(() -> MediaUploadRules.validateMimeAndSize(
-                AssetType.VIDEO, "video/mp4", 5L * 1024 * 1024 * 1024 + 1
+                AssetType.VIDEO, "video/mp4", 5L * 1024 * 1024 * 1024 + 1, null
         )).isInstanceOf(UploadValidationException.class);
     }
 
@@ -137,8 +137,8 @@ class MediaUploadRulesTest {
     @Test
     void acceptsIcoImageMime() {
         // Favicons are commonly uploaded as .ico; the vendor alias normalizes to x-icon.
-        MediaUploadRules.validateMimeAndSize(AssetType.IMAGE, "image/x-icon", 1024);
-        MediaUploadRules.validateMimeAndSize(AssetType.IMAGE, "image/vnd.microsoft.icon", 1024);
+        MediaUploadRules.validateMimeAndSize(AssetType.IMAGE, "image/x-icon", 1024, null);
+        MediaUploadRules.validateMimeAndSize(AssetType.IMAGE, "image/vnd.microsoft.icon", 1024, null);
     }
 
     @Test

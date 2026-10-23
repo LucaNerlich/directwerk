@@ -9,7 +9,6 @@ import de.pnnit.directwerk.modules.core.authorization.ContentOperation;
 import de.pnnit.directwerk.modules.core.content.PublicationWorkflow;
 import de.pnnit.directwerk.modules.core.notification.SubscriberNotificationGate;
 import de.pnnit.directwerk.modules.core.service.MembershipPermissionService;
-import de.pnnit.directwerk.modules.core.service.ModuleGateService;
 import de.pnnit.directwerk.modules.core.service.ScheduledPublicationExecutor;
 import de.pnnit.directwerk.modules.digital.service.HtmlSanitizer;
 import de.pnnit.directwerk.modules.newsletter.ArticlesModule;
@@ -35,8 +34,6 @@ public class ArticlePublicationWorkflowService extends PublicationWorkflow<Artic
     private final ArticleRepository articleRepository;
     private final ArticleService articleService;
     private final HtmlSanitizer htmlSanitizer;
-    @SuppressWarnings("unused")
-    private final ModuleGateService moduleGateService;
     private final ArticleRssFeedRefreshJobProducer articleRssFeedRefreshScheduler;
     private final ObjectProvider<ArticlePublicationWorkflowService> self;
 
@@ -44,7 +41,6 @@ public class ArticlePublicationWorkflowService extends PublicationWorkflow<Artic
             ArticleRepository articleRepository,
             ArticleService articleService,
             HtmlSanitizer htmlSanitizer,
-            ModuleGateService moduleGateService,
             ScheduledPublicationExecutor scheduledPublicationExecutor,
             ContentPublishedNotifier contentPublishedNotifier,
             SubscriberNotificationGate notificationGate,
@@ -56,7 +52,6 @@ public class ArticlePublicationWorkflowService extends PublicationWorkflow<Artic
         this.articleRepository = articleRepository;
         this.articleService = articleService;
         this.htmlSanitizer = htmlSanitizer;
-        this.moduleGateService = moduleGateService;
         this.articleRssFeedRefreshScheduler = articleRssFeedRefreshScheduler;
         this.self = self;
     }

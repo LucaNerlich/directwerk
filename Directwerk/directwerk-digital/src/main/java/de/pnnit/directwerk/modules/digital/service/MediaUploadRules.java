@@ -185,18 +185,6 @@ public final class MediaUploadRules {
     }
 
     /**
-     * Validates the MIME type and size of an uploaded asset.
-     *
-     * @param assetType the asset category used to determine allowed MIME types and maximum size
-     * @param mimeType the asset's MIME type
-     * @param sizeBytes the asset size in bytes
-     * @throws UploadValidationException if the MIME type is missing or unsupported, no size limit is configured, or the size is not within the allowed range
-     */
-    public static void validateMimeAndSize(AssetType assetType, String mimeType, long sizeBytes) {
-        validateMimeAndSize(assetType, mimeType, sizeBytes, null);
-    }
-
-    /**
      * Validates the MIME type and size of an uploaded asset against the tenant's
      * effective limit (override or platform default).
      *

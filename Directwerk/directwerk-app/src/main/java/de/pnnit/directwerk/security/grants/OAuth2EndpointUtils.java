@@ -1,11 +1,8 @@
 package de.pnnit.directwerk.security.grants;
 
 import jakarta.servlet.http.HttpServletRequest;
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import org.springframework.security.oauth2.core.AuthorizationGrantType;
 import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
 import org.springframework.security.oauth2.core.OAuth2Error;
 import org.springframework.security.oauth2.core.OAuth2ErrorCodes;
@@ -34,29 +31,6 @@ public final class OAuth2EndpointUtils {
         return parameters;
     }
 
-    public static Map<String, Object> getParametersIfMatchesAuthorizationCodeGrantRequest(
-            HttpServletRequest request,
-            String... exclusions
-    ) {
-        if (!matchesAuthorizationCodeGrantRequest(request)) {
-            return Collections.emptyMap();
-        }
-        Map<String, Object> parameters = new HashMap<>(getParameters(request).toSingleValueMap());
-        for (String exclusion : exclusions) {
-            parameters.remove(exclusion);
-        }
-        return parameters;
-    }
-
-    public static boolean matchesAuthorizationCodeGrantRequest(HttpServletRequest request) {
-        MultiValueMap<String, String> parameters = getParameters(request);
-        return hasSingleNonBlankValue(
-                parameters,
-                OAuth2ParameterNames.GRANT_TYPE,
-                AuthorizationGrantType.AUTHORIZATION_CODE.getValue()
-        ) && hasSingleNonBlankValue(parameters, OAuth2ParameterNames.CODE, null);
-    }
-
     public static String requireSingleParameter(
             MultiValueMap<String, String> parameters,
             String parameterName
@@ -70,22 +44,6 @@ public final class OAuth2EndpointUtils {
             throwError(OAuth2ErrorCodes.INVALID_REQUEST, parameterName, ACCESS_TOKEN_REQUEST_ERROR_URI);
         }
         return value;
-    }
-
-    private static boolean hasSingleNonBlankValue(
-            MultiValueMap<String, String> parameters,
-            String parameterName,
-            String expectedValue
-    ) {
-        List<String> values = parameters.get(parameterName);
-        if (values == null || values.size() != 1) {
-            return false;
-        }
-        String value = values.getFirst();
-        if (!StringUtils.hasText(value)) {
-            return false;
-        }
-        return expectedValue == null || expectedValue.equals(value);
     }
 
     public static void throwError(String errorCode, String parameterName, String errorUri) {
