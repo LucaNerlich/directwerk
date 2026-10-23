@@ -351,7 +351,7 @@ public class EpisodeController {
     ) {
     }
 
-    public record ReplaceFormatsRequest(Set<@Min(1) Long> formatIds) {
+    public record ReplaceFormatsRequest(@NotNull @Size(max = BulkIdsRequest.MAX_IDS) Set<@Min(1) Long> formatIds) {
     }
 
     public record AttachAudioRequest(@NotNull @Min(1) Long audioAssetId) {

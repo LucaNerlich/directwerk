@@ -8,6 +8,7 @@ import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -145,6 +146,20 @@ class EpisodeControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"seriesId\":1,\"title\":\"Too long\",\"slug\":\"too-long\","
                                 + "\"description\":\"" + oversized + "\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors[0].code").value("VALIDATION_ERROR"));
+
+        verifyNoInteractions(episodeService);
+    }
+
+    @Test
+    @WithMockUser(roles = "EDITOR")
+    void replaceFormatsRejectsAMissingIdSet() throws Exception {
+        // #723: `{}` used to return 200 and silently clear every format, which drops
+        // published episodes out of the subscriber feeds that select by format.
+        mockMvc.perform(put("/api/v1/episodes/7/formats")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{}"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.errors[0].code").value("VALIDATION_ERROR"));
 
