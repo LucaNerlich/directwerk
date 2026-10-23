@@ -63,6 +63,8 @@ public class ArticleRssFeedService {
                 .stream()
                 .limit(MAX_FEED_ITEMS)
                 .toList();
+        // Reveal once per feed, not once per entitled article (#744).
+        String feedToken = feedTokenProtector.reveal(feed.getFeedToken());
         return articleRssXmlBuilder.buildFeed(
                 tenant,
                 articles,
@@ -79,7 +81,7 @@ public class ArticleRssFeedService {
                             host,
                             port,
                             tenant.getSlug(),
-                            feedTokenProtector.reveal(feed.getFeedToken()),
+                            feedToken,
                             article.getSlug());
                 }
         );
