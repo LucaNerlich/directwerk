@@ -3,7 +3,9 @@ package de.pnnit.directwerk.api.exception;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import de.pnnit.directwerk.analytics.AnalyticsQueryException;
+import de.pnnit.directwerk.modules.content.exception.InvalidContentScopeException;
 import de.pnnit.directwerk.modules.core.exception.ContentAccessDeniedException;
+import de.pnnit.directwerk.modules.core.exception.RateLimitExceededException;
 import de.pnnit.directwerk.modules.core.service.CannotDeactivateLastAdminException;
 import de.pnnit.directwerk.modules.core.service.CannotDeactivateSelfException;
 import de.pnnit.directwerk.modules.core.service.CannotRevokeLastPlatformAdminException;
@@ -19,6 +21,25 @@ import org.springframework.http.HttpStatus;
 class GlobalExceptionHandlerTest {
 
     private final GlobalExceptionHandler handler = new GlobalExceptionHandler();
+
+    @Test
+    void mapsAnyStatusCarryingExceptionToUpItsOwnStatus() {
+        // #726: RateLimitExceededException carried 429 but had no handler, so the studio
+        // login throttle answered 500 INTERNAL_ERROR.
+        var response = handler.handleCodedStatus(new RateLimitExceededException());
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.TOO_MANY_REQUESTS);
+        assertThat(response.getBody().errors().getFirst().code()).isEqualTo("RATE_LIMIT_EXCEEDED");
+    }
+
+    @Test
+    void mapsAnUnknownContentScopeToBadRequest() {
+        var response = handler.handleInvalidContentScope(
+                new InvalidContentScopeException("PODCAST_SERIES", 999999L, "Podcast series 999999 was not found"));
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(response.getBody().errors().getFirst().code()).isEqualTo("INVALID_CONTENT_SCOPE");
+    }
 
     @Test
     void mapsTenantContextMissingToBadRequest() {
