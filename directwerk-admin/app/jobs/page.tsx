@@ -142,7 +142,9 @@ export default function JobsPage() {
                     <CardContent>
                     <form
                         className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4"
-                        key={`${query.offset}-${query.limit}`}
+                        // Remount on every filter change so Reset clears the uncontrolled
+                        // selects too (the audit page uses the same key).
+                        key={JSON.stringify(query)}
                         onSubmit={(event) => {
                             event.preventDefault()
                             applyFilters(new FormData(event.currentTarget))
