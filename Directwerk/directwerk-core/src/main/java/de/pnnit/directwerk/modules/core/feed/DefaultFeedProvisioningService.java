@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -30,6 +31,12 @@ public class DefaultFeedProvisioningService {
     private final TenantMembershipRepository tenantMembershipRepository;
     private final TenantModuleActivationRepository tenantModuleActivationRepository;
     private final ModuleGateService moduleGateService;
+    /**
+     * Proxied self-reference: the per-tenant overload is {@code @Transactional}, and a plain
+     * {@code this} call would never reach the proxy — the whole estate would share one
+     * transaction and one failure would roll every tenant back (#715).
+     */
+    private final ObjectProvider<DefaultFeedProvisioningService> self;
 
     @Transactional
     public void provisionDefaultFeed(String feedModuleKey, Long tenantId, Long userId, DefaultFeedStore store) {
@@ -44,11 +51,13 @@ public class DefaultFeedProvisioningService {
      *
      * @return number of default feeds created
      */
-    @Transactional
     public int provisionMissingDefaultFeeds(String feedModuleKey, DefaultFeedStore store) {
         int created = 0;
         for (Long tenantId : tenantIdsEligibleForPrivateFeeds(feedModuleKey)) {
-            created += provisionMissingDefaultFeeds(feedModuleKey, tenantId, store);
+            // The tenant set already intersects both module activations, so the per-tenant
+            // re-check would only repeat the same two queries.
+            created += self.getObject().provisionMissingDefaultFeedsForEligibleTenant(
+                    feedModuleKey, tenantId, store);
         }
         if (created > 0) {
             log.info("Provisioned {} missing default private feeds for module {}", created, feedModuleKey);
@@ -61,6 +70,13 @@ public class DefaultFeedProvisioningService {
         if (!isPrivateFeedModuleEnabled(feedModuleKey, tenantId)) {
             return 0;
         }
+        return provisionMissingDefaultFeedsForEligibleTenant(feedModuleKey, tenantId, store);
+    }
+
+    /** Per-tenant backfill for a tenant the caller already proved eligible. */
+    @Transactional
+    public int provisionMissingDefaultFeedsForEligibleTenant(
+            String feedModuleKey, Long tenantId, DefaultFeedStore store) {
         int created = 0;
         for (Long userId : tenantMembershipRepository.findActiveUserIdsByTenantId(
                 tenantId,
