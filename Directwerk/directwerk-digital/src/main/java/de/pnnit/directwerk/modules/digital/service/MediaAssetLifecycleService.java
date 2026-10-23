@@ -84,8 +84,7 @@ public class MediaAssetLifecycleService implements MediaAssetLifecycleApi {
         // the row, so refuse while anything still references the asset.
         if (mediaAssetRepository.hasAttachedReferences(asset.getId())) {
             throw new ConflictException(
-                    ConflictCodes.MEDIA_ASSET_IN_USE,
-                    "This asset is still used by published content and cannot be deleted");
+                    ConflictCodes.MEDIA_ASSET_IN_USE, inUseMessage(asset));
         }
 
         URL cdnUrlToPurge = resolvePublicCdnUrl(asset);
@@ -98,6 +97,18 @@ public class MediaAssetLifecycleService implements MediaAssetLifecycleApi {
                 cdnUrlToPurge != null ? cdnUrlToPurge.toString() : null
         );
         return asset;
+    }
+
+    /**
+     * Names the asset that blocks a delete, so both the single-asset and the folder path tell a
+     * creator which file to detach first.
+     */
+    public static String inUseMessage(MediaAsset asset) {
+        String filename = asset.getOriginalFilename();
+        String label = filename == null || filename.isBlank()
+                ? "Asset " + asset.getId()
+                : "Asset " + asset.getId() + " (\"" + filename + "\")";
+        return label + " is still referenced by content and cannot be deleted";
     }
 
     private void authorizeDelete(

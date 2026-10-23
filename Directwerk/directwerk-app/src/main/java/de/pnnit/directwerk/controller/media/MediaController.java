@@ -151,11 +151,11 @@ public class MediaController {
     }
 
     @Operation(summary = "Queue a media asset for deletion",
-            description = "Refuses while published content still references the asset.")
+            description = "Refuses while content still references the asset.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Asset queued for deletion"),
             @ApiResponse(responseCode = "404", description = "Unknown id, or id belongs to another tenant (MEDIA_ASSET_NOT_FOUND)"),
-            @ApiResponse(responseCode = "409", description = "Published content still uses the asset (MEDIA_ASSET_IN_USE)")
+            @ApiResponse(responseCode = "409", description = "Content still references the asset (MEDIA_ASSET_IN_USE)")
     })
     @DeleteMapping("/{id}")
     ResponseEntity<Response<MediaAssetView>> delete(@PathVariable("id") Long id) {

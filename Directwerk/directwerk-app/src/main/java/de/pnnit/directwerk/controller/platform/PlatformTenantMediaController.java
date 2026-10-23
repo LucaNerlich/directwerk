@@ -21,6 +21,8 @@ import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import java.util.List;
 import org.springframework.http.HttpStatus;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -124,6 +126,13 @@ public class PlatformTenantMediaController {
         return ResponseEntity.ok(Response.ok(view));
     }
 
+    @Operation(summary = "Queue a tenant media asset for deletion",
+            description = "Refuses while content still references the asset, for platform ops too.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Asset queued for deletion"),
+            @ApiResponse(responseCode = "404", description = "Unknown asset (MEDIA_ASSET_NOT_FOUND)"),
+            @ApiResponse(responseCode = "409", description = "Content still references the asset (MEDIA_ASSET_IN_USE)")
+    })
     @DeleteMapping("/{assetId}")
     ResponseEntity<Response<MediaAssetView>> deleteMedia(
             @PathVariable Long tenantId,

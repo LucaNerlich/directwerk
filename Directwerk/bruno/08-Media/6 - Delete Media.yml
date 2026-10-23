@@ -15,7 +15,7 @@ runtime:
         test("returns expected status", function() {
           expect([200, 404, 409].includes(res.getStatus())).to.equal(true);
           if (res.getStatus() === 409) {
-            expect(res.getBody().code).to.equal("MEDIA_ASSET_IN_USE");
+            expect(res.getBody().errors[0].code).to.equal("MEDIA_ASSET_IN_USE");
           }
         });
 

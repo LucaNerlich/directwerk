@@ -311,6 +311,29 @@ class MediaFolderServiceTest {
     }
 
     @Test
+    void deleteFolderWithContentsNamesTheReferencedAssetBeforeDeletingAnything() {
+        // #761 review: the per-asset lifecycle threw on the first referenced asset, aborting a
+        // folder purge halfway with a message that named no file.
+        MediaFolder folder = folderWithId(1L);
+        MediaAsset inUse = assetWithId(7L, 10L);
+        inUse.setFolderId(1L);
+        inUse.setOriginalFilename("episode-1.mp3");
+
+        when(mediaFolderRepository.findByIdAndTenantId(1L, 10L)).thenReturn(Optional.of(folder));
+        when(mediaFolderRepository.findByTenantIdOrderByNameAscIdAsc(10L)).thenReturn(List.of(folder));
+        when(mediaAssetRepository.findByTenantIdAndFolderId(10L, 1L)).thenReturn(List.of(inUse));
+        when(mediaAssetRepository.hasAttachedReferences(7L)).thenReturn(true);
+        stubAdvisoryLock();
+
+        assertThatThrownBy(() -> service.deleteFolder(10L, 1L, FolderDeleteMode.DELETE_CONTENTS, null))
+                .isInstanceOf(ConflictException.class)
+                .hasMessageContaining("episode-1.mp3");
+
+        verify(mediaAssetLifecycleApi, never()).delete(any());
+        verify(mediaFolderRepository, never()).delete(any());
+    }
+
+    @Test
     void deleteFolderWithContentsDeletesAssetsDeepestFirst() {
         MediaFolder folder = folderWithId(1L);
         MediaFolder child = folderWithId(2L);
