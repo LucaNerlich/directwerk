@@ -27,7 +27,7 @@ public class FeedSnapshotStateStore {
         Integer count = jdbcTemplate.queryForObject(
                 """
                 SELECT COUNT(*) FROM rss_snapshot_presence
-                WHERE tenant_id = ? AND kind = ? AND subject_id = ?
+                WHERE tenant_id = ? AND kind = ? AND subject_id = ? AND stale = false
                 """,
                 Integer.class,
                 tenantId,
@@ -41,10 +41,53 @@ public class FeedSnapshotStateStore {
         requireTenantId(tenantId);
         jdbcTemplate.update(
                 """
-                INSERT INTO rss_snapshot_presence (tenant_id, kind, subject_id, written_at)
-                VALUES (?, ?, ?, clock_timestamp())
+                INSERT INTO rss_snapshot_presence (tenant_id, kind, subject_id, written_at, stale)
+                VALUES (?, ?, ?, clock_timestamp(), false)
                 ON CONFLICT (tenant_id, kind, subject_id)
-                DO UPDATE SET written_at = EXCLUDED.written_at
+                DO UPDATE SET written_at = EXCLUDED.written_at, stale = false
+                """,
+                tenantId,
+                kind,
+                subjectId
+        );
+    }
+
+    /** True while a presence row exists, even if it is stale (invalidation pending a rebuild). */
+    public boolean isKnown(Long tenantId, String kind, long subjectId) {
+        requireTenantId(tenantId);
+        Boolean known = jdbcTemplate.queryForObject(
+                """
+                SELECT EXISTS (
+                    SELECT 1 FROM rss_snapshot_presence
+                    WHERE tenant_id = ? AND kind = ? AND subject_id = ?
+                )
+                """,
+                Boolean.class,
+                tenantId,
+                kind,
+                subjectId
+        );
+        return Boolean.TRUE.equals(known);
+    }
+
+    /**
+     * Marks every snapshot of the tenant stale. The rows stay so a reader is served not-ready
+     * instead of the object built under the previous entitlements (#717).
+     */
+    public void markStale(Long tenantId) {
+        requireTenantId(tenantId);
+        jdbcTemplate.update("UPDATE rss_snapshot_presence SET stale = true WHERE tenant_id = ?", tenantId);
+    }
+
+    /** Marks one snapshot stale, creating the row when it is missing. */
+    public void markStale(Long tenantId, String kind, long subjectId) {
+        requireTenantId(tenantId);
+        jdbcTemplate.update(
+                """
+                INSERT INTO rss_snapshot_presence (tenant_id, kind, subject_id, written_at, stale)
+                VALUES (?, ?, ?, clock_timestamp(), true)
+                ON CONFLICT (tenant_id, kind, subject_id)
+                DO UPDATE SET stale = true
                 """,
                 tenantId,
                 kind,
@@ -75,7 +118,7 @@ public class FeedSnapshotStateStore {
         return jdbcTemplate.query(
                 """
                 SELECT subject_id FROM rss_snapshot_presence
-                WHERE tenant_id = ? AND kind = ?
+                WHERE tenant_id = ? AND kind = ? AND stale = false
                 ORDER BY subject_id
                 """,
                 (rs, rowNum) -> rs.getLong("subject_id"),

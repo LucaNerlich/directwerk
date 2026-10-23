@@ -130,7 +130,7 @@ public class FeedSnapshotCoordinator {
             return;
         }
         if (!directwerkConfig.isStorageEnabled()) {
-            snapshotStateStore.clearWritten(tenant.getId(), kind.layout().privateKind(), feedId);
+            snapshotStateStore.markStale(tenant.getId(), kind.layout().privateKind(), feedId);
             return;
         }
         snapshotStore.withdraw(privateRef(tenant.getId(), tenant.getSlug(), feedId));

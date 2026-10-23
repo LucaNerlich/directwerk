@@ -73,10 +73,15 @@ public class GeneratedFeedSnapshotStore {
         StorageConfigs.requireEnabled(directwerkConfig);
         if (snapshotStateStore.isWritten(ref.tenantId(), ref.kind(), ref.subjectId())) {
             if (probeObject(ref) == ObjectPresence.ABSENT) {
-                snapshotStateStore.clearWritten(ref.tenantId(), ref.kind(), ref.subjectId());
+                snapshotStateStore.markStale(ref.tenantId(), ref.kind(), ref.subjectId());
                 return FeedDelivery.notReady();
             }
             return new FeedDelivery(remoteUrl(ref));
+        }
+        if (snapshotStateStore.isKnown(ref.tenantId(), ref.kind(), ref.subjectId())) {
+            // Invalidated (entitlements changed, feed disabled): the object is still there but
+            // was built under the old access rules, so wait for the rebuild instead of healing.
+            return FeedDelivery.notReady();
         }
         if (probeObject(ref) == ObjectPresence.PRESENT) {
             snapshotStateStore.markWritten(ref.tenantId(), ref.kind(), ref.subjectId());
