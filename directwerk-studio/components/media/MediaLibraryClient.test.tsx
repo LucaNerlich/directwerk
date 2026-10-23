@@ -386,6 +386,7 @@ describe('MediaLibraryClient', () => {
         await waitFor(() =>
             expect(vi.mocked(listMedia)).toHaveBeenLastCalledWith({
                 limit: 100,
+                offset: 0,
                 folderId: undefined,
                 recursive: false,
                 unassignedOnly: true,
@@ -396,6 +397,7 @@ describe('MediaLibraryClient', () => {
         await waitFor(() =>
             expect(vi.mocked(listMedia)).toHaveBeenLastCalledWith({
                 limit: 100,
+                offset: 0,
                 folderId: 1,
                 recursive: false,
                 unassignedOnly: false,
@@ -406,6 +408,7 @@ describe('MediaLibraryClient', () => {
         await waitFor(() =>
             expect(vi.mocked(listMedia)).toHaveBeenLastCalledWith({
                 limit: 100,
+                offset: 0,
                 folderId: 1,
                 recursive: true,
                 unassignedOnly: false,
