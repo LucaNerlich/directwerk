@@ -2,6 +2,7 @@ package de.pnnit.directwerk.modules.core.repository;
 
 import de.pnnit.directwerk.modules.core.entity.TenantDomain;
 import java.util.List;
+import java.util.Collection;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -30,6 +31,9 @@ public interface TenantDomainRepository extends JpaRepository<TenantDomain, Long
     );
 
     List<TenantDomain> findByTenantId(Long tenantId);
+
+    /** Batched counterpart of {@link #findByTenantId(Long)} for list pages (#716). */
+    List<TenantDomain> findByTenantIdIn(Collection<Long> tenantIds);
 
     @Query("""
             select domain from TenantDomain domain

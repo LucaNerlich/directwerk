@@ -3,6 +3,7 @@ package de.pnnit.directwerk.modules.core.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -294,8 +295,7 @@ class TenantManagementServiceTest {
         // the platform UI silently truncated a larger estate.
         when(tenantRepository.findAll(any(Pageable.class))).thenReturn(new PageImpl<>(
                 List.of(tenant(1L, "alpha"), tenant(2L, "beta")), PageRequest.of(2, 2), 11));
-        when(tenantDomainRepository.findByTenantId(1L)).thenReturn(List.of());
-        when(tenantDomainRepository.findByTenantId(2L)).thenReturn(List.of());
+        when(tenantDomainRepository.findByTenantIdIn(List.of(1L, 2L))).thenReturn(List.of());
 
         TenantManagementService.TenantPage result = service.listTenants(2, 2);
 
@@ -311,6 +311,8 @@ class TenantManagementServiceTest {
         assertThat(pageable.getValue().getPageNumber()).isEqualTo(2);
         assertThat(pageable.getValue().getPageSize()).isEqualTo(2);
         assertThat(pageable.getValue().getSort()).isEqualTo(Sort.by("id").ascending());
+        // One query for the whole page, not one per row.
+        verify(tenantDomainRepository, never()).findByTenantId(anyLong());
     }
 
     @Test

@@ -19,6 +19,7 @@ import de.pnnit.directwerk.modules.core.util.TenantHostname;
 import java.time.Instant;
 import java.util.Map;
 import java.util.Objects;
+import java.util.stream.Collectors;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -78,8 +79,12 @@ public class TenantManagementService {
         Page<Tenant> result = trimmed.isEmpty()
                 ? tenantRepository.findAll(pageable)
                 : tenantRepository.search(trimmed, pageable);
+        Map<Long, List<TenantDomain>> domainsByTenant = domainsByTenant(result.getContent());
         return new TenantPage(
-                result.getContent().stream().map(this::toListItemView).toList(),
+                result.getContent().stream()
+                        .map(tenant -> toListItemView(
+                                tenant, domainsByTenant.getOrDefault(tenant.getId(), List.of())))
+                        .toList(),
                 result.getTotalElements(),
                 safePage,
                 safeSize);
@@ -348,8 +353,16 @@ public class TenantManagementService {
         );
     }
 
-    private TenantListItemView toListItemView(Tenant tenant) {
-        List<TenantDomain> domains = tenantDomainRepository.findByTenantId(tenant.getId());
+    private Map<Long, List<TenantDomain>> domainsByTenant(List<Tenant> tenants) {
+        List<Long> tenantIds = tenants.stream().map(Tenant::getId).toList();
+        if (tenantIds.isEmpty()) {
+            return Map.of();
+        }
+        return tenantDomainRepository.findByTenantIdIn(tenantIds).stream()
+                .collect(Collectors.groupingBy(domain -> domain.getTenant().getId()));
+    }
+
+    private TenantListItemView toListItemView(Tenant tenant, List<TenantDomain> domains) {
         String primaryDomain = domains.stream()
                 .filter(TenantDomain::isPrimary)
                 .map(TenantDomain::getHost)
