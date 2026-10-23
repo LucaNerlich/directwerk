@@ -15,10 +15,20 @@ import org.springframework.stereotype.Component;
 @Component
 public class StudioLoginRateLimiter {
 
-    /** Per-account attempts per minute; matches the {@code /oauth2/token} username bucket. */
-    static final int MAX_ATTEMPTS_PER_MINUTE = 20;
-
     private final FixedWindowRateLimiter limiter = new FixedWindowRateLimiter();
+    private final int maxAttemptsPerMinute;
+
+    /**
+     * @param directwerkConfig the platform config; the ceiling is the same {@code
+     *                         /oauth2/token} uses, so the two login paths cannot drift (#751)
+     */
+    public StudioLoginRateLimiter(de.pnnit.directwerk.config.DirectwerkConfig directwerkConfig) {
+        Integer configured = directwerkConfig.properties() != null
+                && directwerkConfig.properties().security() != null
+                ? directwerkConfig.properties().security().oauthTokenRateLimitPerMinute()
+                : null;
+        this.maxAttemptsPerMinute = configured != null && configured > 0 ? configured : 10;
+    }
 
     /**
      * Counts one attempt for the account and rejects the request once the ceiling is reached.
@@ -28,7 +38,7 @@ public class StudioLoginRateLimiter {
      */
     public void requireWithinLimit(String email) {
         String key = "studio-login:" + EmailNormalizer.normalize(email);
-        if (limiter.isRateLimited(key, MAX_ATTEMPTS_PER_MINUTE)) {
+        if (limiter.isRateLimited(key, maxAttemptsPerMinute)) {
             throw new RateLimitExceededException();
         }
     }
