@@ -267,7 +267,9 @@ export default function DigitalPublicationEditor({
                         onChange={(event) => {
                             const next = event.target.value
                             setTitle(next)
-                            if (isNew || publication?.status === 'DRAFT') {
+                            // Only fill an untouched slug; the other editors do the same, so a
+                            // hand-typed public link survives later title edits (#752).
+                            if (slug.trim().length === 0) {
                                 setSlug(suggestSlug(next))
                             }
                         }}
