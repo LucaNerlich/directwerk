@@ -10,6 +10,8 @@ export function suggestSlug(title: string): string {
         .replace(/[^a-z0-9]+/g, '-')
         .replace(/^-+|-+$/g, '')
         .slice(0, 63)
+        // Truncation can cut at a separator, leaving a trailing hyphen the API rejects.
+        .replace(/-+$/, '')
 }
 
 export function isEditorRole(roles: string[]): boolean {
