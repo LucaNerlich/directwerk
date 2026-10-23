@@ -112,7 +112,9 @@ export async function generateMetadata({
         },
         description: seo.description,
         alternates: {
-            canonical: `/${lang}`,
+            // No canonical here: Next inherits nested metadata, so a layout-level
+            // canonical would make every page below it claim the home URL. Pages
+            // without their own `alternates` self-canonicalise.
             languages: {
                 de: '/de',
                 en: '/en',

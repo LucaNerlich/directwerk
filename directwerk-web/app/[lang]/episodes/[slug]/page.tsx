@@ -44,7 +44,13 @@ export async function generateMetadata({
         return {
             title: episode.title,
             description,
-            alternates: {canonical: localizedPath(lang, `/episodes/${slug}`)},
+            alternates: {
+                canonical: localizedPath(lang, `/episodes/${slug}`),
+                languages: {
+                    de: localizedPath('de', `/episodes/${slug}`),
+                    en: localizedPath('en', `/episodes/${slug}`),
+                },
+            },
             openGraph: {
                 title: episode.title,
                 description,
