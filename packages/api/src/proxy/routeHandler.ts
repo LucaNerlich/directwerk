@@ -85,7 +85,8 @@ export function createTenantProxyRouteHandler(
             // cap instead (oversize -> 413).
             const parsed = await readJsonBody(request, {
                 jsonBodyLimit: config.jsonBodyLimit,
-                allowMissingBody: config.allowMissingBody === true,
+                allowMissingBody:
+                    config.allowMissingBody === true || method === 'DELETE',
             })
             if (!parsed.ok) {
                 if (parsed.status === 413) {
