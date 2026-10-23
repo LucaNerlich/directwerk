@@ -1,3 +1,4 @@
+import type {Metadata} from 'next'
 import {connection} from 'next/server'
 
 import {
@@ -8,6 +9,17 @@ import {
 import {getTenantHost} from '@/lib/site/getTenantHost'
 
 import HomeClient, {type HomeInitialData} from './home-client'
+
+/** The home page is the only page whose locale alternates are the bare `/de` and `/en`. */
+export async function generateMetadata({params}: {params: Promise<{lang: string}>}): Promise<Metadata> {
+    const {lang} = await params
+    return {
+        alternates: {
+            canonical: `/${lang}`,
+            languages: {de: '/de', en: '/en'},
+        },
+    }
+}
 
 /**
  * Server-renders the tenant landing hero and latest content so the first paint
