@@ -118,7 +118,7 @@ public class PodcastImportController {
                 );
         HttpStatus status = waitForCompletion ? HttpStatus.CREATED : HttpStatus.ACCEPTED;
         return ResponseEntity.status(status).body(
-                waitForCompletion ? Response.created(mediaAssetViewMapper.toView(asset)) : Response.ok(mediaAssetViewMapper.toView(asset))
+                waitForCompletion ? Response.created(mediaAssetViewMapper.toView(asset)) : Response.accepted(mediaAssetViewMapper.toView(asset))
         );
     }
 
@@ -235,7 +235,7 @@ public class PodcastImportController {
                         null
                 )
         );
-        return ResponseEntity.status(HttpStatus.ACCEPTED).body(Response.ok(new BulkImportQueuedView(
+        return ResponseEntity.status(HttpStatus.ACCEPTED).body(Response.accepted(new BulkImportQueuedView(
                 job.id().toString(),
                 preview.episodes().size(),
                 (int) alreadyImported,
