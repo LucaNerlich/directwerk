@@ -40,7 +40,8 @@ class TenantPublicHostResolverTest {
         TenantDomain primary = domain(1L, "primary.example.com", true, true);
         when(tenantDomainRepository.findByTenantIdAndHostIgnoreCase(TENANT_ID, "spoof.example.com"))
                 .thenReturn(Optional.empty());
-        when(tenantDomainRepository.findByTenantId(TENANT_ID)).thenReturn(List.of(primary));
+        when(tenantDomainRepository.findVerifiedByTenantIdOrderByPrimaryDescIdAsc(TENANT_ID))
+                .thenReturn(List.of(primary));
 
         assertThat(resolver.resolve(TENANT_ID, "spoof.example.com", TenantPublicHostResolver.HostPolicy.TRUST_REQUEST))
                 .isEqualTo("primary.example.com");
@@ -49,7 +50,8 @@ class TenantPublicHostResolverTest {
     @Test
     void primaryPolicyIgnoresRequestedHost() {
         TenantDomain primary = domain(1L, "primary.example.com", true, true);
-        when(tenantDomainRepository.findByTenantId(TENANT_ID)).thenReturn(List.of(primary));
+        when(tenantDomainRepository.findVerifiedByTenantIdOrderByPrimaryDescIdAsc(TENANT_ID))
+                .thenReturn(List.of(primary));
 
         assertThat(resolver.resolve(TENANT_ID, "other.example.com", TenantPublicHostResolver.HostPolicy.PRIMARY))
                 .isEqualTo("primary.example.com");
@@ -59,7 +61,9 @@ class TenantPublicHostResolverTest {
     void findPrimaryVerifiedHostPrefersPrimaryThenLowestId() {
         TenantDomain secondary = domain(2L, "secondary.example.com", true, false);
         TenantDomain primary = domain(1L, "primary.example.com", true, true);
-        when(tenantDomainRepository.findByTenantId(TENANT_ID)).thenReturn(List.of(secondary, primary));
+        // The ordered query answers primary-first; the repository applies the tie-break.
+        when(tenantDomainRepository.findVerifiedByTenantIdOrderByPrimaryDescIdAsc(TENANT_ID))
+                .thenReturn(List.of(primary, secondary));
 
         assertThat(resolver.findPrimaryVerifiedHost(TENANT_ID)).contains("primary.example.com");
     }
@@ -69,7 +73,8 @@ class TenantPublicHostResolverTest {
         TenantDomain unverified = domain(1L, "pending.example.com", false, true);
         when(tenantDomainRepository.findByTenantIdAndHostIgnoreCase(TENANT_ID, "pending.example.com"))
                 .thenReturn(Optional.of(unverified));
-        when(tenantDomainRepository.findByTenantId(TENANT_ID)).thenReturn(List.of(unverified));
+        when(tenantDomainRepository.findVerifiedByTenantIdOrderByPrimaryDescIdAsc(TENANT_ID))
+                .thenReturn(List.of());
 
         assertThatThrownBy(() -> resolver.resolve(
                 TENANT_ID,
