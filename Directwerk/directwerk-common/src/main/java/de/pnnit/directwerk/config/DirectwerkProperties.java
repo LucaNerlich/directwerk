@@ -89,6 +89,21 @@ public record DirectwerkProperties(
         public boolean isDeliveryReady() {
             return "smtp".equals(provider);
         }
+
+        /**
+         * A deployment that claims to deliver must be able to: without a sender address every
+         * message fails, and without the base URLs invite and reset links are relative.
+         */
+        @AssertTrue(message = "email.from-address, email.studio-base-url and email.admin-base-url "
+                + "must be set when email.provider is smtp")
+        public boolean isTransportConfigured() {
+            return !isDeliveryReady()
+                    || (hasText(fromAddress) && hasText(studioBaseUrl) && hasText(adminBaseUrl));
+        }
+
+        private static boolean hasText(String value) {
+            return value != null && !value.isBlank();
+        }
     }
 
     public record Queue(
