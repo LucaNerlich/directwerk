@@ -633,10 +633,14 @@ public class GlobalExceptionHandler {
                 .body(Response.error(415, "UNSUPPORTED_MEDIA_TYPE", "Request content type is not supported"));
     }
 
+    /**
+     * A 406 means the client rejects JSON, so an envelope here can never be written — returning
+     * one re-runs negotiation inside the handler, logs a "Failure in @ExceptionHandler" warning
+     * and falls back to Spring's default anyway (#749). The status stands on its own.
+     */
     @ExceptionHandler(HttpMediaTypeNotAcceptableException.class)
-    ResponseEntity<Response<Void>> handleMediaTypeNotAcceptable(HttpMediaTypeNotAcceptableException ex) {
-        return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE)
-                .body(Response.error(406, "NOT_ACCEPTABLE", "No acceptable response media type is available"));
+    ResponseEntity<Void> handleMediaTypeNotAcceptable(HttpMediaTypeNotAcceptableException ex) {
+        return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).build();
     }
 
     @ExceptionHandler(Exception.class)
