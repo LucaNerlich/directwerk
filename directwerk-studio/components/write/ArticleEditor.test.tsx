@@ -100,7 +100,13 @@ describe('ArticleEditor tagging', () => {
         await waitFor(() =>
             expect(updateArticle).toHaveBeenCalledWith(
                 1,
-                expect.objectContaining({clearHeroAsset: true}),
+                // #707 review: a cleared excerpt/SEO description must travel as an empty
+                // string; dropping the key made the API keep the old value.
+                expect.objectContaining({
+                    clearHeroAsset: true,
+                    excerpt: '',
+                    seoDescription: '',
+                }),
             ),
         )
     })
