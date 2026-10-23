@@ -105,7 +105,11 @@ export default defineConfig({
   lang: 'en-US',
   cleanUrls: true,
   lastUpdated: process.env.VITEPRESS_LAST_UPDATED !== '0',
-  ignoreDeadLinks: true,
+  // Only the OpenAPI plugin's generated pages have no markdown source; every
+  // hand-written link must still be checked.
+  // Only the OpenAPI plugin's generated pages and the documented local dev URLs
+  // are exempt; every other hand-written link is checked.
+  ignoreDeadLinks: [/^\/api\/reference/, /^http:\/\/localhost/],
   markdown: {
     lineNumbers: true,
     config(md) {

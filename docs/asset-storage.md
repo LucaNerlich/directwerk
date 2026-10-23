@@ -296,10 +296,11 @@ Service:     moduleGateService.requireModule(...)   // feed generators, AssetAcc
 AssetAccess: require SUBSCRIPTION before EntitlementService on paid CONTENT assets
 ```
 
-Alpha implementation: [`ModuleGateService`](../Directwerk/src/main/java/de/pnnit/directwerk/modules/core/service/ModuleGateService.java),
-[`ModuleManagementService.deactivateModule()`](../Directwerk/src/main/java/de/pnnit/directwerk/modules/core/service/ModuleManagementService.java)
-(rejects `is_core` modules with `CannotDeactivateCoreModuleException`), and
-[`Directwerk/docs/multi-tenancy.md`](../Directwerk/docs/multi-tenancy.md).
+Alpha implementation: `ModuleGateService` and
+`ModuleManagementService.deactivateModule()` in `directwerk-core`
+(`modules/core/service/`; the latter rejects `is_core` modules with
+`CannotDeactivateCoreModuleException`), and the
+[multi-tenancy page](/architecture/multi-tenancy).
 
 ### S3 objects when module deactivated
 
