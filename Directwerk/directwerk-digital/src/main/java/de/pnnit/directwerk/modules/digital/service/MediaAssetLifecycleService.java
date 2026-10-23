@@ -7,6 +7,8 @@ import de.pnnit.directwerk.modules.core.authorization.ContentEntityType;
 import de.pnnit.directwerk.modules.core.authorization.ContentOperation;
 import de.pnnit.directwerk.modules.core.service.MembershipPermissionService;
 import de.pnnit.directwerk.modules.core.entity.Tenant;
+import de.pnnit.directwerk.modules.core.exception.ConflictCodes;
+import de.pnnit.directwerk.modules.core.exception.ConflictException;
 import de.pnnit.directwerk.modules.core.repository.TenantRepository;
 import de.pnnit.directwerk.modules.core.util.TenantAssetKeys;
 import de.pnnit.directwerk.modules.digital.DigitalContentModule;
@@ -76,6 +78,14 @@ public class MediaAssetLifecycleService implements MediaAssetLifecycleApi {
         if (asset.getStatus() == AssetStatus.PENDING_DELETE) {
             // Idempotent: already queued for background deletion.
             return asset;
+        }
+
+        // The S3 delete is irreversible and published content keeps pointing at
+        // the row, so refuse while anything still references the asset.
+        if (mediaAssetRepository.hasAttachedReferences(asset.getId())) {
+            throw new ConflictException(
+                    ConflictCodes.MEDIA_ASSET_IN_USE,
+                    "This asset is still used by published content and cannot be deleted");
         }
 
         URL cdnUrlToPurge = resolvePublicCdnUrl(asset);
