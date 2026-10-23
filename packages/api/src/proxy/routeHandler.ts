@@ -33,8 +33,8 @@ export interface TenantProxyRouteHandlerConfig {
      */
     jsonBodyLimit: number
     /**
-     * Treat a missing/zero Content-Length as an absent body
-     * (directwerk-studio behaviour).
+     * Allow an empty body for POST/PUT/PATCH (directwerk-studio behaviour). DELETE is always
+     * tolerated because the method carries no body; see the body branch in {@code proxyUpstream}.
      */
     allowMissingBody?: boolean
 }

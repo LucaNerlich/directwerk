@@ -2,8 +2,8 @@
  * Unified BFF proxy policy table (CONTEXT.md Wave 8 item #68).
  *
  * Single source of truth for per-app JSON body limits. Tenant rows also carry the
- * empty-body tolerance the tenant handler reads; platform rows carry the limit only —
- * the platform handlers derive bodyless-DELETE tolerance from the method itself
+ * empty-body tolerance for POST/PUT/PATCH; both handlers derive bodyless-DELETE
+ * tolerance from the method itself, and platform rows carry the limit only
  * (issue #591; the old `allowHead` flag had no reader anywhere).
  *
  * Query-validator mapping (unchanged, stays with the handlers):
