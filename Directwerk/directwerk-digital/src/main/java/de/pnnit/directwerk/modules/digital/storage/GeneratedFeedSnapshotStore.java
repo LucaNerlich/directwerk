@@ -35,6 +35,12 @@ public class GeneratedFeedSnapshotStore {
 
     private static final Logger log = LoggerFactory.getLogger(GeneratedFeedSnapshotStore.class);
     private static final Duration DEFAULT_PRIVATE_TTL = Duration.ofHours(24);
+    /**
+     * A 302 target is fetched within seconds and the response is {@code no-store}, so the
+     * snapshot capability only needs to outlive the redirect. A long lifetime would let a URL
+     * issued before a token rotation keep serving the regenerated feed (#721).
+     */
+    private static final Duration MAX_PRIVATE_SNAPSHOT_TTL = Duration.ofMinutes(10);
 
     private final FeedSnapshotStateStore snapshotStateStore;
     private final ObjectProvider<S3Client> s3Client;
@@ -136,9 +142,12 @@ public class GeneratedFeedSnapshotStore {
         if (!ref.privateFeed()) {
             return publicUrlBuilder.cdnUrl(ref.objectKey());
         }
-        Duration ttl = storage.presignDownloadTtlRss() != null
+        Duration configured = storage.presignDownloadTtlRss() != null
                 ? storage.presignDownloadTtlRss()
                 : DEFAULT_PRIVATE_TTL;
+        Duration ttl = configured.compareTo(MAX_PRIVATE_SNAPSHOT_TTL) > 0
+                ? MAX_PRIVATE_SNAPSHOT_TTL
+                : configured;
         // Shared delivery policy — same decision tree as API downloads by construction.
         return privateObjectUrlSigner.signPrivateObject(ref.objectKey(), ttl);
     }

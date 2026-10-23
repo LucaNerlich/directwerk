@@ -11,9 +11,11 @@ import de.pnnit.directwerk.config.DirectwerkConfig;
 import de.pnnit.directwerk.config.DirectwerkProperties;
 import de.pnnit.directwerk.modules.digital.api.CdnPurgeClient;
 import java.net.URI;
+import java.time.Duration;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.beans.factory.ObjectProvider;
@@ -115,6 +117,24 @@ class GeneratedFeedSnapshotStoreTest {
 
         assertThat(delivery.ready()).isTrue();
         verify(snapshotStateStore).markWritten(10L, "TENANT", 0L);
+    }
+
+    @Test
+    void capsThePrivateSnapshotUrlLifetime() throws Exception {
+        // #721: a URL handed out before a token rotation must stop working quickly; the
+        // configured 24h download TTL belongs to resumable audio, not to this redirect.
+        when(snapshotStateStore.isWritten(10L, "PRIVATE_FEED", 42L)).thenReturn(true);
+        when(s3Client.headObject(any(HeadObjectRequest.class)))
+                .thenReturn(HeadObjectResponse.builder().build());
+        when(privateObjectUrlSigner.signPrivateObject(any(), any()))
+                .thenReturn(URI.create("https://private.test/feed-42.xml").toURL());
+
+        store.deliver(new FeedSnapshotRef(
+                10L, "alpha", "alpha/private/rss/feed-42.xml", true, "PRIVATE_FEED", 42L));
+
+        ArgumentCaptor<Duration> ttl = ArgumentCaptor.forClass(Duration.class);
+        verify(privateObjectUrlSigner).signPrivateObject(any(), ttl.capture());
+        assertThat(ttl.getValue()).isLessThanOrEqualTo(Duration.ofMinutes(10));
     }
 
     @Test
