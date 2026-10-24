@@ -28,6 +28,7 @@ import de.pnnit.directwerk.modules.digital.exception.MediaAssetNotFoundException
 import de.pnnit.directwerk.api.MediaAssetViewMapper;
 import de.pnnit.directwerk.multitenancy.TenantContext;
 import de.pnnit.directwerk.security.DirectwerkUserPrincipal;
+import de.pnnit.directwerk.controller.support.ImportControllerSupport;
 import de.pnnit.directwerk.security.SecurityUtils;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
@@ -138,7 +139,7 @@ public class MediaController {
     ResponseEntity<Response<MediaAssetView>> get(@PathVariable("id") Long id) {
         MediaAsset asset = mediaAssetQueryApi.findById(id)
                 .orElseThrow(() -> new MediaAssetNotFoundException(id));
-        requireTenantAsset(asset, id);
+        ImportControllerSupport.requireTenantOwned(asset, id);
         return ResponseEntity.ok(Response.ok(mediaAssetViewMapper.toView(asset)));
     }
 
@@ -146,7 +147,7 @@ public class MediaController {
     ResponseEntity<Response<PreviewUrlResponse>> previewUrl(@PathVariable("id") Long id) {
         MediaAsset asset = mediaAssetQueryApi.findById(id)
                 .orElseThrow(() -> new MediaAssetNotFoundException(id));
-        requireTenantAsset(asset, id);
+        ImportControllerSupport.requireTenantOwned(asset, id);
         DirectwerkUserPrincipal principal = SecurityUtils.requirePrincipal();
         URL url = assetAccessApi.resolvePreviewUrl(asset, principal);
         return ResponseEntity.ok(Response.ok(new PreviewUrlResponse(url.toString())));
@@ -176,7 +177,7 @@ public class MediaController {
         Long tenantId = TenantContext.requireTenantId();
         MediaAsset asset = mediaAssetQueryApi.findById(id)
                 .orElseThrow(() -> new MediaAssetNotFoundException(id));
-        requireTenantAsset(asset, id);
+        ImportControllerSupport.requireTenantOwned(asset, id);
         MediaAsset moved = mediaFolderApi.moveAsset(tenantId, id, request.folderId());
         return ResponseEntity.ok(Response.ok(mediaAssetViewMapper.toView(moved)));
     }
@@ -189,7 +190,7 @@ public class MediaController {
         Long tenantId = TenantContext.requireTenantId();
         MediaAsset asset = mediaAssetQueryApi.findById(id)
                 .orElseThrow(() -> new MediaAssetNotFoundException(id));
-        requireTenantAsset(asset, id);
+        ImportControllerSupport.requireTenantOwned(asset, id);
         MediaAsset renamed = mediaFolderApi.renameAsset(tenantId, id, request.filename());
         return ResponseEntity.ok(Response.ok(mediaAssetViewMapper.toView(renamed)));
     }
@@ -258,17 +259,5 @@ public class MediaController {
     }
 
     public record PreviewUrlResponse(String url) {
-    }
-
-    /**
-     * Defense in depth: the Hibernate tenantFilter normally scopes this lookup already,
-     * but an explicit check keeps cross-tenant reads fail-closed even if the filter is
-     * ever bypassed on this path.
-     */
-    private static void requireTenantAsset(MediaAsset asset, Long id) {
-        Long tenantId = TenantContext.requireTenantId();
-        if (asset.getTenant() == null || !tenantId.equals(asset.getTenant().getId())) {
-            throw new MediaAssetNotFoundException(id);
-        }
     }
 }
