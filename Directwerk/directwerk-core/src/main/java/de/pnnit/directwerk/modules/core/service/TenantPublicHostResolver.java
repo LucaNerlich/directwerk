@@ -2,7 +2,6 @@ package de.pnnit.directwerk.modules.core.service;
 
 import de.pnnit.directwerk.modules.core.entity.TenantDomain;
 import de.pnnit.directwerk.modules.core.repository.TenantDomainRepository;
-import java.util.Comparator;
 import java.util.Locale;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
@@ -49,11 +48,9 @@ public class TenantPublicHostResolver {
         if (tenantId == null) {
             return Optional.empty();
         }
-        return tenantDomainRepository.findByTenantId(tenantId).stream()
-                .filter(TenantDomain::isVerified)
-                .sorted(Comparator
-                        .comparing(TenantDomain::isPrimary).reversed()
-                        .thenComparing(TenantDomain::getId))
+        // Same policy and tie-break as TenantDomainRepository's ordered query, so the two
+        // paths cannot drift (#743).
+        return tenantDomainRepository.findVerifiedByTenantIdOrderByPrimaryDescIdAsc(tenantId).stream()
                 .map(TenantDomain::getHost)
                 .map(TenantPublicHostResolver::normalizeHost)
                 .findFirst();
