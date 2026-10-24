@@ -14,6 +14,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
+import org.springframework.beans.factory.ObjectProvider;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -36,11 +37,36 @@ class DefaultFeedProvisioningServiceTest {
 
     @BeforeEach
     void setUp() {
+        java.util.concurrent.atomic.AtomicReference<DefaultFeedProvisioningService> holder =
+                new java.util.concurrent.atomic.AtomicReference<>();
+        ObjectProvider<DefaultFeedProvisioningService> self = new ObjectProvider<>() {
+            @Override
+            public DefaultFeedProvisioningService getObject() {
+                return holder.get();
+            }
+
+            @Override
+            public DefaultFeedProvisioningService getObject(Object... args) {
+                return holder.get();
+            }
+
+            @Override
+            public DefaultFeedProvisioningService getIfAvailable() {
+                return holder.get();
+            }
+
+            @Override
+            public DefaultFeedProvisioningService getIfUnique() {
+                return holder.get();
+            }
+        };
         service = new DefaultFeedProvisioningService(
                 tenantMembershipRepository,
                 tenantModuleActivationRepository,
-                moduleGateService
+                moduleGateService,
+                self
         );
+        holder.set(service);
         store = new RecordingStore();
     }
 
@@ -69,8 +95,8 @@ class DefaultFeedProvisioningServiceTest {
                 .thenReturn(List.of(10L));
         when(tenantModuleActivationRepository.findTenantIdsWithActiveModule(FeatureModuleKeys.SUBSCRIPTION))
                 .thenReturn(List.of(10L));
-        when(moduleGateService.isModuleActive(10L, FeatureModuleKeys.PODCAST_RSS)).thenReturn(true);
-        when(moduleGateService.isModuleActive(10L, FeatureModuleKeys.SUBSCRIPTION)).thenReturn(true);
+        // The estate scan already intersects both module activations, so the per-tenant gate
+        // is not re-checked there (#715).
         when(tenantMembershipRepository.findActiveUserIdsByTenantId(10L, MembershipStatus.ACTIVE))
                 .thenReturn(List.of(20L, 30L));
         store.existing.add(20L);
