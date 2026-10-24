@@ -54,6 +54,8 @@ export default function ArticleListClient() {
         toggleSelectAll,
         publishableCount,
         unpublishableCount,
+        hasMore,
+        loadMore,
         handlePublish,
         handleUnpublish,
         handleCancelSchedule,
@@ -64,7 +66,7 @@ export default function ArticleListClient() {
         handleBulkDelete,
         runBulkEdit,
     } = usePublicationListPage<ArticleDetail>({
-        load: () => listArticles(),
+        load: (page) => listArticles(page),
         publish: (id) => publishArticle( id),
         unpublish: (id) => unpublishArticle( id),
         cancelSchedule: (id) => cancelScheduleArticle( id),
@@ -254,6 +256,8 @@ export default function ArticleListClient() {
                 <>
                     <PublicationListSection
                         allSelected={allSelected}
+                        hasMore={hasMore}
+                        onLoadMore={() => void loadMore()}
                         busyItemId={busyArticleId}
                         contentLabelPlural={w.articlePlural}
                         editorBasePath="/write/articles"

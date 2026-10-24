@@ -67,8 +67,15 @@ public class ArticleService {
     /** Paged variant (#310) — see EpisodeService.listEpisodes(Long, int). */
     @Transactional(readOnly = true)
     public List<Article> listArticles(Long tenantId, int limit) {
+        return listArticles(tenantId, limit, 0);
+    }
+
+    /** Offset variant so a tenant can reach articles past the first page (#733). */
+    @Transactional(readOnly = true)
+    public List<Article> listArticles(Long tenantId, int limit, int offset) {
+        int pageSize = Math.max(limit, 1);
         return articleRepository.findByTenantIdOrderByCreatedAtDescIdDesc(
-                tenantId, PageRequest.of(0, limit));
+                tenantId, PageRequest.of(Math.max(offset, 0) / pageSize, pageSize));
     }
 
     @Transactional(readOnly = true)

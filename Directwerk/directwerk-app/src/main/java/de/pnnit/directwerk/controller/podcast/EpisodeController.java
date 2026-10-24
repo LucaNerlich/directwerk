@@ -64,10 +64,13 @@ public class EpisodeController {
 
     @GetMapping
     ResponseEntity<Response<List<EpisodeView>>> listEpisodes(
-            @RequestParam(defaultValue = "100") @Min(1) @Max(500) int limit
+            @RequestParam(defaultValue = "100") @Min(1) @Max(500) int limit,
+            @RequestParam(defaultValue = "0") @Min(0) int offset
     ) {
         Long tenantId = TenantContext.requireTenantId();
-        return ContentEndpointSupport.okList(episodeService.listEpisodes(tenantId, limit), publicEpisodeViewMapper::toStudioView);
+        return ContentEndpointSupport.okList(
+                episodeService.listEpisodes(tenantId, limit, offset),
+                publicEpisodeViewMapper::toStudioView);
     }
 
     @GetMapping("/{episodeId}")

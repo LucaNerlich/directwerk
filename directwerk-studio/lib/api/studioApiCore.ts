@@ -47,7 +47,7 @@ export async function studioDelete(path: string): Promise<void> {
 }
 
 export interface PublicationWorkflowApi<T, TCreate, TUpdate> {
-    list(): Promise<T[]>
+    list(page?: {limit?: number; offset?: number}): Promise<T[]>
     get(id: number): Promise<T>
     create(input: TCreate): Promise<T>
     update(id: number, input: TUpdate): Promise<T>
@@ -71,8 +71,21 @@ export function createPublicationWorkflowApi<T, TCreate extends object, TUpdate 
     const {basePath, parseEnvelope, parseListEnvelope, messages} = config
 
     return {
-        list: (): Promise<T[]> =>
-            studioGet(basePath,  parseListEnvelope, messages.list),
+        list: (page?: {limit?: number; offset?: number}): Promise<T[]> => {
+            const params = new URLSearchParams()
+            if (page?.limit !== undefined) {
+                params.set('limit', String(page.limit))
+            }
+            if (page?.offset !== undefined) {
+                params.set('offset', String(page.offset))
+            }
+            const query = params.toString()
+            return studioGet(
+                query.length > 0 ? `${basePath}?${query}` : basePath,
+                parseListEnvelope,
+                messages.list,
+            )
+        },
         get: (id: number): Promise<T> =>
             studioGet(`${basePath}/${id}`,  parseEnvelope, messages.detail),
         create: (input: TCreate): Promise<T> =>

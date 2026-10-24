@@ -29,12 +29,14 @@ interface PublicationListPageLabels {
     bulk: PublicationBulkActionLabels
 }
 
+const LIST_PAGE_SIZE = 100
+
 export interface PublicationListPageConfig<T extends {
     id: number
     title: string
     status: PublicationStatus
 }> {
-    load: () => Promise<T[]>
+    load: (page?: {limit?: number; offset?: number}) => Promise<T[]>
     publish: (id: number) => Promise<T>
     unpublish: (id: number) => Promise<T>
     cancelSchedule: (id: number) => Promise<T>
@@ -78,15 +80,30 @@ export function usePublicationListPage<T extends {
         [isBulkPublishEligible, isBulkUnpublishEligible, items],
     )
 
+    const itemsRef = useRef(items)
+    itemsRef.current = items
+
     const selection = usePublicationListState(itemIds)
 
-    const load = useCallback(async (): Promise<void> => {
+    const [hasMore, setHasMore] = useState(false)
+
+    const load = useCallback(async (offset = 0): Promise<void> => {
         const current = configRef.current
-        setIsLoading(true)
+        setIsLoading(offset === 0)
         setListError(null)
         try {
-            const loaded = await current.load()
-            setItems(loaded)
+            const loaded = await current.load({limit: LIST_PAGE_SIZE, offset})
+            setItems((existing) =>
+                offset === 0
+                    ? loaded
+                    : [
+                          ...existing,
+                          ...loaded.filter(
+                              (item) => !existing.some((known) => known.id === item.id),
+                          ),
+                      ],
+            )
+            setHasMore(loaded.length === LIST_PAGE_SIZE)
         } catch (error) {
             if (authRedirect(error)) {
                 return
@@ -98,6 +115,10 @@ export function usePublicationListPage<T extends {
             setIsLoading(false)
         }
     }, [authRedirect])
+
+    const loadMore = useCallback(async (): Promise<void> => {
+        await load(itemsRef.current.length)
+    }, [load])
 
     const listActions = usePublicationListActions({
         setItems,
@@ -148,6 +169,8 @@ export function usePublicationListPage<T extends {
         items,
         setItems,
         isLoading,
+        hasMore,
+        loadMore,
         listError,
         displayError,
         statusMessage,
