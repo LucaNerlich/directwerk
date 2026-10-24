@@ -10,10 +10,12 @@ import {parseJsonText} from '@directwerk/api/validation/json'
 
 import {directwerkFetch} from '@/lib/server/api'
 
-// The idle timeout only trips when the storage socket stalls; steady progress
-// keeps resetting it, so large-but-legitimate uploads are not cut off. The
-// absolute ceiling still bounds worst-case resource usage.
-const STORAGE_PUT_IDLE_TIMEOUT_MS = 60_000
+// Idle applies to BOTH inbound spool and the later object-storage PUT: it only
+// trips when no bytes move for this window (not a wall-clock 60s cutoff). Keep
+// it well above typical client/proxy pauses so it cannot be confused with
+// Coolify Traefik's default ~60s entrypoint readTimeout. Absolute still bounds
+// worst-case resource usage.
+const STORAGE_PUT_IDLE_TIMEOUT_MS = 10 * 60_000
 const STORAGE_PUT_ABSOLUTE_TIMEOUT_MS = 30 * 60_000
 
 /**
@@ -99,7 +101,7 @@ export async function POST(request: Request): Promise<Response> {
         case 'body-too-large':
             return jsonError('Uploaded body exceeds the declared Content-Length.', 413)
         case 'timeout':
-            return jsonError('Upstream request timed out.', 504)
+            return jsonError(result.message, 504)
         case 'unavailable':
             return jsonError('Directwerk or object storage is unavailable.', 502)
     }

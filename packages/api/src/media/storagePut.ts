@@ -93,12 +93,20 @@ export async function spoolStreamToTempFile(
 
     idleTimer = setInterval(() => {
         if (Date.now() - lastActivity >= timeouts.idleTimeoutMs) {
-            abortWith(timeoutError('Inbound upload stalled (idle timeout while spooling)'))
+            abortWith(
+                timeoutError(
+                    `Inbound upload stalled (spool idle timeout after ${timeouts.idleTimeoutMs}ms with no bytes)`,
+                ),
+            )
         }
     }, Math.min(1_000, Math.max(100, timeouts.idleTimeoutMs)))
 
     absoluteTimer = setTimeout(() => {
-        abortWith(timeoutError('Inbound upload timed out while spooling'))
+        abortWith(
+            timeoutError(
+                `Inbound upload timed out while spooling (absolute ceiling ${timeouts.absoluteTimeoutMs}ms)`,
+            ),
+        )
     }, timeouts.absoluteTimeoutMs)
 
     const onAbort = (): void => {
@@ -196,12 +204,20 @@ export async function putFileToStorage(
                         `storage PUT to ${debugHost} tripped the idle timeout at ${sentBytes} bytes`,
                     )
                 }
-                upstreamRequest.destroy(timeoutError('Upstream request stalled (idle timeout)'))
+                upstreamRequest.destroy(
+                    timeoutError(
+                        `Object-storage PUT stalled (idle timeout after ${timeouts.idleTimeoutMs}ms)`,
+                    ),
+                )
             })
         })
 
         const absoluteTimer = setTimeout(() => {
-            upstreamRequest.destroy(timeoutError('Upstream request timed out'))
+            upstreamRequest.destroy(
+                timeoutError(
+                    `Object-storage PUT timed out (absolute ceiling ${timeouts.absoluteTimeoutMs}ms)`,
+                ),
+            )
         }, timeouts.absoluteTimeoutMs)
 
         upstreamRequest.on('error', (error) => {

@@ -179,14 +179,16 @@ entire request body). Raise timeouts for slow client→edge links even with spoo
    ```
 
    Match or exceed the Studio BFF absolute storage ceiling (**30 minutes**).
-   Optionally add Studio **custom labels** (replace `<service>` with Coolify’s
-   Traefik service name for the Studio app):
+   **Restart the Coolify proxy** after editing so the running Traefik process
+   actually picks up the flags (UI text alone is not proof).
 
-   ```text
-   traefik.http.services.<service>.loadbalancer.timeout.read=1800s
-   traefik.http.services.<service>.loadbalancer.timeout.write=1800s
-   traefik.http.services.<service>.loadbalancer.timeout.idle=1800s
-   ```
+   Do **not** rely on Coolify’s often-copied container labels
+   `traefik.http.services.<service>.loadbalancer.timeout.read|write|idle` —
+   those keys are **not** Traefik `ServersLoadBalancer` fields and are ignored.
+   Per-backend waits (after the request body is fully written) use a named
+   [`serversTransport`](https://doc.traefik.io/traefik/v3.7/reference/routing-configuration/http/load-balancing/serverstransport/)
+   with `forwardingTimeouts.responseHeaderTimeout`; Traefik’s default for that
+   is **0** (no limit), which is what long Studio spool→S3 uploads need.
 
 2. **Body-size middleware** — Traefik does not cap bodies by default. If you added
    buffering / `maxRequestBodyBytes`, set it to at least **5 GiB** (or remove the

@@ -57,7 +57,8 @@ export type PerformMediaUploadResult =
     /** Bytes reached storage but confirm failed; keep the asset id for retry. */
     | {status: 'confirm-failed'; response: Response; assetId: number}
     | {status: 'body-too-large'}
-    | {status: 'timeout'}
+    /** Watchdog fired (spool or storage idle/absolute); `message` is safe to return to the client. */
+    | {status: 'timeout'; message: string}
     | {status: 'unavailable'}
 
 export const INVALID_UPLOAD_URL_MESSAGE =
@@ -221,7 +222,13 @@ export async function performMediaUpload(
             return {status: 'body-too-large'}
         }
         if (isTimeoutError(error)) {
-            return {status: 'timeout'}
+            return {
+                status: 'timeout',
+                message:
+                    error instanceof Error && error.message.length > 0
+                        ? error.message
+                        : 'Upstream request timed out.',
+            }
         }
         if (uploadDebugEnabled()) {
             const detail =

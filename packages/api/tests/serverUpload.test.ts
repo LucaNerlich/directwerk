@@ -195,10 +195,13 @@ describe('performMediaUpload', () => {
             confirmUpload: CONFIRM_OK,
         }
 
-        const timeout = new Error('stalled')
+        const timeout = new Error('Object-storage PUT stalled (idle timeout after 1000ms)')
         timeout.name = 'TimeoutError'
         putMock.mockRejectedValueOnce(timeout)
-        expect((await performMediaUpload(options(transport))).status).toBe('timeout')
+        expect(await performMediaUpload(options(transport))).toEqual({
+            status: 'timeout',
+            message: 'Object-storage PUT stalled (idle timeout after 1000ms)',
+        })
 
         putMock.mockRejectedValueOnce(new Error('boom'))
         expect((await performMediaUpload(options(transport))).status).toBe(

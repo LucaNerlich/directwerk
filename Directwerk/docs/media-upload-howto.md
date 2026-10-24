@@ -97,8 +97,9 @@ Those BFF requests carry the **entire file body** through Coolify’s reverse pr
 (Traefik by default). A bare **502/504** with no Directwerk JSON envelope on a large
 Studio upload is almost always a **proxy timeout or edge body limit**, not Spring
 validation (oversized files return **400** `UPLOAD_VALIDATION_FAILED`). Raise Traefik
-`respondingTimeouts` / service load-balancer timeouts (and any CDN upload cap such as
-Cloudflare’s) — see [Docker & Coolify](../../directwerk-docs/docs/install/docker-and-coolify.md#large-studio-media-uploads-502504).
+entrypoint `respondingTimeouts` (and any CDN upload cap such as Cloudflare’s) — see
+[Docker & Coolify](../../directwerk-docs/docs/install/docker-and-coolify.md#large-studio-media-uploads-502504).
+Do not rely on Coolify’s `loadbalancer.timeout.*` labels; they are not Traefik fields.
 For curl/harness tests, PUT from the same machine as usual.
 
 ---

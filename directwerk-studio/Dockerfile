@@ -9,10 +9,8 @@
 # temp file then PUTs to S3 so Traefik's ~60s readTimeout is not coupled to
 # Bunny throughput (Node 22→24 / Next 16.4 image bump exposed that). Still raise
 # host proxy respondingTimeouts to ≥30m for slow clients — see directwerk-docs
-# install/docker-and-coolify "Large Studio media uploads". Optional labels:
-#   traefik.http.services.<service>.loadbalancer.timeout.read=1800s
-#   traefik.http.services.<service>.loadbalancer.timeout.write=1800s
-#   traefik.http.services.<service>.loadbalancer.timeout.idle=1800s
+# install/docker-and-coolify "Large Studio media uploads". Do not use Coolify's
+# suggested loadbalancer.timeout.* labels — they are not Traefik fields.
 # Ensure the container has enough ephemeral disk for peak concurrent spools
 # (up to the tenant audio/video limit, default 5 GiB per in-flight upload).
 #
