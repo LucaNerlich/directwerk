@@ -51,10 +51,12 @@ export function proxy(request: NextRequest) {
 // cannot be imported from `@directwerk/api`. Keep in sync with
 // `directwerkWebProxyMatcher` assertions in `proxy.test.ts`.
 // Skips `api` and nested `feeds/` (RSS/enclosure protocol), not exact `/feeds`.
+// Metadata routes (`sitemap.xml`, `robots.txt`) are filesystem routes that run after the
+// proxy, so the locale gate must not rewrite them into a locale segment.
 export const config = {
     matcher: [
         {
-            source: '/((?!api|feeds/|_next/static|_next/image|favicon.ico).*)',
+            source: '/((?!api|feeds/|_next/static|_next/image|favicon\\.ico|(?:sitemap\\.xml|robots\\.txt)(?:/|$)).*)',
             missing: [
                 {type: 'header', key: 'next-router-prefetch'},
                 {type: 'header', key: 'purpose', value: 'prefetch'},

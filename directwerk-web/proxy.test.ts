@@ -58,11 +58,19 @@ describe('proxy', () => {
         expect(response.headers.get('location')).toBe('http://tenant.local/de/pricing')
     })
 
+    it('excludes only the exact metadata routes, not any lookalike path', () => {
+        // #708 review: unescaped dots and no anchor used to exclude /sitemapAxml too.
+        const source = config.matcher[0]?.source ?? ''
+
+        expect(source).toContain('favicon\\.ico')
+        expect(source).toContain('(?:sitemap\\.xml|robots\\.txt)(?:/|$)')
+    })
+
     it('skips nested feeds paths in the matcher (RSS protocol surface)', () => {
         expect(config).toEqual({
             matcher: [
                 {
-                    source: '/((?!api|feeds/|_next/static|_next/image|favicon.ico).*)',
+                    source: '/((?!api|feeds/|_next/static|_next/image|favicon\\.ico|(?:sitemap\\.xml|robots\\.txt)(?:/|$)).*)',
                     missing: [
                         {type: 'header', key: 'next-router-prefetch'},
                         {type: 'header', key: 'purpose', value: 'prefetch'},
