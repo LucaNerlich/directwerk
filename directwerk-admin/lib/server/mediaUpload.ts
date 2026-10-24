@@ -194,7 +194,7 @@ export async function performTenantMediaUpload(
             return {
                 ok: false,
                 status: 504,
-                body: {error: 'Upstream request timed out.', code: 'TIMEOUT'},
+                body: {error: result.message, code: 'TIMEOUT'},
             }
         case 'unavailable':
             return {
