@@ -519,6 +519,37 @@ class RemoteAssetIngestServiceTest {
     }
 
     @Test
+    void removesThePendingRowWhenTheRemoteResponseIsNotOk() throws Exception {
+        // #718: every throw before the stream starts bypassed the row cleanup and left a
+        // PENDING row that nothing heals and that poisons the async import's reuse lookup.
+        Tenant tenant = new Tenant();
+        tenant.setId(10L);
+        tenant.setSlug("alpha");
+        when(tenantRepository.requireById(10L)).thenReturn(tenant);
+        when(directwerkConfig.isStorageEnabled()).thenReturn(true);
+        when(directwerkConfig.storage()).thenReturn(storage());
+        when(remoteContentClient.get(any(URI.class), any(Duration.class))).thenReturn(
+                new RemoteContentClient.RemoteResponse(
+                        URI.create("https://1.1.1.1/ep.mp3"),
+                        403,
+                        "audio/mpeg",
+                        null,
+                        new ByteArrayInputStream(new byte[0])
+                )
+        );
+        stubSavedAsset();
+
+        assertThatThrownBy(() -> service.ingestFromUrl(new RemoteAssetIngestApi.IngestCommand(
+                "https://1.1.1.1/ep.mp3",
+                AssetType.AUDIO,
+                AssetVisibility.PRIVATE,
+                null
+        ))).isInstanceOf(de.pnnit.directwerk.modules.digital.exception.UploadValidationException.class);
+
+        verify(mediaAssetRepository).delete(any(MediaAsset.class));
+    }
+
+    @Test
     void queuedIngestSkipsAssetFromAnotherTenant() throws Exception {
         Tenant otherTenant = new Tenant();
         otherTenant.setId(99L);

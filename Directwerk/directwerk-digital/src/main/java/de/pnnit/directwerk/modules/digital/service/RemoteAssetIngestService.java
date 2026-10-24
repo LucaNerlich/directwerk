@@ -97,7 +97,16 @@ public class RemoteAssetIngestService implements RemoteAssetIngestApi {
         if (reusable.isPresent()) {
             return new IngestResult(reusable.get(), true, null);
         }
-        MediaAsset ingested = completePreparedIngest(prepareIngest(command), null);
+        PreparedIngest prepared = prepareIngest(command);
+        MediaAsset ingested;
+        try {
+            ingested = completePreparedIngest(prepared, null);
+        } catch (RuntimeException ex) {
+            // Every failure before the stream starts (non-2xx, unknown MIME, declared size)
+            // bypasses the inner cleanup and would leave a PENDING row that nothing heals.
+            discardPendingRow(prepared.asset());
+            throw ex;
+        }
         if (ingested == null) {
             throw new UploadValidationException(
                     "REMOTE_ASSET_FAILED",
@@ -270,6 +279,17 @@ public class RemoteAssetIngestService implements RemoteAssetIngestApi {
         );
     }
 
+    private void discardPendingRow(MediaAsset asset) {
+        if (asset.getStatus() != AssetStatus.PENDING) {
+            return;
+        }
+        try {
+            mediaAssetRepository.delete(asset);
+        } catch (RuntimeException ex) {
+            log.warn("Could not remove pending import row id={} after a failed ingest", asset.getId(), ex);
+        }
+    }
+
     private Optional<MediaAsset> findReusableImport(IngestCommand command, List<AssetStatus> statuses) {
         StorageConfigs.requireEnabled(directwerkConfig);
         Long tenantId = TenantContext.requireTenantId();
@@ -350,9 +370,8 @@ public class RemoteAssetIngestService implements RemoteAssetIngestApi {
                 return ready;
             } catch (RuntimeException | IOException ex) {
                 deleteObjectQuietly(prepared.storage().bucket(), uploadKey);
-                if (progressReporter == null) {
-                    mediaAssetRepository.delete(asset);
-                }
+                // The synchronous caller cleans the row up in ingestFromUrl; the queued path
+                // keeps it and records the failure on the job.
                 if (ex instanceof RuntimeException runtimeEx) {
                     throw runtimeEx;
                 }
