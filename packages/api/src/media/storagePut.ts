@@ -3,6 +3,8 @@ import 'server-only'
 import {request as httpRequest} from 'node:http'
 import {request as httpsRequest} from 'node:https'
 
+import {logUploadDebug, uploadDebugHost, uploadDebugEnabled, UPLOAD_PROGRESS_LOG_BYTES} from './uploadDebug'
+
 export interface StoragePutResult {
     status: number
 }
@@ -40,9 +42,20 @@ export async function putStreamToStorage(
     const targetUrl = new URL(uploadUrl)
     const request = targetUrl.protocol === 'https:' ? httpsRequest : httpRequest
 
+    // Debug-gated leg instrumentation: which socket/major checkpoint stopped
+    // moving is exactly what a cloud-only upload stall hides (no runtime logs).
+    const debug = uploadDebugEnabled()
+    const debugHost = debug ? uploadDebugHost(uploadUrl) : ''
+    if (debug) {
+        logUploadDebug(`PUT to ${debugHost} started`)
+    }
+
     return new Promise<StoragePutResult>((resolve, reject) => {
         let settled = false
         const reader = body.getReader()
+        let sentBytes = 0
+        let nextProgressLog = UPLOAD_PROGRESS_LOG_BYTES
+        let drainWaits = 0
 
         const settle = (fn: () => void): void => {
             if (!settled) {
@@ -64,6 +77,11 @@ export async function putStreamToStorage(
             (response) => {
                 response.resume()
                 clearTimers()
+                if (debug) {
+                    logUploadDebug(
+                        `storage answered HTTP ${response.statusCode} for ${debugHost} after ${sentBytes} bytes`,
+                    )
+                }
                 settle(() => resolve({status: response.statusCode ?? 0}))
             },
         )
@@ -74,6 +92,11 @@ export async function putStreamToStorage(
         upstreamRequest.on('socket', (socket) => {
             socket.setTimeout(timeouts.idleTimeoutMs)
             socket.on('timeout', () => {
+                if (debug) {
+                    logUploadDebug(
+                        `storage PUT to ${debugHost} tripped the idle timeout at ${sentBytes} bytes`,
+                    )
+                }
                 const error = new Error('Upstream request stalled (idle timeout)')
                 error.name = 'TimeoutError'
                 upstreamRequest.destroy(error)
@@ -88,10 +111,17 @@ export async function putStreamToStorage(
 
         upstreamRequest.on('error', (error) => {
             clearTimers()
+            if (debug) {
+                const detail = error instanceof Error ? `${error.name}: ${error.message}` : String(error)
+                logUploadDebug(`storage PUT to ${debugHost} errored after ${sentBytes} bytes: ${detail}`)
+            }
             settle(() => reject(error))
         })
         upstreamRequest.on('close', () => {
             clearTimers()
+            if (debug && !settled) {
+                logUploadDebug(`storage PUT to ${debugHost} socket closed early at ${sentBytes} bytes`)
+            }
             settle(() =>
                 reject(new Error('Upstream connection closed before completing the upload')),
             )
@@ -107,7 +137,20 @@ export async function putStreamToStorage(
                     if (done || settled) {
                         break
                     }
+                    sentBytes += value.byteLength
+                    if (debug && sentBytes >= nextProgressLog) {
+                        logUploadDebug(
+                            `storage PUT to ${debugHost} progress: ${Math.round(sentBytes / (1024 * 1024))} MiB`,
+                        )
+                        nextProgressLog += UPLOAD_PROGRESS_LOG_BYTES
+                    }
                     if (!upstreamRequest.write(value)) {
+                        drainWaits += 1
+                        if (debug && drainWaits === 1) {
+                            logUploadDebug(
+                                `storage PUT to ${debugHost} paused for drain at ${sentBytes} bytes (storage-side backpressure)`,
+                            )
+                        }
                         await new Promise<void>((resume) => {
                             upstreamRequest.once('drain', resume)
                             upstreamRequest.once('close', resume)
@@ -115,6 +158,11 @@ export async function putStreamToStorage(
                     }
                 }
                 if (!settled) {
+                    if (debug) {
+                        logUploadDebug(
+                            `storage PUT to ${debugHost} request fully sent: ${sentBytes} bytes, ${drainWaits} drain waits`,
+                        )
+                    }
                     upstreamRequest.end()
                 }
             } catch (error) {

@@ -3,6 +3,7 @@ import 'server-only'
 import {isTrustedOrigin, isTrustedUploadUrl} from '../urls/urlPolicy'
 import {parseUploadUrlResponse} from '../validation/catalog'
 import {putStreamToStorage} from './storagePut'
+import {logUploadDebug, uploadDebugEnabled} from './uploadDebug'
 
 export {isTrustedUploadUrl} from '../urls/urlPolicy'
 export {buildConfirmRetryBody, type MediaUploadRetryResponse} from './uploadProtocol'
@@ -192,6 +193,11 @@ export async function performMediaUpload(
         }
         if (isTimeoutError(error)) {
             return {status: 'timeout'}
+        }
+        if (uploadDebugEnabled()) {
+            const detail =
+                error instanceof Error ? `${error.name}: ${error.message}` : String(error)
+            logUploadDebug(`upload sequence failed before a normalized status: ${detail}`)
         }
         return {status: 'unavailable'}
     }
