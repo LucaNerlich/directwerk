@@ -86,7 +86,7 @@ function toSeriesValues(series: SeriesDetail): SeriesFormValues {
     }
 }
 
-function seriesUpdatePayload(
+export function seriesUpdatePayload(
     values: SeriesFormValues,
     status: SeriesStatus,
 ): UpdateSeriesInput {
@@ -94,9 +94,9 @@ function seriesUpdatePayload(
     return {
         title: values.title.trim() || 'Ohne Titel',
         slug: resolvedSlug,
-        description: values.description.trim() || undefined,
+        description: values.description.trim(),
         language: values.language.trim() || 'de',
-        itunesCategory: values.itunesCategory.trim() || undefined,
+        itunesCategory: values.itunesCategory.trim(),
         itunesExplicit: values.itunesExplicit,
         coverAssetId: values.coverAssetId ?? undefined,
         // #530: 0 clears the stored default floor; omitting the field would keep it.

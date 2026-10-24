@@ -84,11 +84,11 @@ interface FormatFields {
     coverAssetId?: number
 }
 
-function formatFields(values: FormatFormValues): FormatFields {
+export function formatFields(values: FormatFormValues): FormatFields {
     const description = values.description.trim()
     return {
         name: values.name.trim(),
-        description: description.length > 0 ? description : undefined,
+        description,
         // #530: 0 clears the stored floor; omitting the field would keep it.
         requiredLevelSortOrder: values.requiredLevelSortOrder ?? 0,
         sortOrder: parseOptionalSortOrder(values.sortOrder),
