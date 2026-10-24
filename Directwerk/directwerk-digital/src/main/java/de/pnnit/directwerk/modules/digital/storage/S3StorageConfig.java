@@ -38,9 +38,9 @@ public class S3StorageConfig {
     S3Client s3Client(DirectwerkConfig directwerkConfig) {
         DirectwerkProperties.Storage storage = requireConfiguredCredentials(directwerkConfig);
         URI endpointUri = validateEndpoint(storage.endpoint());
-        Duration uploadTimeout = storage.presignUploadTtl() != null
-                ? storage.presignUploadTtl()
-                : Duration.ofMinutes(15);
+        // Server-side copies (confirm, promote) can move multi-GB objects, so the client
+        // timeout must not follow the presigned-URL lifetime (#719).
+        Duration apiCallTimeout = Duration.ofMinutes(30);
         return S3Client.builder()
                 .endpointOverride(endpointUri)
                 .region(Region.of(storage.region()))
@@ -51,8 +51,8 @@ public class S3StorageConfig {
                         .pathStyleAccessEnabled(storage.forcePathStyle())
                         .build())
                 .overrideConfiguration(ClientOverrideConfiguration.builder()
-                        .apiCallTimeout(uploadTimeout)
-                        .apiCallAttemptTimeout(uploadTimeout)
+                        .apiCallTimeout(apiCallTimeout)
+                        .apiCallAttemptTimeout(apiCallTimeout)
                         .build())
                 .build();
     }
