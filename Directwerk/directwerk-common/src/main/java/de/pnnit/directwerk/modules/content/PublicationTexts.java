@@ -18,9 +18,9 @@ public final class PublicationTexts {
         if (html == null) {
             return "";
         }
-        String textOnly = html
-                .replaceAll("<[^>]*>", " ")
-                .replace("&nbsp;", " ")
+        String textOnly = org.springframework.web.util.HtmlUtils.htmlUnescape(
+                        html.replaceAll("<[^>]*>", " "))
+                .replace('\u00A0', ' ')
                 .replaceAll("\\s+", " ")
                 .trim();
         if (textOnly.length() <= EXCERPT_MAX_LENGTH) {
