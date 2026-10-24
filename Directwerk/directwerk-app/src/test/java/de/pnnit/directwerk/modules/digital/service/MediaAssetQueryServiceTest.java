@@ -24,6 +24,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Pageable;
@@ -129,6 +130,19 @@ class MediaAssetQueryServiceTest {
         when(mediaAssetRepository.findById(7L)).thenReturn(java.util.Optional.of(asset));
 
         assertThat(service.findById(7L)).contains(asset);
+    }
+
+    @Test
+    void listInFolderPagingUsesTheOffsetAsPageNumber() {
+        when(mediaAssetRepository.findFiltered(eq(AssetType.IMAGE), isNull(), any(Pageable.class)))
+                .thenReturn(List.of());
+
+        service.listInFolder(AssetType.IMAGE, null, null, false, false, 50, 100);
+
+        ArgumentCaptor<Pageable> pageable = ArgumentCaptor.forClass(Pageable.class);
+        verify(mediaAssetRepository).findFiltered(eq(AssetType.IMAGE), isNull(), pageable.capture());
+        assertThat(pageable.getValue().getPageNumber()).isEqualTo(2);
+        assertThat(pageable.getValue().getPageSize()).isEqualTo(50);
     }
 
     @Test

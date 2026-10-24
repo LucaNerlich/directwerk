@@ -56,8 +56,14 @@ public class MediaAssetQueryService implements MediaAssetQueryApi {
 
     @Override
     public List<MediaAsset> list(AssetType assetType, AssetStatus status, int limit) {
-        int pageSize = Math.min(Math.max(limit, 1), 100);
-        return mediaAssetRepository.findFiltered(assetType, status, PageRequest.of(0, pageSize));
+        return list(assetType, status, limit, 0);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<MediaAsset> list(AssetType assetType, AssetStatus status, int limit, int offset) {
+        PageRequest page = pageRequest(limit, offset);
+        return mediaAssetRepository.findFiltered(assetType, status, page);
     }
 
     @Override
@@ -68,16 +74,28 @@ public class MediaAssetQueryService implements MediaAssetQueryApi {
             boolean recursive,
             boolean unassignedOnly,
             int limit) {
-        int pageSize = Math.min(Math.max(limit, 1), 100);
+        return listInFolder(assetType, status, folderId, recursive, unassignedOnly, limit, 0);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<MediaAsset> listInFolder(
+            AssetType assetType,
+            AssetStatus status,
+            Long folderId,
+            boolean recursive,
+            boolean unassignedOnly,
+            int limit,
+            int offset) {
+        PageRequest page = pageRequest(limit, offset);
         if (folderId != null && unassignedOnly) {
             throw new IllegalArgumentException("folderId and unassignedOnly are mutually exclusive");
         }
         if (unassignedOnly) {
-            return mediaAssetRepository.findFilteredUnassigned(
-                    assetType, status, PageRequest.of(0, pageSize));
+            return mediaAssetRepository.findFilteredUnassigned(assetType, status, page);
         }
         if (folderId == null) {
-            return mediaAssetRepository.findFiltered(assetType, status, PageRequest.of(0, pageSize));
+            return mediaAssetRepository.findFiltered(assetType, status, page);
         }
         Long tenantId = TenantContext.requireTenantId();
         List<Long> folderIds = new java.util.ArrayList<>();
@@ -85,8 +103,13 @@ public class MediaAssetQueryService implements MediaAssetQueryApi {
         if (recursive) {
             folderIds.addAll(collectDescendantIds(tenantId, folderId));
         }
-        return mediaAssetRepository.findFilteredInFolders(
-                assetType, status, folderIds, PageRequest.of(0, pageSize));
+        return mediaAssetRepository.findFilteredInFolders(assetType, status, folderIds, page);
+    }
+
+    private static PageRequest pageRequest(int limit, int offset) {
+        int pageSize = Math.min(Math.max(limit, 1), 100);
+        int safeOffset = Math.max(offset, 0);
+        return PageRequest.of(safeOffset / pageSize, pageSize);
     }
 
     private MediaFolder requireFolderInContext(Long tenantId, Long folderId) {

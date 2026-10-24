@@ -18,7 +18,12 @@ public interface MediaAssetQueryApi {
      * {@code null}, tombstoned rows ({@code ARCHIVED}, {@code PENDING_DELETE}) are excluded —
      * deleted assets are not surfaced to callers unless explicitly requested by status.
      */
-    List<MediaAsset> list(AssetType assetType, AssetStatus status, int limit);
+    default List<MediaAsset> list(AssetType assetType, AssetStatus status, int limit) {
+        return list(assetType, status, limit, 0);
+    }
+
+    /** Same as {@link #list(AssetType, AssetStatus, int)} starting at {@code offset}. */
+    List<MediaAsset> list(AssetType assetType, AssetStatus status, int limit, int offset);
 
     /**
      * Lists assets inside one folder. A {@code null} {@code folderId} together with
@@ -34,6 +39,21 @@ public interface MediaAssetQueryApi {
             boolean recursive,
             boolean unassignedOnly,
             int limit);
+
+    /**
+     * Same as the six-argument {@code listInFolder}, starting at {@code offset} rows.
+     *
+     * <p>Offset paging exists because the endpoint used to expose only {@code limit}, which made
+     * every asset past the cap unreachable (#725).
+     */
+    List<MediaAsset> listInFolder(
+            AssetType assetType,
+            AssetStatus status,
+            Long folderId,
+            boolean recursive,
+            boolean unassignedOnly,
+            int limit,
+            int offset);
 
     /**
      * Lists assets for a tenant from a platform (no Host) context by temporarily
