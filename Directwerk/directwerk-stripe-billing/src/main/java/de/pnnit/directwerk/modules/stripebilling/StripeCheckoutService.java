@@ -5,7 +5,9 @@ import de.pnnit.directwerk.modules.core.entity.User;
 import de.pnnit.directwerk.modules.core.repository.TenantRepository;
 import de.pnnit.directwerk.modules.core.repository.UserRepository;
 import de.pnnit.directwerk.modules.stripebilling.entity.StripeCustomer;
+import de.pnnit.directwerk.modules.subscription.entity.Subscription;
 import de.pnnit.directwerk.modules.subscription.entity.SubscriptionProduct;
+import de.pnnit.directwerk.modules.subscription.entity.SubscriptionSource;
 import de.pnnit.directwerk.modules.subscription.entity.SubscriptionStatus;
 import de.pnnit.directwerk.modules.subscription.repository.SubscriptionRepository;
 import de.pnnit.directwerk.modules.stripebilling.entity.TenantStripeAccount;
@@ -80,10 +82,12 @@ public class StripeCheckoutService {
         // (tenant, user, product) row to the new Stripe subscription, orphaning the first one —
         // which keeps billing with no local row left to cancel it. Refuse before Stripe is called.
         subscriptionRepository.findByTenantIdAndUserIdAndProductId(tenantId, userId, product.getId())
-                .filter(existing -> existing.getStatus() == SubscriptionStatus.ACTIVE)
+                .filter(existing -> isOpenSubscription(existing))
                 .ifPresent(existing -> {
-                    throw new IllegalArgumentException(
-                            "An active subscription already exists for this product");
+                    throw new IllegalArgumentException(existing.getStatus() == SubscriptionStatus.ACTIVE
+                            ? "An active subscription already exists for this product"
+                            : "An open Stripe subscription still exists for this product; cancel it"
+                                    + " before starting a new checkout");
                 });
         TenantStripeAccount account = stripeConnectService.requireChargeableAccount(tenantId);
         if (product.getStripePriceId() == null || product.getStripePriceId().isBlank()) {
@@ -109,6 +113,21 @@ public class StripeCheckoutService {
                 )
         );
         return session.url();
+    }
+
+    /**
+     * A row blocks checkout while it can still be billed. A Stripe row in a non-terminal state
+     * that keeps its external id would make the inbound webhook refuse the rebind and roll the
+     * idempotency insert back, so the customer was charged and never entitled (#705 review).
+     */
+    private static boolean isOpenSubscription(Subscription existing) {
+        if (existing.getStatus() == SubscriptionStatus.ACTIVE) {
+            return true;
+        }
+        return existing.getSource() == SubscriptionSource.STRIPE
+                && existing.getStatus() != SubscriptionStatus.CANCELED
+                && existing.getExternalSubscriptionId() != null
+                && !existing.getExternalSubscriptionId().isBlank();
     }
 
     private String resolveRedirect(Long tenantId, String requested, String defaultPath) {

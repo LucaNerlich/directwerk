@@ -137,6 +137,28 @@ class StripeCheckoutServiceTest {
     }
 
     @Test
+    void createCheckoutSessionRejectsAnOpenNonActiveStripeSubscription() {
+        // #705 review: a PAST_DUE / INCOMPLETE row keeps its Stripe id, so the inbound webhook
+        // refuses the rebind — checkout must refuse first instead of charging into a void.
+        when(stripeOperations.isConfigured()).thenReturn(true);
+        SubscriptionProduct product = pricedProduct(true, 500, "price_123");
+        when(subscriptionProductService.requireProductBySlug(TENANT_ID, "premium")).thenReturn(product);
+
+        Subscription pastDue = new Subscription();
+        pastDue.setStatus(SubscriptionStatus.PAST_DUE);
+        pastDue.setSource(de.pnnit.directwerk.modules.subscription.entity.SubscriptionSource.STRIPE);
+        pastDue.setExternalSubscriptionId("sub_old");
+        when(subscriptionRepository.findByTenantIdAndUserIdAndProductId(
+                TENANT_ID, USER_ID, product.getId())).thenReturn(java.util.Optional.of(pastDue));
+
+        assertThatThrownBy(() -> service.createCheckoutSession(TENANT_ID, USER_ID, "premium", null, null))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("open Stripe subscription");
+
+        verify(stripeOperations, never()).createCheckoutSession(any());
+    }
+
+    @Test
     void createCheckoutSessionUsesExistingCustomerAndReturnsSessionUrl() {
         SubscriptionProduct product = pricedProduct(true, 500, "price_123");
         TenantStripeAccount account = stripeAccount();
