@@ -430,16 +430,22 @@ public class AnalyticsQueryService {
                     .disableRedirectHandling()
                     .build();
 
-            PinnedClient previous = clients.put(
-                    expectedDnsHost, new PinnedClient(pinnedAddresses, client));
-            if (previous != null) {
+            // Publish atomically: two cold-cache requests used to each build a client, and the
+            // loser's was closed by the winner before it ran (#750).
+            // shortcut: a superseded client is not closed, because another request may still hold
+            // it; close it with a reference count if Umami hosts ever change often.
+            PinnedClient published = clients.compute(expectedDnsHost, (host, existing) ->
+                    existing != null && java.util.Arrays.equals(existing.addresses(), pinnedAddresses)
+                            ? existing
+                            : new PinnedClient(pinnedAddresses, client));
+            if (published != null && published.client() != client) {
                 try {
-                    previous.client().close();
+                    client.close();
                 } catch (IOException ignored) {
-                    // Superseded client; nothing to signal to the caller.
+                    // We lost the race; this one is unused.
                 }
             }
-            return client;
+            return published == null ? client : published.client();
         }
     }
 }
