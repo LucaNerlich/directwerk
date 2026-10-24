@@ -116,6 +116,8 @@ async function fetchPreviewUrls(
     return urls
 }
 
+const MEDIA_PAGE_SIZE = 100
+
 export default function MediaLibraryClient(): React.JSX.Element {
     const dict = useDictionary()
     const router = useRouter()
@@ -126,6 +128,8 @@ export default function MediaLibraryClient(): React.JSX.Element {
     const folderViewRef = useRef<number | null>(null)
     const includeSubfoldersRef = useRef(false)
     const [assets, setAssets] = useState<MediaAsset[]>([])
+    // The endpoint pages with offset/limit (media-library pages are capped at 100 rows).
+    const [hasMoreAssets, setHasMoreAssets] = useState(false)
     const [folders, setFolders] = useState<MediaFolder[]>([])
     const [uploadLimits, setUploadLimits] = useState(() => MEDIA_TYPE_LIMITS)
     const [previewUrls, setPreviewUrls] = useState<Record<number, string>>({})
@@ -166,6 +170,23 @@ export default function MediaLibraryClient(): React.JSX.Element {
         includeSubfoldersRef.current = includeSubfolders
     }, [includeSubfolders])
 
+    async function loadMoreAssets(): Promise<void> {
+        const currentFolderView = folderViewRef.current
+        const currentIncludeSubfolders = includeSubfoldersRef.current
+        const page = await listMedia({
+            limit: MEDIA_PAGE_SIZE,
+            offset: assets.length,
+            folderId: currentFolderView ?? undefined,
+            recursive: currentIncludeSubfolders,
+            unassignedOnly: currentFolderView === null && !currentIncludeSubfolders,
+        })
+        setAssets((current) => [
+            ...current,
+            ...page.filter((item) => !current.some((existing) => existing.id === item.id)),
+        ])
+        setHasMoreAssets(page.length === MEDIA_PAGE_SIZE)
+    }
+
     async function reload(): Promise<void> {
         const sequence = ++loadSequenceRef.current
         const currentFolderView = folderViewRef.current
@@ -174,7 +195,8 @@ export default function MediaLibraryClient(): React.JSX.Element {
         try {
             result = await Promise.all([
                 listMedia( {
-                    limit: 100,
+                    limit: MEDIA_PAGE_SIZE,
+                    offset: 0,
                     folderId: currentFolderView ?? undefined,
                     recursive: currentIncludeSubfolders,
                     unassignedOnly: currentFolderView === null && !currentIncludeSubfolders,
@@ -206,6 +228,7 @@ export default function MediaLibraryClient(): React.JSX.Element {
             return
         }
         setAssets(assetResult)
+        setHasMoreAssets(assetResult.length === MEDIA_PAGE_SIZE)
         setFolders(folderResult)
         setUploadLimits(resolveMediaLimits(effective))
 
@@ -859,7 +882,7 @@ export default function MediaLibraryClient(): React.JSX.Element {
                 <SectionHeader
                     id="media-filter-heading"
                     title="Filter"
-                    description={`${visibleAssets.length} von ${assets.length} Dateien angezeigt · Ort: ${currentFolderName}${includeSubfolders ? ' (inkl. Unterordner)' : ''}.`}
+                    description={`${visibleAssets.length} von ${assets.length} geladenen Dateien angezeigt · Ort: ${currentFolderName}${includeSubfolders ? ' (inkl. Unterordner)' : ''}.`}
                     action={
                         hasActiveFilters ? (
                             <Button onClick={resetFilters} size="sm" type="button" variant="ghost">
@@ -1019,6 +1042,14 @@ export default function MediaLibraryClient(): React.JSX.Element {
                     </ul>
                 ) : null}
             </section>
+
+            {hasMoreAssets ? (
+                <div className="flex justify-center">
+                    <Button onClick={() => void loadMoreAssets()} type="button" variant="outline">
+                        Weitere Dateien laden
+                    </Button>
+                </div>
+            ) : null}
 
             {pendingCount > 0 ? (
                 <div className="flex flex-wrap items-center gap-3 rounded-xl border border-dashed bg-muted/30 px-4 py-3 text-sm">

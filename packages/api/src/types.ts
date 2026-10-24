@@ -495,6 +495,8 @@ export interface TenantMediaQuery {
     assetType?: AssetType
     status?: AssetStatus
     limit?: number
+    /** Rows to skip; offset paging (the list is capped at 100 rows per request). */
+    offset?: number
     /** Exact-folder filter; omit for all folders. */
     folderId?: number
     /** Include descendants of folderId. */

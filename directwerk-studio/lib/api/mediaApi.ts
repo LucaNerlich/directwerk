@@ -23,6 +23,9 @@ function mediaQueryString(query?: TenantMediaQuery): string {
     if (query.limit !== undefined) {
         params.set('limit', String(query.limit))
     }
+    if (query.offset !== undefined) {
+        params.set('offset', String(query.offset))
+    }
     if (query.folderId !== undefined) {
         params.set('folderId', String(query.folderId))
     }

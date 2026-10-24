@@ -61,7 +61,7 @@ export function buildSafePreviewQueryString(
 
 /**
  * Media-library endpoints carry bounded filter params (folders update):
- * `GET /api/v1/media?assetType=…&status=…&limit=…&folderId=…&recursive=true&unassignedOnly=true`
+ * `GET /api/v1/media?assetType=…&status=…&limit=…&offset=…&folderId=…&recursive=true&unassignedOnly=true`
  * and `DELETE /api/v1/media/folders/{id}?mode=…`. The tenant BFF proxy
  * otherwise rejects every query string, so these get a strict allowlist:
  * only known keys with known values, no duplicates, rebuilt canonically
@@ -126,6 +126,12 @@ export function buildSafeMediaListQueryString(
                 }
                 const limit = Number.parseInt(value, 10)
                 if (limit < 1 || limit > MAX_MEDIA_LIST_LIMIT) {
+                    return null
+                }
+                break
+            }
+            case 'offset': {
+                if (!/^\d{1,9}$/.test(value)) {
                     return null
                 }
                 break
