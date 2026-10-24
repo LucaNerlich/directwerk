@@ -28,7 +28,6 @@ public class EpisodePlaybackDeliveryFacade {
             EnclosureRedirect redirect,
             String analyticsSource,
             String requestHost,
-            boolean privateFeed,
             String clientUserAgent,
             boolean isRangeRequest,
             String clientIp

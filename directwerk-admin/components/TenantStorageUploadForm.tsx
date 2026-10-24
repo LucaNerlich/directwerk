@@ -23,15 +23,6 @@ interface TenantStorageUploadFormProps {
     onUploaded?: (asset?: MediaAsset) => void
 }
 
-function formatUploadSuccess(asset: MediaAsset, fallbackName: string): string {
-    const name = asset.originalFilename ?? fallbackName
-    const base = `Uploaded “${name}” (id ${asset.id}, ${asset.status}).`
-    if (typeof asset.cdnUrl === 'string' && asset.cdnUrl.length > 0) {
-        return `${base} CDN: ${asset.cdnUrl}`
-    }
-    return base
-}
-
 export default function TenantStorageUploadForm({
     tenantId,
     onUploaded,

@@ -107,7 +107,6 @@ class ArticlePublicationWorkflowServiceTest {
                 articleRepository,
                 articleService,
                 new de.pnnit.directwerk.modules.digital.service.HtmlSanitizer(),
-                moduleGateService,
                 scheduledPublicationExecutor,
                 contentPublishedNotifier,
                 notificationGate,

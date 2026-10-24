@@ -31,15 +31,10 @@ public enum EmailTemplate {
             "New episode: {{title}}",
             null
     ),
-    CONTENT_ARTICLE_PUBLISHED(
-            "email/content-article-published.html",
-            "New post: {{title}}",
-            null
-    ),
     /**
-     * Issue #323: newsletter-list article notification. Same body as
-     * {@link #CONTENT_ARTICLE_PUBLISHED}, but the unsubscribe link is derived at delivery from a
-     * protected raw token instead of being embedded (and persisted) in the queue payload.
+     * Issue #323: newsletter-list article notification. The unsubscribe link is derived at
+     * delivery from a protected raw token instead of being embedded (and persisted) in the
+     * queue payload. Its tokenless predecessor was removed in #741.
      */
     NEWSLETTER_ARTICLE_PUBLISHED(
             "email/content-article-published.html",

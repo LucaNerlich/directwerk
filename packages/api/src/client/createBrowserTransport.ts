@@ -28,7 +28,6 @@ export interface BrowserTransport {
         parser: (value: unknown) => {data: T} | null,
         errorMessage: string,
     ) => Promise<T>
-    bindTenantHost?: (getHost: () => string) => void
 }
 
 export interface CreateBrowserTransportConfig {
@@ -41,7 +40,6 @@ export interface CreateBrowserTransportConfig {
     session: AuthedRequestSession
     clearTokens: () => void
     resolveTenantHost: () => string
-    bindableTenantHost?: boolean
     includeProxyRequest?: boolean
     jsonInitMethods?: Array<'POST' | 'PUT' | 'PATCH'>
 }
@@ -141,12 +139,6 @@ export function createBrowserTransport(
         authenticatedRequest,
         postJson,
         jsonInit,
-    }
-
-    if (config.bindableTenantHost === true) {
-        transport.bindTenantHost = (getHost: () => string) => {
-            resolveTenantHost = getHost
-        }
     }
 
     if (config.includeProxyRequest === true) {
