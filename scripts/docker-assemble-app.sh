@@ -17,7 +17,7 @@ if [ ! -f "$CTX/pnpm-workspace.yaml" ] || [ ! -d "$CTX/packages" ]; then
     exit 1
 fi
 
-cp "$CTX/package.json" "$CTX/pnpm-lock.yaml" "$CTX/pnpm-workspace.yaml" "$CTX/.npmrc" .
+cp "$CTX/package.json" "$CTX/pnpm-lock.yaml" "$CTX/pnpm-workspace.yaml" .
 cp -r "$CTX/packages" ./packages
 mkdir -p "$APP_NAME"
 
