@@ -446,6 +446,12 @@ docker run --rm -p 8080:8080 \
 
 ### Deploying with Coolify / Hetzner
 
+Studio media uploads (`POST /api/media/upload`) stream multi‑hundred‑MB bodies
+through Coolify’s Traefik proxy before the BFF PUTs to S3. Raise Traefik
+`respondingTimeouts` (often default **60 s**) and any CDN upload caps before
+expecting ~GB audio uploads to succeed — details in
+[`directwerk-docs` Docker & Coolify](../../directwerk-docs/docs/install/docker-and-coolify.md#large-studio-media-uploads-502504).
+
 This monorepo deploys other services via [Coolify](https://coolify.io) on Hetzner Cloud (see repo `deployment/`). For Directwerk:
 
 1. Create a **Dockerfile** application in Coolify.

@@ -5,6 +5,15 @@
 #   Dockerfile: directwerk-studio/Dockerfile
 #   Port: 3003
 #
+# Large media uploads (POST /api/media/upload) stream the full file through
+# Coolify Traefik before the BFF PUTs to S3. Traefik's default readTimeout is
+# ~60s and will return a bare 502/504 on multi‑hundred‑MB uploads. Raise host
+# proxy respondingTimeouts to ≥30m (see directwerk-docs install/docker-and-coolify
+# "Large Studio media uploads"). Optional Studio custom labels:
+#   traefik.http.services.<service>.loadbalancer.timeout.read=1800s
+#   traefik.http.services.<service>.loadbalancer.timeout.write=1800s
+#   traefik.http.services.<service>.loadbalancer.timeout.idle=1800s
+#
 # Local:
 #   docker build -f directwerk-studio/Dockerfile -t directwerk-studio:local .
 
