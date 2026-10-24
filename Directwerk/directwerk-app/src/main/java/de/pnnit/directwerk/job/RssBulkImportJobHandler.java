@@ -95,7 +95,7 @@ public class RssBulkImportJobHandler implements JobHandler {
                 episode -> episode.alreadyImportedEpisodeId() != null,
                 PodcastImportService.PreviewEpisode::guid,
                 PodcastImportService.PreviewEpisode::title,
-                RuntimeException.class,
+                ex -> true,
                 episode -> {
                     podcastImportService.importEpisode(new PodcastImportService.ImportEpisodeCommand(
                             payload.seriesId(),

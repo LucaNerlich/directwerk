@@ -13,6 +13,7 @@ import de.pnnit.directwerk.modules.digital.entity.AccessPolicy;
 import de.pnnit.directwerk.modules.email.EmailTemplate;
 import de.pnnit.directwerk.modules.email.TransactionalEmailService;
 import de.pnnit.directwerk.modules.newsletter.entity.Article;
+import de.pnnit.directwerk.modules.digital.exception.UploadValidationException;
 import de.pnnit.directwerk.modules.newsletter.exception.ArticleRssImportException;
 import de.pnnit.directwerk.modules.newsletter.service.ArticleImportService;
 import de.pnnit.directwerk.modules.queue.JobStatus;
@@ -114,6 +115,44 @@ class ArticleRssBulkImportJobHandlerTest {
                 7L
         )))).isInstanceOf(IllegalStateException.class)
                 .hasMessage("storage down");
+    }
+
+    @Test
+    void aFailingHeroAssetIsCountedInsteadOfAbortingTheRun() {
+        // #727: the per-item scope covered only ArticleRssImportException, so an asset or
+        // validation failure rethrew, the job retried five times, landed DEAD and sent no
+        // summary — one broken image killed the whole feed import.
+        when(articleImportService.preview("https://example.com/articles.xml")).thenReturn(preview());
+        when(articleImportService.importArticle(any())).thenAnswer(invocation -> {
+            ArticleImportService.ImportArticleCommand cmd = invocation.getArgument(0);
+            if ("guid-new".equals(cmd.guid())) {
+                throw new UploadValidationException("REMOTE_ASSET_FAILED", "Could not stream remote asset");
+            }
+            return new ArticleImportService.ImportedArticle(mock(Article.class), false);
+        });
+
+        handler.handle(job(new ArticleRssBulkImportPayload(
+                "https://example.com/articles.xml",
+                Set.of(),
+                AccessPolicy.FREE,
+                null,
+                true,
+                true,
+                "editor@example.com",
+                "Eddie",
+                7L
+        )));
+
+        @SuppressWarnings("unchecked")
+        var emailVars = ArgumentCaptor.forClass(Map.class);
+        verify(emailService).sendFromPayload(
+                any(UUID.class),
+                eq(10L),
+                eq("editor@example.com"),
+                eq(EmailTemplate.RSS_BULK_IMPORT_FINISHED),
+                emailVars.capture()
+        );
+        assertThat(emailVars.getValue()).containsEntry("failedCount", "1");
     }
 
     @Test

@@ -99,7 +99,8 @@ public final class BulkImportRun {
      * @param alreadyImported tests whether an item was imported before the job
      * @param guid            the item's GUID, used in failure reporting
      * @param title           the item's title, used in failure reporting
-     * @param caughtFailure   the failure type counted and skipped; other types propagate
+     * @param caughtFailure   matches the per-item failures that are counted and skipped;
+     *                        anything else propagates so the job retries
      * @param importer        performs the import for one item
      * @param <T>             the preview item type
      */
@@ -109,7 +110,7 @@ public final class BulkImportRun {
             Predicate<T> alreadyImported,
             Function<T, String> guid,
             Function<T, String> title,
-            Class<? extends RuntimeException> caughtFailure,
+            Predicate<RuntimeException> caughtFailure,
             ItemImporter<T> importer
     ) {
         int imported = 0;
@@ -128,7 +129,7 @@ public final class BulkImportRun {
                     imported++;
                 }
             } catch (RuntimeException ex) {
-                if (!caughtFailure.isInstance(ex)) {
+                if (!caughtFailure.test(ex)) {
                     throw ex;
                 }
                 failed++;
