@@ -36,7 +36,13 @@ export async function generateMetadata({
         return {
             title: list.name,
             description: list.description ?? undefined,
-            alternates: {canonical: localizedPath(lang, `/newsletter/${slug}`)},
+            alternates: {
+                canonical: localizedPath(lang, `/newsletter/${slug}`),
+                languages: {
+                    de: localizedPath('de', `/newsletter/${slug}`),
+                    en: localizedPath('en', `/newsletter/${slug}`),
+                },
+            },
         }
     } catch {
         return {}

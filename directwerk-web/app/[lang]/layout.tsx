@@ -112,11 +112,11 @@ export async function generateMetadata({
         },
         description: seo.description,
         alternates: {
-            canonical: `/${lang}`,
-            languages: {
-                de: '/de',
-                en: '/en',
-            },
+            // `./` resolves against each page's own pathname, so every page below the layout
+            // gets a correct self-canonical instead of inheriting the home URL. A fixed
+            // `languages` map here would instead make every page an alternate of the home
+            // page, so the hreflang cluster lives on the pages that own it (home + details).
+            canonical: './',
             types:
                 feedTypes.length > 0
                     ? {'application/rss+xml': feedTypes}

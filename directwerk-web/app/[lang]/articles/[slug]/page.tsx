@@ -42,7 +42,13 @@ export async function generateMetadata({
         return {
             title: article.title,
             description,
-            alternates: {canonical: localizedPath(lang, `/articles/${slug}`)},
+            alternates: {
+                canonical: localizedPath(lang, `/articles/${slug}`),
+                languages: {
+                    de: localizedPath('de', `/articles/${slug}`),
+                    en: localizedPath('en', `/articles/${slug}`),
+                },
+            },
             openGraph: {
                 title: article.title,
                 description,
