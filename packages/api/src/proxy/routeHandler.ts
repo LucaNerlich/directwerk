@@ -33,8 +33,8 @@ export interface TenantProxyRouteHandlerConfig {
      */
     jsonBodyLimit: number
     /**
-     * Treat a missing/zero Content-Length as an absent body
-     * (directwerk-studio behaviour).
+     * Allow an empty body for POST/PUT/PATCH (directwerk-studio behaviour). DELETE is always
+     * tolerated because the method carries no body; see the body branch in {@code proxyUpstream}.
      */
     allowMissingBody?: boolean
 }
@@ -85,7 +85,8 @@ export function createTenantProxyRouteHandler(
             // cap instead (oversize -> 413).
             const parsed = await readJsonBody(request, {
                 jsonBodyLimit: config.jsonBodyLimit,
-                allowMissingBody: config.allowMissingBody === true,
+                allowMissingBody:
+                    config.allowMissingBody === true || method === 'DELETE',
             })
             if (!parsed.ok) {
                 if (parsed.status === 413) {
