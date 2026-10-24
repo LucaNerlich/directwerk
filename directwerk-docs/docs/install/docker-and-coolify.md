@@ -151,17 +151,19 @@ frontend container (staging only — prefer valid TLS or internal HTTP in produc
 ### Large Studio media uploads (502/504)
 
 Studio creators upload audio/video through the Next.js BFF
-(`POST /api/media/upload`), which streams bytes to the presigned S3 URL. Bunny’s
-storage endpoint has no CORS, so the browser cannot PUT object storage directly.
-Platform defaults allow **5 GB** audio/video; Spring rejects oversize with
-**400** `UPLOAD_VALIDATION_FAILED`. A bare gateway **502** / **504** (no JSON
-`code` field) means the **Coolify proxy or an outer CDN** cut the request — this is
-**not** caused by [#773](https://github.com/LucaNerlich/directwerk/pull/773) (Java S3
-client timeout for server-side copy/confirm).
+(`POST /api/media/upload`). Bunny’s storage endpoint has no CORS, so the browser
+cannot PUT object storage directly. The BFF **spools** the inbound body to a temp
+file, then PUTs to the presigned URL — so Traefik’s body-read clock is not coupled
+to Bunny throughput (that coupling bit Coolify after the **Node 22→24 / Next 16.4**
+Studio image bump on 2026-10-22). Platform defaults allow **5 GB** audio/video;
+Spring rejects oversize with **400** `UPLOAD_VALIDATION_FAILED`. A bare gateway
+**502** / **504** (no JSON `code` field) still means the **Coolify proxy or an outer
+CDN** cut the request — this is **not** caused by
+[#773](https://github.com/LucaNerlich/directwerk/pull/773).
 
-Local uploads work because there is no Traefik in front of Studio. Coolify’s Traefik
-defaults `respondingTimeouts.readTimeout` to about **60 s** for the **entire request
-body**, which multi‑hundred‑MB files exceed.
+Local uploads often run on host **Node 22** without Traefik; Coolify runs the
+Dockerfile’s **Node 24** image behind Traefik (`readTimeout` often **~60 s** for the
+entire request body). Raise timeouts for slow client→edge links even with spooling.
 
 1. **Coolify Traefik timeouts** (required):  
    **Servers → [server] → Proxy → Configuration** — raise entrypoint responding

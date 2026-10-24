@@ -1,10 +1,12 @@
 import {beforeEach, describe, expect, it, vi} from 'vitest'
 
 vi.mock('../src/media/storagePut', () => ({
+    spoolStreamToTempFile: vi.fn(),
+    putFileToStorage: vi.fn(),
     putStreamToStorage: vi.fn(),
 }))
 
-import {putStreamToStorage} from '../src/media/storagePut'
+import {putFileToStorage, spoolStreamToTempFile} from '../src/media/storagePut'
 import {
     buildConfirmRetryBody,
     isMediaUploadRetryResponse,
@@ -17,7 +19,8 @@ import {
     type PerformMediaUploadOptions,
 } from '../src/media/serverUpload'
 
-const putMock = vi.mocked(putStreamToStorage)
+const spoolMock = vi.mocked(spoolStreamToTempFile)
+const putMock = vi.mocked(putFileToStorage)
 
 function bodyStream(): ReadableStream<Uint8Array> {
     return new ReadableStream<Uint8Array>({
@@ -54,6 +57,12 @@ const CONFIRM_OK = (): Promise<Response> =>
 
 beforeEach(() => {
     vi.clearAllMocks()
+    spoolMock.mockResolvedValue({
+        path: '/tmp/directwerk-upload-test',
+        sizeBytes: 3,
+        cleanup: vi.fn().mockResolvedValue(undefined),
+    })
+    putMock.mockResolvedValue({status: 200})
 })
 
 describe('readUploadEnvelope', () => {
@@ -76,8 +85,7 @@ describe('confirm-retry contract', () => {
 })
 
 describe('performMediaUpload', () => {
-    it('runs upload-url → PUT → confirm and returns the confirm response', async () => {
-        putMock.mockResolvedValue({status: 200})
+    it('spools in parallel with upload-url, then PUTs the temp file and confirms', async () => {
         const confirmResponse = Response.json({data: {id: 7}})
         const transport: MediaUploadTransport = {
             createUploadUrl: () =>
@@ -88,11 +96,19 @@ describe('performMediaUpload', () => {
         const result = await performMediaUpload(options(transport))
 
         expect(result).toEqual({status: 'confirmed', response: confirmResponse})
+        expect(spoolMock).toHaveBeenCalledOnce()
         expect(putMock).toHaveBeenCalledOnce()
+        expect(putMock.mock.calls[0]?.[2]).toBe('/tmp/directwerk-upload-test')
     })
 
-    it('forwards a failed upload-url response untouched', async () => {
+    it('forwards a failed upload-url response untouched and abandons the spool', async () => {
         const upstream = Response.json({error: 'nope'}, {status: 409})
+        const cleanup = vi.fn().mockResolvedValue(undefined)
+        spoolMock.mockResolvedValue({
+            path: '/tmp/directwerk-upload-test',
+            sizeBytes: 3,
+            cleanup,
+        })
         const result = await performMediaUpload(
             options({
                 createUploadUrl: () => Promise.resolve(upstream),
@@ -102,10 +118,10 @@ describe('performMediaUpload', () => {
 
         expect(result).toEqual({status: 'upload-url-failed', response: upstream})
         expect(putMock).not.toHaveBeenCalled()
+        expect(cleanup).toHaveBeenCalledOnce()
     })
 
     it('rejects a loopback-http target when the caller is HTTPS-only', async () => {
-        putMock.mockResolvedValue({status: 200})
         const result = await performMediaUpload(
             options({
                 createUploadUrl: () =>
@@ -122,7 +138,6 @@ describe('performMediaUpload', () => {
     })
 
     it('accepts a loopback-http target only when explicitly enabled', async () => {
-        putMock.mockResolvedValue({status: 200})
         const result = await performMediaUpload(
             options(
                 {
@@ -157,7 +172,6 @@ describe('performMediaUpload', () => {
     })
 
     it('keeps the asset id when confirm fails so the caller can retry', async () => {
-        putMock.mockResolvedValue({status: 200})
         const failure = Response.json({error: 'conflict'}, {status: 409})
         const result = await performMediaUpload(
             options({

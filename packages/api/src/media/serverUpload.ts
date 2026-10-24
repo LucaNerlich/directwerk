@@ -2,7 +2,7 @@ import 'server-only'
 
 import {isTrustedOrigin, isTrustedUploadUrl} from '../urls/urlPolicy'
 import {parseUploadUrlResponse} from '../validation/catalog'
-import {putStreamToStorage} from './storagePut'
+import {putFileToStorage, spoolStreamToTempFile} from './storagePut'
 import {logUploadDebug, uploadDebugEnabled} from './uploadDebug'
 
 export {isTrustedUploadUrl} from '../urls/urlPolicy'
@@ -134,9 +134,30 @@ export async function performMediaUpload(
     } = options
     const allowLoopback = options.allowLoopbackUploadTarget === true
 
+    // Drain the inbound body to disk in parallel with upload-url so Traefik's
+    // body-read clock is not held open waiting on the API round-trip, then PUT
+    // the spooled file to storage (S3-bound time no longer stretches Traefik).
+    const spoolAbort = new AbortController()
+    const spoolPromise = spoolStreamToTempFile(
+        limitStreamToSize(body, sizeBytes),
+        storageTimeouts,
+        spoolAbort.signal,
+    )
+
+    const abandonSpool = async (): Promise<void> => {
+        spoolAbort.abort()
+        try {
+            const spool = await spoolPromise
+            await spool.cleanup()
+        } catch {
+            // Spool may reject on abort; nothing to clean up.
+        }
+    }
+
     try {
         const uploadUrlResponse = await transport.createUploadUrl(uploadUrlBody)
         if (!uploadUrlResponse.ok) {
+            await abandonSpool()
             return {status: 'upload-url-failed', response: uploadUrlResponse}
         }
 
@@ -151,6 +172,7 @@ export async function performMediaUpload(
                 ? isTrustedUploadUrl(uploadData.uploadUrl)
                 : isTrustedOrigin(uploadData.uploadUrl))
         if (uploadData === null || !uploadTargetTrusted) {
+            await abandonSpool()
             return {status: 'invalid-upload-url', message: INVALID_UPLOAD_URL_MESSAGE}
         }
 
@@ -163,12 +185,18 @@ export async function performMediaUpload(
             headers[key] = value
         })
 
-        const putResult = await putStreamToStorage(
-            uploadData.uploadUrl,
-            headers,
-            limitStreamToSize(body, sizeBytes),
-            storageTimeouts,
-        )
+        const spool = await spoolPromise
+        let putResult
+        try {
+            putResult = await putFileToStorage(
+                uploadData.uploadUrl,
+                headers,
+                spool.path,
+                storageTimeouts,
+            )
+        } finally {
+            await spool.cleanup()
+        }
 
         if (putResult.status < 200 || putResult.status >= 300) {
             return {
@@ -188,6 +216,7 @@ export async function performMediaUpload(
 
         return {status: 'confirmed', response: confirmResponse}
     } catch (error: unknown) {
+        await abandonSpool()
         if (error instanceof Error && error.name === 'BodyTooLargeError') {
             return {status: 'body-too-large'}
         }
