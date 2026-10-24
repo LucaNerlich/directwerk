@@ -121,6 +121,8 @@ class PodcastImportBulkControllerTest {
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.ACCEPTED);
         assertThat(response.getBody()).isNotNull();
+        // #724: the envelope must agree with the transport status.
+        assertThat(response.getBody().statusCode()).isEqualTo(202);
         assertThat(response.getBody().data().jobId()).isEqualTo(jobId.toString());
         assertThat(response.getBody().data().totalEpisodes()).isEqualTo(2);
         assertThat(response.getBody().data().alreadyImported()).isEqualTo(1);

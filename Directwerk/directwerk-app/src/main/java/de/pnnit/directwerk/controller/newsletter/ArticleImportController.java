@@ -102,7 +102,7 @@ public class ArticleImportController {
         return ResponseEntity.status(status).body(
                 waitForCompletion
                         ? Response.created(mediaAssetViewMapper.toView(asset))
-                        : Response.ok(mediaAssetViewMapper.toView(asset))
+                        : Response.accepted(mediaAssetViewMapper.toView(asset))
         );
     }
 
@@ -198,7 +198,7 @@ public class ArticleImportController {
                         null
                 )
         );
-        return ResponseEntity.status(HttpStatus.ACCEPTED).body(Response.ok(new BulkImportQueuedView(
+        return ResponseEntity.status(HttpStatus.ACCEPTED).body(Response.accepted(new BulkImportQueuedView(
                 job.id().toString(),
                 preview.articles().size(),
                 (int) alreadyImported,
