@@ -102,6 +102,15 @@ class SubscriptionProductServiceTest {
     }
 
     @Test
+    void createProductRejectsACurrencyWithoutHundredths() {
+        // #722: priceCents is sent to Stripe as unit_amount, so a zero-decimal currency
+        // (JPY, KRW, …) would charge 100x the amount the operator entered.
+        assertThatThrownBy(() -> service.createProduct(
+                TENANT_ID, "premium", "Premium", null, OfferingType.LEVEL, null, 500, "JPY", null
+        )).isInstanceOf(IllegalArgumentException.class).hasMessageContaining("hundredths");
+    }
+
+    @Test
     void createProductRejectsNegativePrice() {
         assertThatThrownBy(() -> service.createProduct(
                 TENANT_ID, "premium", "Premium", null, OfferingType.LEVEL, null, -1, null, null

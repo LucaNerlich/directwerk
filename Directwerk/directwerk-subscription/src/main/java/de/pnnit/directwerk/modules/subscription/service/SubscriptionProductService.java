@@ -15,6 +15,7 @@ import de.pnnit.directwerk.modules.subscription.entity.SubscriptionProduct;
 import de.pnnit.directwerk.modules.subscription.exception.SubscriptionProductNotFoundException;
 import de.pnnit.directwerk.modules.subscription.repository.SubscriptionProductRepository;
 import java.util.List;
+import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
@@ -197,12 +198,24 @@ public class SubscriptionProductService {
         return priceCents;
     }
 
+    /**
+     * Currencies whose minor unit is 1/100, i.e. the only ones `priceCents` can express.
+     * A zero- or three-decimal currency would be charged 100x the entered amount (#722).
+     */
+    private static final Set<String> HUNDREDTH_CURRENCIES = Set.of(
+            "EUR", "USD", "GBP", "CHF", "SEK", "NOK", "DKK", "PLN", "CZK", "CAD", "AUD", "NZD"
+    );
+
     private String normalizeCurrency(String currency) {
         String normalized = currency == null || currency.isBlank()
                 ? "EUR"
                 : currency.trim().toUpperCase(java.util.Locale.ROOT);
         if (!normalized.matches("^[A-Z]{3}$")) {
             throw new IllegalArgumentException("Currency must be a 3-letter ISO code");
+        }
+        if (!HUNDREDTH_CURRENCIES.contains(normalized)) {
+            throw new IllegalArgumentException(
+                    "Currency " + normalized + " is not supported: prices are stored in hundredths");
         }
         return normalized;
     }
