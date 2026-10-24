@@ -13,7 +13,10 @@ runtime:
     - type: tests
       code: |-
         test("returns expected status", function() {
-          expect(res.getStatus() === 200 || res.getStatus() === 404).to.equal(true);
+          expect([200, 404, 409].includes(res.getStatus())).to.equal(true);
+          if (res.getStatus() === 409) {
+            expect(res.getBody().errors[0].code).to.equal("MEDIA_ASSET_IN_USE");
+          }
         });
 
 settings:

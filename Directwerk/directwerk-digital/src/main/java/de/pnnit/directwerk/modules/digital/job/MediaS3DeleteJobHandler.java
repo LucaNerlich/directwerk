@@ -76,6 +76,15 @@ public class MediaS3DeleteJobHandler implements JobHandler {
             log.debug("Media asset {} already ARCHIVED — skipping S3 delete job", asset.getId());
             return;
         }
+        // Re-check at the irreversible step: an asset tombstoned before the guard existed, or
+        // attached while the job sat in the queue, must not lose its bytes (#704 review).
+        if (mediaAssetRepository.hasAttachedReferences(asset.getId())) {
+            log.warn("Media asset {} is referenced by content again — restoring READY and skipping"
+                    + " the S3 delete", asset.getId());
+            asset.setStatus(AssetStatus.READY);
+            mediaAssetRepository.saveAndFlush(asset);
+            return;
+        }
 
         DirectwerkProperties.Storage storage = StorageConfigs.requireEnabled(directwerkConfig);
         deleteS3Object(storage, payload.s3Key());

@@ -7,6 +7,8 @@ import de.pnnit.directwerk.modules.core.authorization.ContentEntityType;
 import de.pnnit.directwerk.modules.core.authorization.ContentOperation;
 import de.pnnit.directwerk.modules.core.service.MembershipPermissionService;
 import de.pnnit.directwerk.modules.core.entity.Tenant;
+import de.pnnit.directwerk.modules.core.exception.ConflictCodes;
+import de.pnnit.directwerk.modules.core.exception.ConflictException;
 import de.pnnit.directwerk.modules.core.repository.TenantRepository;
 import de.pnnit.directwerk.modules.core.util.TenantAssetKeys;
 import de.pnnit.directwerk.modules.digital.DigitalContentModule;
@@ -78,6 +80,13 @@ public class MediaAssetLifecycleService implements MediaAssetLifecycleApi {
             return asset;
         }
 
+        // The S3 delete is irreversible and published content keeps pointing at
+        // the row, so refuse while anything still references the asset.
+        if (mediaAssetRepository.hasAttachedReferences(asset.getId())) {
+            throw new ConflictException(
+                    ConflictCodes.MEDIA_ASSET_IN_USE, inUseMessage(asset));
+        }
+
         URL cdnUrlToPurge = resolvePublicCdnUrl(asset);
         asset.setStatus(AssetStatus.PENDING_DELETE);
         mediaAssetRepository.saveAndFlush(asset);
@@ -88,6 +97,18 @@ public class MediaAssetLifecycleService implements MediaAssetLifecycleApi {
                 cdnUrlToPurge != null ? cdnUrlToPurge.toString() : null
         );
         return asset;
+    }
+
+    /**
+     * Names the asset that blocks a delete, so both the single-asset and the folder path tell a
+     * creator which file to detach first.
+     */
+    public static String inUseMessage(MediaAsset asset) {
+        String filename = asset.getOriginalFilename();
+        String label = filename == null || filename.isBlank()
+                ? "Asset " + asset.getId()
+                : "Asset " + asset.getId() + " (\"" + filename + "\")";
+        return label + " is still referenced by content and cannot be deleted";
     }
 
     private void authorizeDelete(

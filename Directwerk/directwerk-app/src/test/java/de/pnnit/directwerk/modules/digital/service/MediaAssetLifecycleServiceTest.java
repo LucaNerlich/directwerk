@@ -19,6 +19,7 @@ import de.pnnit.directwerk.modules.core.authorization.ContentEntityType;
 import de.pnnit.directwerk.modules.core.authorization.ContentOperation;
 import de.pnnit.directwerk.modules.core.authorization.RestrictionScope;
 import de.pnnit.directwerk.modules.core.entity.Role;
+import de.pnnit.directwerk.modules.core.exception.ConflictException;
 import de.pnnit.directwerk.modules.core.exception.ContentAccessDeniedException;
 import de.pnnit.directwerk.modules.core.repository.MembershipPermissionOverrideRepository;
 import de.pnnit.directwerk.modules.core.repository.TenantMembershipRepository;
@@ -201,6 +202,23 @@ class MediaAssetLifecycleServiceTest {
                 new MediaAssetLifecycleApi.DeleteCommand(90L, null, true)
         )).isInstanceOf(MediaAssetNotFoundException.class);
 
+        verify(mediaDeleteJobProducer, never()).enqueueS3Delete(any(), any(), any());
+    }
+
+    @Test
+    void refusesToDeleteAnAssetReferencedByPublishedContent() {
+        MediaAsset asset = publicReadyAsset(92L);
+        when(directwerkConfig.isStorageEnabled()).thenReturn(true);
+        when(directwerkConfig.storage()).thenReturn(storageProps());
+        when(tenantRepository.requireById(10L)).thenReturn(tenant);
+        when(mediaAssetRepository.findByIdForUpdate(92L)).thenReturn(Optional.of(asset));
+        when(mediaAssetRepository.hasAttachedReferences(92L)).thenReturn(true);
+
+        assertThatThrownBy(() -> lifecycleService.delete(
+                new MediaAssetLifecycleApi.DeleteCommand(92L, null, true)
+        )).isInstanceOf(ConflictException.class);
+
+        assertThat(asset.getStatus()).isEqualTo(AssetStatus.READY);
         verify(mediaDeleteJobProducer, never()).enqueueS3Delete(any(), any(), any());
     }
 

@@ -220,13 +220,22 @@ public class MediaFolderService implements MediaFolderApi {
     private void deleteContents(
             Long tenantId, MediaFolder folder, DirectwerkUserPrincipal principal) {
         List<MediaFolder> subtree = collectSubtree(tenantId, folder);
+        List<MediaAsset> assets = new ArrayList<>();
         for (MediaFolder descendant : subtree) {
-            for (MediaAsset asset : mediaAssetRepository.findByTenantIdAndFolderId(tenantId, descendant.getId())) {
-                mediaAssetLifecycleApi.delete(
-                        new MediaAssetLifecycleApi.DeleteCommand(asset.getId(), principal, false));
+            assets.addAll(mediaAssetRepository.findByTenantIdAndFolderId(tenantId, descendant.getId()));
+        }
+        assets.addAll(mediaAssetRepository.findByTenantIdAndFolderId(tenantId, folder.getId()));
+        // Fail before deleting anything, naming the file that blocks the purge: the per-asset
+        // lifecycle throws on the first referenced asset, which used to abort the whole folder
+        // halfway with a message that named nothing.
+        for (MediaAsset asset : assets) {
+            if (mediaAssetRepository.hasAttachedReferences(asset.getId())) {
+                throw new ConflictException(
+                        ConflictCodes.MEDIA_ASSET_IN_USE,
+                        MediaAssetLifecycleService.inUseMessage(asset));
             }
         }
-        for (MediaAsset asset : mediaAssetRepository.findByTenantIdAndFolderId(tenantId, folder.getId())) {
+        for (MediaAsset asset : assets) {
             mediaAssetLifecycleApi.delete(
                     new MediaAssetLifecycleApi.DeleteCommand(asset.getId(), principal, false));
         }
