@@ -94,6 +94,7 @@ export function createPublicationWorkflowApi<T, TCreate extends object, TUpdate 
                 `${basePath}/${id}/publish`,
                 jsonInit('POST', {
                     notifySubscribers: options?.notifySubscribers === true,
+                    publishedAt: options?.publishedAt,
                 }),
                 parseEnvelope,
                 messages.detail,
