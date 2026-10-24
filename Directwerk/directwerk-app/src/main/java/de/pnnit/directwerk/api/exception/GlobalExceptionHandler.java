@@ -3,6 +3,8 @@ package de.pnnit.directwerk.api.exception;
 import de.pnnit.directwerk.analytics.AnalyticsQueryException;
 import de.pnnit.directwerk.api.response.ErrorDetail;
 import de.pnnit.directwerk.api.response.Response;
+import de.pnnit.directwerk.modules.content.exception.InvalidContentScopeException;
+import de.pnnit.directwerk.modules.core.exception.CodedStatusException;
 import de.pnnit.directwerk.modules.core.exception.ConflictException;
 import de.pnnit.directwerk.modules.core.exception.ContentAccessDeniedException;
 import de.pnnit.directwerk.modules.core.service.CannotDeactivateCoreModuleException;
@@ -20,7 +22,6 @@ import de.pnnit.directwerk.modules.digital.exception.MediaAssetNotFoundException
 import de.pnnit.directwerk.modules.digital.exception.MediaFolderNotFoundException;
 import de.pnnit.directwerk.modules.digital.exception.StorageNotConfiguredException;
 import de.pnnit.directwerk.modules.digital.exception.UploadValidationException;
-import de.pnnit.directwerk.modules.newsletter.exception.ArticleFeedBuilderException;
 import de.pnnit.directwerk.modules.newsletter.exception.ArticleNotFoundException;
 import de.pnnit.directwerk.modules.newsletter.exception.NewsletterListNotFoundException;
 import de.pnnit.directwerk.modules.newsletter.exception.NewsletterSubscriptionNotFoundException;
@@ -31,11 +32,8 @@ import de.pnnit.directwerk.modules.digital.exception.DigitalPublicationNotFoundE
 import de.pnnit.directwerk.modules.podcast.exception.EpisodeNotFoundException;
 import de.pnnit.directwerk.modules.podcast.exception.EpisodeValidationException;
 import de.pnnit.directwerk.modules.podcast.exception.FormatNotFoundException;
-import de.pnnit.directwerk.modules.newsletter.exception.ArticleRssImportException;
-import de.pnnit.directwerk.modules.podcast.exception.RssImportException;
 import de.pnnit.directwerk.modules.content.InvalidPublicationTransitionException;
 import de.pnnit.directwerk.modules.podcast.exception.SeriesNotFoundException;
-import de.pnnit.directwerk.modules.podcast.feed.FeedBuilderException;
 import de.pnnit.directwerk.modules.podcast.feed.SubscriberFeedNotFoundException;
 import de.pnnit.directwerk.modules.queue.JobConflictException;
 import de.pnnit.directwerk.modules.queue.JobNotFoundException;
@@ -372,21 +370,25 @@ public class GlobalExceptionHandler {
         return notFound("SUBSCRIBER_FEED_NOT_FOUND", ex);
     }
 
-    @ExceptionHandler(FeedBuilderException.class)
-    ResponseEntity<Response<Void>> handleFeedBuilder(FeedBuilderException ex) {
+    /**
+     * Every exception that carries its own status and code is answered with them, so a new
+     * subclass cannot silently fall through to the catch-all 500 (#726).
+     */
+    @ExceptionHandler(CodedStatusException.class)
+    ResponseEntity<Response<Void>> handleCodedStatus(CodedStatusException ex) {
         return ResponseEntity.status(ex.getStatus())
                 .body(Response.error(ex.getStatus(), ex.getCode(), ex.getMessage()));
+    }
+
+    @ExceptionHandler(InvalidContentScopeException.class)
+    ResponseEntity<Response<Void>> handleInvalidContentScope(InvalidContentScopeException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(Response.error(400, "INVALID_CONTENT_SCOPE", ex.getMessage()));
     }
 
     @ExceptionHandler(ArticleFeedNotFoundException.class)
     ResponseEntity<Response<Void>> handleArticleFeedNotFound(ArticleFeedNotFoundException ex) {
         return notFound("ARTICLE_FEED_NOT_FOUND", ex);
-    }
-
-    @ExceptionHandler(ArticleFeedBuilderException.class)
-    ResponseEntity<Response<Void>> handleArticleFeedBuilder(ArticleFeedBuilderException ex) {
-        return ResponseEntity.status(ex.getStatus())
-                .body(Response.error(ex.getStatus(), ex.getCode(), ex.getMessage()));
     }
 
     @ExceptionHandler(InvalidPublicationTransitionException.class)
@@ -398,18 +400,6 @@ public class GlobalExceptionHandler {
     ResponseEntity<Response<Void>> handleEpisodeValidation(EpisodeValidationException ex) {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .body(Response.error(400, "EPISODE_VALIDATION_FAILED", ex.getMessage()));
-    }
-
-    @ExceptionHandler(RssImportException.class)
-    ResponseEntity<Response<Void>> handleRssImport(RssImportException ex) {
-        return ResponseEntity.status(ex.getStatus())
-                .body(Response.error(ex.getStatus(), ex.getCode(), ex.getMessage()));
-    }
-
-    @ExceptionHandler(ArticleRssImportException.class)
-    ResponseEntity<Response<Void>> handleArticleRssImport(ArticleRssImportException ex) {
-        return ResponseEntity.status(ex.getStatus())
-                .body(Response.error(ex.getStatus(), ex.getCode(), ex.getMessage()));
     }
 
     @ExceptionHandler(ArticleValidationException.class)
