@@ -496,6 +496,38 @@ If a **failed** seed row still blocks startup (`Detected failed migration`):
 DELETE FROM flyway_schema_history WHERE script = 'R__alpha_dev_seed.sql';
 ```
 
+### Flyway validate fails with checksum mismatch
+
+Startup dies with `Migration checksum mismatch for migration version NN`, followed by a long
+`UnsatisfiedDependencyException` chain (JPA repository beans → `TenantResolver` →
+`tenantContextFilter` → Tomcat). That bean chain is cascade noise: `entityManagerFactory` waits on
+Flyway, so nothing else can start. The actionable error is the Flyway validation line near the
+bottom of the log.
+
+Cause: a migration under `directwerk-app/src/main/resources/db/migration/` was edited after it had
+already been applied to the database (e.g. a pre-commit draft ran from a dirty working tree before
+the final file was merged). Flyway stores each applied checksum in `flyway_schema_history` and
+refuses to start when the file no longer matches.
+
+Fix without losing data:
+
+```sh
+set -a && source .env && set +a
+./gradlew :directwerk-app:flywayRepair
+```
+
+`flywayRepair` rewrites the stored checksum to match the current file; the next start validates and
+applies pending `V*` scripts again. Only repair if the database already has the schema the current
+file describes: repair marks the row valid without re-running it. If the edit added statements the
+DB never executed, apply those by hand or, in local dev, wipe and replay everything:
+
+```sh
+docker compose --profile stack down -v
+docker compose --profile stack up --build
+```
+
+`down -v` deletes the Postgres/Mailpit volumes and all local data (tenants, users, feeds).
+
 ### OAuth / JWT errors after container restart (`docker` / `local` without PEMs)
 
 Ephemeral JWT keys rotate on each restart unless `DIRECTWERK_JWT_*` PEM keys are set. Persist keys for stable tokens.
@@ -530,6 +562,9 @@ Change `DIRECTWERK_POSTGRES_PORT`, `DIRECTWERK_MAILPIT_*_PORT`, or `DIRECTWERK_A
 # Flyway CLI against local Postgres (optional; app also migrates on startup)
 set -a && source .env && set +a
 ./gradlew :directwerk-app:flywayMigrate
+
+# Checksum repair after an applied migration file was edited (see Troubleshooting)
+./gradlew :directwerk-app:flywayRepair
 
 # Build JAR only (no Docker)
 ./gradlew :directwerk-app:bootJar
