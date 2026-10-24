@@ -36,6 +36,19 @@ describe('buildSafePlatformQueryString', () => {
         )
     })
 
+    it('allows the batch effective-rights id list', () => {
+        const params = new URLSearchParams({userIds: '12,13,14'})
+        expect(buildSafePlatformQueryString(params)).toBe('?userIds=12%2C13%2C14')
+    })
+
+    it('rejects a malformed rights id list', () => {
+        for (const userIds of ['0', '12,', '12,,13', 'a', '-1', '12 13']) {
+            expect(() =>
+                buildSafePlatformQueryString(new URLSearchParams({userIds})),
+            ).toThrow('Invalid platform API query.')
+        }
+    })
+
     it('rejects unknown query params', () => {
         const params = new URLSearchParams({recentAuditLimit: '8', evil: '1'})
         expect(() => buildSafePlatformQueryString(params)).toThrow(

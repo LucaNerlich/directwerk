@@ -47,6 +47,7 @@ const ALLOWED_QUERY_PARAMS = new Set([
     'action',
     'actorEmail',
     'actorUserId',
+    'userIds',
 ])
 const ISO_INSTANT =
     /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,9})?(?:Z|[+-]\d{2}:\d{2})$/
@@ -68,6 +69,12 @@ export function normalizeDirectwerkApiUrl(rawApiUrl: string): string {
     }
 
     return apiUrl.origin
+}
+
+const ID_LIST = /^[1-9][0-9]{0,18}(,[1-9][0-9]{0,18}){0,199}$/
+
+function isSafeIdList(value: string): boolean {
+    return ID_LIST.test(value)
 }
 
 export function buildPlatformApiPath(segments: string[]): string {
@@ -245,6 +252,12 @@ export function buildSafePlatformQueryString(
                 break
             case 'actorEmail':
                 if (!isSafeActorEmail(value)) {
+                    throw new Error('Invalid platform API query.')
+                }
+                break
+            case 'userIds':
+                // Batch effective-rights lookup: a bounded comma-separated id list (#737).
+                if (!isSafeIdList(value)) {
                     throw new Error('Invalid platform API query.')
                 }
                 break
