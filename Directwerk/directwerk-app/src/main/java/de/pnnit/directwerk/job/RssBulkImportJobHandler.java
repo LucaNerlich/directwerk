@@ -97,7 +97,7 @@ public class RssBulkImportJobHandler implements JobHandler {
                 PodcastImportService.PreviewEpisode::title,
                 ex -> true,
                 episode -> {
-                    podcastImportService.importEpisode(new PodcastImportService.ImportEpisodeCommand(
+                    var result = podcastImportService.importEpisode(new PodcastImportService.ImportEpisodeCommand(
                             payload.seriesId(),
                             preview.feedUrl(),
                             episode.guid(),
@@ -116,7 +116,9 @@ public class RssBulkImportJobHandler implements JobHandler {
                             null,
                             episode.publishedAt()
                     ));
-                    return BulkImportRun.Outcome.IMPORTED;
+                    return result.alreadyImported()
+                            ? BulkImportRun.Outcome.SKIPPED
+                            : BulkImportRun.Outcome.IMPORTED;
                 }
         );
     }
