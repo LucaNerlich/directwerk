@@ -9,6 +9,7 @@ import de.pnnit.directwerk.modules.core.authorization.ContentOperation;
 import de.pnnit.directwerk.modules.core.authorization.EffectiveAccess;
 import de.pnnit.directwerk.modules.core.authorization.RestrictionScope;
 import de.pnnit.directwerk.modules.core.entity.MembershipPermissionOverride;
+import de.pnnit.directwerk.modules.core.entity.MembershipStatus;
 import de.pnnit.directwerk.modules.core.exception.ContentAccessDeniedException;
 import de.pnnit.directwerk.modules.core.entity.TenantMembership;
 import de.pnnit.directwerk.modules.core.repository.MembershipPermissionOverrideRepository;
@@ -189,6 +190,9 @@ public class MembershipPermissionService {
         }
         return tenantMembershipRepository
                 .findByTenantIdAndUserId(tenantId, userId)
+                // A disabled membership is not a member: the HTTP guards filter it too, and a
+                // queued job must not run as an identity that lost access (#748).
+                .filter(membership -> membership.getStatus() == MembershipStatus.ACTIVE)
                 .map(membership -> principalFor(membership, tenantId));
     }
 

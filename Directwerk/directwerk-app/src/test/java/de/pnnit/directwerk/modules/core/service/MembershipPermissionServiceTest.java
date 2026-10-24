@@ -18,6 +18,7 @@ import de.pnnit.directwerk.modules.core.entity.MembershipPermissionOverride;
 import de.pnnit.directwerk.modules.core.entity.Role;
 import de.pnnit.directwerk.modules.core.entity.Tenant;
 import de.pnnit.directwerk.modules.core.entity.User;
+import de.pnnit.directwerk.modules.core.entity.MembershipStatus;
 import de.pnnit.directwerk.modules.core.entity.TenantMembership;
 import de.pnnit.directwerk.modules.core.exception.ContentAccessDeniedException;
 import de.pnnit.directwerk.modules.core.repository.MembershipPermissionOverrideRepository;
@@ -84,6 +85,19 @@ class MembershipPermissionServiceTest {
                 eq(PlatformAuditActions.MEMBER_RESTRICTIONS_CHANGED),
                 eq(10L),
                 any(Map.class));
+    }
+
+    @Test
+    void principalForMemberRejectsADisabledMembership() {
+        // #748: a queued import must not run as an identity whose membership was revoked.
+        Tenant tenant = new Tenant();
+        tenant.setId(10L);
+        TenantMembership disabled = membership(7L, tenant, EnumSet.of(Role.EDITOR));
+        disabled.setStatus(MembershipStatus.DISABLED);
+        when(tenantMembershipRepository.findByTenantIdAndUserId(10L, 5L))
+                .thenReturn(Optional.of(disabled));
+
+        assertThat(service.principalForMember(10L, 5L)).isEmpty();
     }
 
     @Test
@@ -240,6 +254,7 @@ class MembershipPermissionServiceTest {
         membership.setId(id);
         membership.setTenant(tenant);
         membership.setRoles(roles);
+        membership.setStatus(MembershipStatus.ACTIVE);
         return membership;
     }
 }
