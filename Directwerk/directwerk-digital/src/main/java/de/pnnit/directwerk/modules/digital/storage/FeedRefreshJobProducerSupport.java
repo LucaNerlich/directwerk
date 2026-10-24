@@ -51,7 +51,7 @@ public abstract class FeedRefreshJobProducerSupport {
         // Clear presence synchronously (same transaction as the entitlement change) so a
         // reader hitting the feed before the async rebuild completes gets not-ready instead
         // of a redirect to a snapshot built under the old, broader entitlement.
-        snapshotStateStore.clearWritten(event.tenantId());
+        snapshotStateStore.markStale(event.tenantId());
         requestRefreshAfterCommit(event.tenantId());
     }
 

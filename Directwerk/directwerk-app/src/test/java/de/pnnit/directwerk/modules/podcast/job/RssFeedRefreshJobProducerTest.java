@@ -84,7 +84,7 @@ class RssFeedRefreshJobProducerTest {
     }
 
     @Test
-    void entitlementsChangedClearsPresenceBeforeEnqueue() {
+    void entitlementsChangedMarksPresenceStaleBeforeEnqueue() {
         QueueService queueService = mock(QueueService.class);
         ObjectProvider<QueueService> queueProvider = TestObjectProviders.returning(queueService);
         DirectwerkConfig config = mock(DirectwerkConfig.class);
@@ -99,7 +99,9 @@ class RssFeedRefreshJobProducerTest {
 
         producer.onEntitlementsChanged(new TenantEntitlementsChangedEvent(10L));
 
-        verify(stateStore).clearWritten(10L);
+        // #717: the row must survive so the store reports not-ready instead of healing it.
+        verify(stateStore).markStale(10L);
+        verify(stateStore, never()).clearWritten(10L);
         verify(queueService).enqueueInNewTransaction(
                 eq(QueueNames.PODCAST_RSS_FEED_REFRESH),
                 any(JsonNode.class),

@@ -2,6 +2,7 @@ package de.pnnit.directwerk.modules.digital.storage;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -64,8 +65,8 @@ class GeneratedFeedSnapshotStoreTest {
     void setUp() {
         when(directwerkConfig.isStorageEnabled()).thenReturn(true);
         when(directwerkConfig.storage()).thenReturn(storage);
-        when(storage.bucket()).thenReturn("bucket");
-        when(s3Provider.getIfAvailable()).thenReturn(s3Client);
+        lenient().when(storage.bucket()).thenReturn("bucket");
+        lenient().when(s3Provider.getIfAvailable()).thenReturn(s3Client);
         store = new GeneratedFeedSnapshotStore(
                 snapshotStateStore,
                 s3Provider,
@@ -99,7 +100,7 @@ class GeneratedFeedSnapshotStoreTest {
         GeneratedFeedSnapshotStore.FeedDelivery delivery = store.deliver(ref);
 
         assertThat(delivery.ready()).isFalse();
-        verify(snapshotStateStore).clearWritten(10L, "TENANT", 0L);
+        verify(snapshotStateStore).markStale(10L, "TENANT", 0L);
     }
 
     @Test
@@ -114,6 +115,19 @@ class GeneratedFeedSnapshotStoreTest {
 
         assertThat(delivery.ready()).isTrue();
         verify(snapshotStateStore).markWritten(10L, "TENANT", 0L);
+    }
+
+    @Test
+    void staleRowDoesNotServeTheObjectBuiltUnderTheOldEntitlements() throws Exception {
+        // #717: invalidating used to delete the row, which the store then healed from the
+        // still-present object — redirecting to XML built under broader access rules.
+        when(snapshotStateStore.isWritten(10L, "TENANT", 0L)).thenReturn(false);
+        when(snapshotStateStore.isKnown(10L, "TENANT", 0L)).thenReturn(true);
+
+        GeneratedFeedSnapshotStore.FeedDelivery delivery = store.deliver(ref);
+
+        assertThat(delivery.ready()).isFalse();
+        verify(snapshotStateStore, never()).markWritten(any(), any(), any(long.class));
     }
 
     @Test
