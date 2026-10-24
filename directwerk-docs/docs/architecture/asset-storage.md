@@ -560,7 +560,7 @@ Validations:
 | Tenant | `TenantContext.getTenantId()` |
 | Role | `EDITOR` or `TENANT_ADMIN` |
 | Mime allow-list | Per `assetType` (e.g. audio: `audio/mpeg`, `audio/mp4`) |
-| Max size | e.g. 500 MB audio, 10 MB images |
+| Max size | Platform default (audio/video 5 GB, images 10 MB, documents 50 MB), overridable per tenant |
 | Key | `{tenant}/staging/{uploadSessionUuid}/{sanitizedFilename}` — session id server-generated |
 
 Response:

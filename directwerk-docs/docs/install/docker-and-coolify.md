@@ -148,6 +148,40 @@ frontend container (staging only — prefer valid TLS or internal HTTP in produc
 
 ## Troubleshooting
 
+### Large Studio media uploads (502/504)
+
+Studio creators upload audio/video through the Next.js BFF
+(`POST /api/media/upload`), which streams bytes to the presigned S3 URL. Bunny’s
+storage endpoint has no CORS, so the browser cannot PUT object storage directly.
+Platform defaults allow **5 GB** audio/video; Spring rejects oversize with
+**400** `UPLOAD_VALIDATION_FAILED`. A bare gateway **502** / **504** (no JSON
+`code` field) means the **Coolify proxy or an outer CDN** cut the request.
+
+1. **Coolify Traefik timeouts** (default read timeout is often **60 s**):  
+   **Servers → [server] → Proxy → Configuration** — raise entrypoint responding
+   timeouts for both `http` and `https`, for example:
+
+   ```text
+   --entrypoints.https.transport.respondingTimeouts.readTimeout=30m
+   --entrypoints.https.transport.respondingTimeouts.writeTimeout=30m
+   --entrypoints.https.transport.respondingTimeouts.idleTimeout=30m
+   ```
+
+   Match or exceed the Studio BFF absolute storage ceiling (**30 minutes**).
+   Optionally set the same values on service labels
+   `traefik.http.services.<studio-service>.loadbalancer.timeout.read|write|idle`.
+
+2. **Body-size middleware** — Traefik does not cap bodies by default. If you added
+   buffering / `maxRequestBodyBytes`, set it to at least **5 GiB** (or remove the
+   cap) for Studio.
+
+3. **Cloudflare** (or similar) in front of Studio — free/pro plans often cap
+   uploads around **100 MB**. Grey-cloud the Studio hostname, raise the plan
+   limit, or bypass `/api/media/upload`.
+
+4. Confirm Studio **port 3003** and a healthy container so 502 is not a wrong-port
+   proxy miss (same class of failure as docs below).
+
 ### `directwerk-docs` Bad Gateway (502)
 
 The container is usually healthy (logs show `GET /` **200**), but Coolify’s proxy is hitting the

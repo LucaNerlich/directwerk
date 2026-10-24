@@ -46,7 +46,7 @@ alone cannot eliminate DNS-rebinding races between validation and socket connect
 | Per-asset entitlements | `EntitlementService.hasAccess(userId, contentId)` before every private signed URL |
 | No “one unlocks all” | Never issue prefix-scoped credentials; never sign URLs without asset-level check |
 | EU data residency | Hetzner DE/FI or Bunny EU regions only |
-| No API upload proxy | Pre-signed PUT for uploads; pre-signed GET for private downloads |
+| No Spring upload proxy | Pre-signed PUT for uploads; pre-signed GET for private downloads. Studio/admin Next.js BFFs still proxy PUT to S3 because Bunny storage lacks CORS — large Studio uploads need raised Coolify/Traefik timeouts (see `directwerk-docs` Docker & Coolify) |
 | CDN for public | Stable URLs on public pull zone; cacheable `public/` objects; edge-block `private/` |
 | CDN for private | Second pull zone + Advanced Token Auth; see [`bunny-net-integration.md`](bunny-net-integration.md#implementation-guide-cdn-pull-zones) |
 
