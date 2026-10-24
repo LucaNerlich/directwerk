@@ -59,13 +59,21 @@ export default async function NewsletterListSubscribePage({
     }
 
     let list = null
+    let hostResolved = false
     try {
         const host = await getTenantHost()
         if (host !== null) {
+            hostResolved = true
             list = await fetchPublicNewsletterListServer(host, slug)
         }
     } catch {
         list = null
+    }
+
+    // The fetcher returns null only for a definitive NOT_FOUND; a transport failure throws
+    // and still renders the client shell (#753).
+    if (hostResolved && list === null) {
+        notFound()
     }
 
     return <NewsletterSubscribePageClient list={list} slug={slug} />

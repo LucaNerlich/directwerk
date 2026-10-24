@@ -74,6 +74,7 @@ export default async function ArticleDetailPage({params}: ArticlePageProps) {
 
     let initialArticle = null
     let origin = 'https://localhost'
+    let knownMissing = false
     try {
         const host = await getTenantHost()
         if (host === null) {
@@ -81,10 +82,16 @@ export default async function ArticleDetailPage({params}: ArticlePageProps) {
         }
         origin = resolveTenantOrigin(host)
         initialArticle = await fetchPublicArticleServer(host, slug)
+        // The fetcher returns null only for a definitive upstream 404; a transport failure
+        // throws, and that still falls back to the client shell (#753).
+        knownMissing = initialArticle === null
     } catch {
         initialArticle = null
     }
 
+    if (knownMissing) {
+        notFound()
+    }
     if (initialArticle === null) {
         return <ArticleDetailClient slug={slug} />
     }
