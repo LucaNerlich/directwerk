@@ -13,9 +13,14 @@ WORKDIR /workspace
 
 ENV PNPM_HOME="/root/.local/share/pnpm"
 ENV PATH="${PNPM_HOME}/bin:${PATH}"
+# Keep the pnpm version in sync with the root package.json ("packageManager" and
+# engines.pnpm). Use the npm/JS install, not the get.pnpm.io standalone native
+# binary: on Alpine (musl) that native binary cannot delegate to a 10.x
+# packageManager pin and fails closed with ERR_PNPM_PNPM_ENGINE_IDENTITY_UNVERIFIABLE
+# because pnpm never published a 10.x musl platform binary (pnpm/pnpm#13622). The JS
+# install has no native binary to verify and matches the pin, so it never delegates.
 RUN apk add --no-cache bash \
-    && wget -qO- https://get.pnpm.io/install.sh \
-        | env PNPM_VERSION=12.0.0-rc.5 ENV="$HOME/.bashrc" SHELL="$(which bash)" bash -
+    && npm install -g pnpm@10.33.2
 
 COPY . /ctx
 RUN chmod +x /ctx/scripts/docker-assemble-app.sh \
