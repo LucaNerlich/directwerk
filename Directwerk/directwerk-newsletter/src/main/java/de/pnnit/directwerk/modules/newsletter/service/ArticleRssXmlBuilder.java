@@ -80,12 +80,17 @@ public class ArticleRssXmlBuilder {
         );
     }
 
+    /** Same bound the podcast feed applies, so a long archive cannot bloat the document (#720). */
+    static final int MAX_DESCRIPTION_CHARS = 4_000;
+
     private static String descriptionFor(Article article) {
         String fullBody = PublicSurfacePolicy.articleBody(article.getBody(), article.getAccessPolicy().name());
-        if (fullBody != null) {
-            return fullBody;
-        }
-        return article.getExcerpt() != null ? article.getExcerpt() : "";
+        String text = fullBody != null
+                ? fullBody
+                : article.getExcerpt() != null ? article.getExcerpt() : "";
+        return text.length() > MAX_DESCRIPTION_CHARS
+                ? text.substring(0, MAX_DESCRIPTION_CHARS)
+                : text;
     }
 
     private static String channelTitle(Tenant tenant, String channelTitleOverride) {
