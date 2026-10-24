@@ -47,7 +47,7 @@ not via bucket policies or user-prefix browsing.
 | Per-asset entitlements | `EntitlementService.hasAccess(userId, contentId)` before every private signed URL |
 | No “one unlocks all” | Never issue prefix-scoped credentials; never sign URLs without asset-level check |
 | EU data residency | Hetzner DE/FI or Bunny EU regions only |
-| No API upload proxy | Pre-signed PUT for uploads; pre-signed GET for private downloads |
+| No Spring upload proxy | Pre-signed PUT for uploads; pre-signed GET for private downloads. Studio/admin Next.js BFFs still proxy PUT to S3 because Bunny storage lacks CORS — large Studio uploads need raised Coolify/Traefik timeouts (see [Docker & Coolify](/install/docker-and-coolify#large-studio-media-uploads-502504)) |
 | CDN for public | Stable URLs on public pull zone; cacheable `public/` objects; edge-block `private/` |
 | CDN for private | Second pull zone + Advanced Token Auth (see the Bunny.net storage docs on CDN pull zones) |
 
@@ -561,7 +561,7 @@ Validations:
 | Tenant | `TenantContext.getTenantId()` |
 | Role | `EDITOR` or `TENANT_ADMIN` |
 | Mime allow-list | Per `assetType` (e.g. audio: `audio/mpeg`, `audio/mp4`) |
-| Max size | e.g. 500 MB audio, 10 MB images |
+| Max size | Platform default (audio/video 5 GB, images 10 MB, documents 50 MB), overridable per tenant |
 | Key | `{tenant}/staging/{uploadSessionUuid}/{sanitizedFilename}` — session id server-generated |
 
 Response:

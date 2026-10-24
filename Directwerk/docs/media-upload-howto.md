@@ -85,9 +85,21 @@ sign `Content-Length` — browsers cannot set that header reliably.
 **Bunny note:** Per [Bunny S3 known limitations](https://docs.bunny.net/storage/s3#known-limitations),
 CORS must be handled at the CDN level — the storage S3 endpoint does **not** emit CORS headers.
 Browser PUTs to `https://{region}-s3.storage.bunnycdn.com/...` fail with no Spring logs.
-directwerk-admin therefore proxies the PUT through
-`POST /api/tenants/{id}/media/upload`. For curl/harness tests, PUT from the
-same machine as usual.
+Creator and admin UIs therefore proxy the PUT through same-origin Next.js BFF routes
+(not through Spring):
+
+| App | Route | Typical size |
+|-----|-------|--------------|
+| `directwerk-studio` | `POST /api/media/upload` | Full media (audio/video up to the tenant’s effective limit, default **5 GB**) |
+| `directwerk-admin` | `POST /api/tenants/{id}/media/upload` | Small storage smoke-test uploads |
+
+Those BFF requests carry the **entire file body** through Coolify’s reverse proxy
+(Traefik by default). A bare **502/504** with no Directwerk JSON envelope on a large
+Studio upload is almost always a **proxy timeout or edge body limit**, not Spring
+validation (oversized files return **400** `UPLOAD_VALIDATION_FAILED`). Raise Traefik
+`respondingTimeouts` / service load-balancer timeouts (and any CDN upload cap such as
+Cloudflare’s) — see [Docker & Coolify](../../directwerk-docs/docs/install/docker-and-coolify.md#large-studio-media-uploads-502504).
+For curl/harness tests, PUT from the same machine as usual.
 
 ---
 

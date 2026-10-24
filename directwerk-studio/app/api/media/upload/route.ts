@@ -17,8 +17,9 @@ const STORAGE_PUT_IDLE_TIMEOUT_MS = 60_000
 const STORAGE_PUT_ABSOLUTE_TIMEOUT_MS = 30 * 60_000
 
 /**
- * Browser sends raw file bytes (no multipart); BFF streams to presigned S3 URL.
- * Flow: upload-url → PUT body to S3 → confirm. The sequence lives in
+ * Browser sends raw file bytes (no multipart). The BFF spools the body to a
+ * temp file (so Coolify Traefik can finish the request-body read at edge speed),
+ * then PUTs that file to the presigned S3 URL and confirms. Sequence lives in
  * `@directwerk/api/media/serverUpload`, shared with the admin upload action.
  */
 export async function POST(request: Request): Promise<Response> {
