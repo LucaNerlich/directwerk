@@ -18,12 +18,15 @@ import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 /**
  * Enqueues one {@link EmailTemplate#MAILGUN_CONNECTION_TEST} job per active tenant admin via the
  * normal email queue (same path as transactional mail). Does not call Mailgun directly.
+ * <p>
+ * Not {@code @Transactional}: each {@link EmailJobProducer#enqueueContentNotification} must commit
+ * on its own {@link de.pnnit.directwerk.modules.queue.QueueService#enqueue} transaction. An outer
+ * read-only (or catch-and-continue) TX would block or roll back durable job inserts.
  */
 @Service
 @RequiredArgsConstructor
@@ -36,7 +39,6 @@ public class MailgunTestEmailService {
     private final TenantMembershipRepository tenantMembershipRepository;
     private final EmailJobProducer emailJobProducer;
 
-    @Transactional(readOnly = true)
     public MailgunTestSendResult sendTestToTenantAdmins(Long tenantId) {
         if (!directwerkConfig.isEmailEnabled()) {
             throw new MailgunNotConfiguredException("Email delivery is disabled");

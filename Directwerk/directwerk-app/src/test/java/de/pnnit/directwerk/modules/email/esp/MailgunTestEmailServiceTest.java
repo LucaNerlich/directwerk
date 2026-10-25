@@ -7,6 +7,7 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -22,6 +23,7 @@ import de.pnnit.directwerk.modules.core.repository.TenantMembershipRepository;
 import de.pnnit.directwerk.modules.email.EmailJobProducer;
 import de.pnnit.directwerk.modules.email.EmailTemplate;
 import de.pnnit.directwerk.modules.email.entity.EspProvider;
+import java.lang.reflect.Method;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
@@ -32,6 +34,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.transaction.annotation.Transactional;
 
 @ExtendWith(MockitoExtension.class)
 class MailgunTestEmailServiceTest {
@@ -67,7 +70,16 @@ class MailgunTestEmailServiceTest {
                 tenantMembershipRepository,
                 emailJobProducer
         );
-        when(directwerkConfig.isEmailEnabled()).thenReturn(true);
+        lenient().when(directwerkConfig.isEmailEnabled()).thenReturn(true);
+    }
+
+    @Test
+    void sendTestToTenantAdminsMustNotBeTransactional() throws NoSuchMethodException {
+        // Outer TX would join QueueService.enqueue (REQUIRED) and break durable inserts /
+        // per-recipient catch-and-continue. Keep this method non-transactional.
+        Method method = MailgunTestEmailService.class.getMethod("sendTestToTenantAdmins", Long.class);
+        assertThat(method.getAnnotation(Transactional.class)).isNull();
+        assertThat(MailgunTestEmailService.class.getAnnotation(Transactional.class)).isNull();
     }
 
     @Test
