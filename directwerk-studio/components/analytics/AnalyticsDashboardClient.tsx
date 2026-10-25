@@ -59,7 +59,7 @@ function recentPublished(
 
 function UmamiOpenButton({umamiHostUrl, websiteId}: {umamiHostUrl: string; websiteId: string}): React.JSX.Element {
     return (
-        <Button nativeButton={false} render={<a href={`${umamiHostUrl}/dashboard/websites/${websiteId}`} rel="noreferrer" target="_blank" />} variant="outline">
+        <Button nativeButton={false} render={<a href={`${umamiHostUrl}/websites/${websiteId}`} rel="noreferrer" target="_blank" />} variant="outline">
             In Umami öffnen
         </Button>
     )
@@ -528,7 +528,7 @@ export default function AnalyticsDashboardClient({
                             <CardContent className="flex flex-col gap-3 text-sm">
                                 <p className="text-muted-foreground">
                                     {umamiKeyMissing
-                                        ? 'Live-Kennzahlen sind noch nicht verfügbar: Auf dem Studio-Server fehlen die Umami-Zugangsdaten (UMAMI_USERNAME/UMAMI_PASSWORD).'
+                                        ? 'Live-Kennzahlen sind noch nicht verfügbar: Auf dem API-Server fehlen die Umami-Zugangsdaten (DIRECTWERK_ANALYTICS_UMAMI_USERNAME/DIRECTWERK_ANALYTICS_UMAMI_PASSWORD).'
                                         : 'Live-Kennzahlen konnten nicht geladen werden.'}
                                 </p>
                                 <div>

@@ -160,7 +160,7 @@ describe('AnalyticsDashboardClient', () => {
         expect(screen.getByText('Aufrufe pro Tag')).toBeInTheDocument()
         expect(screen.getByRole('button', {name: 'In Umami öffnen'})).toHaveAttribute(
             'href',
-            'https://umami.example.com/dashboard/websites/website-1',
+            'https://umami.example.com/websites/website-1',
         )
         expect(screen.queryByText('Publikum & Umsatz')).not.toBeInTheDocument()
         expect(screen.queryByText('Beiträge veröffentlicht')).not.toBeInTheDocument()
@@ -212,7 +212,7 @@ describe('AnalyticsDashboardClient', () => {
         )
 
         await waitFor(() =>
-            expect(screen.getByText(/UMAMI_USERNAME/)).toBeInTheDocument(),
+            expect(screen.getByText(/DIRECTWERK_ANALYTICS_UMAMI_USERNAME/)).toBeInTheDocument(),
         )
     })
 
