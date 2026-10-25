@@ -3,10 +3,12 @@ import {renderWithLocale} from '@/lib/i18n/testUtils'
 import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest'
 
 import MediaLibraryClient from '@/components/media/MediaLibraryClient'
+import {resetMediaPreviewFetchQueueForTests} from '@/components/media/MediaAudioPreview'
 import {
     createMediaFolder,
     deleteMedia,
     deleteMediaFolder,
+    getMediaPreviewUrl,
     getMediaUploadLimits,
     listMedia,
     listMediaFolders,
@@ -25,6 +27,7 @@ vi.mock('@/lib/api/mediaApi', () => ({
     deleteMedia: vi.fn(),
     listMediaFolders: vi.fn().mockResolvedValue([]),
     getMediaUploadLimits: vi.fn().mockResolvedValue(null),
+    getMediaPreviewUrl: vi.fn(),
     createMediaFolder: vi.fn(),
     renameMediaFolder: vi.fn(),
     moveMediaFolder: vi.fn(),
@@ -73,6 +76,7 @@ describe('MediaLibraryClient', () => {
     })
 
     beforeEach(() => {
+        resetMediaPreviewFetchQueueForTests()
         vi.mocked(listMedia).mockReset()
         vi.mocked(listMedia).mockResolvedValue([])
         vi.mocked(deleteMedia).mockReset()
@@ -86,6 +90,8 @@ describe('MediaLibraryClient', () => {
             maxVideoBytes: 5 * 1024 * 1024 * 1024,
             maxDocumentBytes: 50 * 1024 * 1024,
         })
+        vi.mocked(getMediaPreviewUrl).mockReset()
+        vi.mocked(getMediaPreviewUrl).mockResolvedValue('https://cdn.example/preview.mp3')
         vi.mocked(createMediaFolder).mockReset()
         vi.mocked(renameMediaFolder).mockReset()
         vi.mocked(moveMediaFolder).mockReset()
@@ -574,6 +580,84 @@ describe('MediaLibraryClient', () => {
         )
         expect(await screen.findByText('Ordner in „Neu“ umbenannt.')).toBeInTheDocument()
     })
+    it('renders an inline audio player for public CDN audio without fetching a preview URL', async () => {
+        const publicAudio: MediaAsset = {
+            ...coverAsset,
+            id: 11,
+            assetType: 'AUDIO',
+            mimeType: 'audio/mpeg',
+            originalFilename: 'public.mp3',
+            sizeBytes: 4096,
+            cdnUrl: 'https://cdn.example/public.mp3',
+        }
+        vi.mocked(listMedia).mockResolvedValue([publicAudio, coverAsset])
+
+        const {container} = renderWithLocale(<MediaLibraryClient />)
+
+        await waitFor(() => {
+            const audio = container.querySelector('audio')
+            expect(audio).not.toBeNull()
+            expect(audio).toHaveAttribute('src', 'https://cdn.example/public.mp3')
+            expect(audio).toHaveAttribute('controls')
+        })
+        expect(getMediaPreviewUrl).not.toHaveBeenCalled()
+        expect(screen.getByRole('img', {name: 'cover.png'})).toHaveAttribute(
+            'src',
+            'https://cdn.example/cover.png',
+        )
+    })
+
+    it('lazily loads a private READY audio preview URL on demand', async () => {
+        const privateAudio: MediaAsset = {
+            ...coverAsset,
+            id: 12,
+            assetType: 'AUDIO',
+            mimeType: 'audio/mpeg',
+            originalFilename: 'private.mp3',
+            sizeBytes: 2048,
+            visibility: 'PRIVATE',
+            cdnUrl: null,
+        }
+        vi.mocked(listMedia).mockResolvedValue([privateAudio])
+        vi.mocked(getMediaPreviewUrl).mockResolvedValue('https://cdn.example/signed-private.mp3')
+
+        const {container} = renderWithLocale(<MediaLibraryClient />)
+
+        expect(await screen.findByText('private.mp3')).toBeInTheDocument()
+        expect(container.querySelector('audio')).toBeNull()
+        expect(getMediaPreviewUrl).not.toHaveBeenCalled()
+
+        fireEvent.click(screen.getByRole('button', {name: 'Vorschau laden'}))
+
+        await waitFor(() => {
+            const audio = container.querySelector('audio')
+            expect(audio).not.toBeNull()
+            expect(audio).toHaveAttribute('src', 'https://cdn.example/signed-private.mp3')
+        })
+        expect(getMediaPreviewUrl).toHaveBeenCalledTimes(1)
+        expect(getMediaPreviewUrl).toHaveBeenCalledWith(12)
+    })
+
+    it('keeps non-audio placeholders without an audio element', async () => {
+        const videoAsset: MediaAsset = {
+            ...coverAsset,
+            id: 13,
+            assetType: 'VIDEO',
+            mimeType: 'video/mp4',
+            originalFilename: 'clip.mp4',
+            sizeBytes: 8192,
+            cdnUrl: null,
+        }
+        vi.mocked(listMedia).mockResolvedValue([videoAsset])
+
+        const {container} = renderWithLocale(<MediaLibraryClient />)
+
+        expect(await screen.findByText('clip.mp4')).toBeInTheDocument()
+        expect(screen.getByText('VIDEO')).toBeInTheDocument()
+        expect(container.querySelector('audio')).toBeNull()
+        expect(getMediaPreviewUrl).not.toHaveBeenCalled()
+    })
+
     it('reloads the folder the user navigated into when an upload finishes', async () => {
         vi.mocked(listMediaFolders).mockResolvedValue([testFolder(1, 'Interviews', null)])
         vi.mocked(listMedia).mockResolvedValue([])
