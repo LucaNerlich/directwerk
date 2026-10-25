@@ -29,11 +29,12 @@ import TenantModulesPanel from '@/components/TenantModulesPanel'
 import TenantProductsPanel from '@/components/TenantProductsPanel'
 import TenantSessionPanel from '@/components/TenantSessionPanel'
 import TenantUserActions from '@/components/TenantUserActions'
+import {listAllPlatformTenantUsers} from '@/lib/api/listAllPlatformTenantUsers'
 import {getMembersEffectiveRights, getPlatformData, postPlatformData} from '@/lib/api/client'
 import {useTenantPlatformQuery, usePlatformQuery} from '@/lib/api/usePlatformQuery'
 import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
 import {REQUEST_FAILED} from '@directwerk/api/constants'
-import type {EffectiveRights, TenantDetail, TenantDetailResponse, TenantUser, TenantUsers} from '@directwerk/api/types'
+import type {EffectiveRights, TenantDetail, TenantDetailResponse, TenantUser} from '@directwerk/api/types'
 
 interface TenantPageProps {
     params: Promise<{id: string}>
@@ -44,6 +45,7 @@ interface TenantPageData {
     episodeCount: number
     subscriberCount: number
     users: TenantUser[]
+    totalMembers: number
 }
 
 export default function TenantPage({params}: TenantPageProps) {
@@ -66,13 +68,14 @@ export default function TenantPage({params}: TenantPageProps) {
         async () => {
             const [tenantResponse, users] = await Promise.all([
                 getPlatformData<TenantDetailResponse>(`tenants/${id}`),
-                getPlatformData<TenantUsers>(`tenants/${id}/users?page=0&size=100`),
+                listAllPlatformTenantUsers(id),
             ])
             return {
                 tenant: tenantResponse.tenant,
                 episodeCount: tenantResponse.episodeCount,
                 subscriberCount: tenantResponse.subscriberCount,
                 users: users.content,
+                totalMembers: users.totalElements,
             }
         },
         {
@@ -358,7 +361,7 @@ export default function TenantPage({params}: TenantPageProps) {
                         <TenantProductsPanel sessionKey={tenantSessionKey} tenant={data.tenant} />
 
                         <SectionHeader
-                            description={`${data.users.length} member${data.users.length === 1 ? '' : 's'}. Deactivating removes access immediately.`}
+                            description={`${data.totalMembers} member${data.totalMembers === 1 ? '' : 's'} loaded. Deactivating removes access immediately.`}
                             title="Users"
                         />
                         {data.users.length > 0 ? (

@@ -25,6 +25,7 @@ import {useListViewMode} from '@directwerk/ui/hooks/use-list-view-mode'
 
 import SelectControl from '@/components/studio/SelectControl'
 import MemberRightsEditor from '@/components/team/MemberRightsEditor'
+import {listAllTenantEditors} from '@/lib/api/listAllTenantEditors'
 import {deactivateTenantUser, inviteTenantUser, listTenantUsers, reactivateTenantUser} from '@/lib/api/tenantSettingsApi'
 import {
     TENANT_INVITABLE_ROLES,
@@ -49,7 +50,6 @@ const INITIAL_INVITE_STATE: InviteState = {
 }
 
 const PAGE_SIZE = 50
-const EDITOR_PICKER_SIZE = 100
 
 function roleLabel(role: string): string {
     switch (role) {
@@ -125,22 +125,18 @@ export default function TeamClient(): React.JSX.Element {
     }, [searchInput])
 
     const reload = useCallback(async (): Promise<void> => {
-        const [directory, editorPage] = await Promise.all([
+        const [directory, editorList] = await Promise.all([
             listTenantUsers({
                 page,
                 size: PAGE_SIZE,
                 ...(searchQuery.length > 0 ? {q: searchQuery} : {}),
             }),
-            listTenantUsers({page: 0, size: EDITOR_PICKER_SIZE}),
+            listAllTenantEditors(),
         ])
         setUsers(directory.content)
         setTotalMembers(directory.totalElements)
         setPageSize(directory.size)
-        setEditors(
-            editorPage.content.filter(
-                (user) => user.roles.includes('EDITOR') && user.status !== 'DISABLED',
-            ),
-        )
+        setEditors(editorList)
     }, [page, searchQuery])
 
     useEffect(() => {
