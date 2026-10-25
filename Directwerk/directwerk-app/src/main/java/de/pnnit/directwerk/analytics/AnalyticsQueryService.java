@@ -2,6 +2,7 @@ package de.pnnit.directwerk.analytics;
 
 import de.pnnit.directwerk.config.DirectwerkConfig;
 import de.pnnit.directwerk.config.DirectwerkProperties;
+import de.pnnit.directwerk.modules.core.analytics.UmamiAnalyticsResolver;
 import de.pnnit.directwerk.modules.core.entity.TenantBranding;
 import de.pnnit.directwerk.modules.core.service.TenantBrandingService;
 import de.pnnit.directwerk.modules.core.util.UmamiHostUrlValidator;
@@ -107,8 +108,10 @@ public class AnalyticsQueryService {
             );
         }
 
+        // Prefer an explicit read-API base; otherwise reuse the same host resolution as
+        // site-config (tenant override → platform DIRECTWERK_ANALYTICS_UMAMI_HOST_URL).
         String apiBase = analytics.umamiApiBaseUrl().isBlank()
-                ? branding.getUmamiHostUrl()
+                ? UmamiAnalyticsResolver.resolveHostUrl(branding, directwerkConfig)
                 : analytics.umamiApiBaseUrl();
         String base = trustedBase(apiBase, analytics);
 

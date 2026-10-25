@@ -93,6 +93,35 @@ class AnalyticsQueryServiceTest {
     }
 
     @Test
+    void fallsBackToPlatformHostWhenTenantHostIsBlank() {
+        TenantBranding branding = new TenantBranding();
+        branding.setUmamiWebsiteId("abcdefgh");
+        when(tenantBrandingService.getBranding(10L)).thenReturn(branding);
+        when(directwerkConfig.isAnalyticsEnabled()).thenReturn(true);
+        when(directwerkConfig.analytics()).thenReturn(analytics("https://8.8.8.8"));
+
+        AtomicInteger loginCount = new AtomicInteger();
+        AnalyticsQueryService.RequestSender sender = (uri, body, token) -> {
+            if (uri.getPath().endsWith("/api/auth/login")) {
+                loginCount.incrementAndGet();
+                assertThat(uri.getHost()).isEqualTo("8.8.8.8");
+                return new AnalyticsQueryService.HttpResult(200, "{\"token\":\"platform-token\"}");
+            }
+            if (uri.getPath().endsWith("/stats")) {
+                return new AnalyticsQueryService.HttpResult(
+                        200, "{\"pageviews\":1,\"visitors\":1,\"visits\":1,\"bounces\":0}");
+            }
+            return new AnalyticsQueryService.HttpResult(200, "{}");
+        };
+
+        AnalyticsQueryService.StatsView view = service(sender).query(10L, AnalyticsRange.SEVEN_DAYS);
+
+        assertThat(loginCount).hasValue(1);
+        assertThat(view.range()).isEqualTo("7d");
+        assertThat(view.stats().path("pageviews").asInt()).isEqualTo(1);
+    }
+
+    @Test
     void rejectsTenantHostOutsideConfiguredDestinationsBeforeSendingCredentials() throws Exception {
         TenantBranding branding = branding("https://8.8.8.8");
         when(tenantBrandingService.getBranding(10L)).thenReturn(branding);

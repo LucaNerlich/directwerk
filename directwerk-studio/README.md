@@ -45,6 +45,12 @@ the browser's Do Not Track setting. Unrelated to the per-tenant `umamiWebsiteId`
 Settings → Branding, which drives Umami tracking on the tenant's own public site
 (`directwerk-web`).
 
+**Live stats on `/analytics`:** Studio calls `GET /api/v1/tenant/analytics/stats/{range}` through
+the tenant proxy. The API logs in to Umami with a platform-level authorized user
+(`DIRECTWERK_ANALYTICS_UMAMI_USERNAME` / `DIRECTWERK_ANALYTICS_UMAMI_PASSWORD` on the API —
+see `Directwerk/.env.example`). Tenants only configure their website id (and optional host
+override) in Branding; secrets never live in Studio.
+
 ## Verification
 
 ```bash
