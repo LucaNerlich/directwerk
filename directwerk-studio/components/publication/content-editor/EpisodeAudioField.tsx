@@ -108,8 +108,8 @@ export default function EpisodeAudioField({
                         disabled={controlsDisabled}
                         label={
                             hasAudio
-                                ? 'Audio aus Mediathek ersetzen'
-                                : 'Audio aus Mediathek'
+                                ? dict.podcast.audioMediathekErsetzen
+                                : dict.podcast.audioMediathek
                         }
                         onAuthRequired={onAuthRequired}
                         onSelect={(asset) => {
