@@ -18,6 +18,7 @@ import {listFormats} from '@/lib/api/catalogApi'
 import type {FormatSummary} from '@directwerk/api/types'
 
 import {useAuthedQuery} from '@directwerk/api/client/useAuthedQuery'
+import {fuzzyFilter} from '@directwerk/ui/lib/fuzzy'
 
 export default function FormatListClient(): React.JSX.Element {
     const dict = useDictionary()
@@ -29,16 +30,11 @@ export default function FormatListClient(): React.JSX.Element {
     )
     const searchInputId = useId()
     const [query, setQuery] = useState('')
-    const normalizedQuery = query.trim().toLowerCase()
 
-    const filteredFormats = useMemo(() => {
-        if (normalizedQuery.length === 0) {
-            return formats ?? []
-        }
-        return (formats ?? []).filter((format) =>
-            `${format.name} ${format.slug}`.toLowerCase().includes(normalizedQuery),
-        )
-    }, [formats, normalizedQuery])
+    const filteredFormats = useMemo(
+        () => fuzzyFilter(formats ?? [], query, {keys: ['name', 'slug']}),
+        [formats, query],
+    )
 
     const listItems = filteredFormats.map((format) => ({
         id: format.id,

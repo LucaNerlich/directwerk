@@ -22,6 +22,7 @@ import {AUTH_REQUIRED} from '@directwerk/api/constants'
 import {isPubliclyRenderable} from '@directwerk/api/media/readiness'
 import {listMedia, listMediaFolders} from '@/lib/api/mediaApi'
 import type {MediaAsset, MediaFolder} from '@directwerk/api/types'
+import {filterAssetsByQuery} from '@/lib/media/assetSearch'
 import {buildFolderTree, flattenFolderTree} from '@/lib/media/folders'
 import {formatBytes} from '@directwerk/api/format/bytes'
 import {assetTypeLabel} from '@/lib/subscription/displayLabels'
@@ -138,25 +139,18 @@ export default function MediaInlinePickerDialog({
         [assets],
     )
 
-    const visible = useMemo(
-        () =>
-            embeddable.filter((asset) => {
-                if (typeFilter !== 'ALL' && asset.assetType !== typeFilter) {
-                    return false
-                }
-                if (folderFilter !== 'ALL' && (asset.folderId ?? null) !== folderFilter) {
-                    return false
-                }
-                const needle = query.trim().toLowerCase()
-                if (needle.length === 0) {
-                    return true
-                }
-                return (asset.originalFilename ?? `Asset ${asset.id}`)
-                    .toLowerCase()
-                    .includes(needle)
-            }),
-        [embeddable, typeFilter, folderFilter, query],
-    )
+    const visible = useMemo(() => {
+        const scoped = embeddable.filter((asset) => {
+            if (typeFilter !== 'ALL' && asset.assetType !== typeFilter) {
+                return false
+            }
+            if (folderFilter !== 'ALL' && (asset.folderId ?? null) !== folderFilter) {
+                return false
+            }
+            return true
+        })
+        return filterAssetsByQuery(scoped, query)
+    }, [embeddable, typeFilter, folderFilter, query])
 
     const folderOptions = useMemo(
         () => flattenFolderTree(buildFolderTree(folders)),

@@ -10,6 +10,7 @@ import {EntityListSection} from '@directwerk/ui/components/entity-list-section'
 import type {EntityListViewItem} from '@directwerk/ui/components/entity-list-view'
 import {Input} from '@directwerk/ui/components/input'
 import type {ViewMode} from '@directwerk/ui/components/view-mode-toggle'
+import {fuzzyFilter} from '@directwerk/ui/lib/fuzzy'
 
 import PublicationStatusBadge from '@/components/publication/PublicationStatusBadge'
 import TagPill from '@/components/publication/TagPill'
@@ -294,25 +295,24 @@ export default function PublicationListSection<T extends PublicationListItem>(
 
     const searchInputId = useId()
     const [query, setQuery] = useState('')
-    const normalizedQuery = query.trim().toLowerCase()
-    const visibleItems = useMemo(() => {
-        if (normalizedQuery.length === 0) {
-            return items
-        }
-        return items.filter((item) => {
-            const haystack = [
-                item.title,
-                item.slug ?? '',
-                item.meta ?? '',
-                item.seriesLabel ?? '',
-                ...(item.formats ?? []).map((format) => format.name),
-                ...(item.categories ?? []).map((category) => category.name),
-            ]
-                .join(' ')
-                .toLowerCase()
-            return haystack.includes(normalizedQuery)
-        })
-    }, [items, normalizedQuery])
+    const hasQuery = query.trim().length > 0
+    const visibleItems = useMemo(
+        () =>
+            fuzzyFilter(items, query, {
+                keys: [
+                    'title',
+                    'slug',
+                    'meta',
+                    'seriesLabel',
+                    {name: 'formats', getFn: (item) => item.formats?.map((f) => f.name) ?? []},
+                    {
+                        name: 'categories',
+                        getFn: (item) => item.categories?.map((c) => c.name) ?? [],
+                    },
+                ],
+            }),
+        [items, query],
+    )
     const entityItems = useMemo(
         () => toEntityItems({...props, items: visibleItems}),
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -349,7 +349,7 @@ export default function PublicationListSection<T extends PublicationListItem>(
                             type="search"
                             value={query}
                         />
-                        {normalizedQuery.length > 0 ? (
+                        {hasQuery ? (
                             <p className="text-sm text-muted-foreground" role="status">
                                 {visibleItems.length === 1
                                     ? '1 Treffer'
@@ -367,7 +367,7 @@ export default function PublicationListSection<T extends PublicationListItem>(
                     </div>
                 </div>
             ) : null}
-            {visibleItems.length === 0 && normalizedQuery.length > 0 ? (
+            {visibleItems.length === 0 && hasQuery ? (
                 <EmptyState
                     description={dict.publication.passeSuchbegriffSetzeSucheZurueckAlle}
                     title="Keine Treffer"

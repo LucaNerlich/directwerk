@@ -37,7 +37,7 @@ import {
     type MediaFolderDeleteMode,
 } from '@/lib/api/mediaApi'
 import type {MediaAsset, MediaFolder, MediaUploadLimits} from '@directwerk/api/types'
-import {matchesQuery} from '@/lib/media/assetSearch'
+import {filterAssetsByQuery} from '@/lib/media/assetSearch'
 import {MEDIA_TYPE_LIMITS, mediaLimitLabelFor, resolveMediaLimits} from '@/lib/media/limits'
 import {
     assetFolderId,
@@ -471,19 +471,16 @@ export default function MediaLibraryClient(): React.JSX.Element {
                 }
             }
         }
-        const needle = filenameQuery.trim().toLowerCase()
-        return assets.filter((asset) => {
+        const scoped = assets.filter((asset) => {
             if (typeFilter.length > 0 && asset.assetType !== typeFilter) {
                 return false
             }
             if (statusFilter.length > 0 && asset.status !== statusFilter) {
                 return false
             }
-            if (!acceptedFolders.has(assetFolderId(asset))) {
-                return false
-            }
-            return matchesQuery(asset, needle)
+            return acceptedFolders.has(assetFolderId(asset))
         })
+        return filterAssetsByQuery(scoped, filenameQuery)
     }, [assets, filenameQuery, folders, folderView, includeSubfolders, statusFilter, typeFilter])
 
     const visibleAssetIds = useMemo(

@@ -24,6 +24,7 @@
         "@directwerk/legal": "workspace:*",
         "class-variance-authority": "latest",
         "clsx": "latest",
+        "fuse.js": "^7.5.0",
         "lucide-react": "latest",
         "react": "^19.2.8",
         "react-dom": "^19.2.8",

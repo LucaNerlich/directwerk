@@ -87,10 +87,10 @@ importers:
     devDependencies:
       vitepress:
         specifier: 2.0.0-alpha.19
-        version: 2.0.0-alpha.19(@types/node@22.20.5)(change-case@5.4.4)(jiti@2.7.0)(postcss@8.5.31)(typescript@5.9.3)(yaml@2.9.1)
+        version: 2.0.0-alpha.19(@types/node@22.20.5)(change-case@5.4.4)(fuse.js@7.5.0)(jiti@2.7.0)(postcss@8.5.31)(typescript@5.9.3)(yaml@2.9.1)
       vitepress-openapi-docs:
         specifier: ^1.8.1
-        version: 1.8.1(vitepress@2.0.0-alpha.19(@types/node@22.20.5)(change-case@5.4.4)(jiti@2.7.0)(postcss@8.5.31)(typescript@5.9.3)(yaml@2.9.1))(vue-api-playground@2.6.0(vue@3.5.44(typescript@5.9.3)))(vue@3.5.44(typescript@5.9.3))
+        version: 1.8.1(vitepress@2.0.0-alpha.19(@types/node@22.20.5)(change-case@5.4.4)(fuse.js@7.5.0)(jiti@2.7.0)(postcss@8.5.31)(typescript@5.9.3)(yaml@2.9.1))(vue-api-playground@2.6.0(vue@3.5.44(typescript@5.9.3)))(vue@3.5.44(typescript@5.9.3))
       vitepress-plugin-mermaid-diagram:
         specifier: ^0.3.2
         version: 0.3.2(markdown-it@15.0.3)
@@ -356,6 +356,9 @@ importers:
       clsx:
         specifier: latest
         version: 2.1.1
+      fuse.js:
+        specifier: ^7.5.0
+        version: 7.5.0
       lucide-react:
         specifier: latest
         version: 1.61.0(@types/react@19.3.0)(react@19.3.1)
@@ -1855,6 +1858,10 @@ packages:
     resolution: {integrity: sha512-5xoDfX+fL7faATnagmWPpbFtwh/R77WmMMqqHGS65C3vvB0YHrgF+B1YmZ3441tMj5n63k0212XNoJwzlhffQw==}
     engines: {node: ^8.16.0 || ^10.6.0 || >=11.0.0}
     os: [darwin]
+
+  fuse.js@7.5.0:
+    resolution: {integrity: sha512-sQtrEfA+ez/3G0cCZecF70oqpCRttCexYUG4mUrtWL49ULUzUyxokt5kyqwtKzj1270RaKih+hcP3qLcumccow==}
+    engines: {node: '>=10'}
 
   get-stream@6.0.1:
     resolution: {integrity: sha512-ts6Wi+2j3jQjqi70w5AlN8DFnkSwC+MqmxEzdEALB2qXZYV3X/b1CTfgPLGJNMeAWxdPfU8FO1ms3NUfaHCPYg==}
@@ -3877,7 +3884,7 @@ snapshots:
       '@vueuse/shared': 14.4.0(vue@3.5.44(typescript@5.9.3))
       vue: 3.5.44(typescript@5.9.3)
 
-  '@vueuse/integrations@14.4.0(change-case@5.4.4)(focus-trap@8.2.3)(vue@3.5.44(typescript@5.9.3))':
+  '@vueuse/integrations@14.4.0(change-case@5.4.4)(focus-trap@8.2.3)(fuse.js@7.5.0)(vue@3.5.44(typescript@5.9.3))':
     dependencies:
       '@vueuse/core': 14.4.0(vue@3.5.44(typescript@5.9.3))
       '@vueuse/shared': 14.4.0(vue@3.5.44(typescript@5.9.3))
@@ -3885,6 +3892,7 @@ snapshots:
     optionalDependencies:
       change-case: 5.4.4
       focus-trap: 8.2.3
+      fuse.js: 7.5.0
 
   '@vueuse/metadata@14.4.0': {}
 
@@ -4230,6 +4238,8 @@ snapshots:
 
   fsevents@2.3.3:
     optional: true
+
+  fuse.js@7.5.0: {}
 
   get-stream@6.0.1: {}
 
@@ -5151,13 +5161,13 @@ snapshots:
       jiti: 2.7.0
       yaml: 2.9.1
 
-  vitepress-openapi-docs@1.8.1(vitepress@2.0.0-alpha.19(@types/node@22.20.5)(change-case@5.4.4)(jiti@2.7.0)(postcss@8.5.31)(typescript@5.9.3)(yaml@2.9.1))(vue-api-playground@2.6.0(vue@3.5.44(typescript@5.9.3)))(vue@3.5.44(typescript@5.9.3)):
+  vitepress-openapi-docs@1.8.1(vitepress@2.0.0-alpha.19(@types/node@22.20.5)(change-case@5.4.4)(fuse.js@7.5.0)(jiti@2.7.0)(postcss@8.5.31)(typescript@5.9.3)(yaml@2.9.1))(vue-api-playground@2.6.0(vue@3.5.44(typescript@5.9.3)))(vue@3.5.44(typescript@5.9.3)):
     dependencies:
       '@scalar/openapi-parser': 0.25.12
       dompurify: 3.4.17
       jsdom: 29.1.1
       marked: 18.1.1
-      vitepress: 2.0.0-alpha.19(@types/node@22.20.5)(change-case@5.4.4)(jiti@2.7.0)(postcss@8.5.31)(typescript@5.9.3)(yaml@2.9.1)
+      vitepress: 2.0.0-alpha.19(@types/node@22.20.5)(change-case@5.4.4)(fuse.js@7.5.0)(jiti@2.7.0)(postcss@8.5.31)(typescript@5.9.3)(yaml@2.9.1)
       vue: 3.5.44(typescript@5.9.3)
       vue-api-playground: 2.6.0(vue@3.5.44(typescript@5.9.3))
     transitivePeerDependencies:
@@ -5168,7 +5178,7 @@ snapshots:
     dependencies:
       markdown-it: 15.0.3
 
-  vitepress@2.0.0-alpha.19(@types/node@22.20.5)(change-case@5.4.4)(jiti@2.7.0)(postcss@8.5.31)(typescript@5.9.3)(yaml@2.9.1):
+  vitepress@2.0.0-alpha.19(@types/node@22.20.5)(change-case@5.4.4)(fuse.js@7.5.0)(jiti@2.7.0)(postcss@8.5.31)(typescript@5.9.3)(yaml@2.9.1):
     dependencies:
       '@docsearch/css': 4.7.1
       '@docsearch/js': 4.7.1
@@ -5182,7 +5192,7 @@ snapshots:
       '@vue/devtools-api': 8.2.1
       '@vue/shared': 3.5.44
       '@vueuse/core': 14.4.0(vue@3.5.44(typescript@5.9.3))
-      '@vueuse/integrations': 14.4.0(change-case@5.4.4)(focus-trap@8.2.3)(vue@3.5.44(typescript@5.9.3))
+      '@vueuse/integrations': 14.4.0(change-case@5.4.4)(focus-trap@8.2.3)(fuse.js@7.5.0)(vue@3.5.44(typescript@5.9.3))
       focus-trap: 8.2.3
       mark.js: 8.11.1
       minisearch: 7.2.0

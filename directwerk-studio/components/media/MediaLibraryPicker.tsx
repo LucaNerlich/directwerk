@@ -13,7 +13,7 @@ import {isPubliclySelectable, isReadyAsset} from '@directwerk/api/media/readines
 import {listMedia, listMediaFolders} from '@/lib/api/mediaApi'
 import type {AssetType, MediaAsset, MediaFolder} from '@directwerk/api/types'
 import {t} from '@/lib/i18n/dictionary'
-import {assetLabel, matchesQuery} from '@/lib/media/assetSearch'
+import {assetLabel, filterAssetsByQuery} from '@/lib/media/assetSearch'
 import {buildFolderTree, flattenFolderTree} from '@/lib/media/folders'
 import {assetTypeLabel} from '@/lib/subscription/displayLabels'
 
@@ -223,10 +223,10 @@ export default function MediaLibraryPicker({
         }
     }, [open])
 
-    const filteredAssets = useMemo(() => {
-        const needle = query.trim().toLowerCase()
-        return assets.filter((asset) => matchesQuery(asset, needle))
-    }, [assets, query])
+    const filteredAssets = useMemo(
+        () => filterAssetsByQuery(assets, query),
+        [assets, query],
+    )
 
     const groups = useMemo(
         () => groupReadyAssets(filteredAssets, folders, dict.media.bibliothekObersteEbene),
