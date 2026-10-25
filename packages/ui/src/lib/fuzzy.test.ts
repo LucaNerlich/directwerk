@@ -33,6 +33,19 @@ describe('fuzzyFilter', () => {
         expect(hits.map((row) => row.name)).toContain('Cover Art')
     })
 
+    it('rejects near-miss labels that substring search would exclude', () => {
+        const files = [
+            {label: 'cover-a.jpg'},
+            {label: 'cover-b.png'},
+            {label: 'Cover Art'},
+        ]
+        const hits = fuzzyFilter(files, 'cover-b', {keys: ['label']})
+        expect(hits.map((row) => row.label)).toEqual(['cover-b.png'])
+
+        const typos = fuzzyFilter(files, 'covr art', {keys: ['label']})
+        expect(typos.map((row) => row.label)).toContain('Cover Art')
+    })
+
     it('returns an empty array when nothing matches', () => {
         expect(fuzzyFilter(rows, 'zzzz-not-a-hit', {keys: ['name', 'slug']})).toEqual([])
     })
