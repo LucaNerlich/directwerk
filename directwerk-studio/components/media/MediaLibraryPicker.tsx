@@ -13,6 +13,7 @@ import {isPubliclySelectable, isReadyAsset} from '@directwerk/api/media/readines
 import {listMedia, listMediaFolders} from '@/lib/api/mediaApi'
 import type {AssetType, MediaAsset, MediaFolder} from '@directwerk/api/types'
 import {t} from '@/lib/i18n/dictionary'
+import {assetLabel, matchesQuery} from '@/lib/media/assetSearch'
 import {buildFolderTree, flattenFolderTree} from '@/lib/media/folders'
 import {assetTypeLabel} from '@/lib/subscription/displayLabels'
 
@@ -35,17 +36,6 @@ interface AssetGroup {
     key: string
     label: string
     assets: MediaAsset[]
-}
-
-function assetLabel(asset: MediaAsset): string {
-    return asset.originalFilename ?? `Asset ${asset.id}`
-}
-
-function matchesQuery(asset: MediaAsset, needle: string): boolean {
-    if (needle.length === 0) {
-        return true
-    }
-    return assetLabel(asset).toLowerCase().includes(needle)
 }
 
 function groupReadyAssets(
