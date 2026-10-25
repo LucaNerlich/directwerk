@@ -197,4 +197,33 @@ describe('media library picker groups + search (#825)', () => {
         expect(onSelect).toHaveBeenCalledWith(expect.objectContaining({id: 9}))
         expect(screen.queryByRole('listbox')).not.toBeInTheDocument()
     })
+
+    it('portals the open panel outside a clipping Card ancestor', async () => {
+        listMediaMock.mockResolvedValue([
+            asset({id: 1, originalFilename: 'cover.jpg', folderId: null}),
+        ])
+        listMediaFoldersMock.mockResolvedValue([])
+
+        const {Card, CardContent} = await import('@directwerk/ui/components/card')
+
+        renderWithLocale(
+            <Card>
+                <CardContent className="pt-(--card-spacing)">
+                    <MediaLibraryPicker
+                        assetType="IMAGE"
+                        label="Titelbild aus Mediathek"
+                        onAuthRequired={() => {}}
+                        onSelect={() => {}}
+                        requirePublic
+                        selectedId={null}
+                    />
+                </CardContent>
+            </Card>,
+        )
+
+        const listbox = await openPicker('Titelbild aus Mediathek')
+        expect(listbox.closest('[data-slot="card"]')).toBeNull()
+        expect(document.body.contains(listbox)).toBe(true)
+        expect(offeredIds(listbox)).toEqual(['cover.jpg'])
+    })
 })

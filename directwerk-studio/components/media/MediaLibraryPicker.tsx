@@ -1,6 +1,7 @@
 'use client'
 
-import {useEffect, useId, useMemo, useRef, useState} from 'react'
+import {useEffect, useId, useLayoutEffect, useMemo, useRef, useState} from 'react'
+import {createPortal} from 'react-dom'
 
 import {Button} from '@directwerk/ui/components/button'
 import {Input} from '@directwerk/ui/components/input'
@@ -115,6 +116,13 @@ export default function MediaLibraryPicker({
     const searchId = useId()
     const listboxId = useId()
     const rootRef = useRef<HTMLDivElement>(null)
+    const triggerRef = useRef<HTMLButtonElement>(null)
+    const panelRef = useRef<HTMLDivElement>(null)
+    const [panelStyle, setPanelStyle] = useState<{
+        top: number
+        left: number
+        width: number
+    } | null>(null)
 
     useEffect(() => {
         let active = true
@@ -164,15 +172,45 @@ export default function MediaLibraryPicker({
         }
     }, [assetType, dict.media.mediathekKonnteGeladen, onAuthRequired, requirePublic, reloadToken])
 
+    useLayoutEffect(() => {
+        if (!open) {
+            setPanelStyle(null)
+            return
+        }
+
+        function updatePanelPosition(): void {
+            const trigger = triggerRef.current
+            if (trigger === null) {
+                return
+            }
+            const rect = trigger.getBoundingClientRect()
+            setPanelStyle({
+                top: rect.bottom + 4,
+                left: rect.left,
+                width: rect.width,
+            })
+        }
+
+        updatePanelPosition()
+        window.addEventListener('resize', updatePanelPosition)
+        window.addEventListener('scroll', updatePanelPosition, true)
+        return () => {
+            window.removeEventListener('resize', updatePanelPosition)
+            window.removeEventListener('scroll', updatePanelPosition, true)
+        }
+    }, [open])
+
     useEffect(() => {
         if (!open) {
             return
         }
 
         function onPointerDown(event: MouseEvent): void {
-            if (rootRef.current !== null && !rootRef.current.contains(event.target as Node)) {
-                setOpen(false)
+            const target = event.target as Node
+            if (rootRef.current?.contains(target) || panelRef.current?.contains(target)) {
+                return
             }
+            setOpen(false)
         }
 
         function onKeyDown(event: KeyboardEvent): void {
@@ -232,6 +270,7 @@ export default function MediaLibraryPicker({
                 ) : (
                     <div className="relative" ref={rootRef}>
                         <Button
+                            ref={triggerRef}
                             aria-controls={listboxId}
                             aria-describedby={`${helpId}-help`}
                             aria-expanded={open}
@@ -247,68 +286,77 @@ export default function MediaLibraryPicker({
                             <span className="truncate">{triggerLabel}</span>
                             <ChevronDownIcon aria-hidden="true" className="size-4 shrink-0 opacity-60" />
                         </Button>
-                        {open ? (
-                            <div
-                                className="absolute z-40 mt-1 grid w-full gap-2 rounded-lg border bg-popover p-2 text-popover-foreground shadow-md ring-1 ring-foreground/10"
-                                role="presentation"
-                            >
-                                <label className="grid gap-1.5 text-sm font-medium" htmlFor={searchId}>
-                                    <span className="sr-only">{dict.media.mediathekDurchsuchen}</span>
-                                    <Input
-                                        autoFocus
-                                        id={searchId}
-                                        onChange={(event) => setQuery(event.target.value)}
-                                        placeholder={dict.media.dateinameSuchen}
-                                        type="search"
-                                        value={query}
-                                    />
-                                </label>
-                                {groups.length === 0 ? (
-                                    <p className="px-1 py-2 text-sm text-muted-foreground" role="status">
-                                        {dict.media.diesenFilterGibtKeineTreffer}
-                                    </p>
-                                ) : (
-                                    <ul
-                                        aria-label={label}
-                                        className="grid max-h-64 gap-2 overflow-y-auto pr-1"
-                                        id={listboxId}
-                                        role="listbox"
-                                    >
-                                        {groups.map((group) => (
-                                            <li key={group.key}>
-                                                <p className="px-1.5 py-1 text-xs font-medium text-muted-foreground">
-                                                    {group.label}
-                                                </p>
-                                                <ul className="grid gap-0.5" role="group" aria-label={group.label}>
-                                                    {group.assets.map((asset) => {
-                                                        const isSelected = asset.id === selectedId
-                                                        return (
-                                                            <li key={asset.id} role="presentation">
-                                                                <button
-                                                                    aria-selected={isSelected}
-                                                                    className="flex w-full items-center rounded-md px-1.5 py-1.5 text-left text-sm hover:bg-accent hover:text-accent-foreground focus-visible:bg-accent focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50"
-                                                                    disabled={isSelected}
-                                                                    onClick={() => {
-                                                                        onSelect(asset)
-                                                                        setOpen(false)
-                                                                    }}
-                                                                    role="option"
-                                                                    type="button"
-                                                                >
-                                                                    <span className="truncate">
-                                                                        {assetLabel(asset)}
-                                                                    </span>
-                                                                </button>
-                                                            </li>
-                                                        )
-                                                    })}
-                                                </ul>
-                                            </li>
-                                        ))}
-                                    </ul>
-                                )}
-                            </div>
-                        ) : null}
+                        {open && panelStyle !== null
+                            ? createPortal(
+                                  <div
+                                      ref={panelRef}
+                                      className="fixed z-50 grid gap-2 rounded-lg border bg-popover p-2 text-popover-foreground shadow-md ring-1 ring-foreground/10"
+                                      role="presentation"
+                                      style={{
+                                          top: panelStyle.top,
+                                          left: panelStyle.left,
+                                          width: panelStyle.width,
+                                      }}
+                                  >
+                                      <label className="grid gap-1.5 text-sm font-medium" htmlFor={searchId}>
+                                          <span className="sr-only">{dict.media.mediathekDurchsuchen}</span>
+                                          <Input
+                                              autoFocus
+                                              id={searchId}
+                                              onChange={(event) => setQuery(event.target.value)}
+                                              placeholder={dict.media.dateinameSuchen}
+                                              type="search"
+                                              value={query}
+                                          />
+                                      </label>
+                                      {groups.length === 0 ? (
+                                          <p className="px-1 py-2 text-sm text-muted-foreground" role="status">
+                                              {dict.media.diesenFilterGibtKeineTreffer}
+                                          </p>
+                                      ) : (
+                                          <ul
+                                              aria-label={label}
+                                              className="grid max-h-64 gap-2 overflow-y-auto pr-1"
+                                              id={listboxId}
+                                              role="listbox"
+                                          >
+                                              {groups.map((group) => (
+                                                  <li key={group.key}>
+                                                      <p className="px-1.5 py-1 text-xs font-medium text-muted-foreground">
+                                                          {group.label}
+                                                      </p>
+                                                      <ul className="grid gap-0.5" role="group" aria-label={group.label}>
+                                                          {group.assets.map((asset) => {
+                                                              const isSelected = asset.id === selectedId
+                                                              return (
+                                                                  <li key={asset.id} role="presentation">
+                                                                      <button
+                                                                          aria-selected={isSelected}
+                                                                          className="flex w-full items-center rounded-md px-1.5 py-1.5 text-left text-sm hover:bg-accent hover:text-accent-foreground focus-visible:bg-accent focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50"
+                                                                          disabled={isSelected}
+                                                                          onClick={() => {
+                                                                              onSelect(asset)
+                                                                              setOpen(false)
+                                                                          }}
+                                                                          role="option"
+                                                                          type="button"
+                                                                      >
+                                                                          <span className="truncate">
+                                                                              {assetLabel(asset)}
+                                                                          </span>
+                                                                      </button>
+                                                                  </li>
+                                                              )
+                                                          })}
+                                                      </ul>
+                                                  </li>
+                                              ))}
+                                          </ul>
+                                      )}
+                                  </div>,
+                                  document.body,
+                              )
+                            : null}
                     </div>
                 )}
                 {errorMessage !== null ? (
