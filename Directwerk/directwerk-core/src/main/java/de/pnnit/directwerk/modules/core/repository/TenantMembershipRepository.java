@@ -6,6 +6,8 @@ import java.time.Instant;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -24,6 +26,38 @@ public interface TenantMembershipRepository extends JpaRepository<TenantMembersh
      */
     @EntityGraph(attributePaths = "user")
     List<TenantMembership> findByTenantId(Long tenantId);
+
+    /**
+     * Bounded tenant directory page (#561 remaining): optional case-insensitive email/name search.
+     * {@code queryBlank} avoids binding an empty LIKE pattern when no filter is requested.
+     */
+    @EntityGraph(attributePaths = "user")
+    @Query(
+            value = """
+                    select membership from TenantMembership membership
+                    where membership.tenantId = :tenantId
+                      and (
+                        :queryBlank = true
+                        or lower(membership.user.email) like lower(concat('%', :query, '%'))
+                        or lower(coalesce(membership.user.name, '')) like lower(concat('%', :query, '%'))
+                      )
+                    """,
+            countQuery = """
+                    select count(membership) from TenantMembership membership
+                    where membership.tenantId = :tenantId
+                      and (
+                        :queryBlank = true
+                        or lower(membership.user.email) like lower(concat('%', :query, '%'))
+                        or lower(coalesce(membership.user.name, '')) like lower(concat('%', :query, '%'))
+                      )
+                    """
+    )
+    Page<TenantMembership> searchByTenantId(
+            @Param("tenantId") Long tenantId,
+            @Param("query") String query,
+            @Param("queryBlank") boolean queryBlank,
+            Pageable pageable
+    );
 
     Optional<TenantMembership> findByTenantIdAndUserId(Long tenantId, Long userId);
 

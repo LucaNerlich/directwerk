@@ -3,7 +3,7 @@
 import LocaleLink from '@/components/i18n/LocaleLink'
 import {useDictionary} from '@/components/i18n/LocaleProvider'
 import {t} from '@/lib/i18n/dictionary'
-import {useMemo, useState} from 'react'
+import {useCallback, useEffect, useState} from 'react'
 
 import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
 import {Badge} from '@directwerk/ui/components/badge'
@@ -20,7 +20,7 @@ import {Skeleton} from '@directwerk/ui/components/skeleton'
 import {useListViewMode} from '@directwerk/ui/hooks/use-list-view-mode'
 
 import {revokeSubscription} from '@/lib/api/subscriptionApi'
-import {listSubscribers} from '@/lib/api/tenantSettingsApi'
+import {listAllSubscribers, listSubscribers} from '@/lib/api/tenantSettingsApi'
 import {
     buildSubscriberCsv,
     downloadSubscriberCsv,
@@ -29,13 +29,12 @@ import {
     subscriptionSourceLabel,
     subscriptionStatusLabel,
 } from '@/lib/subscription/displayLabels'
-import type {TenantSubscriberSubscription} from '@directwerk/api/types'
-import {useCachedTenantQuery} from '@directwerk/api/client/useCachedTenantQuery'
+import type {TenantSubscriber, TenantSubscriberSubscription} from '@directwerk/api/types'
 import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
 import {useTwoStepConfirm} from '@/lib/hooks/useTwoStepConfirm'
-import {getClientTenantHost} from '@directwerk/api/tenant'
 
 const REVOCABLE = new Set(['ACTIVE', 'PAST_DUE', 'INCOMPLETE'])
+const PAGE_SIZE = 50
 
 function periodLabel(item: TenantSubscriberSubscription): string {
     if (item.endsAt !== null) {
@@ -51,47 +50,69 @@ export default function SubscribersClient(): React.JSX.Element {
     const dict = useDictionary()
     const m = dict.manage
     const authRedirect = useAuthRequired()
-    const tenantHost = getClientTenantHost()
-    const {
-        data: loadedSubscribers,
-        error: loadError,
-        isLoading,
-        reload,
-    } = useCachedTenantQuery(
-        (host) => listSubscribers(),
-        {
-            namespace: 'tenant-subscribers',
-            tenantHost,
-            fallbackError: dict.write.subscribersLoadFailed,
-        },
-    )
+    const [subscribers, setSubscribers] = useState<TenantSubscriber[]>([])
+    const [totalSubscribers, setTotalSubscribers] = useState(0)
+    const [page, setPage] = useState(0)
+    const [pageSize, setPageSize] = useState(PAGE_SIZE)
+    const [searchInput, setSearchInput] = useState('')
+    const [searchQuery, setSearchQuery] = useState('')
+    const [isLoading, setIsLoading] = useState(true)
+    const [loadError, setLoadError] = useState<string | null>(null)
     const [actionError, setActionError] = useState<string | null>(null)
     const [statusMessage, setStatusMessage] = useState<string | null>(null)
     const [isBusy, setIsBusy] = useState(false)
+    const [reloadToken, setReloadToken] = useState(0)
     const {pending: pendingRevokeId, arm: armRevoke, reset: resetRevoke} = useTwoStepConfirm<number>()
-    const [query, setQuery] = useState('')
     const {viewMode, setViewMode} = useListViewMode()
 
-    const subscribers = useMemo(() => {
-        const loaded = loadedSubscribers ?? []
-        const needle = query.trim().toLowerCase()
-        if (needle.length === 0) {
-            return loaded
-        }
-        return loaded.filter((subscriber) => {
-            if (subscriber.email.toLowerCase().includes(needle)) {
-                return true
-            }
-            if (subscriber.name !== null && subscriber.name.toLowerCase().includes(needle)) {
-                return true
-            }
-            return subscriber.subscriptions.some((item) =>
-                item.productTitle.toLowerCase().includes(needle),
-            )
+    useEffect(() => {
+        const handle = window.setTimeout(() => {
+            setSearchQuery(searchInput.trim())
+            setPage(0)
+        }, 300)
+        return () => window.clearTimeout(handle)
+    }, [searchInput])
+
+    const reload = useCallback(async (): Promise<void> => {
+        const result = await listSubscribers({
+            page,
+            size: PAGE_SIZE,
+            ...(searchQuery.length > 0 ? {q: searchQuery} : {}),
         })
-    }, [loadedSubscribers, query])
-    const totalSubscribers = loadedSubscribers?.length ?? 0
+        setSubscribers(result.content)
+        setTotalSubscribers(result.totalElements)
+        setPageSize(result.size)
+    }, [page, searchQuery])
+
+    useEffect(() => {
+        let active = true
+        setIsLoading(true)
+        setLoadError(null)
+        reload()
+            .then(() => {
+                if (!active) {
+                    return
+                }
+                setIsLoading(false)
+            })
+            .catch((error: unknown) => {
+                if (!active) {
+                    return
+                }
+                if (authRedirect(error)) return
+                setLoadError(
+                    error instanceof Error ? error.message : dict.write.subscribersLoadFailed,
+                )
+                setIsLoading(false)
+            })
+        return () => {
+            active = false
+        }
+    }, [reload, reloadToken, authRedirect, dict.write.subscribersLoadFailed])
+
     const errorMessage = actionError ?? loadError
+    const hasPreviousPage = page > 0
+    const hasNextPage = (page + 1) * pageSize < totalSubscribers
 
     async function handleRevoke(item: TenantSubscriberSubscription, email: string): Promise<void> {
         if (!armRevoke(item.id)) {
@@ -109,7 +130,7 @@ export default function SubscribersClient(): React.JSX.Element {
             await revokeSubscription( item.id)
             resetRevoke()
             setStatusMessage(`Zugang beendet: ${email}`)
-            reload()
+            setReloadToken((value) => value + 1)
         } catch (error: unknown) {
             if (authRedirect(error)) return
             setActionError(
@@ -118,6 +139,27 @@ export default function SubscribersClient(): React.JSX.Element {
         } finally {
             setIsBusy(false)
             resetRevoke()
+        }
+    }
+
+    async function handleCsvExport(): Promise<void> {
+        setIsBusy(true)
+        setActionError(null)
+        try {
+            const rows = await listAllSubscribers(
+                searchQuery.length > 0 ? {q: searchQuery} : undefined,
+            )
+            const csv = buildSubscriberCsv(rows)
+            const stamp = new Date().toISOString().slice(0, 10)
+            downloadSubscriberCsv(csv, `abonnenten-${stamp}.csv`)
+            setStatusMessage(m.csvExportHeruntergeladen)
+        } catch (error: unknown) {
+            if (authRedirect(error)) return
+            setActionError(
+                error instanceof Error ? error.message : dict.write.subscribersLoadFailed,
+            )
+        } finally {
+            setIsBusy(false)
         }
     }
 
@@ -216,13 +258,11 @@ export default function SubscribersClient(): React.JSX.Element {
                 title={m.subscribersTitle}
                 description={m.zugangBezahltenInhaltenKaufFreischaltungGekaufte}
                 actions={
-                    totalSubscribers > 0 ? (
+                    totalSubscribers > 0 || searchQuery.length > 0 ? (
                         <Button
+                            disabled={isBusy || totalSubscribers === 0}
                             onClick={() => {
-                                const csv = buildSubscriberCsv(loadedSubscribers ?? [])
-                                const stamp = new Date().toISOString().slice(0, 10)
-                                downloadSubscriberCsv(csv, `abonnenten-${stamp}.csv`)
-                                setStatusMessage(m.csvExportHeruntergeladen)
+                                void handleCsvExport()
                             }}
                             type="button"
                             variant="outline"
@@ -237,7 +277,12 @@ export default function SubscribersClient(): React.JSX.Element {
                 <Alert variant="destructive">
                     <AlertDescription>
                         {errorMessage}{' '}
-                        <Button onClick={reload} size="sm" type="button" variant="outline">
+                        <Button
+                            onClick={() => setReloadToken((value) => value + 1)}
+                            size="sm"
+                            type="button"
+                            variant="outline"
+                        >
                             {dict.common.retryShort}
                         </Button>
                     </AlertDescription>
@@ -249,7 +294,7 @@ export default function SubscribersClient(): React.JSX.Element {
                 </Alert>
             ) : null}
 
-            {errorMessage === null && totalSubscribers === 0 ? (
+            {loadError === null && totalSubscribers === 0 && searchQuery.length === 0 ? (
                 <EmptyState
                     title={m.keineAbonnenten}
                     description={m.legeZuerstProduktVergebeFreischaltungWarte}
@@ -270,7 +315,7 @@ export default function SubscribersClient(): React.JSX.Element {
                 />
             ) : null}
 
-            {totalSubscribers > 0 ? (
+            {loadError === null && (totalSubscribers > 0 || searchQuery.length > 0) ? (
                 <section aria-labelledby="subscribers-heading" className="flex flex-col gap-4">
                     <SectionHeader
                         id="subscribers-heading"
@@ -281,10 +326,10 @@ export default function SubscribersClient(): React.JSX.Element {
                         <Label htmlFor="subscriber-search">{m.searchLabel}</Label>
                         <Input
                             id="subscriber-search"
-                            onChange={(event) => setQuery(event.target.value)}
+                            onChange={(event) => setSearchInput(event.target.value)}
                             placeholder={m.emailNameOrProduct}
                             type="search"
-                            value={query}
+                            value={searchInput}
                         />
                     </div>
                     {subscribers.length === 0 ? (
@@ -292,18 +337,45 @@ export default function SubscribersClient(): React.JSX.Element {
                             title={m.keineAbonnentenSuche}
                             description={m.passeSuchbegriffWeitereEintraegeSehen}
                             action={
-                                <Button onClick={() => setQuery('')} type="button" variant="outline">
+                                <Button onClick={() => setSearchInput('')} type="button" variant="outline">
                                     {dict.podcast.resetSearch}
                                 </Button>
                             }
                         />
                     ) : (
+                        <>
                 <EntityListSection
                     items={subscriberItems}
                     onViewModeChange={setViewMode}
                     showSelection={false}
                     viewMode={viewMode}
                 />
+                <p aria-live="polite" className="text-sm text-muted-foreground">
+                    {t(m.pageSummary, {
+                        page: page + 1,
+                        pageSize,
+                        totalSubscribers,
+                    })}
+                </p>
+                <div className="flex flex-wrap items-center gap-2">
+                    <Button
+                        disabled={!hasPreviousPage}
+                        onClick={() => setPage((current) => Math.max(0, current - 1))}
+                        type="button"
+                        variant="outline"
+                    >
+                        {m.previousPage}
+                    </Button>
+                    <Button
+                        disabled={!hasNextPage}
+                        onClick={() => setPage((current) => current + 1)}
+                        type="button"
+                        variant="outline"
+                    >
+                        {m.nextPage}
+                    </Button>
+                </div>
+                        </>
                     )}
                 </section>
             ) : null}
