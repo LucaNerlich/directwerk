@@ -6,6 +6,7 @@ import de.pnnit.directwerk.modules.core.AnalyticsModule;
 import de.pnnit.directwerk.modules.core.service.ModuleGateService;
 import de.pnnit.directwerk.modules.email.EmailNotifyModule;
 import de.pnnit.directwerk.modules.email.content.TenantContentEmailTemplateService;
+import de.pnnit.directwerk.modules.email.esp.MailgunTestEmailService;
 import de.pnnit.directwerk.modules.email.esp.TenantEspConnectionService;
 import de.pnnit.directwerk.modules.stripebilling.StripeBillingModule;
 import de.pnnit.directwerk.modules.stripebilling.StripeConnectService;
@@ -21,6 +22,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -36,6 +38,7 @@ public class TenantIntegrationsController {
     private final ModuleGateService moduleGateService;
     private final DirectwerkConfig directwerkConfig;
     private final TenantEspConnectionService tenantEspConnectionService;
+    private final MailgunTestEmailService mailgunTestEmailService;
     private final TenantContentEmailTemplateService tenantContentEmailTemplateService;
     private final StripeConnectService stripeConnectService;
 
@@ -43,12 +46,14 @@ public class TenantIntegrationsController {
             ModuleGateService moduleGateService,
             DirectwerkConfig directwerkConfig,
             TenantEspConnectionService tenantEspConnectionService,
+            MailgunTestEmailService mailgunTestEmailService,
             TenantContentEmailTemplateService tenantContentEmailTemplateService,
             StripeConnectService stripeConnectService
     ) {
         this.moduleGateService = moduleGateService;
         this.directwerkConfig = directwerkConfig;
         this.tenantEspConnectionService = tenantEspConnectionService;
+        this.mailgunTestEmailService = mailgunTestEmailService;
         this.tenantContentEmailTemplateService = tenantContentEmailTemplateService;
         this.stripeConnectService = stripeConnectService;
     }
@@ -114,6 +119,16 @@ public class TenantIntegrationsController {
         Long tenantId = TenantContext.requireTenantId();
         tenantEspConnectionService.disconnect(tenantId);
         return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * Sends one Mailgun test message per active tenant admin of the current tenant,
+     * using the tenant's connected Mailgun credentials.
+     */
+    @PostMapping("/esp/mailgun/test")
+    ResponseEntity<Response<MailgunTestEmailService.MailgunTestSendResult>> sendMailgunTest() {
+        Long tenantId = TenantContext.requireTenantId();
+        return ResponseEntity.ok(Response.ok(mailgunTestEmailService.sendTestToTenantAdmins(tenantId)));
     }
 
     public record ConnectMailgunRequest(

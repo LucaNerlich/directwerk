@@ -19,8 +19,10 @@ import {
     connectMailgun,
     disconnectEsp,
     getIntegrationsStatus,
+    sendMailgunTest,
 } from '@/lib/api/integrationsApi'
 import type {IntegrationsStatus} from '@directwerk/api/types'
+import {t} from '@/lib/i18n/dictionary'
 
 import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
 
@@ -33,6 +35,7 @@ export default function IntegrationsClient(): React.JSX.Element {
     const [statusMessage, setStatusMessage] = useState<string | null>(null)
     const [isLoading, setIsLoading] = useState(true)
     const [isSaving, setIsSaving] = useState(false)
+    const [isTesting, setIsTesting] = useState(false)
     const [domain, setDomain] = useState('')
     const [fromEmail, setFromEmail] = useState('')
     const [fromName, setFromName] = useState('')
@@ -105,13 +108,46 @@ export default function IntegrationsClient(): React.JSX.Element {
         setStatusMessage(null)
         try {
             await disconnectEsp()
-            setStatusMessage('Mailgun-Verbindung entfernt. Es gilt wieder die Plattform-Zustellung.')
+            setStatusMessage(s.mailgunVerbindungEntferntGiltWiederPlattfor)
             setReloadToken((value) => value + 1)
         } catch (error: unknown) {
             if (authRedirect(error)) return
             setErrorMessage(error instanceof Error ? error.message : 'Trennen fehlgeschlagen.')
         } finally {
             setIsSaving(false)
+        }
+    }
+
+    async function handleSendTest(): Promise<void> {
+        setIsTesting(true)
+        setErrorMessage(null)
+        setStatusMessage(null)
+        try {
+            const result = await sendMailgunTest()
+            if (result.failedCount > 0) {
+                const failedEmails = result.results
+                    .filter((row) => row.status === 'FAILED')
+                    .map((row) => row.email)
+                    .join(', ')
+                setErrorMessage(
+                    t(s.testEMailTeilweise, {
+                        sentCount: result.sentCount,
+                        failedCount: result.failedCount,
+                        failedEmails,
+                    }),
+                )
+            } else {
+                setStatusMessage(
+                    t(s.testEMailErfolg, {sentCount: result.sentCount}),
+                )
+            }
+        } catch (error: unknown) {
+            if (authRedirect(error)) return
+            setErrorMessage(
+                error instanceof Error ? error.message : s.testEMailFehlgeschlagen,
+            )
+        } finally {
+            setIsTesting(false)
         }
     }
 
@@ -274,18 +310,28 @@ export default function IntegrationsClient(): React.JSX.Element {
                     </div>
                 </div>
                 <div className="flex flex-wrap gap-2">
-                    <Button disabled={isSaving || apiKey.trim().length === 0} onClick={() => void handleConnect()} type="button">
+                    <Button disabled={isSaving || isTesting || apiKey.trim().length === 0} onClick={() => void handleConnect()} type="button">
                         Mailgun speichern
                     </Button>
                     {mailgun !== null ? (
-                        <Button
-                            disabled={isSaving}
-                            onClick={() => void handleDisconnect()}
-                            type="button"
-                            variant="outline"
-                        >
-                            Verbindung trennen
-                        </Button>
+                        <>
+                            <Button
+                                disabled={isSaving || isTesting}
+                                onClick={() => void handleSendTest()}
+                                type="button"
+                                variant="secondary"
+                            >
+                                {isTesting ? s.testEMailWirdGesendet : s.testEMailSenden}
+                            </Button>
+                            <Button
+                                disabled={isSaving || isTesting}
+                                onClick={() => void handleDisconnect()}
+                                type="button"
+                                variant="outline"
+                            >
+                                Verbindung trennen
+                            </Button>
+                        </>
                     ) : null}
                 </div>
             </section>

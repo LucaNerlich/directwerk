@@ -608,6 +608,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/tenant/integrations/esp/mailgun/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["sendMailgunTest"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/tenant/domains": {
         parameters: {
             query?: never;
@@ -2840,6 +2856,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/media/{id}/references": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List content that references a media asset
+         * @description FK-backed attachments only (episode audio/cover, series/format cover, article hero, digital publication, denormalized media episode link). CDN URLs pasted into HTML show notes or article bodies are out of scope.
+         */
+        get: operations["references"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/media/{id}/preview-url": {
         parameters: {
             query?: never;
@@ -3191,26 +3227,6 @@ export interface paths {
         put?: never;
         post?: never;
         delete: operations["removeSubscription"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/media/{id}/references": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * List content that references a media asset
-         * @description FK-backed attachments only (episode audio/cover, series/format cover, article hero, digital publication, denormalized media episode link). CDN URLs pasted into HTML show notes or article bodies are out of scope.
-         */
-        get: operations["references"];
-        put?: never;
-        post?: never;
-        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -3639,10 +3655,7 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string;
-            /**
-             * Format: int64
-             * @description Direct (non-recursive) count of active assets in this folder.
-             */
+            /** Format: int64 */
             assetCount?: number;
         };
         ResponseMediaFolderView: {
@@ -4043,6 +4056,28 @@ export interface components {
             currency?: string;
             /** @enum {string} */
             billingInterval?: "MONTH" | "YEAR" | "ONE_TIME";
+        };
+        MailgunTestSendResult: {
+            /** Format: int32 */
+            sentCount?: number;
+            /** Format: int32 */
+            failedCount?: number;
+            results?: components["schemas"]["RecipientResult"][];
+        };
+        RecipientResult: {
+            email?: string;
+            status?: string;
+            error?: string;
+        };
+        ResponseMailgunTestSendResult: {
+            /** Format: int32 */
+            statusCode?: number;
+            statusMessage?: string;
+            data?: components["schemas"]["MailgunTestSendResult"];
+            errors?: components["schemas"]["ErrorDetail"][];
+            metadata?: {
+                [key: string]: unknown;
+            };
         };
         AddDomainRequest: {
             host: string;
@@ -5517,6 +5552,22 @@ export interface components {
                 [key: string]: unknown;
             };
         };
+        MediaAssetReferenceView: {
+            kind?: string;
+            /** Format: int64 */
+            id?: number;
+            title?: string;
+        };
+        ResponseListMediaAssetReferenceView: {
+            /** Format: int32 */
+            statusCode?: number;
+            statusMessage?: string;
+            data?: components["schemas"]["MediaAssetReferenceView"][];
+            errors?: components["schemas"]["ErrorDetail"][];
+            metadata?: {
+                [key: string]: unknown;
+            };
+        };
         PreviewUrlResponse: {
             url?: string;
         };
@@ -5802,22 +5853,6 @@ export interface components {
             statusCode?: number;
             statusMessage?: string;
             data?: components["schemas"]["PlatformAdminView"];
-            errors?: components["schemas"]["ErrorDetail"][];
-            metadata?: {
-                [key: string]: unknown;
-            };
-        };
-        MediaAssetReferenceView: {
-            kind?: string;
-            /** Format: int64 */
-            id?: number;
-            title?: string;
-        };
-        ResponseListMediaAssetReferenceView: {
-            /** Format: int32 */
-            statusCode?: number;
-            statusMessage?: string;
-            data?: components["schemas"]["MediaAssetReferenceView"][];
             errors?: components["schemas"]["ErrorDetail"][];
             metadata?: {
                 [key: string]: unknown;
@@ -7250,6 +7285,26 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["ResponseProductView"];
+                };
+            };
+        };
+    };
+    sendMailgunTest: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ResponseMailgunTestSendResult"];
                 };
             };
         };
@@ -10937,6 +10992,37 @@ export interface operations {
             };
         };
     };
+    references: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Reference list (empty when unused) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ResponseListMediaAssetReferenceView"];
+                };
+            };
+            /** @description Unknown id, or id belongs to another tenant (MEDIA_ASSET_NOT_FOUND) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ResponseListMediaAssetReferenceView"];
+                };
+            };
+        };
+    };
     previewUrl: {
         parameters: {
             query?: never;
@@ -11413,35 +11499,6 @@ export interface operations {
         responses: {
             /** @description No content */
             204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    references: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Reference list (empty when unused) */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["ResponseListMediaAssetReferenceView"];
-                };
-            };
-            /** @description Unknown id, or id belongs to another tenant (MEDIA_ASSET_NOT_FOUND) */
-            404: {
                 headers: {
                     [name: string]: unknown;
                 };

@@ -10,6 +10,7 @@ import {
     parseEspConnectionEnvelope,
     parseImportedEpisodeEnvelope,
     parseIntegrationsStatusEnvelope,
+    parseMailgunTestSendResultEnvelope,
     parseMeEnvelope,
     parseMediaAsset,
     parseMediaAssetReference,
@@ -1036,5 +1037,25 @@ describe('digital publications / storage / integrations parsers', () => {
                 metadata: {},
             })?.data?.emailNotify.mailgun?.domain,
         ).toBe('mg.example.com')
+        expect(
+            parseMailgunTestSendResultEnvelope({
+                statusCode: 200,
+                statusMessage: 'OK',
+                data: {
+                    sentCount: 1,
+                    failedCount: 1,
+                    results: [
+                        {email: 'ok@example.com', status: 'SENT', error: null},
+                        {
+                            email: 'bad@example.com',
+                            status: 'FAILED',
+                            error: 'Mailgun rejected the message (HTTP 401)',
+                        },
+                    ],
+                },
+                errors: [],
+                metadata: {},
+            })?.data?.failedCount,
+        ).toBe(1)
     })
 })
