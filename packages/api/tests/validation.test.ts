@@ -1042,14 +1042,14 @@ describe('digital publications / storage / integrations parsers', () => {
                 statusCode: 200,
                 statusMessage: 'OK',
                 data: {
-                    sentCount: 1,
+                    queuedCount: 1,
                     failedCount: 1,
                     results: [
-                        {email: 'ok@example.com', status: 'SENT', error: null},
+                        {email: 'ok@example.com', status: 'QUEUED', error: null},
                         {
                             email: 'bad@example.com',
                             status: 'FAILED',
-                            error: 'Mailgun rejected the message (HTTP 401)',
+                            error: 'queue unavailable',
                         },
                     ],
                 },

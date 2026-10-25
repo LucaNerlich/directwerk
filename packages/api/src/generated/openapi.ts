@@ -4059,7 +4059,7 @@ export interface components {
         };
         MailgunTestSendResult: {
             /** Format: int32 */
-            sentCount?: number;
+            queuedCount?: number;
             /** Format: int32 */
             failedCount?: number;
             results?: components["schemas"]["RecipientResult"][];

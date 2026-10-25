@@ -52,16 +52,16 @@ class TenantIntegrationsControllerMailgunTestTest {
                         1,
                         0,
                         List.of(new MailgunTestEmailService.RecipientResult(
-                                "admin@example.com", "SENT", null))
+                                "admin@example.com", "QUEUED", null))
                 )
         );
 
         mockMvc.perform(post("/api/v1/tenant/integrations/esp/mailgun/test"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.sentCount").value(1))
+                .andExpect(jsonPath("$.data.queuedCount").value(1))
                 .andExpect(jsonPath("$.data.failedCount").value(0))
                 .andExpect(jsonPath("$.data.results[0].email").value("admin@example.com"))
-                .andExpect(jsonPath("$.data.results[0].status").value("SENT"));
+                .andExpect(jsonPath("$.data.results[0].status").value("QUEUED"));
 
         verify(mailgunTestEmailService).sendTestToTenantAdmins(10L);
     }

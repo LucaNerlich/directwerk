@@ -50,6 +50,12 @@ public enum EmailTemplate {
             "email/rss-bulk-import-finished.html",
             "RSS import finished: {{importedCount}} new, {{skippedCount}} skipped, {{failedCount}} failed",
             null
+    ),
+    /** Tenant-admin Mailgun connection check — sent via the normal email queue. */
+    MAILGUN_CONNECTION_TEST(
+            "email/mailgun-connection-test.html",
+            "[TEST] Directwerk Mailgun / Mailgun-Test",
+            null
     );
 
     private final String classpathPath;

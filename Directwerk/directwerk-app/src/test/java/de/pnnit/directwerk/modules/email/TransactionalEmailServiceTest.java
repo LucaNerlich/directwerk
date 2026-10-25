@@ -233,6 +233,24 @@ class TransactionalEmailServiceTest {
     }
 
     @Test
+    void sendFromPayloadRefusesMailgunConnectionTestWithoutTenantMailgun() {
+        when(directwerkConfig.isEmailEnabled()).thenReturn(true);
+        when(tenantEspConnectionService.resolveActiveMailgun(5L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> transactionalEmailService.sendFromPayload(
+                JOB_ID,
+                5L,
+                "admin@example.com",
+                EmailTemplate.MAILGUN_CONNECTION_TEST,
+                Map.of("recipientName", "Admin")
+        )).isInstanceOf(EmailDeliveryException.class)
+                .hasMessageContaining("Mailgun is not connected");
+
+        verify(emailSender, never()).send(any());
+        verify(mailgunHttpEmailSender, never()).send(any(), any());
+    }
+
+    @Test
     void sendFromPayloadUsesTenantMailgunCredentialsAndProvider() {
         when(directwerkConfig.isEmailEnabled()).thenReturn(true);
         when(emailDeliveryGuard.tryClaimDelivery(JOB_ID)).thenReturn(Optional.of(CLAIM));

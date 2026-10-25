@@ -59,6 +59,11 @@ public class TransactionalEmailService {
         }
         Optional<TenantEspConnectionService.ResolvedEspCredentials> mailgun =
                 tenantId == null ? Optional.empty() : tenantEspConnectionService.resolveActiveMailgun(tenantId);
+        // Connection tests must never fall back to the platform sender — that would hide a
+        // broken/missing tenant Mailgun setup behind a successful SMTP delivery.
+        if (template == EmailTemplate.MAILGUN_CONNECTION_TEST && mailgun.isEmpty()) {
+            throw new EmailDeliveryException("Mailgun is not connected for this tenant");
+        }
         if (mailgun.isEmpty() && !emailSender.isReady()) {
             throw new EmailDeliveryException(
                     "Email sender is not ready (provider=" + emailSender.providerId() + "); template=" + template.name());
