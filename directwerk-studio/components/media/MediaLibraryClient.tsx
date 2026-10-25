@@ -10,6 +10,7 @@ import {Checkbox} from '@directwerk/ui/components/checkbox'
 import EmptyState from '@directwerk/ui/components/empty-state'
 import {EntityListSection} from '@directwerk/ui/components/entity-list-section'
 import type {EntityListViewItem} from '@directwerk/ui/components/entity-list-view'
+import {Input} from '@directwerk/ui/components/input'
 import {Label} from '@directwerk/ui/components/label'
 import PageHeader from '@directwerk/ui/components/page-header'
 import PageStack from '@directwerk/ui/components/page-stack'
@@ -18,7 +19,7 @@ import {Skeleton} from '@directwerk/ui/components/skeleton'
 import {useEntityListSelection} from '@directwerk/ui/hooks/use-entity-list-selection'
 import {useListViewMode} from '@directwerk/ui/hooks/use-list-view-mode'
 
-import {useMemo, useEffect, useRef, useState, type ChangeEvent, type DragEvent} from 'react'
+import {useId, useMemo, useEffect, useRef, useState, type ChangeEvent, type DragEvent} from 'react'
 import {useRouter} from 'next/navigation'
 
 import {
@@ -36,6 +37,7 @@ import {
     type MediaFolderDeleteMode,
 } from '@/lib/api/mediaApi'
 import type {MediaAsset, MediaFolder, MediaUploadLimits} from '@directwerk/api/types'
+import {matchesQuery} from '@/lib/media/assetSearch'
 import {MEDIA_TYPE_LIMITS, mediaLimitLabelFor, resolveMediaLimits} from '@/lib/media/limits'
 import {
     assetFolderId,
@@ -124,6 +126,7 @@ export default function MediaLibraryClient(): React.JSX.Element {
     const dict = useDictionary()
     const router = useRouter()
     const authRedirect = useAuthRequired()
+    const searchId = useId()
     const fileInputRef = useRef<HTMLInputElement>(null)
     const mountedRef = useRef(true)
     const loadSequenceRef = useRef(0)
@@ -145,6 +148,7 @@ export default function MediaLibraryClient(): React.JSX.Element {
     const [typeFilter, setTypeFilter] = useState('')
     const [statusFilter, setStatusFilter] = useState('')
     const [orphanOnly, setOrphanOnly] = useState(false)
+    const [filenameQuery, setFilenameQuery] = useState('')
     const [folderView, setFolderView] = useState<number | null>(null)
     const [includeSubfolders, setIncludeSubfolders] = useState(false)
     const [folderDialog, setFolderDialog] = useState<
@@ -467,6 +471,7 @@ export default function MediaLibraryClient(): React.JSX.Element {
                 }
             }
         }
+        const needle = filenameQuery.trim().toLowerCase()
         return assets.filter((asset) => {
             if (typeFilter.length > 0 && asset.assetType !== typeFilter) {
                 return false
@@ -477,9 +482,9 @@ export default function MediaLibraryClient(): React.JSX.Element {
             if (!acceptedFolders.has(assetFolderId(asset))) {
                 return false
             }
-            return true
+            return matchesQuery(asset, needle)
         })
-    }, [assets, folders, folderView, includeSubfolders, statusFilter, typeFilter])
+    }, [assets, filenameQuery, folders, folderView, includeSubfolders, statusFilter, typeFilter])
 
     const visibleAssetIds = useMemo(
         () => visibleAssets.map((asset) => asset.id),
@@ -755,7 +760,11 @@ export default function MediaLibraryClient(): React.JSX.Element {
     }
 
     const pendingCount = assets.filter((asset) => asset.status === 'PENDING').length
-    const hasActiveFilters = typeFilter.length > 0 || statusFilter.length > 0 || orphanOnly
+    const hasActiveFilters =
+        typeFilter.length > 0 ||
+        statusFilter.length > 0 ||
+        orphanOnly ||
+        filenameQuery.trim().length > 0
     const breadcrumb = folderPath(folders, folderView)
     const currentFolder =
         folderView !== null
@@ -769,6 +778,7 @@ export default function MediaLibraryClient(): React.JSX.Element {
         setTypeFilter('')
         setStatusFilter('')
         setOrphanOnly(false)
+        setFilenameQuery('')
     }
 
     const mediaItems: EntityListViewItem<number>[] = visibleAssets.map((asset) => ({
@@ -961,6 +971,16 @@ export default function MediaLibraryClient(): React.JSX.Element {
                         ) : undefined
                     }
                 />
+                <label className="grid gap-2 text-sm font-medium" htmlFor={searchId}>
+                    <span className="sr-only">{dict.media.mediathekDurchsuchen}</span>
+                    <Input
+                        id={searchId}
+                        onChange={(event) => setFilenameQuery(event.target.value)}
+                        placeholder={dict.media.dateinameSuchen}
+                        type="search"
+                        value={filenameQuery}
+                    />
+                </label>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                 <label className="grid gap-2 text-sm font-medium" htmlFor="typeFilter">
                     Typ filtern

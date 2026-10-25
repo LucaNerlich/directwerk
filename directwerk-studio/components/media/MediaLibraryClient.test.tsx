@@ -1,4 +1,5 @@
 import {cleanup, fireEvent, screen, waitFor, within} from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import {renderWithLocale} from '@/lib/i18n/testUtils'
 import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest'
 
@@ -477,6 +478,48 @@ describe('MediaLibraryClient', () => {
                 unreferencedOnly: true,
             }),
         )
+    })
+
+    it('filename search filters loaded assets; empty query shows the type-filtered set', async () => {
+        const user = userEvent.setup()
+        const audioClip = {
+            ...coverAsset,
+            id: 11,
+            assetType: 'AUDIO' as const,
+            mimeType: 'audio/mpeg',
+            originalFilename: 'interview-clip.mp3',
+            cdnUrl: null,
+        }
+        const otherImage = {
+            ...coverAsset,
+            id: 12,
+            originalFilename: 'logo.png',
+        }
+        vi.mocked(listMedia).mockResolvedValue([coverAsset, audioClip, otherImage])
+
+        renderWithLocale(<MediaLibraryClient />)
+
+        expect(await screen.findByText('cover.png')).toBeInTheDocument()
+        expect(screen.getByText('interview-clip.mp3')).toBeInTheDocument()
+        expect(screen.getByText('logo.png')).toBeInTheDocument()
+
+        await user.click(screen.getByLabelText('Typ filtern'))
+        await user.click(await screen.findByRole('option', {name: 'Bild'}))
+        expect(screen.getByText('cover.png')).toBeInTheDocument()
+        expect(screen.getByText('logo.png')).toBeInTheDocument()
+        expect(screen.queryByText('interview-clip.mp3')).not.toBeInTheDocument()
+
+        const search = screen.getByPlaceholderText('Dateiname suchen…')
+        await user.clear(search)
+        await user.type(search, 'cover')
+        expect(screen.getByText('cover.png')).toBeInTheDocument()
+        expect(screen.queryByText('logo.png')).not.toBeInTheDocument()
+        expect(screen.queryByText('interview-clip.mp3')).not.toBeInTheDocument()
+
+        await user.clear(search)
+        expect(screen.getByText('cover.png')).toBeInTheDocument()
+        expect(screen.getByText('logo.png')).toBeInTheDocument()
+        expect(screen.queryByText('interview-clip.mp3')).not.toBeInTheDocument()
     })
 
     it('opens detail panel with referencing entities and empty state', async () => {
