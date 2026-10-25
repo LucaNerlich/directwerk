@@ -503,55 +503,49 @@ describe('MediaLibraryClient', () => {
         expect(within(detailDialog).queryByText('Nicht verknüpft')).not.toBeInTheDocument()
     })
 
-    it('renames an asset from the first reference title in the detail panel', async () => {
-        const downloadAsset = {
+    it('applies rename-from-reference inside the rename dialog for any differing name', async () => {
+        const episodeAudio = {
             ...coverAsset,
             id: 11,
-            originalFilename: 'download.mp3',
+            originalFilename: 'old-episode-audio.mp3',
             assetType: 'AUDIO',
             mimeType: 'audio/mpeg',
-            s3Key: 'tenant/staging/download.mp3',
+            s3Key: 'tenant/staging/old-episode-audio.mp3',
         }
-        vi.mocked(listMedia).mockResolvedValue([downloadAsset])
+        vi.mocked(listMedia).mockResolvedValue([episodeAudio])
         vi.mocked(getMediaReferences).mockResolvedValue([
             {kind: 'EPISODE_AUDIO', id: 42, title: 'Folge 42'},
             {kind: 'EPISODE_COVER', id: 42, title: 'Folge 42'},
         ])
         vi.mocked(renameMediaAsset).mockResolvedValue({
-            ...downloadAsset,
+            ...episodeAudio,
             originalFilename: 'folge-42.mp3',
         })
 
         renderWithLocale(<MediaLibraryClient />)
 
-        expect(await screen.findByText('download.mp3')).toBeInTheDocument()
-        fireEvent.click(screen.getByRole('button', {name: 'Details'}))
+        expect(await screen.findByText('old-episode-audio.mp3')).toBeInTheDocument()
+        fireEvent.click(screen.getByRole('button', {name: 'Umbenennen'}))
 
-        const detailDialog = await screen.findByRole('dialog')
+        const renameDialog = await screen.findByRole('dialog')
         expect(
-            await within(detailDialog).findByRole('button', {name: 'Von Referenz umbenennen'}),
+            await within(renameDialog).findByText('Vorschlag: folge-42.mp3'),
         ).toBeInTheDocument()
         fireEvent.click(
-            within(detailDialog).getByRole('button', {name: 'Von Referenz umbenennen'}),
+            within(renameDialog).getByRole('button', {name: 'Von Referenz übernehmen'}),
         )
-        expect(
-            within(detailDialog).getByText(/Datei in „folge-42\.mp3“ umbenennen/),
-        ).toBeInTheDocument()
-        fireEvent.click(within(detailDialog).getByRole('button', {name: 'Datei umbenennen'}))
+        expect(within(renameDialog).getByDisplayValue('folge-42.mp3')).toBeInTheDocument()
+        fireEvent.click(within(renameDialog).getByRole('button', {name: 'Umbenennen'}))
 
         await waitFor(() =>
             expect(renameMediaAsset).toHaveBeenCalledWith(11, 'folge-42.mp3'),
         )
         expect(await screen.findByText(/Datei in „folge-42\.mp3“ umbenannt/)).toBeInTheDocument()
-        expect(await within(detailDialog).findByText('folge-42.mp3')).toBeInTheDocument()
-        expect(
-            within(detailDialog).queryByRole('button', {name: 'Von Referenz umbenennen'}),
-        ).not.toBeInTheDocument()
         expect(getMediaReferences).toHaveBeenCalledTimes(1)
     })
 
-    it('does not reopen the detail dialog when rename finishes after dismiss', async () => {
-        const downloadAsset = {
+    it('does not keep the rename dialog open when rename finishes after dismiss', async () => {
+        const episodeAudio = {
             ...coverAsset,
             id: 11,
             originalFilename: 'download.mp3',
@@ -559,7 +553,7 @@ describe('MediaLibraryClient', () => {
             mimeType: 'audio/mpeg',
             s3Key: 'tenant/staging/download.mp3',
         }
-        vi.mocked(listMedia).mockResolvedValue([downloadAsset])
+        vi.mocked(listMedia).mockResolvedValue([episodeAudio])
         vi.mocked(getMediaReferences).mockResolvedValue([
             {kind: 'EPISODE_AUDIO', id: 42, title: 'Folge 42'},
         ])
@@ -574,20 +568,20 @@ describe('MediaLibraryClient', () => {
         renderWithLocale(<MediaLibraryClient />)
 
         expect(await screen.findByText('download.mp3')).toBeInTheDocument()
-        fireEvent.click(screen.getByRole('button', {name: 'Details'}))
+        fireEvent.click(screen.getByRole('button', {name: 'Umbenennen'}))
 
-        const detailDialog = await screen.findByRole('dialog')
+        const renameDialog = await screen.findByRole('dialog')
         fireEvent.click(
-            await within(detailDialog).findByRole('button', {name: 'Von Referenz umbenennen'}),
+            await within(renameDialog).findByRole('button', {name: 'Von Referenz übernehmen'}),
         )
-        fireEvent.click(within(detailDialog).getByRole('button', {name: 'Datei umbenennen'}))
+        fireEvent.click(within(renameDialog).getByRole('button', {name: 'Umbenennen'}))
 
         await waitFor(() => expect(renameMediaAsset).toHaveBeenCalled())
-        fireEvent.click(within(detailDialog).getByRole('button', {name: 'Schließen'}))
+        fireEvent.click(within(renameDialog).getByRole('button', {name: 'Abbrechen'}))
         await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
 
         resolveRename({
-            ...downloadAsset,
+            ...episodeAudio,
             originalFilename: 'folge-42.mp3',
         })
 
@@ -596,17 +590,74 @@ describe('MediaLibraryClient', () => {
         expect(await screen.findByText('folge-42.mp3')).toBeInTheDocument()
     })
 
-    it('hides rename-from-reference when the asset has no references', async () => {
+    it('hides rename-from-reference in the rename dialog when there are no references', async () => {
         vi.mocked(listMedia).mockResolvedValue([coverAsset])
         vi.mocked(getMediaReferences).mockResolvedValue([])
 
         renderWithLocale(<MediaLibraryClient />)
 
         expect(await screen.findByText('cover.png')).toBeInTheDocument()
+        fireEvent.click(screen.getByRole('button', {name: 'Umbenennen'}))
+
+        const renameDialog = await screen.findByRole('dialog')
+        await waitFor(() => expect(getMediaReferences).toHaveBeenCalled())
+        expect(
+            within(renameDialog).queryByRole('button', {name: 'Von Referenz übernehmen'}),
+        ).not.toBeInTheDocument()
+        expect(within(renameDialog).queryByText(/Vorschlag:/)).not.toBeInTheDocument()
+    })
+
+    it('hides rename-from-reference when the proposed slug already matches', async () => {
+        const alreadyNamed = {
+            ...coverAsset,
+            id: 12,
+            originalFilename: 'folge-42.mp3',
+            assetType: 'AUDIO',
+            mimeType: 'audio/mpeg',
+            s3Key: 'tenant/staging/folge-42.mp3',
+        }
+        vi.mocked(listMedia).mockResolvedValue([alreadyNamed])
+        vi.mocked(getMediaReferences).mockResolvedValue([
+            {kind: 'EPISODE_AUDIO', id: 42, title: 'Folge 42'},
+        ])
+
+        renderWithLocale(<MediaLibraryClient />)
+
+        expect(await screen.findByText('folge-42.mp3')).toBeInTheDocument()
+        fireEvent.click(screen.getByRole('button', {name: 'Umbenennen'}))
+
+        const renameDialog = await screen.findByRole('dialog')
+        await waitFor(() => expect(getMediaReferences).toHaveBeenCalled())
+        expect(
+            within(renameDialog).queryByRole('button', {name: 'Von Referenz übernehmen'}),
+        ).not.toBeInTheDocument()
+        expect(within(renameDialog).queryByText(/Vorschlag:/)).not.toBeInTheDocument()
+    })
+
+    it('does not show rename-from-reference on the details dialog', async () => {
+        const episodeAudio = {
+            ...coverAsset,
+            id: 11,
+            originalFilename: 'download.mp3',
+            assetType: 'AUDIO',
+            mimeType: 'audio/mpeg',
+            s3Key: 'tenant/staging/download.mp3',
+        }
+        vi.mocked(listMedia).mockResolvedValue([episodeAudio])
+        vi.mocked(getMediaReferences).mockResolvedValue([
+            {kind: 'EPISODE_AUDIO', id: 42, title: 'Folge 42'},
+        ])
+
+        renderWithLocale(<MediaLibraryClient />)
+
+        expect(await screen.findByText('download.mp3')).toBeInTheDocument()
         fireEvent.click(screen.getByRole('button', {name: 'Details'}))
 
         const detailDialog = await screen.findByRole('dialog')
-        expect(await within(detailDialog).findByText('Nicht verknüpft')).toBeInTheDocument()
+        expect(await within(detailDialog).findByText('Folge 42')).toBeInTheDocument()
+        expect(
+            within(detailDialog).queryByRole('button', {name: 'Von Referenz übernehmen'}),
+        ).not.toBeInTheDocument()
         expect(
             within(detailDialog).queryByRole('button', {name: 'Von Referenz umbenennen'}),
         ).not.toBeInTheDocument()

@@ -3,6 +3,7 @@ import {describe, expect, it} from 'vitest'
 import {
     extensionOfFilename,
     filenameFromReferenceTitle,
+    proposedRenameFromReference,
     sanitizeFilenameMirror,
 } from '@/lib/media/filenameFromReference'
 
@@ -51,5 +52,25 @@ describe('filenameFromReferenceTitle', () => {
         expect(result.length).toBeLessThanOrEqual(180)
         expect(result.endsWith('.mp3')).toBe(true)
         expect(result).toMatch(/^[a-z0-9-]+\.mp3$/)
+    })
+})
+
+describe('proposedRenameFromReference', () => {
+    it('returns null when there are no references', () => {
+        expect(proposedRenameFromReference('download.mp3', [])).toBeNull()
+    })
+
+    it('proposes a URL-safe name for any current filename, not only download.mp3', () => {
+        expect(
+            proposedRenameFromReference('old-episode-audio.mp3', [
+                {id: 42, title: 'Folge 42'},
+            ]),
+        ).toBe('folge-42.mp3')
+    })
+
+    it('returns null when the stored name already matches the proposal', () => {
+        expect(
+            proposedRenameFromReference('folge-42.mp3', [{id: 42, title: 'Folge 42'}]),
+        ).toBeNull()
     })
 })
