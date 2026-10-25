@@ -5,12 +5,16 @@ info:
 
 http:
   method: GET
-  url: "{{baseUrl}}/api/v1/episodes?limit=100"
+  url: "{{baseUrl}}/api/v1/episodes?limit=100&offset=0"
   params:
     - name: limit
       value: "100"
       type: query
       description: 1-500, default 100. Bounds the collection so a large tenant does not serialise every row (#310).
+    - name: offset
+      value: "0"
+      type: query
+      description: Rows to skip (default 0). Studio list pages page with limit+offset via the tenant BFF.
   auth: inherit
 
 runtime:

@@ -29,9 +29,10 @@ export interface DirectwerkFetchRequest {
     /**
      * Canonical `?…` query appended to the upstream path. Only ever set from
      * the canonical builders in `proxy/path.ts` (`buildSafePreviewQueryString`,
-     * `buildSafeMediaListQueryString`, `buildSafeMediaFolderDeleteQueryString`),
-     * so it matches `?key=value(&key=value)*` with word-char keys/values by
-     * construction; anything else is rejected.
+     * `buildSafeMediaListQueryString`, `buildSafeMediaFolderDeleteQueryString`,
+     * `buildSafePublicationListQueryString`), so it matches
+     * `?key=value(&key=value)*` with word-char keys/values by construction;
+     * anything else is rejected.
      */
     query?: string
 }

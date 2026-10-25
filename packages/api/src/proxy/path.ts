@@ -184,10 +184,72 @@ export function buildSafeMediaFolderDeleteQueryString(
 }
 
 /**
+ * Studio episode/article list pages page with `limit`/`offset`
+ * (`GET /api/v1/episodes`, `GET /api/v1/articles` — Spring caps limit at
+ * 500). Same strict allowlist pattern as the media library: known keys
+ * only, no duplicates, rebuilt canonically.
+ */
+const PUBLICATION_LIST_PATHS = new Set(['/api/v1/episodes', '/api/v1/articles'])
+const MAX_PUBLICATION_LIST_LIMIT = 500
+
+/**
+ * Builds a canonical `?limit=&offset=` query for episode/article lists.
+ * Returns `null` for any other path, unknown key, duplicate key, or
+ * invalid value.
+ */
+export function buildSafePublicationListQueryString(
+    apiPath: string,
+    searchParams: URLSearchParams,
+): string | null {
+    if (!PUBLICATION_LIST_PATHS.has(apiPath)) {
+        return null
+    }
+
+    const names = [...searchParams.keys()]
+    if (names.length === 0 || new Set(names).size !== names.length) {
+        return null
+    }
+
+    const safeParams = new URLSearchParams()
+    for (const name of names) {
+        const value = singleValue(searchParams, name)
+        if (value === null) {
+            return null
+        }
+
+        switch (name) {
+            case 'limit': {
+                if (!POSITIVE_ID.test(value)) {
+                    return null
+                }
+                const limit = Number.parseInt(value, 10)
+                if (limit < 1 || limit > MAX_PUBLICATION_LIST_LIMIT) {
+                    return null
+                }
+                break
+            }
+            case 'offset': {
+                if (!/^\d{1,9}$/.test(value)) {
+                    return null
+                }
+                break
+            }
+            default:
+                return null
+        }
+
+        safeParams.set(name, value)
+    }
+
+    return `?${safeParams.toString()}`
+}
+
+/**
  * Resolves the canonical upstream `?…` query for an allowlisted
- * proxy call (feed-builder previews, media library list/delete).
- * Returns `null` when the path/method/query combination is not
- * allowlisted — callers keep the blanket query rejection then.
+ * proxy call (feed-builder previews, media library list/delete,
+ * episode/article lists). Returns `null` when the path/method/query
+ * combination is not allowlisted — callers keep the blanket query
+ * rejection then.
  */
 export function buildSafeProxyQuery(
     apiPath: string,
@@ -197,7 +259,8 @@ export function buildSafeProxyQuery(
     if (method === 'GET') {
         return (
             buildSafePreviewQueryString(apiPath, searchParams) ??
-            buildSafeMediaListQueryString(apiPath, searchParams)
+            buildSafeMediaListQueryString(apiPath, searchParams) ??
+            buildSafePublicationListQueryString(apiPath, searchParams)
         )
     }
     if (method === 'DELETE') {

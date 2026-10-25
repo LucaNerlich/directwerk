@@ -18,8 +18,8 @@ export interface UpstreamFetchRequest {
     contentType?: 'application/json' | 'application/x-www-form-urlencoded'
     /**
      * Canonical `?…` query for allowlisted paths (feed-builder previews,
-     * media library list/delete — built by {@link buildSafeProxyQuery});
-     * undefined everywhere else.
+     * media library list/delete, episode/article lists — built by
+     * {@link buildSafeProxyQuery}); undefined everywhere else.
      */
     query?: string
 }
@@ -56,8 +56,9 @@ export type TenantProxyRouteHandlers = Record<
  * Behaviour (identical across apps):
  * - requires a valid `X-Tenant-Host` header
  * - rejects unsafe path segments and query strings except the allowlisted
- *   feed-builder preview id lists (`formatIds` / `categoryIds`) and the
- *   media-library list/delete filter params
+ *   feed-builder preview id lists (`formatIds` / `categoryIds`), the
+ *   media-library list/delete filter params, and episode/article list
+ *   pagination (`limit` / `offset`)
  * - requires a bearer token unless the path is public (`/api/v1/public/…`)
  * - enforces a JSON-only request body within the configured byte limit
  * - normalizes upstream failures into JSON error responses
@@ -153,9 +154,9 @@ export function createTenantProxyRouteHandler(
         }
 
         if (hasUnsupportedProxyQuery(request.url)) {
-            // Only the feed-builder previews and the media-library
-            // list/delete endpoints carry query strings; anything else
-            // (or a malformed query) keeps the blanket rejection. HEAD is
+            // Only allowlisted paths carry query strings (previews, media
+            // library, episode/article lists); anything else (or a
+            // malformed query) keeps the blanket rejection. HEAD is
             // validated like GET but still forwarded as HEAD.
             const query = buildSafeProxyQuery(
                 apiPath,

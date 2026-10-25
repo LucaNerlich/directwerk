@@ -5,6 +5,7 @@ import {
     buildSafeMediaFolderDeleteQueryString,
     buildSafeMediaListQueryString,
     buildSafePreviewQueryString,
+    buildSafePublicationListQueryString,
     readBearerToken,
 } from '../src/proxy/path'
 import {parseTenantHost} from '../src/proxy/tenantHost'
@@ -248,6 +249,74 @@ describe('buildSafeMediaListQueryString', () => {
     })
 })
 
+describe('buildSafePublicationListQueryString', () => {
+    it('builds episode and article list pagination canonically', () => {
+        expect(
+            buildSafePublicationListQueryString(
+                '/api/v1/episodes',
+                new URLSearchParams('limit=100&offset=0'),
+            ),
+        ).toBe('?limit=100&offset=0')
+        expect(
+            buildSafePublicationListQueryString(
+                '/api/v1/articles',
+                new URLSearchParams('limit=100&offset=200'),
+            ),
+        ).toBe('?limit=100&offset=200')
+        expect(
+            buildSafePublicationListQueryString(
+                '/api/v1/episodes',
+                new URLSearchParams('limit=500'),
+            ),
+        ).toBe('?limit=500')
+    })
+
+    it('rejects unknown paths, keys, duplicates, and invalid values', () => {
+        expect(
+            buildSafePublicationListQueryString(
+                '/api/v1/episodes/7',
+                new URLSearchParams('limit=10'),
+            ),
+        ).toBeNull()
+        expect(
+            buildSafePublicationListQueryString(
+                '/api/v1/episodes',
+                new URLSearchParams('limit=10&evil=1'),
+            ),
+        ).toBeNull()
+        expect(
+            buildSafePublicationListQueryString(
+                '/api/v1/articles',
+                new URLSearchParams('limit=10&limit=20'),
+            ),
+        ).toBeNull()
+        expect(
+            buildSafePublicationListQueryString(
+                '/api/v1/episodes',
+                new URLSearchParams('limit=501'),
+            ),
+        ).toBeNull()
+        expect(
+            buildSafePublicationListQueryString(
+                '/api/v1/articles',
+                new URLSearchParams('limit=abc'),
+            ),
+        ).toBeNull()
+        expect(
+            buildSafePublicationListQueryString(
+                '/api/v1/episodes',
+                new URLSearchParams('offset=-1'),
+            ),
+        ).toBeNull()
+        expect(
+            buildSafePublicationListQueryString(
+                '/api/v1/articles',
+                new URLSearchParams(''),
+            ),
+        ).toBeNull()
+    })
+})
+
 describe('buildSafeMediaFolderDeleteQueryString', () => {
     it('builds the folder delete mode query on numeric folder paths', () => {
         expect(
@@ -355,6 +424,46 @@ describe('createTenantProxyRouteHandler query handling', () => {
 
         expect(response.status).toBe(200)
         expect(seen).toEqual([{path: '/api/v1/media', query: '?limit=100&unassignedOnly=true'}])
+    })
+
+    it('forwards episode and article list pagination upstream', async () => {
+        const seen: Array<{path: string; query?: string}> = []
+        const handlers = previewHandlers(async (request) => {
+            seen.push(request)
+            return Response.json({statusCode: 200, statusMessage: 'OK', data: [], errors: [], metadata: {}})
+        })
+
+        const episodeResponse = await handlers.GET(
+            previewRequest('http://local/api/proxy/episodes?limit=100&offset=0'),
+            {params: Promise.resolve({path: ['episodes']})},
+        )
+        const articleResponse = await handlers.GET(
+            previewRequest('http://local/api/proxy/articles?limit=100&offset=100'),
+            {params: Promise.resolve({path: ['articles']})},
+        )
+
+        expect(episodeResponse.status).toBe(200)
+        expect(articleResponse.status).toBe(200)
+        expect(seen).toEqual([
+            {path: '/api/v1/episodes', query: '?limit=100&offset=0'},
+            {path: '/api/v1/articles', query: '?limit=100&offset=100'},
+        ])
+    })
+
+    it('rejects tampered publication list queries without calling upstream', async () => {
+        const fetchUpstream = vi.fn(async () => new Response('{}'))
+        const handlers = createTenantProxyRouteHandler({
+            fetchUpstream,
+            jsonBodyLimit: 16_384,
+        })
+
+        const response = await handlers.GET(
+            previewRequest('http://local/api/proxy/episodes?limit=100&token=x'),
+            {params: Promise.resolve({path: ['episodes']})},
+        )
+
+        expect(response.status).toBe(400)
+        expect(fetchUpstream).not.toHaveBeenCalled()
     })
 
     it('rejects tampered media list queries without calling upstream', async () => {
