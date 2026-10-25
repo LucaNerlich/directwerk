@@ -4,7 +4,12 @@ import {useEffect, useState} from 'react'
 
 import LocaleLink from '@/components/i18n/LocaleLink'
 import {useDictionary} from '@/components/i18n/LocaleProvider'
-import {getMediaReferences} from '@/lib/api/mediaApi'
+import {getMediaReferences, renameMediaAsset} from '@/lib/api/mediaApi'
+import {
+    filenameFromReferenceTitle,
+    sanitizeFilenameMirror,
+} from '@/lib/media/filenameFromReference'
+import {t} from '@/lib/i18n/dictionary'
 import {assetTypeLabel, mediaStatusLabel, visibilityLabel} from '@/lib/subscription/displayLabels'
 import {formatBytes} from '@directwerk/api/format/bytes'
 import type {MediaAsset, MediaAssetReference} from '@directwerk/api/types'
@@ -63,27 +68,36 @@ interface MediaAssetDetailPanelProps {
     asset: MediaAsset | null
     open: boolean
     onOpenChange: (open: boolean) => void
+    onRenamed?: (asset: MediaAsset) => void
 }
 
 export default function MediaAssetDetailPanel({
     asset,
     open,
     onOpenChange,
+    onRenamed,
 }: MediaAssetDetailPanelProps): React.JSX.Element {
     const dict = useDictionary()
     const [references, setReferences] = useState<MediaAssetReference[] | null>(null)
     const [errorMessage, setErrorMessage] = useState<string | null>(null)
     const [isLoading, setIsLoading] = useState(false)
+    const [proposedFilename, setProposedFilename] = useState<string | null>(null)
+    const [isRenaming, setIsRenaming] = useState(false)
+    const [renameError, setRenameError] = useState<string | null>(null)
+
+    const assetId = asset?.id
 
     useEffect(() => {
-        if (!open || asset === null) {
+        if (!open || assetId === undefined) {
             return
         }
         let cancelled = false
         setIsLoading(true)
         setErrorMessage(null)
         setReferences(null)
-        void getMediaReferences(asset.id)
+        setProposedFilename(null)
+        setRenameError(null)
+        void getMediaReferences(assetId)
             .then((rows) => {
                 if (!cancelled) {
                     setReferences(rows)
@@ -107,12 +121,43 @@ export default function MediaAssetDetailPanel({
         return () => {
             cancelled = true
         }
-    }, [open, asset, dict.media.referenzenKonnteNichtGeladen])
+    }, [open, assetId, dict.media.referenzenKonnteNichtGeladen])
 
     const title =
         asset !== null
             ? (asset.originalFilename ?? `Asset #${asset.id}`)
             : dict.media.dateidetails
+
+    const firstReference = references !== null && references.length > 0 ? references[0]! : null
+    const derivedFilename =
+        asset !== null && firstReference !== null
+            ? filenameFromReferenceTitle(
+                  asset.originalFilename,
+                  firstReference.title || `ref-${firstReference.id}`,
+              )
+            : null
+    const canProposeRename =
+        derivedFilename !== null &&
+        sanitizeFilenameMirror(derivedFilename) !== (asset?.originalFilename ?? '').trim()
+
+    async function handleConfirmRename(): Promise<void> {
+        if (asset === null || proposedFilename === null) {
+            return
+        }
+        setIsRenaming(true)
+        setRenameError(null)
+        try {
+            const renamed = await renameMediaAsset(asset.id, proposedFilename)
+            setProposedFilename(null)
+            onRenamed?.(renamed)
+        } catch (error: unknown) {
+            setRenameError(
+                error instanceof Error ? error.message : dict.media.umbenennenFehlgeschlagen,
+            )
+        } finally {
+            setIsRenaming(false)
+        }
+    }
 
     return (
         <Dialog onOpenChange={onOpenChange} open={open}>
@@ -197,10 +242,67 @@ export default function MediaAssetDetailPanel({
                     <p className="text-xs text-muted-foreground">{dict.media.referenzenHtmlHinweis}</p>
                 </section>
 
+                {proposedFilename !== null ? (
+                    <div className="space-y-2 rounded-md border px-3 py-3 text-sm">
+                        <p>
+                            {t(dict.media.vonReferenzUmbenennenBestaetigen, {
+                                filename: proposedFilename,
+                            })}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                            {dict.media.vonReferenzUmbenennenHinweis}
+                        </p>
+                        {renameError !== null ? (
+                            <p className="text-sm text-destructive" role="alert">
+                                {renameError}
+                            </p>
+                        ) : null}
+                    </div>
+                ) : null}
+
                 <DialogFooter>
-                    <Button onClick={() => onOpenChange(false)} type="button" variant="outline">
-                        {dict.media.schliessen}
-                    </Button>
+                    {proposedFilename !== null ? (
+                        <>
+                            <Button
+                                disabled={isRenaming}
+                                onClick={() => {
+                                    setProposedFilename(null)
+                                    setRenameError(null)
+                                }}
+                                type="button"
+                                variant="outline"
+                            >
+                                {dict.common.cancel}
+                            </Button>
+                            <Button
+                                disabled={isRenaming}
+                                onClick={() => {
+                                    void handleConfirmRename()
+                                }}
+                                type="button"
+                            >
+                                {isRenaming ? dict.media.speichert : dict.media.dateiUmbenennen}
+                            </Button>
+                        </>
+                    ) : (
+                        <>
+                            {canProposeRename ? (
+                                <Button
+                                    onClick={() => {
+                                        setRenameError(null)
+                                        setProposedFilename(derivedFilename)
+                                    }}
+                                    type="button"
+                                    variant="secondary"
+                                >
+                                    {dict.media.vonReferenzUmbenennen}
+                                </Button>
+                            ) : null}
+                            <Button onClick={() => onOpenChange(false)} type="button" variant="outline">
+                                {dict.media.schliessen}
+                            </Button>
+                        </>
+                    )}
                 </DialogFooter>
             </DialogContent>
         </Dialog>

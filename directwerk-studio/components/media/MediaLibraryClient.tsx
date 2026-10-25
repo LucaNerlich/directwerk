@@ -1322,6 +1322,17 @@ export default function MediaLibraryClient(): React.JSX.Element {
                         setDetailAsset(null)
                     }
                 }}
+                onRenamed={(renamed) => {
+                    setAssets((current) =>
+                        current.map((item) => (item.id === renamed.id ? renamed : item)),
+                    )
+                    setDetailAsset((current) =>
+                        current !== null && current.id === renamed.id ? renamed : current,
+                    )
+                    setStatusMessage(
+                        `Datei in „${renamed.originalFilename ?? renamed.id}“ umbenannt.`,
+                    )
+                }}
                 open={detailAsset !== null}
             />
         </PageStack>

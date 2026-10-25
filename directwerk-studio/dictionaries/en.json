@@ -1071,8 +1071,12 @@
     "referenzenHtmlHinweis": "CDN URLs pasted into show notes or article HTML are not listed here.",
     "referenzenKonnteNichtGeladen": "Could not load usages.",
     "referenzenWerdenGeladen": "Loading usages…",
+    "vonReferenzUmbenennen": "Rename from reference",
+    "vonReferenzUmbenennenBestaetigen": "Rename file to “${filename}”? The S3 key stays unchanged.",
+    "vonReferenzUmbenennenHinweis": "Uses the title of the first linked item and keeps the file extension.",
     "visibilitySuffix": "· ${subCount} ${subCount === 1 ? 'folder' : 'folders'}"
   },
+
   "bonus": {
     "b": "${sizeBytes} B",
     "bonusdateiKonnteAngelegt": "Bonus file could not be created.",
