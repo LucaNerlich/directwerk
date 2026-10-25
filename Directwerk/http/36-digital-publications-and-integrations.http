@@ -43,6 +43,16 @@ Accept: application/json
 
 ###
 
+### @name sendMailgunTest
+# Sends one test message per active TENANT_ADMIN via the tenant's Mailgun connection.
+# Expect 200 with sentCount/failedCount/results, or 400 MAILGUN_NOT_CONFIGURED / NO_TENANT_ADMINS.
+POST {{baseUrl}}/api/v1/tenant/integrations/esp/mailgun/test
+Authorization: Bearer {{tenantAAccessToken}}
+Host: {{tenantAHost}}
+Accept: application/json
+
+###
+
 ### @name listDigitalPublications
 GET {{baseUrl}}/api/v1/digital-publications
 Authorization: Bearer {{tenantAAccessToken}}

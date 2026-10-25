@@ -650,6 +650,20 @@ export interface ConnectMailgunInput {
     apiKey: string
 }
 
+export type MailgunTestRecipientStatus = 'SENT' | 'FAILED'
+
+export interface MailgunTestRecipientResult {
+    email: string
+    status: MailgunTestRecipientStatus | string
+    error: string | null
+}
+
+export interface MailgunTestSendResult {
+    sentCount: number
+    failedCount: number
+    results: MailgunTestRecipientResult[]
+}
+
 // ---------------------------------------------------------------------------
 // RBAC (issue #148)
 // ---------------------------------------------------------------------------

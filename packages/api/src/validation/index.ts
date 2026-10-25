@@ -84,6 +84,8 @@ export {
     parseEspConnectionEnvelope,
     parseIntegrationsStatus,
     parseIntegrationsStatusEnvelope,
+    parseMailgunTestSendResult,
+    parseMailgunTestSendResultEnvelope,
 } from './catalog'
 export {
     createPublicContentParsers,

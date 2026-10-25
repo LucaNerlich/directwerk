@@ -3,12 +3,14 @@
 import {
     parseEspConnectionEnvelope,
     parseIntegrationsStatusEnvelope,
+    parseMailgunTestSendResultEnvelope,
 } from '@directwerk/api/validation/catalog'
 
 import type {
     ConnectMailgunInput,
     EspConnection,
     IntegrationsStatus,
+    MailgunTestSendResult,
 } from '@directwerk/api/types'
 import {jsonInit, studioDelete, studioGet, studioMutate} from './studioApiCore'
 
@@ -16,6 +18,8 @@ const invalidStatusMessage =
     'Der Server hat einen ungültigen Integrations-Status gesendet.'
 const invalidEspMessage =
     'Der Server hat ungültige Mailgun-Verbindungsdaten gesendet.'
+const invalidMailgunTestMessage =
+    'Der Server hat ein ungültiges Mailgun-Testergebnis gesendet.'
 
 export async function getIntegrationsStatus(
     ): Promise<IntegrationsStatus> {
@@ -47,4 +51,13 @@ export async function connectMailgun(
 
 export async function disconnectEsp(): Promise<void> {
     return studioDelete('/api/proxy/tenant/integrations/esp', )
+}
+
+export async function sendMailgunTest(): Promise<MailgunTestSendResult> {
+    return studioMutate(
+        '/api/proxy/tenant/integrations/esp/mailgun/test',
+        {method: 'POST'},
+        parseMailgunTestSendResultEnvelope,
+        invalidMailgunTestMessage,
+    )
 }

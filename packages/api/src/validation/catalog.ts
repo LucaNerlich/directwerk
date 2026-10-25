@@ -17,6 +17,7 @@ import type {
     EpisodeDetail,
     EpisodeSummary,
     EspConnection,
+    MailgunTestSendResult,
     ImportedEpisodeResult,
     ImportedArticleResult,
     RssImportPreview,
@@ -2425,4 +2426,45 @@ export function parseIntegrationsStatusEnvelope(
     value: unknown,
 ): ApiEnvelope<IntegrationsStatus> | null {
     return parseEnvelope(value, parseIntegrationsStatus)
+}
+
+export function parseMailgunTestSendResult(
+    value: unknown,
+): MailgunTestSendResult | null {
+    if (
+        !isRecord(value) ||
+        !isNonNegativeSafeInteger(value.sentCount) ||
+        !isNonNegativeSafeInteger(value.failedCount) ||
+        !Array.isArray(value.results)
+    ) {
+        return null
+    }
+
+    const results: MailgunTestSendResult['results'] = []
+    for (const item of value.results) {
+        if (
+            !isRecord(item) ||
+            !isBoundedString(item.email, 320) ||
+            !isBoundedString(item.status, 32)
+        ) {
+            return null
+        }
+        results.push({
+            email: item.email,
+            status: item.status,
+            error: isNullableString(item.error, 500) ? item.error : null,
+        })
+    }
+
+    return {
+        sentCount: value.sentCount,
+        failedCount: value.failedCount,
+        results,
+    }
+}
+
+export function parseMailgunTestSendResultEnvelope(
+    value: unknown,
+): ApiEnvelope<MailgunTestSendResult> | null {
+    return parseEnvelope(value, parseMailgunTestSendResult)
 }
