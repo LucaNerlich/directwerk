@@ -124,8 +124,34 @@ class S3BulkObjectDeleterTest {
         assertThatThrownBy(() -> deleter.deleteQuietly(
                 "directwerk-dev",
                 List.of("alpha/staging/locked.mp3")
-        )).isInstanceOf(S3Exception.class)
-                .hasMessageContaining("AccessDenied");
+        )).isInstanceOf(S3BulkObjectDeleter.PartialBulkDeleteException.class)
+                .hasMessageContaining("AccessDenied")
+                .extracting(ex -> ((S3BulkObjectDeleter.PartialBulkDeleteException) ex).getDeletedKeys())
+                .asList()
+                .isEmpty();
+    }
+
+    @Test
+    void deleteQuietlyReturnsSuccessfulKeysBeforePartialFailure() {
+        when(s3Client.deleteObjects(any(DeleteObjectsRequest.class)))
+                .thenReturn(DeleteObjectsResponse.builder()
+                        .errors(S3Error.builder()
+                                .key("alpha/staging/locked.mp3")
+                                .code("AccessDenied")
+                                .message("denied")
+                                .build())
+                        .build());
+
+        assertThatThrownBy(() -> deleter.deleteQuietly(
+                "directwerk-dev",
+                List.of("alpha/staging/ok.mp3", "alpha/staging/locked.mp3", "alpha/staging/also-ok.mp3")
+        )).isInstanceOf(S3BulkObjectDeleter.PartialBulkDeleteException.class)
+                .satisfies(ex -> assertThat(
+                        ((S3BulkObjectDeleter.PartialBulkDeleteException) ex).getDeletedKeys()
+                ).containsExactly(
+                        "alpha/staging/ok.mp3",
+                        "alpha/staging/also-ok.mp3"
+                ));
     }
 
     @Test

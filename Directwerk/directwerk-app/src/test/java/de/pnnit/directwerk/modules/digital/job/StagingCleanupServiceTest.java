@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
@@ -77,6 +78,10 @@ class StagingCleanupServiceTest {
                 transactionManager
         );
         lenient().when(transactionManager.getTransaction(any())).thenReturn(transactionStatus);
+        lenient().when(bulkObjectDeleter.deleteQuietly(any(), any())).thenAnswer(invocation -> {
+            Collection<?> keys = invocation.getArgument(1);
+            return List.copyOf(keys);
+        });
         tenant = new Tenant();
         tenant.setId(10L);
         tenant.setSlug("alpha-show-a");
@@ -210,6 +215,35 @@ class StagingCleanupServiceTest {
         verify(mediaAssetRepository).archivePendingByS3Key(10L, "alpha-show-a/staging/sess/page1.mp3");
         verify(bulkObjectDeleter).deleteQuietly(eq("directwerk-dev"), any());
         verify(s3Client, times(2)).listObjectsV2(any(ListObjectsV2Request.class));
+    }
+
+    @Test
+    void cleanupExpiredStagingArchivesSuccessfulKeysOnPartialBulkDelete() {
+        when(directwerkConfig.isStorageEnabled()).thenReturn(true);
+        when(directwerkConfig.storage()).thenReturn(storageProps());
+        when(tenantRepository.findAll()).thenReturn(List.of(tenant));
+
+        Instant old = Instant.now().minus(48, ChronoUnit.HOURS);
+        when(s3Client.listObjectsV2(any(ListObjectsV2Request.class))).thenReturn(
+                ListObjectsV2Response.builder()
+                        .isTruncated(false)
+                        .contents(
+                                S3Object.builder().key("alpha-show-a/staging/sess/ok.mp3").lastModified(old).build(),
+                                S3Object.builder().key("alpha-show-a/staging/sess/locked.mp3").lastModified(old).build()
+                        )
+                        .build()
+        );
+        doAnswer(invocation -> {
+            throw new S3BulkObjectDeleter.PartialBulkDeleteException(
+                    List.of("alpha-show-a/staging/sess/ok.mp3"),
+                    S3Exception.builder().statusCode(403).message("AccessDenied").build()
+            );
+        }).when(bulkObjectDeleter).deleteQuietly(any(), any());
+
+        stagingCleanupService.cleanupExpiredStaging();
+
+        verify(mediaAssetRepository).archivePendingByS3Key(10L, "alpha-show-a/staging/sess/ok.mp3");
+        verify(mediaAssetRepository, never()).archivePendingByS3Key(10L, "alpha-show-a/staging/sess/locked.mp3");
     }
 
     @Test

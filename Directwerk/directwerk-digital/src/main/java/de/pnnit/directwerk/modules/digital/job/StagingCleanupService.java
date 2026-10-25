@@ -6,11 +6,14 @@ import de.pnnit.directwerk.modules.core.entity.Tenant;
 import de.pnnit.directwerk.modules.core.repository.TenantRepository;
 import de.pnnit.directwerk.modules.digital.repository.MediaAssetRepository;
 import de.pnnit.directwerk.modules.digital.storage.S3BulkObjectDeleter;
+import de.pnnit.directwerk.modules.digital.storage.S3BulkObjectDeleter.PartialBulkDeleteException;
 import de.pnnit.directwerk.modules.digital.storage.StorageConfigs;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -113,10 +116,31 @@ public class StagingCleanupService {
                     deletedFileKeys.add(object.key());
                 }
             }
-            bulkObjectDeleter.deleteQuietly(storage.bucket(), expiredKeys);
+            List<String> deletedKeys;
+            try {
+                deletedKeys = bulkObjectDeleter.deleteQuietly(storage.bucket(), expiredKeys);
+            } catch (PartialBulkDeleteException ex) {
+                // Archive rows for keys S3 already removed before the partial failure (#811 review).
+                archivePendingAssets(tenant, intersect(deletedFileKeys, ex.getDeletedKeys()));
+                throw ex;
+            }
             continuationToken = response.isTruncated() ? response.nextContinuationToken() : null;
-            archivePendingAssets(tenant, deletedFileKeys);
+            archivePendingAssets(tenant, intersect(deletedFileKeys, deletedKeys));
         } while (continuationToken != null);
+    }
+
+    private static List<String> intersect(List<String> candidates, List<String> deletedKeys) {
+        if (candidates.isEmpty() || deletedKeys.isEmpty()) {
+            return List.of();
+        }
+        Set<String> deleted = new HashSet<>(deletedKeys);
+        List<String> matched = new ArrayList<>();
+        for (String key : candidates) {
+            if (deleted.contains(key)) {
+                matched.add(key);
+            }
+        }
+        return matched;
     }
 
     private void archivePendingAssets(Tenant tenant, List<String> keys) {
