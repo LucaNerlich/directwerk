@@ -106,7 +106,10 @@ export interface ContentEditorModel<
     saveHint: string | null
     isDirty: boolean
     busy: boolean
-    save: () => Promise<T | null>
+    save: (options?: {
+        autosave?: boolean
+        deferCreateRedirect?: boolean
+    }) => Promise<T | null>
     runWorkflow: (
         action: (current: T) => Promise<T>,
         options?: {persistTags?: boolean},

@@ -176,43 +176,52 @@ export function useEpisodeContentEditor(
         [selectedCategoryIds, selectedFormatIds],
     )
 
-    const saveImpl = useCallback(async (): Promise<EpisodeDetail | null> => {
-        if (seriesId === null) {
-            throw new Error('Bitte zuerst eine Sendung anlegen.')
-        }
+    const saveImpl = useCallback(
+        async (options?: {
+            autosave?: boolean
+            deferCreateRedirect?: boolean
+        }): Promise<EpisodeDetail | null> => {
+            if (seriesId === null) {
+                throw new Error('Bitte zuerst eine Sendung anlegen.')
+            }
 
-        const payload = episodeFields()
+            const payload = episodeFields()
 
-        if (episodeId === undefined) {
-            const created = await createEpisode({
+            if (episodeId === undefined) {
+                const created = await createEpisode({
+                    ...payload,
+                    seriesId,
+                })
+                setEpisode(created)
+                // #731: audio upload/library attach navigates after attachEpisodeAudio.
+                if (options?.deferCreateRedirect !== true) {
+                    router.replace(localize(descriptor.paths.editor(created.id)))
+                }
+                return created
+            }
+
+            const updated = await updateEpisode(episodeId, {
                 ...payload,
-                seriesId,
+                clearCoverAsset: coverAssetId === null,
             })
-            setEpisode(created)
-            router.replace(localize(descriptor.paths.editor(created.id)))
-            return created
-        }
-
-        const updated = await updateEpisode(episodeId, {
-            ...payload,
-            clearCoverAsset: coverAssetId === null,
-        })
-        const withTags = await persistTags(updated)
-        setEpisode(withTags)
-        setAllEpisodes((current) =>
-            current.map((item) => (item.id === withTags.id ? withTags : item)),
-        )
-        return withTags
-    }, [
-        coverAssetId,
-        descriptor.paths,
-        episodeFields,
-        episodeId,
-        localize,
-        persistTags,
-        router,
-        seriesId,
-    ])
+            const withTags = await persistTags(updated)
+            setEpisode(withTags)
+            setAllEpisodes((current) =>
+                current.map((item) => (item.id === withTags.id ? withTags : item)),
+            )
+            return withTags
+        },
+        [
+            coverAssetId,
+            descriptor.paths,
+            episodeFields,
+            episodeId,
+            localize,
+            persistTags,
+            router,
+            seriesId,
+        ],
+    )
 
     const {
         isSaving,
@@ -424,7 +433,8 @@ export function useEpisodeContentEditor(
                 return
             }
 
-            const saved = await save()
+            const wasCreate = episodeId === undefined
+            const saved = await save({deferCreateRedirect: true})
             if (saved === null) {
                 return
             }
@@ -446,6 +456,9 @@ export function useEpisodeContentEditor(
                 })
                 const updated = await attachEpisodeAudio(saved.id, asset.id)
                 setEpisode(updated)
+                if (wasCreate) {
+                    router.replace(localize(descriptor.paths.editor(updated.id)))
+                }
             } catch (error) {
                 handleAuthError(error)
             } finally {
@@ -455,12 +468,21 @@ export function useEpisodeContentEditor(
                 }
             }
         },
-        [handleAuthError, save, setErrorMessage],
+        [
+            descriptor.paths,
+            episodeId,
+            handleAuthError,
+            localize,
+            router,
+            save,
+            setErrorMessage,
+        ],
     )
 
     const handleAudioFromLibrary = useCallback(
         async (assetId: number) => {
-            const saved = await save()
+            const wasCreate = episodeId === undefined
+            const saved = await save({deferCreateRedirect: true})
             if (saved === null) {
                 return
             }
@@ -470,13 +492,24 @@ export function useEpisodeContentEditor(
             try {
                 const updated = await attachEpisodeAudio(saved.id, assetId)
                 setEpisode(updated)
+                if (wasCreate) {
+                    router.replace(localize(descriptor.paths.editor(updated.id)))
+                }
             } catch (error) {
                 handleAuthError(error)
             } finally {
                 setIsUploading(false)
             }
         },
-        [handleAuthError, save, setErrorMessage],
+        [
+            descriptor.paths,
+            episodeId,
+            handleAuthError,
+            localize,
+            router,
+            save,
+            setErrorMessage,
+        ],
     )
 
     function handleCoverUpload(file: File | null): Promise<void> {
