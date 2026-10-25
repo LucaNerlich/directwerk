@@ -4,6 +4,7 @@ export {
     buildSafeMediaListQueryString,
     buildSafePreviewQueryString,
     buildSafeProxyQuery,
+    buildSafePublicationListQueryString,
     hasUnsupportedProxyQuery,
     readBearerToken,
 } from './path'

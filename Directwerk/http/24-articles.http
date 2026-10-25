@@ -34,7 +34,8 @@ Accept: application/json
 ###
 
 ### @name listArticles
-GET {{baseUrl}}/api/v1/articles
+### Page with ?limit=1..500 (default 100) and ?offset=<rows skipped> (default 0).
+GET {{baseUrl}}/api/v1/articles?limit=100&offset=0
 Host: {{tenantAHost}}
 Authorization: Bearer {{tenantAAccessToken}}
 Accept: application/json
