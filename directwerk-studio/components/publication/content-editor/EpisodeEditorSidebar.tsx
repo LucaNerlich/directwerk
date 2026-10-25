@@ -15,6 +15,7 @@ export default function EpisodeEditorSidebar({
     title,
     hasAudio,
     audioAssetId,
+    audioFilename,
     audioPreviewUrl,
     audioPreviewError,
     audioReady,
@@ -49,6 +50,7 @@ export default function EpisodeEditorSidebar({
     title: string
     hasAudio: boolean
     audioAssetId: number | null
+    audioFilename: string | null
     audioPreviewUrl: string | null
     audioPreviewError: string | null
     audioReady: boolean
@@ -71,7 +73,10 @@ export default function EpisodeEditorSidebar({
     showLibraryPicker: boolean
     onAuthRequired: () => void
     onAudioUpload: (file: File | null) => Promise<void>
-    onAudioFromLibrary: (assetId: number) => Promise<void>
+    onAudioFromLibrary: (asset: {
+        id: number
+        originalFilename?: string | null
+    }) => Promise<void>
     onCoverUpload: (file: File | null) => Promise<void>
     onCoverSelect: (assetId: number) => void
     onCoverClear: () => void
@@ -87,6 +92,7 @@ export default function EpisodeEditorSidebar({
             <EpisodeAudioField
                 hasAudio={hasAudio}
                 audioAssetId={audioAssetId}
+                audioFilename={audioFilename}
                 audioPreviewUrl={audioPreviewUrl}
                 audioPreviewError={audioPreviewError}
                 audioReady={audioReady}

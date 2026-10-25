@@ -17,6 +17,7 @@ import {mediaLimitLabel} from '@/lib/media/limits'
 export default function EpisodeAudioField({
     hasAudio,
     audioAssetId,
+    audioFilename,
     audioPreviewUrl,
     audioPreviewError,
     audioReady,
@@ -31,6 +32,7 @@ export default function EpisodeAudioField({
 }: {
     hasAudio: boolean
     audioAssetId: number | null
+    audioFilename: string | null
     audioPreviewUrl: string | null
     audioPreviewError: string | null
     audioReady: boolean
@@ -41,9 +43,16 @@ export default function EpisodeAudioField({
     showLibraryPicker: boolean
     onAuthRequired: () => void
     onUpload: (file: File | null) => Promise<void>
-    onSelectFromLibrary: (assetId: number) => Promise<void>
+    onSelectFromLibrary: (asset: {
+        id: number
+        originalFilename?: string | null
+    }) => Promise<void>
 }): React.JSX.Element {
     const dict = useDictionary()
+    const displayedFilename =
+        uploadProgress?.file.name ??
+        audioFilename ??
+        (audioAssetId !== null ? `Asset #${audioAssetId}` : null)
 
     return (
         <Card>
@@ -62,6 +71,14 @@ export default function EpisodeAudioField({
                                     : 'Audio wird noch verarbeitet…'
                                 : 'Audio-Status wird geladen…'}
                         </p>
+                        {displayedFilename !== null ? (
+                            <p
+                                className="truncate text-sm font-medium"
+                                title={displayedFilename}
+                            >
+                                {displayedFilename}
+                            </p>
+                        ) : null}
                         {audioPreviewUrl !== null ? (
                             <audio
                                 className="w-full max-w-full"
@@ -113,7 +130,7 @@ export default function EpisodeAudioField({
                         }
                         onAuthRequired={onAuthRequired}
                         onSelect={(asset) => {
-                            void onSelectFromLibrary(asset.id)
+                            void onSelectFromLibrary(asset)
                         }}
                         selectedId={audioAssetId}
                     />

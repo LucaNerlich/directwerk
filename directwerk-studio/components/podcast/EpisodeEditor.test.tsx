@@ -128,6 +128,13 @@ describe('EpisodeEditor tagging', () => {
         expect(screen.queryByText('Vorschau wird geladen…')).not.toBeInTheDocument()
     })
 
+    it('shows the selected MP3 filename in the audio siderail', async () => {
+        renderWithLocale(<EpisodeEditor episodeId={1} />)
+
+        expect(await screen.findByText('folge.mp3')).toBeInTheDocument()
+        expect(screen.getByText('Audio bereit.')).toBeInTheDocument()
+    })
+
     it('sends an explicit signal when removing the cover asset', async () => {
         const user = userEvent.setup()
         updateEpisode.mockClear()

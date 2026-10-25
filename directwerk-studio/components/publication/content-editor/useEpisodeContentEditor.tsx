@@ -119,6 +119,7 @@ export function useEpisodeContentEditor(
     const [audioPreviewError, setAudioPreviewError] = useState<string | null>(null)
     const [audioReady, setAudioReady] = useState(false)
     const [audioStatusKnown, setAudioStatusKnown] = useState(true)
+    const [audioFilename, setAudioFilename] = useState<string | null>(null)
     const [availableFormats, setAvailableFormats] = useState<FormatSummary[]>([])
     const [availableCategories, setAvailableCategories] = useState<CategorySummary[]>([])
     const [selectedFormatIds, setSelectedFormatIds] = useState<Set<number>>(new Set())
@@ -286,6 +287,7 @@ export function useEpisodeContentEditor(
             setAudioPreviewError(null)
             setAudioReady(false)
             setAudioStatusKnown(true)
+            setAudioFilename(null)
             return
         }
 
@@ -310,6 +312,10 @@ export function useEpisodeContentEditor(
                 )
                 setAudioReady(asset.status === 'READY')
                 setAudioStatusKnown(true)
+                const name = asset.originalFilename?.trim()
+                setAudioFilename(
+                    name !== undefined && name.length > 0 ? name : `Asset #${assetId}`,
+                )
             } catch (error) {
                 if (!active) {
                     return
@@ -322,6 +328,7 @@ export function useEpisodeContentEditor(
                 )
                 setAudioReady(false)
                 setAudioStatusKnown(true)
+                setAudioFilename(`Asset #${assetId}`)
             }
         }
 
@@ -451,6 +458,7 @@ export function useEpisodeContentEditor(
 
             setIsUploading(true)
             setErrorMessage(null)
+            setAudioFilename(file.name)
             setUploadProgress({file, progress: 0})
             try {
                 const host = getClientTenantHost()
@@ -466,6 +474,10 @@ export function useEpisodeContentEditor(
                 })
                 const updated = await attachEpisodeAudio(saved.id, asset.id)
                 setEpisode(updated)
+                const name = asset.originalFilename?.trim()
+                setAudioFilename(
+                    name !== undefined && name.length > 0 ? name : file.name,
+                )
                 if (wasCreate) {
                     router.replace(localize(descriptor.paths.editor(updated.id)))
                 }
@@ -494,17 +506,22 @@ export function useEpisodeContentEditor(
     )
 
     const handleAudioFromLibrary = useCallback(
-        async (assetId: number) => {
+        async (asset: {id: number; originalFilename?: string | null}) => {
             const wasCreate = episodeId === undefined
             const saved = await save({deferCreateRedirect: true})
             if (saved === null) {
                 return
             }
 
+            const optimistic = asset.originalFilename?.trim()
+            if (optimistic !== undefined && optimistic.length > 0) {
+                setAudioFilename(optimistic)
+            }
+
             setIsUploading(true)
             setErrorMessage(null)
             try {
-                const updated = await attachEpisodeAudio(saved.id, assetId)
+                const updated = await attachEpisodeAudio(saved.id, asset.id)
                 setEpisode(updated)
                 if (wasCreate) {
                     router.replace(localize(descriptor.paths.editor(updated.id)))
@@ -730,6 +747,7 @@ export function useEpisodeContentEditor(
                 title={title}
                 hasAudio={hasAudio}
                 audioAssetId={audioAssetId}
+                audioFilename={audioFilename}
                 audioPreviewUrl={audioPreviewUrl}
                 audioPreviewError={audioPreviewError}
                 audioReady={audioReady}
