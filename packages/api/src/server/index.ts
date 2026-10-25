@@ -28,6 +28,7 @@ export {
 export {
     createLogoutRoute,
     createTenantRefreshTokenRevoker,
+    isSameOriginRequest,
     type LogoutRevokeStep,
     type LogoutRouteConfig,
     type TenantRefreshTokenRevokerConfig,

@@ -12,7 +12,10 @@ export interface PublicationEditorWorkflowState<T extends {status: PublicationSt
     saveHint: string | null
     isDirty: boolean
     markDirty: () => void
-    save: (options?: {autosave?: boolean}) => Promise<T | null>
+    save: (options?: {
+        autosave?: boolean
+        deferCreateRedirect?: boolean
+    }) => Promise<T | null>
     runWorkflow: (
         action: (current: T) => Promise<T>,
         options?: {persistTags?: boolean},
@@ -36,7 +39,10 @@ export function usePublicationEditorWorkflow<T extends {
     publication: T | null
     loadError?: boolean
     persistTags?: (current: T) => Promise<T>
-    saveImpl: (options?: {autosave?: boolean}) => Promise<T | null>
+    saveImpl: (options?: {
+        autosave?: boolean
+        deferCreateRedirect?: boolean
+    }) => Promise<T | null>
     onWorkflowComplete?: (next: T) => void
     autosaveBlocked?: boolean
     authRedirect: (error: unknown) => boolean
@@ -76,6 +82,7 @@ export function usePublicationEditorWorkflow<T extends {
         async (options?: {
             autosave?: boolean
             fromWorkflow?: boolean
+            deferCreateRedirect?: boolean
         }): Promise<T | null> => {
             if (loadError) {
                 return null

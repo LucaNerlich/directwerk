@@ -64,6 +64,7 @@ import type {
     TenantSubscriber,
     TenantSubscriberSubscription,
     TenantUser,
+    DirectoryListPage,
     UploadUrlResponse,
 } from '../types'
 import {ASSET_STATUSES, ASSET_TYPES} from '../constants'
@@ -1642,6 +1643,50 @@ export function parseTenantUserListEnvelope(
     return parseEnvelope(value, (data) => parseBoundedArray(data, 500, parseTenantUser))
 }
 
+function parseDirectoryPagingMeta(
+    metadata: unknown,
+): {page: number; size: number; totalElements: number} | null {
+    if (!isRecord(metadata)) {
+        return null
+    }
+    const page = metadata.page
+    const size = metadata.size
+    const totalElements = metadata.totalElements
+    if (
+        typeof page !== 'number' ||
+        !Number.isSafeInteger(page) ||
+        page < 0 ||
+        typeof size !== 'number' ||
+        !Number.isSafeInteger(size) ||
+        size < 1 ||
+        size > 100 ||
+        typeof totalElements !== 'number' ||
+        !Number.isSafeInteger(totalElements) ||
+        totalElements < 0
+    ) {
+        return null
+    }
+    return {page, size, totalElements}
+}
+
+/**
+ * Parses a paged tenant-user directory response (#561).
+ * Bound is 100 to match the API's max page size.
+ */
+export function parseTenantUserDirectoryPage(
+    value: unknown,
+): DirectoryListPage<TenantUser> | null {
+    if (!isRecord(value) || !isValidHttpStatus(value.statusCode)) {
+        return null
+    }
+    const content = parseBoundedArray(value.data, 100, parseTenantUser)
+    const meta = parseDirectoryPagingMeta(value.metadata)
+    if (content === null || meta === null) {
+        return null
+    }
+    return {content, ...meta}
+}
+
 export function parseTenantUserEnvelope(
     value: unknown,
 ): ApiEnvelope<TenantUser> | null {
@@ -1893,6 +1938,24 @@ export function parseSubscriberListEnvelope(
     return parseEnvelope(value, (data) =>
         parseBoundedArray(data, 5000, parseTenantSubscriber),
     )
+}
+
+/**
+ * Parses a paged subscriber directory response (#561).
+ * Bound is 100 to match the API's max page size.
+ */
+export function parseSubscriberDirectoryPage(
+    value: unknown,
+): DirectoryListPage<TenantSubscriber> | null {
+    if (!isRecord(value) || !isValidHttpStatus(value.statusCode)) {
+        return null
+    }
+    const content = parseBoundedArray(value.data, 100, parseTenantSubscriber)
+    const meta = parseDirectoryPagingMeta(value.metadata)
+    if (content === null || meta === null) {
+        return null
+    }
+    return {content, ...meta}
 }
 
 // ---------------------------------------------------------------------------

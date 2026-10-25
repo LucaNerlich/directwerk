@@ -8,15 +8,20 @@ import de.pnnit.directwerk.modules.core.service.MembershipPermissionService;
 import de.pnnit.directwerk.modules.core.service.TenantInvitationService;
 import de.pnnit.directwerk.modules.core.service.TenantMembershipManagementService;
 import de.pnnit.directwerk.modules.core.service.TenantUserQueryService;
+import de.pnnit.directwerk.modules.core.service.TenantUserQueryService.TenantUserPage;
 import de.pnnit.directwerk.modules.core.service.TenantUserQueryService.TenantUserView;
 import de.pnnit.directwerk.multitenancy.TenantContext;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.Size;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import java.util.List;
+import java.util.Map;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -28,6 +33,7 @@ import org.springframework.web.bind.annotation.RestController;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 
 @RestController
+@Validated
 @PreAuthorize("hasRole('PLATFORM_ADMIN')")
 @RequestMapping("/api/v1/platform/tenants/{tenantId}/users")
 public class PlatformTenantUserController {
@@ -52,10 +58,29 @@ public class PlatformTenantUserController {
         this.invitationResponseMapper = invitationResponseMapper;
     }
 
+    /**
+     * Lists one page of members for a tenant (#561).
+     *
+     * @param page zero-based page index
+     * @param size page size, 1-100
+     * @param q    optional case-insensitive email/name search
+     */
     @GetMapping
-    ResponseEntity<Response<TenantUserListResponse>> listUsers(@PathVariable Long tenantId) {
-        List<TenantUserView> users = tenantUserQueryService.listTenantUsers(tenantId);
-        return ResponseEntity.ok(Response.ok(new TenantUserListResponse(users)));
+    ResponseEntity<Response<TenantUserListResponse>> listUsers(
+            @PathVariable Long tenantId,
+            @RequestParam(defaultValue = "0") @Min(0) int page,
+            @RequestParam(defaultValue = "50") @Min(1) @Max(100) int size,
+            @RequestParam(required = false) @Size(max = 100) String q
+    ) {
+        TenantUserPage userPage = tenantUserQueryService.listTenantUsers(tenantId, page, size, q);
+        return ResponseEntity.ok(Response.ok(
+                new TenantUserListResponse(userPage.content()),
+                Map.of(
+                        "page", userPage.page(),
+                        "size", userPage.size(),
+                        "totalElements", userPage.totalElements()
+                )
+        ));
     }
 
     @ApiResponse(responseCode = "201", description = "Created")

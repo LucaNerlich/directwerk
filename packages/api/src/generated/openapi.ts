@@ -9924,7 +9924,11 @@ export interface operations {
     };
     listUsers: {
         parameters: {
-            query?: never;
+            query?: {
+                page?: number;
+                size?: number;
+                q?: string;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -9966,7 +9970,11 @@ export interface operations {
     };
     listSubscribers: {
         parameters: {
-            query?: never;
+            query?: {
+                page?: number;
+                size?: number;
+                q?: string;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -10616,7 +10624,11 @@ export interface operations {
     };
     listUsers_1: {
         parameters: {
-            query?: never;
+            query?: {
+                page?: number;
+                size?: number;
+                q?: string;
+            };
             header?: never;
             path: {
                 tenantId: number;

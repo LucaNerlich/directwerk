@@ -25,6 +25,7 @@ import {useListViewMode} from '@directwerk/ui/hooks/use-list-view-mode'
 
 import SelectControl from '@/components/studio/SelectControl'
 import MemberRightsEditor from '@/components/team/MemberRightsEditor'
+import {listAllTenantEditors} from '@/lib/api/listAllTenantEditors'
 import {deactivateTenantUser, inviteTenantUser, listTenantUsers, reactivateTenantUser} from '@/lib/api/tenantSettingsApi'
 import {
     TENANT_INVITABLE_ROLES,
@@ -47,6 +48,8 @@ const INITIAL_INVITE_STATE: InviteState = {
     success: null,
     inviteToken: null,
 }
+
+const PAGE_SIZE = 50
 
 function roleLabel(role: string): string {
     switch (role) {
@@ -99,6 +102,12 @@ export default function TeamClient(): React.JSX.Element {
     const authRedirect = useAuthRequired()
     const me = useMe()
     const [users, setUsers] = useState<TenantUser[]>([])
+    const [totalMembers, setTotalMembers] = useState(0)
+    const [page, setPage] = useState(0)
+    const [pageSize, setPageSize] = useState(PAGE_SIZE)
+    const [searchInput, setSearchInput] = useState('')
+    const [searchQuery, setSearchQuery] = useState('')
+    const [editors, setEditors] = useState<TenantUser[]>([])
     const [loadError, setLoadError] = useState<string | null>(null)
     const [isLoading, setIsLoading] = useState(true)
     const [actionError, setActionError] = useState<string | null>(null)
@@ -107,10 +116,28 @@ export default function TeamClient(): React.JSX.Element {
     const [reloadToken, setReloadToken] = useState(0)
     const {viewMode, setViewMode} = useListViewMode()
 
+    useEffect(() => {
+        const handle = window.setTimeout(() => {
+            setSearchQuery(searchInput.trim())
+            setPage(0)
+        }, 300)
+        return () => window.clearTimeout(handle)
+    }, [searchInput])
+
     const reload = useCallback(async (): Promise<void> => {
-        const result = await listTenantUsers()
-        setUsers(result)
-    }, [])
+        const [directory, editorList] = await Promise.all([
+            listTenantUsers({
+                page,
+                size: PAGE_SIZE,
+                ...(searchQuery.length > 0 ? {q: searchQuery} : {}),
+            }),
+            listAllTenantEditors(),
+        ])
+        setUsers(directory.content)
+        setTotalMembers(directory.totalElements)
+        setPageSize(directory.size)
+        setEditors(editorList)
+    }, [page, searchQuery])
 
     useEffect(() => {
         let active = true
@@ -278,6 +305,11 @@ export default function TeamClient(): React.JSX.Element {
         }
     })
 
+    const hasPreviousPage = page > 0
+    const hasNextPage = (page + 1) * pageSize < totalMembers
+    const selectedEditor =
+        editors.find((user) => user.userId === rightsUserId) ?? editors[0] ?? null
+
     return (
         <PageStack>
             <PageHeader
@@ -289,21 +321,68 @@ export default function TeamClient(): React.JSX.Element {
             <section aria-labelledby="team-list-heading" className="flex flex-col gap-4">
                 <SectionHeader
                     id="team-list-heading"
-                    title={t(team.mitglieder, {'users.length': users.length})}
+                    title={t(team.mitglieder, {totalMembers})}
                     description={team.deaktivierteKontenVerlierenSofortZugriffRea}
                 />
-            {users.length === 0 ? (
+                <div className="grid w-full max-w-xl gap-2">
+                    <Label htmlFor="team-search">{team.searchLabel}</Label>
+                    <Input
+                        id="team-search"
+                        onChange={(event) => setSearchInput(event.target.value)}
+                        placeholder={team.searchPlaceholder}
+                        type="search"
+                        value={searchInput}
+                    />
+                </div>
+            {totalMembers === 0 && searchQuery.length === 0 ? (
                 <EmptyState
                     title={team.keineMitglieder}
                     description={team.inviteFirst}
                 />
+            ) : totalMembers === 0 ? (
+                <EmptyState
+                    title={team.keineMitgliederSuche}
+                    description={team.passeSuchbegriffWeitereMitgliederSehen}
+                    action={
+                        <Button onClick={() => setSearchInput('')} type="button" variant="outline">
+                            {dict.podcast.resetSearch}
+                        </Button>
+                    }
+                />
             ) : (
+                <>
                 <EntityListSection
                     items={memberItems}
                     onViewModeChange={setViewMode}
                     showSelection={false}
                     viewMode={viewMode}
                 />
+                <p aria-live="polite" className="text-sm text-muted-foreground">
+                    {t(team.pageSummary, {
+                        page: page + 1,
+                        pageSize,
+                        totalMembers,
+                    })}
+                </p>
+                <div className="flex flex-wrap items-center gap-2">
+                    <Button
+                        disabled={!hasPreviousPage}
+                        onClick={() => setPage((current) => Math.max(0, current - 1))}
+                        type="button"
+                        variant="outline"
+                    >
+                        {team.previousPage}
+                    </Button>
+                    <Button
+                        disabled={!hasNextPage}
+                        onClick={() => setPage((current) => current + 1)}
+                        type="button"
+                        variant="outline"
+                    >
+                        {team.nextPage}
+                    </Button>
+                </div>
+                </>
             )}
             </section>
 
@@ -319,47 +398,37 @@ export default function TeamClient(): React.JSX.Element {
                     title={team.accessRights}
                     description={team.redakteureStandardmaessigVollenZugriffInhalt}
                 />
-                {(() => {
-                    const editable = users.filter(
-                        (user) => user.roles.includes('EDITOR') && user.status !== 'DISABLED',
-                    )
-                    const selected =
-                        editable.find((user) => user.userId === rightsUserId) ?? editable[0] ?? null
-                    if (editable.length === 0) {
-                        return (
-                            <p className="text-sm text-muted-foreground">
-                                Keine aktiven Redakteure vorhanden — lade unten jemanden als Redakteur ein,
-                                um Rechte zu vergeben.
-                            </p>
-                        )
-                    }
-                    return (
-                        <div className="grid max-w-2xl gap-3">
-                            <label className="grid gap-2 text-sm font-medium" htmlFor="rights-user">
-                                <span>Mitglied</span>
-                                <select
-                                    className="native-select"
-                                    id="rights-user"
-                                    onChange={(event) => setRightsUserId(Number(event.target.value))}
-                                    value={selected !== null ? selected.userId : ''}
-                                >
-                                    {editable.map((user) => (
-                                        <option key={user.userId} value={user.userId}>
-                                            {user.name ?? user.email} ({user.email})
-                                        </option>
-                                    ))}
-                                </select>
-                            </label>
-                            {selected !== null ? (
-                                <MemberRightsEditor
-                                    key={selected.userId}
-                                    onAuthRequired={() => router.replace(localize('/login'))}
-                                    user={selected}
-                                />
-                            ) : null}
-                        </div>
-                    )
-                })()}
+                {editors.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">
+                        Keine aktiven Redakteure vorhanden — lade unten jemanden als Redakteur ein,
+                        um Rechte zu vergeben.
+                    </p>
+                ) : (
+                    <div className="grid max-w-2xl gap-3">
+                        <label className="grid gap-2 text-sm font-medium" htmlFor="rights-user">
+                            <span>Mitglied</span>
+                            <select
+                                className="native-select"
+                                id="rights-user"
+                                onChange={(event) => setRightsUserId(Number(event.target.value))}
+                                value={selectedEditor !== null ? selectedEditor.userId : ''}
+                            >
+                                {editors.map((user) => (
+                                    <option key={user.userId} value={user.userId}>
+                                        {user.name ?? user.email} ({user.email})
+                                    </option>
+                                ))}
+                            </select>
+                        </label>
+                        {selectedEditor !== null ? (
+                            <MemberRightsEditor
+                                key={selectedEditor.userId}
+                                onAuthRequired={() => router.replace(localize('/login'))}
+                                user={selectedEditor}
+                            />
+                        ) : null}
+                    </div>
+                )}
             </section>
 
             <Card className="max-w-xl">

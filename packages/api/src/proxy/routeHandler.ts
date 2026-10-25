@@ -57,8 +57,9 @@ export type TenantProxyRouteHandlers = Record<
  * - requires a valid `X-Tenant-Host` header
  * - rejects unsafe path segments and query strings except the allowlisted
  *   feed-builder preview id lists (`formatIds` / `categoryIds`), the
- *   media-library list/delete filter params, and episode/article list
- *   pagination (`limit` / `offset`)
+ *   media-library list/delete filter params, episode/article list
+ *   pagination (`limit` / `offset`), and tenant directory pagination
+ *   (`page` / `size` / `q`)
  * - requires a bearer token unless the path is public (`/api/v1/public/…`)
  * - enforces a JSON-only request body within the configured byte limit
  * - normalizes upstream failures into JSON error responses

@@ -13,7 +13,8 @@ import de.pnnit.directwerk.multitenancy.TenantContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 
 @Service
 public class StripeWebhookService {
@@ -26,6 +27,7 @@ public class StripeWebhookService {
     private final SubscriptionProductRepository subscriptionProductRepository;
     private final ProcessedWebhookEventRepository processedWebhookEventRepository;
     private final SubscriptionRepository subscriptionRepository;
+    private final PlatformTransactionManager transactionManager;
 
     public StripeWebhookService(
             StripeOperations stripeOperations,
@@ -33,7 +35,8 @@ public class StripeWebhookService {
             StripeSubscriptionSyncService stripeSubscriptionSyncService,
             SubscriptionProductRepository subscriptionProductRepository,
             ProcessedWebhookEventRepository processedWebhookEventRepository,
-            SubscriptionRepository subscriptionRepository
+            SubscriptionRepository subscriptionRepository,
+            PlatformTransactionManager transactionManager
     ) {
         this.stripeOperations = stripeOperations;
         this.stripeConnectService = stripeConnectService;
@@ -41,6 +44,7 @@ public class StripeWebhookService {
         this.subscriptionProductRepository = subscriptionProductRepository;
         this.processedWebhookEventRepository = processedWebhookEventRepository;
         this.subscriptionRepository = subscriptionRepository;
+        this.transactionManager = transactionManager;
     }
 
     public StripeOperations.StripeWebhookPayload parseAndValidate(String payload, String signature) {
@@ -53,9 +57,24 @@ public class StripeWebhookService {
     /**
      * Applies a signature-verified webhook event. Idempotent via {@code processed_webhook_events}.
      * Used by the HTTP controller (inline when the queue is off) and {@code StripeWebhookJobHandler}.
+     *
+     * <p>Deliberately not {@code @Transactional} (issue #745): any Stripe live-status lookup for the
+     * canceled-row reactivation guard runs before the short write transaction opens, so a pooled
+     * connection is never held across the HTTP round trip.</p>
      */
-    @Transactional
     public void applyParsedEvent(StripeOperations.StripeWebhookPayload event) {
+        // Decide the reactivation skip before opening a transaction so retrieveSubscriptionStatus
+        // cannot pin a Hikari connection (issue #745). null = guard does not apply; true = skip;
+        // false = local row is canceled but Stripe still reports live — apply with a row lock.
+        Boolean shouldSkipReactivation = resolveShouldSkipReactivation(event);
+        new TransactionTemplate(transactionManager).executeWithoutResult(status ->
+                applyParsedEventInTransaction(event, shouldSkipReactivation));
+    }
+
+    private void applyParsedEventInTransaction(
+            StripeOperations.StripeWebhookPayload event,
+            Boolean shouldSkipReactivation
+    ) {
         // Insert-first idempotency: the unique event_id constraint is enforced before any money
         // side effects, so a concurrent duplicate (Stripe retry after a timed-out first response)
         // aborts here instead of double-applying the event.
@@ -67,7 +86,7 @@ public class StripeWebhookService {
         }
         Long previousTenantId = TenantContext.getTenantId();
         try {
-            applyEvent(event);
+            applyEvent(event, shouldSkipReactivation);
         } finally {
             if (previousTenantId == null) {
                 TenantContext.clear();
@@ -77,7 +96,10 @@ public class StripeWebhookService {
         }
     }
 
-    private void applyEvent(StripeOperations.StripeWebhookPayload event) {
+    private void applyEvent(
+            StripeOperations.StripeWebhookPayload event,
+            Boolean shouldSkipReactivation
+    ) {
         if ("account.updated".equals(event.type())) {
             if (event.connectedAccountId() != null) {
                 if (!event.dataObjectDeserialized()) {
@@ -113,8 +135,9 @@ public class StripeWebhookService {
 
         switch (event.type()) {
             case "checkout.session.completed", "checkout.session.async_payment_succeeded" ->
-                    applyCheckoutCompleted(tenantId, event);
-            case "customer.subscription.updated" -> applySubscriptionSync(tenantId, event);
+                    applyCheckoutCompleted(tenantId, event, shouldSkipReactivation);
+            case "customer.subscription.updated" ->
+                    applySubscriptionSync(tenantId, event, shouldSkipReactivation);
             case "invoice.paid" -> applyInvoicePaid(tenantId, event);
             case "customer.subscription.deleted" -> applySubscriptionCanceled(tenantId, event);
             case "invoice.payment_failed" -> applyPaymentFailed(tenantId, event);
@@ -130,7 +153,11 @@ public class StripeWebhookService {
         return stripeConnectService.findByStripeAccountId(event.connectedAccountId());
     }
 
-    private void applyCheckoutCompleted(Long tenantId, StripeOperations.StripeWebhookPayload event) {
+    private void applyCheckoutCompleted(
+            Long tenantId,
+            StripeOperations.StripeWebhookPayload event,
+            Boolean shouldSkipReactivation
+    ) {
         Long userId = parseLong(event.metadata().get("user_id"));
         Long productId = parseLong(event.metadata().get("product_id"));
         if (userId == null || productId == null) {
@@ -166,7 +193,11 @@ public class StripeWebhookService {
         // `customer.subscription.deleted` was already consumed and is idempotency-suppressed, so
         // nothing later would take the access away again.
         if (status == SubscriptionStatus.ACTIVE
-                && shouldSkipReactivation(tenantId, event, "Skipping checkout-completed for canceled local row")) {
+                && applyReactivationGuard(
+                        tenantId,
+                        event,
+                        shouldSkipReactivation,
+                        "Skipping checkout-completed for canceled local row")) {
             return;
         }
         stripeSubscriptionSyncService.upsertStripeSubscription(
@@ -181,7 +212,11 @@ public class StripeWebhookService {
         );
     }
 
-    private void applySubscriptionSync(Long tenantId, StripeOperations.StripeWebhookPayload event) {
+    private void applySubscriptionSync(
+            Long tenantId,
+            StripeOperations.StripeWebhookPayload event,
+            Boolean shouldSkipReactivation
+    ) {
         if (event.subscriptionId() == null || event.subscriptionId().isBlank()) {
             return;
         }
@@ -204,7 +239,11 @@ public class StripeWebhookService {
         SubscriptionStatus mappedStatus = mapStripeStatus(event.stripeSubscriptionStatus());
         if (userId == null || productId == null) {
             if (mappedStatus == SubscriptionStatus.ACTIVE
-                    && shouldSkipReactivation(tenantId, event, "Skipping stale sync for canceled local row")) {
+                    && applyReactivationGuard(
+                            tenantId,
+                            event,
+                            shouldSkipReactivation,
+                            "Skipping stale sync for canceled local row")) {
                 return;
             }
             stripeSubscriptionSyncService.syncStripeSubscriptionByExternalId(
@@ -220,7 +259,11 @@ public class StripeWebhookService {
         // the local row is CANCELED, only apply ACTIVE if the subscription is
         // verifiably active at Stripe right now.
         if (mappedStatus == SubscriptionStatus.ACTIVE
-                && shouldSkipReactivation(tenantId, event, "Skipping stale subscription.updated for canceled local row")) {
+                && applyReactivationGuard(
+                        tenantId,
+                        event,
+                        shouldSkipReactivation,
+                        "Skipping stale subscription.updated for canceled local row")) {
             return;
         }
         stripeSubscriptionSyncService.upsertStripeSubscription(
@@ -288,35 +331,99 @@ public class StripeWebhookService {
     }
 
     /**
-     * Decides whether an ACTIVE-mapped event must be ignored because the local row was canceled.
+     * Prefetches the reactivation-skip decision before any write transaction opens (issue #745).
      *
-     * <p>The live-status request runs before the pessimistic row lock (issue #547): a provider
-     * HTTP call must never execute while a connection is pinned and a row lock is held. Only once
-     * the live status confirms the subscription is really active do we lock the row for the rest
-     * of the transaction, so a concurrent {@code customer.subscription.deleted} still cannot
-     * commit between the check and the upsert.</p>
+     * @return {@code null} when the guard does not apply; {@code true} to skip applying an ACTIVE
+     *     event against a canceled local row; {@code false} when the local row is canceled but
+     *     Stripe still reports the subscription live (caller must lock before upserting)
      */
-    private boolean shouldSkipReactivation(
+    private Boolean resolveShouldSkipReactivation(StripeOperations.StripeWebhookPayload event) {
+        if (!mayAttemptActiveReactivation(event)) {
+            return null;
+        }
+        String externalSubscriptionId = event.subscriptionId();
+        if (externalSubscriptionId == null || externalSubscriptionId.isBlank()) {
+            return null;
+        }
+        TenantStripeAccount account = resolveAccount(event);
+        if (account == null) {
+            return null;
+        }
+        Long tenantId = account.getTenant().getId();
+        boolean locallyCanceled = subscriptionRepository
+                .findByTenantIdAndExternalSubscriptionId(tenantId, externalSubscriptionId)
+                .map(subscription -> subscription.getStatus() == SubscriptionStatus.CANCELED)
+                .orElse(false);
+        if (!locallyCanceled) {
+            return null;
+        }
+        // HTTP runs here — outside any transaction — so the connection pool is never pinned.
+        return !isLiveActive(event);
+    }
+
+    private static boolean mayAttemptActiveReactivation(StripeOperations.StripeWebhookPayload event) {
+        return switch (event.type()) {
+            case "checkout.session.completed", "checkout.session.async_payment_succeeded" ->
+                    checkoutWouldGrantActive(event);
+            case "customer.subscription.updated" ->
+                    mapStripeStatus(event.stripeSubscriptionStatus()) == SubscriptionStatus.ACTIVE;
+            default -> false;
+        };
+    }
+
+    private static boolean checkoutWouldGrantActive(StripeOperations.StripeWebhookPayload event) {
+        if (!isCheckoutPaid(event.paymentStatus())) {
+            return false;
+        }
+        if (event.subscriptionId() == null || event.subscriptionId().isBlank()) {
+            return true;
+        }
+        if (event.stripeSubscriptionStatus() == null || event.stripeSubscriptionStatus().isBlank()) {
+            return true;
+        }
+        return mapStripeStatus(event.stripeSubscriptionStatus()) == SubscriptionStatus.ACTIVE;
+    }
+
+    /**
+     * Applies the precomputed reactivation-skip decision inside the write transaction.
+     *
+     * <p>The live-status request already ran before this transaction opened (issue #745). When the
+     * local row is canceled and Stripe confirmed it is still live, take the pessimistic row lock
+     * here so a concurrent {@code customer.subscription.deleted} cannot commit between the check
+     * and the upsert (issue #547).</p>
+     *
+     * @return {@code true} when the ACTIVE-mapped event must be ignored
+     */
+    private boolean applyReactivationGuard(
             Long tenantId,
             StripeOperations.StripeWebhookPayload event,
+            Boolean shouldSkipReactivation,
             String skipMessage
     ) {
         String externalSubscriptionId = event.subscriptionId();
         if (externalSubscriptionId == null || externalSubscriptionId.isBlank()) {
             return false;
         }
+        if (Boolean.TRUE.equals(shouldSkipReactivation)) {
+            log.warn("{} (subscription={})", skipMessage, externalSubscriptionId);
+            return true;
+        }
+        if (Boolean.FALSE.equals(shouldSkipReactivation)) {
+            // Prefetch saw canceled + live: lock for the rest of this transaction.
+            subscriptionRepository.findByTenantIdAndExternalSubscriptionIdForUpdate(
+                    tenantId, externalSubscriptionId);
+            return false;
+        }
+        // Guard did not apply at prefetch (no canceled local row). Re-check unlocked for a race
+        // that canceled after prefetch: fail closed without calling Stripe inside the transaction.
         boolean locallyCanceled = subscriptionRepository
                 .findByTenantIdAndExternalSubscriptionId(tenantId, externalSubscriptionId)
                 .map(subscription -> subscription.getStatus() == SubscriptionStatus.CANCELED)
                 .orElse(false);
-        if (!locallyCanceled) {
-            return false;
-        }
-        if (!isLiveActive(event)) {
+        if (locallyCanceled) {
             log.warn("{} (subscription={})", skipMessage, externalSubscriptionId);
             return true;
         }
-        subscriptionRepository.findByTenantIdAndExternalSubscriptionIdForUpdate(tenantId, externalSubscriptionId);
         return false;
     }
 

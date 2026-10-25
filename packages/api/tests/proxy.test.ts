@@ -2,6 +2,7 @@ import {describe, expect, it, vi} from 'vitest'
 
 import {
     buildProxyPath,
+    buildSafeDirectoryListQueryString,
     buildSafeMediaFolderDeleteQueryString,
     buildSafeMediaListQueryString,
     buildSafePreviewQueryString,
@@ -256,6 +257,50 @@ describe('buildSafeMediaListQueryString', () => {
             buildSafeMediaListQueryString(
                 '/api/v1/media',
                 new URLSearchParams('unreferencedOnly=false'),
+            ),
+        ).toBeNull()
+    })
+})
+
+describe('buildSafeDirectoryListQueryString', () => {
+    it('builds tenant directory pagination and search canonically', () => {
+        expect(
+            buildSafeDirectoryListQueryString(
+                '/api/v1/tenant/users',
+                new URLSearchParams('page=0&size=50&q=alex'),
+            ),
+        ).toBe('?page=0&size=50&q=alex')
+        expect(
+            buildSafeDirectoryListQueryString(
+                '/api/v1/tenant/subscribers',
+                new URLSearchParams('page=1&size=100'),
+            ),
+        ).toBe('?page=1&size=100')
+    })
+
+    it('rejects unknown paths, keys, duplicates, and invalid values', () => {
+        expect(
+            buildSafeDirectoryListQueryString(
+                '/api/v1/tenant/users/5',
+                new URLSearchParams('page=0'),
+            ),
+        ).toBeNull()
+        expect(
+            buildSafeDirectoryListQueryString(
+                '/api/v1/tenant/users',
+                new URLSearchParams('page=0&evil=1'),
+            ),
+        ).toBeNull()
+        expect(
+            buildSafeDirectoryListQueryString(
+                '/api/v1/tenant/subscribers',
+                new URLSearchParams('size=101'),
+            ),
+        ).toBeNull()
+        expect(
+            buildSafeDirectoryListQueryString(
+                '/api/v1/tenant/users',
+                new URLSearchParams('q='),
             ),
         ).toBeNull()
     })

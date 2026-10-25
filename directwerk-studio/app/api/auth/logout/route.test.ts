@@ -42,4 +42,23 @@ describe('POST /api/auth/logout (studio)', () => {
             expect.objectContaining({path: '/oauth2/revoke', tenantHost: 'acme.test'}),
         )
     })
+
+    it('rejects a foreign Origin but allows same-origin', async () => {
+        const foreign = await POST(
+            new Request('http://localhost/api/auth/logout', {
+                method: 'POST',
+                headers: {origin: 'https://evil.example', host: 'localhost'},
+            }),
+        )
+        const sameOrigin = await POST(
+            new Request('http://localhost/api/auth/logout', {
+                method: 'POST',
+                headers: {origin: 'http://localhost', host: 'localhost'},
+            }),
+        )
+
+        expect(foreign.status).toBe(403)
+        expect(sameOrigin.status).toBe(204)
+    })
 })
+
