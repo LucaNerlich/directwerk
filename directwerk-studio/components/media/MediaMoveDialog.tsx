@@ -51,14 +51,18 @@ export default function MediaMoveDialog({
     const targetId = useId()
 
     useEffect(() => {
-        if (open) {
-            setTarget(
-                initialParentId !== null && !excludeFolderIds?.has(initialParentId)
-                    ? String(initialParentId)
-                    : '',
-            )
+        if (!open) {
+            return
         }
-    }, [open, initialParentId, excludeFolderIds])
+        setTarget(
+            initialParentId !== null && !excludeFolderIds?.has(initialParentId)
+                ? String(initialParentId)
+                : '',
+        )
+        // Reset only when the dialog opens; excludeFolderIds may be a new Set
+        // identity on every parent re-render (e.g. submit busy state).
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [open])
 
     const options = flattenFolderTree(buildFolderTree(folders)).filter(
         (node) => excludeFolderIds === undefined || !excludeFolderIds.has(node.folder.id),

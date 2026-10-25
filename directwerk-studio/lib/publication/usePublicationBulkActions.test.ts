@@ -1,4 +1,5 @@
 import {describe, expect, it, vi} from 'vitest'
+import {useCallback, useRef, useState} from 'react'
 
 import {
     runSequentialPublicationBulkAction,
@@ -7,11 +8,51 @@ import {
 import type {PublicationStatus} from '@directwerk/api/types'
 import {renderHook, act} from '@testing-library/react'
 
+type BulkItem = {id: number; title: string; status: Extract<PublicationStatus, 'DRAFT' | 'PUBLISHED'>}
+
+function useActionEpoch() {
+    const epochRef = useRef(0)
+    const beginActionEpoch = useCallback(() => {
+        epochRef.current += 1
+        return epochRef.current
+    }, [])
+    const isActionEpoch = useCallback(
+        (epoch: number) => epoch === epochRef.current,
+        [],
+    )
+    return {beginActionEpoch, isActionEpoch}
+}
+
+function useBulkActionsWithSharedMessages(
+    options: Omit<
+        Parameters<typeof usePublicationBulkActions<BulkItem>>[0],
+        | 'errorMessage'
+        | 'setErrorMessage'
+        | 'statusMessage'
+        | 'setStatusMessage'
+        | 'beginActionEpoch'
+        | 'isActionEpoch'
+    >,
+) {
+    const [errorMessage, setErrorMessage] = useState<string | null>(null)
+    const [statusMessage, setStatusMessage] = useState<string | null>(null)
+    const {beginActionEpoch, isActionEpoch} = useActionEpoch()
+    return usePublicationBulkActions({
+        ...options,
+        errorMessage,
+        setErrorMessage,
+        statusMessage,
+        setStatusMessage,
+        beginActionEpoch,
+        isActionEpoch,
+    })
+}
+
 describe('usePublicationBulkActions', () => {
-    const items = [
-        {id: 1, title: 'Draft One', status: 'DRAFT' as const},
-        {id: 2, title: 'Published', status: 'PUBLISHED' as const},
-        {id: 3, title: 'Draft Two', status: 'DRAFT' as const},
+    const items: BulkItem[] = [
+        {id: 1, title: 'Draft One', status: 'DRAFT'},
+        {id: 2, title: 'Published', status: 'PUBLISHED'},
+        {id: 3, title: 'Draft Two', status: 'DRAFT'},
     ]
     const labels = {
         publishSuccess: (count: number) => `${count} published`,
@@ -54,7 +95,7 @@ describe('usePublicationBulkActions', () => {
         const clearSelection = vi.fn()
 
         const {result} = renderHook(() =>
-            usePublicationBulkActions({
+            useBulkActionsWithSharedMessages({
                 items,
                 selectedIds: new Set([1, 2, 3]),
                 publishMany,
@@ -87,7 +128,7 @@ describe('usePublicationBulkActions', () => {
         const clearSelection = vi.fn()
 
         const {result} = renderHook(() =>
-            usePublicationBulkActions({
+            useBulkActionsWithSharedMessages({
                 items,
                 selectedIds: new Set([1, 2]),
                 publishMany: vi.fn(),
@@ -115,7 +156,7 @@ describe('usePublicationBulkActions', () => {
         const clearSelection = vi.fn()
 
         const {result} = renderHook(() =>
-            usePublicationBulkActions({
+            useBulkActionsWithSharedMessages({
                 items,
                 selectedIds: new Set([1, 3]),
                 publishMany,
@@ -149,7 +190,7 @@ describe('usePublicationBulkActions', () => {
         const retainSelection = vi.fn()
 
         const {result} = renderHook(() =>
-            usePublicationBulkActions({
+            useBulkActionsWithSharedMessages({
                 items,
                 selectedIds: new Set([1, 3]),
                 publishMany,
@@ -180,7 +221,7 @@ describe('usePublicationBulkActions', () => {
         const clearSelection = vi.fn()
 
         const {result} = renderHook(() =>
-            usePublicationBulkActions({
+            useBulkActionsWithSharedMessages({
                 items,
                 selectedIds: new Set([1, 2]),
                 publishMany: vi.fn(),
@@ -207,7 +248,7 @@ describe('usePublicationBulkActions', () => {
 
     it('exposes no bulk delete handler without removeMany', () => {
         const {result} = renderHook(() =>
-            usePublicationBulkActions({
+            useBulkActionsWithSharedMessages({
                 items,
                 selectedIds: new Set([1]),
                 publishMany: vi.fn(),
@@ -227,7 +268,7 @@ describe('usePublicationBulkActions', () => {
         const authRedirect = vi.fn().mockReturnValue(true)
 
         const {result} = renderHook(() =>
-            usePublicationBulkActions({
+            useBulkActionsWithSharedMessages({
                 items,
                 selectedIds: new Set([1]),
                 publishMany,
@@ -249,14 +290,14 @@ describe('usePublicationBulkActions', () => {
 
     it('runs a generic bulk edit with partial-success messaging', async () => {
         const apply = vi
-            .fn<(id: number) => Promise<{id: number; title: string; status: Extract<PublicationStatus, "DRAFT" | "PUBLISHED">}>>()
+            .fn<(id: number) => Promise<BulkItem>>()
             .mockResolvedValueOnce({id: 1, title: 'Draft One', status: 'DRAFT'})
             .mockRejectedValueOnce(new Error('boom'))
         const setItems = vi.fn()
         const clearSelection = vi.fn()
 
         const {result} = renderHook(() =>
-            usePublicationBulkActions({
+            useBulkActionsWithSharedMessages({
                 items,
                 selectedIds: new Set([1, 3]),
                 publishMany: vi.fn(),
@@ -291,13 +332,13 @@ describe('usePublicationBulkActions', () => {
 
     it('clears the selection after a fully successful bulk edit', async () => {
         const apply = vi
-            .fn<(id: number) => Promise<{id: number; title: string; status: Extract<PublicationStatus, "DRAFT" | "PUBLISHED">}>>()
+            .fn<(id: number) => Promise<BulkItem>>()
             .mockResolvedValue({id: 1, title: 'Draft One', status: 'DRAFT'})
         const setItems = vi.fn()
         const clearSelection = vi.fn()
 
         const {result} = renderHook(() =>
-            usePublicationBulkActions({
+            useBulkActionsWithSharedMessages({
                 items,
                 selectedIds: new Set([1]),
                 publishMany: vi.fn(),
@@ -322,5 +363,37 @@ describe('usePublicationBulkActions', () => {
 
         expect(result.current.bulkStatusMessage).toBe('1 aktualisiert')
         expect(clearSelection).toHaveBeenCalled()
+    })
+
+    it('clears a previous status message when reporting noPublishable', async () => {
+        const {result} = renderHook(() => {
+            const [errorMessage, setErrorMessage] = useState<string | null>(null)
+            const [statusMessage, setStatusMessage] = useState<string | null>('stale status')
+            const {beginActionEpoch, isActionEpoch} = useActionEpoch()
+            const bulk = usePublicationBulkActions({
+                items,
+                selectedIds: new Set([2]),
+                publishMany: vi.fn(),
+                unpublishMany: vi.fn(),
+                setItems: vi.fn(),
+                clearSelection: vi.fn(),
+                labels,
+                authRedirect: () => false,
+                errorMessage,
+                setErrorMessage,
+                statusMessage,
+                setStatusMessage,
+                beginActionEpoch,
+                isActionEpoch,
+            })
+            return bulk
+        })
+
+        await act(async () => {
+            await result.current.handleBulkPublish()
+        })
+
+        expect(result.current.bulkErrorMessage).toBe('none to publish')
+        expect(result.current.bulkStatusMessage).toBeNull()
     })
 })

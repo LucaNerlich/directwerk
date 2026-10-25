@@ -23,6 +23,8 @@ import {
     parsePublicSiteConfigEnvelope,
     parseSubscriberFeedAdminEnvelope,
     parseTenantUserListEnvelope,
+    parseTenantUserDirectoryPage,
+    parseSubscriberDirectoryPage,
     parseTokenResponse,
     isQueueJob,
 } from '../src/validation'
@@ -587,6 +589,58 @@ describe('isQueueJob', () => {
 
         expect(parsed?.data[0]?.invitedAt).toBeNull()
         expect(parsed?.data[0]?.lastLoginAt).toBeNull()
+    })
+
+    it('parses paged tenant user and subscriber directory responses', () => {
+        expect(
+            parseTenantUserDirectoryPage({
+                statusCode: 200,
+                statusMessage: 'OK',
+                data: [
+                    {
+                        userId: 1,
+                        email: 'admin@example.com',
+                        name: null,
+                        roles: ['TENANT_ADMIN'],
+                        status: 'ACTIVE',
+                    },
+                ],
+                errors: [],
+                metadata: {page: 0, size: 50, totalElements: 1},
+            }),
+        ).toEqual({
+            content: [
+                {
+                    userId: 1,
+                    email: 'admin@example.com',
+                    name: null,
+                    roles: ['TENANT_ADMIN'],
+                    status: 'ACTIVE',
+                    invitedAt: null,
+                    lastLoginAt: null,
+                },
+            ],
+            page: 0,
+            size: 50,
+            totalElements: 1,
+        })
+        expect(
+            parseSubscriberDirectoryPage({
+                statusCode: 200,
+                statusMessage: 'OK',
+                data: [],
+                errors: [],
+                metadata: {page: 0, size: 50, totalElements: 0},
+            }),
+        ).toEqual({content: [], page: 0, size: 50, totalElements: 0})
+        expect(
+            parseTenantUserDirectoryPage({
+                statusCode: 200,
+                statusMessage: 'OK',
+                data: [],
+                metadata: {page: 0, size: 50},
+            }),
+        ).toBeNull()
     })
 
     it('parses media folders and asset folder assignments', () => {

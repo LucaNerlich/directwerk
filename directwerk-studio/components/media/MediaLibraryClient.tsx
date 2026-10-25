@@ -46,6 +46,7 @@ import {
     folderParentId,
     folderPath,
 } from '@/lib/media/folders'
+import MediaAudioPreview from '@/components/media/MediaAudioPreview'
 import MediaFolderDeleteDialog from '@/components/media/MediaFolderDeleteDialog'
 import MediaAssetRenameDialog from '@/components/media/MediaAssetRenameDialog'
 import MediaFolderDialog from '@/components/media/MediaFolderDialog'
@@ -151,6 +152,16 @@ export default function MediaLibraryClient(): React.JSX.Element {
         {assets: MediaAsset[]; title: string} | null
     >(null)
     const [moveFolderState, setMoveFolderState] = useState<MediaFolder | null>(null)
+    const moveExcludeFolderIds = useMemo(
+        () =>
+            moveFolderState === null
+                ? undefined
+                : new Set([
+                      moveFolderState.id,
+                      ...descendantFolderIds(folders, moveFolderState.id),
+                  ]),
+        [folders, moveFolderState],
+    )
     const [deleteFolderTarget, setDeleteFolderTarget] = useState<MediaFolder | null>(null)
     const [renameAssetTarget, setRenameAssetTarget] = useState<MediaAsset | null>(null)
     const [renameAssetError, setRenameAssetError] = useState<string | null>(null)
@@ -670,7 +681,39 @@ export default function MediaLibraryClient(): React.JSX.Element {
         }
     }
 
+    function rememberPreviewUrl(assetId: number, url: string): void {
+        setPreviewUrls((prev) => {
+            if (prev[assetId] === url) {
+                return prev
+            }
+            return {...prev, [assetId]: url}
+        })
+    }
+
+    function renderTypePlaceholder(assetType: string): React.JSX.Element {
+        return (
+            <div className="flex aspect-video items-center justify-center rounded-md bg-muted text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                {assetType}
+            </div>
+        )
+    }
+
+    function renderAudioPreview(asset: MediaAsset): React.JSX.Element {
+        return (
+            <MediaAudioPreview
+                assetId={asset.id}
+                cachedPreviewUrl={previewUrls[asset.id] ?? null}
+                cdnUrl={asset.cdnUrl}
+                onPreviewUrl={rememberPreviewUrl}
+                status={asset.status}
+            />
+        )
+    }
+
     function renderAssetPreview(asset: MediaAsset): React.JSX.Element {
+        if (asset.assetType === 'AUDIO') {
+            return renderAudioPreview(asset)
+        }
         const imgSrc =
             safeImageSrc(asset.cdnUrl) ?? safeImageSrc(previewUrls[asset.id])
         if (asset.assetType === 'IMAGE' && imgSrc !== null) {
@@ -682,11 +725,7 @@ export default function MediaLibraryClient(): React.JSX.Element {
                 />
             )
         }
-        return (
-            <div className="flex aspect-video items-center justify-center rounded-md bg-muted text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                {asset.assetType}
-            </div>
-        )
+        return renderTypePlaceholder(asset.assetType)
     }
 
     function renderAssetMeta(asset: MediaAsset): React.JSX.Element {
@@ -728,7 +767,10 @@ export default function MediaLibraryClient(): React.JSX.Element {
         leading:
             viewMode === 'list' ? (
                 <div className="size-16 shrink-0 overflow-hidden rounded-md">
-                    {renderAssetPreview(asset)}
+                    {/* List thumbs are too small for controls; audio plays in `extra`. */}
+                    {asset.assetType === 'AUDIO'
+                        ? renderTypePlaceholder(asset.assetType)
+                        : renderAssetPreview(asset)}
                 </div>
             ) : undefined,
         extra:
@@ -737,6 +779,8 @@ export default function MediaLibraryClient(): React.JSX.Element {
                     {renderAssetPreview(asset)}
                     {renderAssetMeta(asset)}
                 </>
+            ) : asset.assetType === 'AUDIO' ? (
+                renderAudioPreview(asset)
             ) : undefined,
         description: viewMode === 'list' ? renderAssetMeta(asset) : undefined,
         actions: (
@@ -1203,14 +1247,7 @@ export default function MediaLibraryClient(): React.JSX.Element {
                               : ''
                     }
                     errorMessage={folderDialogError}
-                    excludeFolderIds={
-                        moveFolderState !== null
-                            ? new Set([
-                                moveFolderState.id,
-                                ...descendantFolderIds(folders, moveFolderState.id),
-                            ])
-                            : undefined
-                    }
+                    excludeFolderIds={moveExcludeFolderIds}
                     folders={folders}
                     initialParentId={folderView}
                     isSaving={isBusy}

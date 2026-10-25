@@ -533,7 +533,7 @@ export interface TenantRefreshTokenRevokerConfig {
  * able to log an operator out mid-task. Requests without an Origin (same-origin form posts,
  * server-to-server) are unaffected.
  */
-function isSameOriginRequest(request: Request): boolean {
+export function isSameOriginRequest(request: Request): boolean {
     const origin = request.headers.get('origin')
     if (origin === null) {
         return true

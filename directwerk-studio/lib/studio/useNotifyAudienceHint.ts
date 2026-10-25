@@ -20,16 +20,16 @@ export function useNotifyAudienceHint(enabled: boolean): string | null {
         }
 
         let active = true
-        listSubscribers()
-            .then((subscribers) => {
+        listSubscribers({page: 0, size: 1})
+            .then((page) => {
                 if (!active) {
                     return
                 }
-                if (subscribers.length === 0) {
+                if (page.totalElements === 0) {
                     setHint(null)
                     return
                 }
-                setHint(`ca. ${subscribers.length} Abonnenten`)
+                setHint(`ca. ${page.totalElements} Abonnenten`)
             })
             .catch((error: unknown) => {
                 if (!active) {
