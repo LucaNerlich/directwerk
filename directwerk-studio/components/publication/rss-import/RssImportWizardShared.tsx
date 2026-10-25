@@ -93,6 +93,7 @@ export default function RssImportWizardShared({
     }
 
     function goToItemStep(index: number): void {
+        setErrorMessage(null)
         const result = adapter.goToItem(index)
         if (result === 'done') {
             setStep('done')
