@@ -1,6 +1,6 @@
 'use client'
 
-import {useCallback, useState} from 'react'
+import {useCallback, useState, type Dispatch, type SetStateAction} from 'react'
 
 import type {PublicationStatus} from '@directwerk/api/types'
 
@@ -67,21 +67,44 @@ export function usePublicationBulkActions<T extends {
     retainSelection,
     labels,
     authRedirect,
+    errorMessage,
+    setErrorMessage,
+    statusMessage,
+    setStatusMessage,
+    beginActionEpoch,
+    isActionEpoch,
 }: {
     items: T[]
     selectedIds: Set<number>
     publishMany: (ids: number[]) => Promise<PublicationBulkSettledResult<T>>
     unpublishMany: (ids: number[]) => Promise<PublicationBulkSettledResult<T>>
     removeMany?: (ids: number[]) => Promise<number[]>
-    setItems: React.Dispatch<React.SetStateAction<T[]>>
+    setItems: Dispatch<SetStateAction<T[]>>
     clearSelection: () => void
     retainSelection?: (ids: number[]) => void
     labels: PublicationBulkActionLabels
     authRedirect: (error: unknown) => boolean
+    errorMessage: string | null
+    setErrorMessage: Dispatch<SetStateAction<string | null>>
+    statusMessage: string | null
+    setStatusMessage: Dispatch<SetStateAction<string | null>>
+    beginActionEpoch: () => number
+    isActionEpoch: (epoch: number) => boolean
 }) {
     const [isBulkBusy, setIsBulkBusy] = useState(false)
-    const [errorMessage, setErrorMessage] = useState<string | null>(null)
-    const [statusMessage, setStatusMessage] = useState<string | null>(null)
+
+    const clearActionMessages = useCallback(() => {
+        setErrorMessage(null)
+        setStatusMessage(null)
+    }, [setErrorMessage, setStatusMessage])
+
+    const setActionError = useCallback(
+        (message: string) => {
+            setStatusMessage(null)
+            setErrorMessage(message)
+        },
+        [setErrorMessage, setStatusMessage],
+    )
 
     const selectedItems = items.filter((item) => selectedIds.has(item.id))
     const publishableCount = selectedItems.filter((item) => item.status === 'DRAFT').length
@@ -99,9 +122,9 @@ export function usePublicationBulkActions<T extends {
                 return
             }
 
+            const epoch = beginActionEpoch()
             setIsBulkBusy(true)
-            setErrorMessage(null)
-            setStatusMessage(null)
+            clearActionMessages()
 
             try {
                 const updates = new Map<number, T>()
@@ -132,6 +155,10 @@ export function usePublicationBulkActions<T extends {
                     )
                 }
 
+                if (!isActionEpoch(epoch)) {
+                    return
+                }
+
                 if (successCount > 0 && failureCount === 0) {
                     setStatusMessage(successMessage(successCount))
                     clearSelection()
@@ -141,13 +168,23 @@ export function usePublicationBulkActions<T extends {
                     retainSelection?.(failedIds)
                     setStatusMessage(partialMessage(successCount, failureCount))
                 } else if (lastError !== null) {
-                    setErrorMessage(lastError)
+                    setActionError(lastError)
                 }
             } finally {
                 setIsBulkBusy(false)
             }
         },
-        [authRedirect, clearSelection, retainSelection, setItems],
+        [
+            authRedirect,
+            beginActionEpoch,
+            clearActionMessages,
+            clearSelection,
+            isActionEpoch,
+            retainSelection,
+            setActionError,
+            setItems,
+            setStatusMessage,
+        ],
     )
 
     const runBulkRequest = useCallback(
@@ -158,9 +195,9 @@ export function usePublicationBulkActions<T extends {
             partialMessage: (successCount: number, failureCount: number) => string,
             errorMessageText: string,
         ) => {
+            const epoch = beginActionEpoch()
             setIsBulkBusy(true)
-            setErrorMessage(null)
-            setStatusMessage(null)
+            clearActionMessages()
 
             try {
                 const {updated, failures} = await request(ids)
@@ -177,6 +214,9 @@ export function usePublicationBulkActions<T extends {
                 if (failures.some(({reason}) => authRedirect(reason))) {
                     return
                 }
+                if (!isActionEpoch(epoch)) {
+                    return
+                }
                 if (failures.length === 0) {
                     setStatusMessage(successMessage(updated.length))
                     clearSelection()
@@ -184,7 +224,7 @@ export function usePublicationBulkActions<T extends {
                     setStatusMessage(partialMessage(updated.length, failures.length))
                 } else {
                     const reason = failures[failures.length - 1]?.reason
-                    setErrorMessage(
+                    setActionError(
                         reason instanceof Error ? reason.message : errorMessageText,
                     )
                 }
@@ -192,20 +232,33 @@ export function usePublicationBulkActions<T extends {
                 if (authRedirect(error)) {
                     return
                 }
-                setErrorMessage(
+                if (!isActionEpoch(epoch)) {
+                    return
+                }
+                setActionError(
                     error instanceof Error ? error.message : errorMessageText,
                 )
             } finally {
                 setIsBulkBusy(false)
             }
         },
-        [authRedirect, clearSelection, retainSelection, setItems],
+        [
+            authRedirect,
+            beginActionEpoch,
+            clearActionMessages,
+            clearSelection,
+            isActionEpoch,
+            retainSelection,
+            setActionError,
+            setItems,
+            setStatusMessage,
+        ],
     )
 
     const handleBulkPublish = useCallback(async () => {
         const eligible = selectedItems.filter((item) => item.status === 'DRAFT')
         if (eligible.length === 0) {
-            setErrorMessage(labels.noPublishable)
+            setActionError(labels.noPublishable)
             return
         }
         await runBulkRequest(
@@ -215,12 +268,12 @@ export function usePublicationBulkActions<T extends {
             labels.publishPartial,
             labels.publishError,
         )
-    }, [labels, publishMany, runBulkRequest, selectedItems])
+    }, [labels, publishMany, runBulkRequest, selectedItems, setActionError])
 
     const handleBulkUnpublish = useCallback(async () => {
         const eligible = selectedItems.filter((item) => item.status === 'PUBLISHED')
         if (eligible.length === 0) {
-            setErrorMessage(labels.noUnpublishable)
+            setActionError(labels.noUnpublishable)
             return
         }
         await runBulkRequest(
@@ -230,33 +283,51 @@ export function usePublicationBulkActions<T extends {
             labels.unpublishPartial,
             labels.unpublishError,
         )
-    }, [labels, runBulkRequest, selectedItems, unpublishMany])
+    }, [labels, runBulkRequest, selectedItems, setActionError, unpublishMany])
 
     const handleBulkDelete = useCallback(async () => {
         if (removeMany === undefined || selectedItems.length === 0) {
             return
         }
+        const epoch = beginActionEpoch()
         setIsBulkBusy(true)
-        setErrorMessage(null)
-        setStatusMessage(null)
+        clearActionMessages()
 
         try {
             const deletedIds = await removeMany(selectedItems.map((item) => item.id))
             const deleted = new Set(deletedIds)
             setItems((current) => current.filter((entry) => !deleted.has(entry.id)))
+            if (!isActionEpoch(epoch)) {
+                return
+            }
             setStatusMessage(labels.deleteSuccess(deletedIds.length))
             clearSelection()
         } catch (error) {
             if (authRedirect(error)) {
                 return
             }
-            setErrorMessage(
+            if (!isActionEpoch(epoch)) {
+                return
+            }
+            setActionError(
                 error instanceof Error ? error.message : labels.deleteError,
             )
         } finally {
             setIsBulkBusy(false)
         }
-    }, [authRedirect, clearSelection, labels, removeMany, selectedItems, setItems])
+    }, [
+        authRedirect,
+        beginActionEpoch,
+        clearActionMessages,
+        clearSelection,
+        isActionEpoch,
+        labels,
+        removeMany,
+        selectedItems,
+        setActionError,
+        setItems,
+        setStatusMessage,
+    ])
 
     return {
         isBulkBusy,

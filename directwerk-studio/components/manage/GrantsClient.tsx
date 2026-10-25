@@ -25,7 +25,7 @@ import {useTwoStepConfirm} from '@/lib/hooks/useTwoStepConfirm'
 import {useRouter} from 'next/navigation'
 
 import {grantSubscription, listProducts, revokeSubscription} from '@/lib/api/subscriptionApi'
-import {listSubscribers} from '@/lib/api/tenantSettingsApi'
+import {listAllSubscribers} from '@/lib/api/tenantSettingsApi'
 import {offeringTypeLabel, subscriptionSourceLabel, subscriptionStatusLabel} from '@/lib/subscription/displayLabels'
 import type {
     SubscriptionGrant,
@@ -92,7 +92,7 @@ export default function GrantsClient(): React.JSX.Element {
         setLoadError(null)
         Promise.all([
             listProducts(),
-            listSubscribers(),
+            listAllSubscribers(),
         ])
             .then(([productResult, subscriberResult]) => {
                 if (!active) {

@@ -64,6 +64,22 @@ public interface SubscriptionRepository extends JpaRepository<Subscription, Long
             """)
     List<Subscription> findDetailedByTenantId(@Param("tenantId") Long tenantId);
 
+    /**
+     * Hydrates subscription rows for one page of directory user ids (#561).
+     */
+    @Query("""
+            SELECT s FROM Subscription s
+            JOIN FETCH s.product
+            JOIN FETCH s.user
+            WHERE s.tenant.id = :tenantId
+              AND s.user.id in :userIds
+            ORDER BY s.user.id ASC, s.id ASC
+            """)
+    List<Subscription> findDetailedByTenantIdAndUserIdIn(
+            @Param("tenantId") Long tenantId,
+            @Param("userIds") java.util.Collection<Long> userIds
+    );
+
     @Query("""
             SELECT s FROM Subscription s
             JOIN FETCH s.product

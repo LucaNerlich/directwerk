@@ -3,9 +3,9 @@ import {renderWithLocale} from '@/lib/i18n/testUtils'
 import {afterEach, describe, expect, it, vi} from 'vitest'
 
 import SubscribersClient from '@/components/manage/SubscribersClient'
-import {clearCachedTenantData} from '@directwerk/api/client/useCachedTenantQuery'
 import {revokeSubscription} from '@/lib/api/subscriptionApi'
 import {listSubscribers} from '@/lib/api/tenantSettingsApi'
+import type {TenantSubscriber} from '@directwerk/api/types'
 
 vi.mock('next/link', () => ({
     default: ({children, href, ...props}: {children?: React.ReactNode; href: string; [key: string]: unknown}) => (
@@ -26,16 +26,39 @@ vi.mock('@/lib/api/subscriptionApi', () => ({
     revokeSubscription: vi.fn(),
 }))
 
+function pageOf(...content: TenantSubscriber[]) {
+    return {content, totalElements: content.length, page: 0, size: 50}
+}
+
+const member: TenantSubscriber = {
+    userId: 4,
+    email: 'member@example.com',
+    name: 'Member',
+    status: 'ACTIVE',
+    subscriptions: [
+        {
+            id: 9,
+            productId: 2,
+            productSlug: 'supporter',
+            productTitle: 'Supporter',
+            status: 'ACTIVE',
+            source: 'STRIPE',
+            startedAt: '2026-08-01T00:00:00Z',
+            endsAt: '2026-09-01T00:00:00Z',
+            externalSubscriptionId: 'sub_abc',
+        },
+    ],
+}
+
 afterEach(() => {
     cleanup()
-    clearCachedTenantData('tenant-subscribers', 'tenant.test')
     vi.mocked(listSubscribers).mockReset()
     vi.mocked(revokeSubscription).mockReset()
 })
 
 describe('SubscribersClient', () => {
     it('shows an empty state pointing to products and grants', async () => {
-        vi.mocked(listSubscribers).mockResolvedValue([])
+        vi.mocked(listSubscribers).mockResolvedValue(pageOf())
         renderWithLocale(<SubscribersClient />)
 
         await waitFor(() =>
@@ -49,30 +72,13 @@ describe('SubscribersClient', () => {
             'href',
             '/de/manage/grants',
         )
+        expect(listSubscribers).toHaveBeenCalledWith(
+            expect.objectContaining({page: 0, size: 50}),
+        )
     })
 
     it('shows source, period, Stripe id, and revoke for an active membership', async () => {
-        vi.mocked(listSubscribers).mockResolvedValue([
-            {
-                userId: 4,
-                email: 'member@example.com',
-                name: 'Member',
-                status: 'ACTIVE',
-                subscriptions: [
-                    {
-                        id: 9,
-                        productId: 2,
-                        productSlug: 'supporter',
-                        productTitle: 'Supporter',
-                        status: 'ACTIVE',
-                        source: 'STRIPE',
-                        startedAt: '2026-08-01T00:00:00Z',
-                        endsAt: '2026-09-01T00:00:00Z',
-                        externalSubscriptionId: 'sub_abc',
-                    },
-                ],
-            },
-        ])
+        vi.mocked(listSubscribers).mockResolvedValue(pageOf(member))
         renderWithLocale(<SubscribersClient />)
 
         await waitFor(() =>
@@ -84,27 +90,7 @@ describe('SubscribersClient', () => {
     })
 
     it('resets the revoke confirmation after a failed revoke', async () => {
-        vi.mocked(listSubscribers).mockResolvedValue([
-            {
-                userId: 4,
-                email: 'member@example.com',
-                name: 'Member',
-                status: 'ACTIVE',
-                subscriptions: [
-                    {
-                        id: 9,
-                        productId: 2,
-                        productSlug: 'supporter',
-                        productTitle: 'Supporter',
-                        status: 'ACTIVE',
-                        source: 'STRIPE',
-                        startedAt: '2026-08-01T00:00:00Z',
-                        endsAt: '2026-09-01T00:00:00Z',
-                        externalSubscriptionId: 'sub_abc',
-                    },
-                ],
-            },
-        ])
+        vi.mocked(listSubscribers).mockResolvedValue(pageOf(member))
         vi.mocked(revokeSubscription).mockRejectedValue(new Error('Widerruf fehlgeschlagen.'))
 
         renderWithLocale(<SubscribersClient />)
@@ -118,5 +104,19 @@ describe('SubscribersClient', () => {
         expect(screen.getByRole('button', {name: 'Zugang beenden'})).toBeInTheDocument()
         expect(screen.queryByRole('button', {name: 'Wirklich beenden'})).not.toBeInTheDocument()
         expect(revokeSubscription).toHaveBeenCalledTimes(1)
+    })
+
+    it('sends server-side search to the directory endpoint', async () => {
+        vi.mocked(listSubscribers).mockResolvedValue(pageOf(member))
+        renderWithLocale(<SubscribersClient />)
+        await screen.findByText('member@example.com')
+
+        fireEvent.change(screen.getByLabelText('Suchen'), {target: {value: 'member'}})
+
+        await waitFor(() =>
+            expect(listSubscribers).toHaveBeenCalledWith(
+                expect.objectContaining({page: 0, size: 50, q: 'member'}),
+            ),
+        )
     })
 })

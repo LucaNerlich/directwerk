@@ -447,4 +447,24 @@ describe('RssImportWizard', () => {
         ).toBeInTheDocument()
         expect(importRssEpisode).not.toHaveBeenCalled()
     })
+
+    it('clears a failed-import error when skipping to the next item', async () => {
+        const user = userEvent.setup()
+        renderWizard()
+        await loadFeed()
+        await user.click(screen.getByRole('button', {name: 'Weiter zu Formaten'}))
+        await waitFor(() => expect(screen.getByText('Formate zuordnen')).toBeInTheDocument())
+        await user.click(screen.getByRole('button', {name: 'Weiter zu den Folgen'}))
+        await waitFor(() => expect(screen.getByText('Folge 1 von 2')).toBeInTheDocument())
+
+        importRssEpisode.mockRejectedValueOnce(new Error('Import fehlgeschlagen.'))
+        await user.click(screen.getByRole('button', {name: 'Diese Folge importieren'}))
+        await waitFor(() =>
+            expect(screen.getByRole('alert')).toHaveTextContent('Import fehlgeschlagen.'),
+        )
+
+        await user.click(screen.getByRole('button', {name: 'Überspringen'}))
+        await waitFor(() => expect(screen.getByText('Folge 2 von 2')).toBeInTheDocument())
+        expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+    })
 })
