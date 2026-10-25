@@ -1212,6 +1212,26 @@ export interface TenantUsers {
     content: TenantUser[]
 }
 
+/** Paginated tenant directory page (#561). */
+export interface DirectoryListPage<T> {
+    content: T[]
+    totalElements: number
+    page: number
+    size: number
+}
+
+export interface TenantUserListQuery {
+    page?: number
+    size?: number
+    q?: string
+}
+
+export interface TenantSubscriberListQuery {
+    page?: number
+    size?: number
+    q?: string
+}
+
 export interface InviteTenantUserInput {
     email: string
     name?: string

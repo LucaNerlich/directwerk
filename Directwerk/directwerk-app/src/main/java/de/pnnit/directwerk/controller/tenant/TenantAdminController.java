@@ -16,27 +16,34 @@ import de.pnnit.directwerk.modules.core.service.TenantDomainService;
 import de.pnnit.directwerk.modules.core.service.TenantInvitationService;
 import de.pnnit.directwerk.modules.core.service.TenantMembershipManagementService;
 import de.pnnit.directwerk.modules.core.service.TenantUserQueryService;
+import de.pnnit.directwerk.modules.core.service.TenantUserQueryService.TenantUserPage;
 import de.pnnit.directwerk.modules.core.service.TenantUserQueryService.TenantUserView;
 import de.pnnit.directwerk.multitenancy.TenantContext;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import java.util.List;
+import java.util.Map;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 
 @RestController
+@Validated
 @PreAuthorize("hasRole('TENANT_ADMIN')")
 @RequestMapping("/api/v1/tenant")
 public class TenantAdminController {
@@ -174,10 +181,32 @@ public class TenantAdminController {
         return invitationResponseMapper.toCreatedResponse(invitation);
     }
 
+    /**
+     * Lists one page of tenant members (#561).
+     *
+     * @param page zero-based page index
+     * @param size page size, 1-100
+     * @param q    optional case-insensitive email/name search
+     */
     @GetMapping("/users")
-    ResponseEntity<Response<List<TenantUserView>>> listUsers() {
+    ResponseEntity<Response<List<TenantUserView>>> listUsers(
+            @RequestParam(defaultValue = "0") @Min(0) int page,
+            @RequestParam(defaultValue = "50") @Min(1) @Max(100) int size,
+            @RequestParam(required = false) @Size(max = 100) String q
+    ) {
+        TenantUserPage userPage = tenantUserQueryService.listTenantUsers(
+                TenantContext.requireTenantId(),
+                page,
+                size,
+                q
+        );
         return ResponseEntity.ok(Response.ok(
-                tenantUserQueryService.listTenantUsers(TenantContext.requireTenantId())
+                userPage.content(),
+                Map.of(
+                        "page", userPage.page(),
+                        "size", userPage.size(),
+                        "totalElements", userPage.totalElements()
+                )
         ));
     }
 

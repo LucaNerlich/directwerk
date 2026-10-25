@@ -9,7 +9,8 @@
  * Query-validator mapping (unchanged, stays with the handlers):
  * - tenant rows (`studioTenant`, `webTenant`) use `buildSafeProxyQuery`
  *   in `routeHandler.ts` (feed-builder preview + media-library +
- *   episode/article list allowlists, blanket rejection everywhere else);
+ *   episode/article list + tenant directory allowlists, blanket
+ *   rejection everywhere else);
  * - platform rows (`platform`, `adminTenant`) use
  *   `buildSafePlatformQueryString` in `platformRouteHandler.ts`.
  */

@@ -66,7 +66,7 @@ export default function TenantPage({params}: TenantPageProps) {
         async () => {
             const [tenantResponse, users] = await Promise.all([
                 getPlatformData<TenantDetailResponse>(`tenants/${id}`),
-                getPlatformData<TenantUsers>(`tenants/${id}/users`),
+                getPlatformData<TenantUsers>(`tenants/${id}/users?page=0&size=100`),
             ])
             return {
                 tenant: tenantResponse.tenant,
