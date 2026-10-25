@@ -779,7 +779,7 @@ Application credentials (Coolify env):
 |------------|-------|
 | `s3:PutObject` | `{bucket}/{tenant}/staging/*` only via presigned PUT (app signs) |
 | `s3:GetObject` | Full bucket (app signs per key after entitlement) |
-| `s3:DeleteObject` | Staging + admin delete |
+| `s3:DeleteObject` / `DeleteObjects` | Staging + admin delete; multi-key via `S3BulkObjectDeleter` (≤1000 keys/request; Bunny [bulk delete](https://bunny.net/docs/storage/s3#bulk-delete)) |
 | `s3:ListBucket` | **Application internal only** — never exposed to tenants/users |
 
 Do not create per-tenant IAM users. One service account per environment.
@@ -803,16 +803,22 @@ keys by prefix either. Staging cleanup is therefore **application-side**, not a 
 
 A recurring Quartz job (`MediaStagingCleanupJob`) calls `StagingCleanupService.cleanupExpiredStaging()`
 on an interval derived from `directwerk.storage.staging-cleanup-interval-ms` (minimum 60s). It lists
-`{tenant}/staging/` per tenant (`ListObjectsV2`), deletes every expired object including Bunny folder
-markers, and tombstones any still-`PENDING` `MediaAsset` whose staging object was purged as `ARCHIVED`.
+`{tenant}/staging/` per tenant (`ListObjectsV2`), bulk-deletes every expired object including Bunny
+folder markers (`DeleteObjects` via `S3BulkObjectDeleter`, chunks of ≤1000 keys), and tombstones any
+still-`PENDING` `MediaAsset` whose staging object was purged as `ARCHIVED`.
 
 `staging-lifecycle-hours` therefore has two uses:
 
-1. **Inline cleanup:** a successful confirm deletes the staging file and its session folder immediately.
+1. **Inline cleanup:** a successful confirm deletes the staging file and its session folder immediately
+   (same bulk-delete helper; three keys in one request).
 2. **Background sweep:** abandoned staging objects (failed uploads, never-confirmed assets) are removed
    by the Quartz job once they are older than the configured hours.
 
 Both are idempotent — missing objects (`NoSuchKey` / HTTP 404) are ignored.
+
+Media folder `delete_contents` still tombstones each asset through the lifecycle and enqueues one
+`media-s3-delete` job per object (single-key deletes). That path is not a storage-layer multi-key loop;
+batching those jobs onto `DeleteObjects` would be a separate queue redesign.
 
 ---
 

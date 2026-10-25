@@ -6,6 +6,20 @@ info:
 http:
   method: GET
   url: "{{baseUrl}}/api/v1/tenant/users"
+  params:
+    - name: page
+      value: "0"
+      type: query
+      description: Zero-based page index (#561).
+    - name: size
+      value: "50"
+      type: query
+      description: Page size, 1-100. Directory lists were previously unbounded.
+    - name: q
+      value: ""
+      type: query
+      description: Optional case-insensitive email/name search. Blank returns the unfiltered page.
+      disabled: true
   auth: inherit
 
 runtime:
@@ -14,6 +28,16 @@ runtime:
       code: |-
         test("returns expected status", function() {
           expect(res.getStatus() === 200).to.equal(true);
+        });
+        test("returns paging metadata", function() {
+          expect(res.body.metadata).to.be.an("object");
+          expect(res.body.metadata.page).to.equal(0);
+          expect(res.body.metadata.size).to.equal(50);
+          expect(res.body.metadata.totalElements).to.be.a("number");
+        });
+        test("returns a bounded user array", function() {
+          expect(res.body.data).to.be.an("array");
+          expect(res.body.data.length).to.be.at.most(res.body.metadata.size);
         });
   actions:
     - type: set-variable
@@ -35,3 +59,4 @@ settings:
 docs: |-
   Captures editorUserId (a safe, non-admin target) for the Deactivate/Reactivate User requests below.
   Each user includes userId, email, name, roles[], and status (ACTIVE | INVITED | DISABLED).
+  Response metadata carries page, size, and totalElements (#561).

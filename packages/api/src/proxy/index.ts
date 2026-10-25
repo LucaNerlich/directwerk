@@ -1,5 +1,6 @@
 export {
     buildProxyPath,
+    buildSafeDirectoryListQueryString,
     buildSafeMediaFolderDeleteQueryString,
     buildSafeMediaListQueryString,
     buildSafePreviewQueryString,

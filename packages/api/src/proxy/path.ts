@@ -246,11 +246,85 @@ export function buildSafePublicationListQueryString(
 }
 
 /**
+ * Tenant directory endpoints page with `page`/`size` and optional `q`
+ * (`GET /api/v1/tenant/users`, `GET /api/v1/tenant/subscribers` — #561).
+ * Same strict allowlist pattern as episode/article lists.
+ */
+const DIRECTORY_LIST_PATHS = new Set([
+    '/api/v1/tenant/users',
+    '/api/v1/tenant/subscribers',
+])
+const MAX_DIRECTORY_PAGE_SIZE = 100
+const MAX_DIRECTORY_QUERY_LENGTH = 100
+
+/**
+ * Builds a canonical `?page=&size=&q=` query for tenant directory lists.
+ * Returns `null` for any other path, unknown key, duplicate key, or
+ * invalid value.
+ */
+export function buildSafeDirectoryListQueryString(
+    apiPath: string,
+    searchParams: URLSearchParams,
+): string | null {
+    if (!DIRECTORY_LIST_PATHS.has(apiPath)) {
+        return null
+    }
+
+    const names = [...searchParams.keys()]
+    if (names.length === 0 || new Set(names).size !== names.length) {
+        return null
+    }
+
+    const safeParams = new URLSearchParams()
+    for (const name of names) {
+        const value = singleValue(searchParams, name)
+        if (value === null) {
+            return null
+        }
+
+        switch (name) {
+            case 'page': {
+                if (!/^\d{1,9}$/.test(value)) {
+                    return null
+                }
+                break
+            }
+            case 'size': {
+                if (!POSITIVE_ID.test(value)) {
+                    return null
+                }
+                const size = Number.parseInt(value, 10)
+                if (size < 1 || size > MAX_DIRECTORY_PAGE_SIZE) {
+                    return null
+                }
+                break
+            }
+            case 'q': {
+                if (
+                    value.length === 0 ||
+                    value.length > MAX_DIRECTORY_QUERY_LENGTH ||
+                    /[<>"']/.test(value)
+                ) {
+                    return null
+                }
+                break
+            }
+            default:
+                return null
+        }
+
+        safeParams.set(name, value)
+    }
+
+    return `?${safeParams.toString()}`
+}
+
+/**
  * Resolves the canonical upstream `?…` query for an allowlisted
  * proxy call (feed-builder previews, media library list/delete,
- * episode/article lists). Returns `null` when the path/method/query
- * combination is not allowlisted — callers keep the blanket query
- * rejection then.
+ * episode/article lists, tenant directory lists). Returns `null`
+ * when the path/method/query combination is not allowlisted —
+ * callers keep the blanket query rejection then.
  */
 export function buildSafeProxyQuery(
     apiPath: string,
@@ -261,7 +335,8 @@ export function buildSafeProxyQuery(
         return (
             buildSafePreviewQueryString(apiPath, searchParams) ??
             buildSafeMediaListQueryString(apiPath, searchParams) ??
-            buildSafePublicationListQueryString(apiPath, searchParams)
+            buildSafePublicationListQueryString(apiPath, searchParams) ??
+            buildSafeDirectoryListQueryString(apiPath, searchParams)
         )
     }
     if (method === 'DELETE') {
