@@ -519,7 +519,7 @@ describe('MediaLibraryClient', () => {
         ])
         vi.mocked(renameMediaAsset).mockResolvedValue({
             ...downloadAsset,
-            originalFilename: 'Folge_42.mp3',
+            originalFilename: 'folge-42.mp3',
         })
 
         renderWithLocale(<MediaLibraryClient />)
@@ -535,15 +535,15 @@ describe('MediaLibraryClient', () => {
             within(detailDialog).getByRole('button', {name: 'Von Referenz umbenennen'}),
         )
         expect(
-            within(detailDialog).getByText(/Datei in „Folge 42\.mp3“ umbenennen/),
+            within(detailDialog).getByText(/Datei in „folge-42\.mp3“ umbenennen/),
         ).toBeInTheDocument()
         fireEvent.click(within(detailDialog).getByRole('button', {name: 'Datei umbenennen'}))
 
         await waitFor(() =>
-            expect(renameMediaAsset).toHaveBeenCalledWith(11, 'Folge 42.mp3'),
+            expect(renameMediaAsset).toHaveBeenCalledWith(11, 'folge-42.mp3'),
         )
-        expect(await screen.findByText(/Datei in „Folge_42\.mp3“ umbenannt/)).toBeInTheDocument()
-        expect(await within(detailDialog).findByText('Folge_42.mp3')).toBeInTheDocument()
+        expect(await screen.findByText(/Datei in „folge-42\.mp3“ umbenannt/)).toBeInTheDocument()
+        expect(await within(detailDialog).findByText('folge-42.mp3')).toBeInTheDocument()
         expect(
             within(detailDialog).queryByRole('button', {name: 'Von Referenz umbenennen'}),
         ).not.toBeInTheDocument()
@@ -588,12 +588,12 @@ describe('MediaLibraryClient', () => {
 
         resolveRename({
             ...downloadAsset,
-            originalFilename: 'Folge_42.mp3',
+            originalFilename: 'folge-42.mp3',
         })
 
-        expect(await screen.findByText(/Datei in „Folge_42\.mp3“ umbenannt/)).toBeInTheDocument()
+        expect(await screen.findByText(/Datei in „folge-42\.mp3“ umbenannt/)).toBeInTheDocument()
         expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
-        expect(await screen.findByText('Folge_42.mp3')).toBeInTheDocument()
+        expect(await screen.findByText('folge-42.mp3')).toBeInTheDocument()
     })
 
     it('hides rename-from-reference when the asset has no references', async () => {

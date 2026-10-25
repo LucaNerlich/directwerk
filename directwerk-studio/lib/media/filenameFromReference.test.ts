@@ -30,23 +30,26 @@ describe('sanitizeFilenameMirror', () => {
 })
 
 describe('filenameFromReferenceTitle', () => {
-    it('uses the reference title and keeps the current extension', () => {
-        expect(filenameFromReferenceTitle('download.mp3', 'Folge 1')).toBe('Folge 1.mp3')
-        expect(filenameFromReferenceTitle('cover.png', '  Serienbild  ')).toBe('Serienbild.png')
+    it('slugifies the reference title and keeps the current extension', () => {
+        expect(filenameFromReferenceTitle('download.mp3', 'Folge 1')).toBe('folge-1.mp3')
+        expect(filenameFromReferenceTitle('cover.png', '  Serienbild  ')).toBe('serienbild.png')
+        expect(filenameFromReferenceTitle('clip.mp3', 'Stranded Deep')).toBe('stranded-deep.mp3')
     })
 
-    it('falls back when the title is blank', () => {
+    it('falls back when the title is blank or yields an empty slug', () => {
         expect(filenameFromReferenceTitle('download.mp3', '   ')).toBe('asset.mp3')
+        expect(filenameFromReferenceTitle('download.mp3', '!!!')).toBe('asset.mp3')
     })
 
     it('works without an extension on the current name', () => {
-        expect(filenameFromReferenceTitle('download', 'Folge 1')).toBe('Folge 1')
+        expect(filenameFromReferenceTitle('download', 'Folge 1')).toBe('folge-1')
     })
 
     it('caps the stem so the full name stays under 180 characters', () => {
         const longTitle = 'a'.repeat(200)
         const result = filenameFromReferenceTitle('download.mp3', longTitle)
-        expect(result.length).toBe(180)
+        expect(result.length).toBeLessThanOrEqual(180)
         expect(result.endsWith('.mp3')).toBe(true)
+        expect(result).toMatch(/^[a-z0-9-]+\.mp3$/)
     })
 })

@@ -1,3 +1,5 @@
+import {suggestSlug} from '@/lib/api/studioHelpers'
+
 /**
  * Returns the file extension including the leading dot (e.g. `.mp3`),
  * or an empty string when the name has no usable extension.
@@ -26,8 +28,10 @@ export function sanitizeFilenameMirror(filename: string): string {
 }
 
 /**
- * Builds a display filename from a content reference title while keeping the
- * current asset's extension. The backend sanitizes authoritatively on rename.
+ * Builds a URL-safe display filename from a content reference title while keeping
+ * the current asset's extension. Slugifies the title via {@link suggestSlug}
+ * (ASCII kebab-case) before appending the extension. The backend still sanitizes
+ * authoritatively on rename.
  *
  * Caps the stem so the full name stays under the backend's 180-character limit.
  */
@@ -35,10 +39,11 @@ export function filenameFromReferenceTitle(
     currentFilename: string | null | undefined,
     title: string,
 ): string {
-    const trimmed = title.trim()
-    const stem = trimmed.length > 0 ? trimmed : 'asset'
+    const slug = suggestSlug(title)
+    const stem = slug.length > 0 ? slug : 'asset'
     const ext = extensionOfFilename(currentFilename)
     const maxStem = Math.max(1, 180 - ext.length)
-    const capped = stem.length > maxStem ? stem.slice(0, maxStem) : stem
-    return `${capped}${ext}`
+    const capped = stem.length > maxStem ? stem.slice(0, maxStem).replace(/-+$/, '') : stem
+    const safeStem = capped.length > 0 ? capped : 'asset'
+    return `${safeStem}${ext}`
 }
