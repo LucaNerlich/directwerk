@@ -3,6 +3,7 @@ package de.pnnit.directwerk.controller.media;
 import de.pnnit.directwerk.api.MediaUploadCommandMapper;
 import de.pnnit.directwerk.api.dto.CreateMediaFolderRequest;
 import de.pnnit.directwerk.api.dto.CreateUploadUrlRequest;
+import de.pnnit.directwerk.api.dto.MediaAssetReferenceView;
 import de.pnnit.directwerk.api.dto.MediaAssetView;
 import de.pnnit.directwerk.api.dto.MediaFolderView;
 import de.pnnit.directwerk.api.dto.MoveMediaAssetRequest;
@@ -150,6 +151,23 @@ public class MediaController {
                 .orElseThrow(() -> new MediaAssetNotFoundException(id));
         ImportControllerSupport.requireTenantOwned(asset, id);
         return ResponseEntity.ok(Response.ok(mediaAssetViewMapper.toView(asset)));
+    }
+
+    @Operation(summary = "List content that references a media asset",
+            description = "FK-backed attachments only (episode audio/cover, series/format cover, "
+                    + "article hero, digital publication, denormalized media episode link). "
+                    + "CDN URLs pasted into HTML show notes or article bodies are out of scope.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Reference list (empty when unused)"),
+            @ApiResponse(responseCode = "404", description = "Unknown id, or id belongs to another tenant (MEDIA_ASSET_NOT_FOUND)")
+    })
+    @GetMapping("/{id}/references")
+    ResponseEntity<Response<List<MediaAssetReferenceView>>> references(@PathVariable("id") Long id) {
+        // listAttachedReferences enforces tenant-scoped existence (404); no separate get needed.
+        List<MediaAssetReferenceView> references = mediaAssetQueryApi.listAttachedReferences(id).stream()
+                .map(ref -> new MediaAssetReferenceView(ref.kind(), ref.id(), ref.title()))
+                .toList();
+        return ResponseEntity.ok(Response.ok(references));
     }
 
     @GetMapping("/{id}/preview-url")

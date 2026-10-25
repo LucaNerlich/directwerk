@@ -40,6 +40,13 @@ public interface MediaAssetRepository extends JpaRepository<MediaAsset, Long> {
     boolean hasAttachedReferences(@Param("id") Long id);
 
     /**
+     * Content attachments for one asset (same sites as {@link #hasAttachedReferences}).
+     * Each row is {@code [kind, entityId, title]} — see {@link MediaAssetReferenceSql#FIND_ATTACHED_REFERENCES}.
+     */
+    @Query(value = MediaAssetReferenceSql.FIND_ATTACHED_REFERENCES, nativeQuery = true)
+    List<Object[]> findAttachedReferences(@Param("id") Long id);
+
+    /**
      * Ids of assets with no content attachments (mirrors {@link #hasAttachedReferences}).
      * Pass enum names as strings; {@code null} means no type/status filter.
      */

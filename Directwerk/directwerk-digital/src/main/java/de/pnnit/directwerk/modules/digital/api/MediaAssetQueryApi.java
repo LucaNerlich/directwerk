@@ -14,6 +14,16 @@ public interface MediaAssetQueryApi {
     Optional<MediaAsset> findById(Long assetId);
 
     /**
+     * Lists FK-backed content attachments for {@code assetId} (episode audio/cover, series/format
+     * cover, article hero, digital publication, denormalized {@code media_assets.episode_id}).
+     * Empty when the asset exists but nothing references it. Throws
+     * {@link de.pnnit.directwerk.modules.digital.exception.MediaAssetNotFoundException} when the
+     * asset is missing or outside the current tenant. Does not include CDN URLs pasted into HTML
+     * show notes / article bodies.
+     */
+    List<MediaAssetReference> listAttachedReferences(Long assetId);
+
+    /**
      * Lists assets filtered by {@code assetType} and {@code status}. When {@code status} is
      * {@code null}, tombstoned rows ({@code ARCHIVED}, {@code PENDING_DELETE}) are excluded —
      * deleted assets are not surfaced to callers unless explicitly requested by status.
@@ -104,5 +114,13 @@ public interface MediaAssetQueryApi {
             long assetCount,
             long totalBytes
     ) {
+    }
+
+    /**
+     * One content attachment of a media asset. {@code kind} values match the delete-in-use sites:
+     * {@code EPISODE_AUDIO}, {@code EPISODE_COVER}, {@code SERIES_COVER}, {@code FORMAT_COVER},
+     * {@code ARTICLE_HERO}, {@code DIGITAL_PUBLICATION}, {@code MEDIA_EPISODE_LINK}.
+     */
+    record MediaAssetReference(String kind, Long id, String title) {
     }
 }

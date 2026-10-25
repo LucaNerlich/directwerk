@@ -47,6 +47,7 @@ import {
     folderPath,
 } from '@/lib/media/folders'
 import MediaAudioPreview from '@/components/media/MediaAudioPreview'
+import MediaAssetDetailPanel from '@/components/media/MediaAssetDetailPanel'
 import MediaFolderDeleteDialog from '@/components/media/MediaFolderDeleteDialog'
 import MediaAssetRenameDialog from '@/components/media/MediaAssetRenameDialog'
 import MediaFolderDialog from '@/components/media/MediaFolderDialog'
@@ -165,6 +166,7 @@ export default function MediaLibraryClient(): React.JSX.Element {
     )
     const [deleteFolderTarget, setDeleteFolderTarget] = useState<MediaFolder | null>(null)
     const [renameAssetTarget, setRenameAssetTarget] = useState<MediaAsset | null>(null)
+    const [detailAsset, setDetailAsset] = useState<MediaAsset | null>(null)
     const [renameAssetError, setRenameAssetError] = useState<string | null>(null)
     const [folderDialogError, setFolderDialogError] = useState<string | null>(null)
     const [uploadProgress, setUploadProgress] = useState<{file: File; progress: number} | null>(
@@ -793,6 +795,17 @@ export default function MediaLibraryClient(): React.JSX.Element {
                 <Button
                     disabled={isBusy}
                     onClick={() => {
+                        setDetailAsset(asset)
+                    }}
+                    size="sm"
+                    type="button"
+                    variant="outline"
+                >
+                    {dict.media.details}
+                </Button>
+                <Button
+                    disabled={isBusy}
+                    onClick={() => {
                         setRenameAssetError(null)
                         setRenameAssetTarget(asset)
                     }}
@@ -1301,6 +1314,15 @@ export default function MediaLibraryClient(): React.JSX.Element {
                     void handleRenameAsset(filename)
                 }}
                 open={renameAssetTarget !== null}
+            />
+            <MediaAssetDetailPanel
+                asset={detailAsset}
+                onOpenChange={(open) => {
+                    if (!open) {
+                        setDetailAsset(null)
+                    }
+                }}
+                open={detailAsset !== null}
             />
         </PageStack>
     )

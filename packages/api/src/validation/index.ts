@@ -33,6 +33,8 @@ export {
     parseSeriesListEnvelope,
     parseMediaAsset,
     parseMediaAssetEnvelope,
+    parseMediaAssetReference,
+    parseMediaAssetReferenceListEnvelope,
     parseMediaListEnvelope,
     parseMediaFolder,
     parseMediaFolderEnvelope,

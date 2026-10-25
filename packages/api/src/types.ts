@@ -477,6 +477,25 @@ export interface MediaAsset {
     updatedAt: string
 }
 
+/**
+ * FK-backed content attachment from GET /api/v1/media/{id}/references.
+ * HTML CDN embeds in show notes / article bodies are out of MVP scope.
+ */
+export type MediaAssetReferenceKind =
+    | 'EPISODE_AUDIO'
+    | 'EPISODE_COVER'
+    | 'SERIES_COVER'
+    | 'FORMAT_COVER'
+    | 'ARTICLE_HERO'
+    | 'DIGITAL_PUBLICATION'
+    | 'MEDIA_EPISODE_LINK'
+
+export interface MediaAssetReference {
+    kind: MediaAssetReferenceKind | string
+    id: number
+    title: string
+}
+
 /** Presigned upload target from POST /api/v1/media/upload-url. */
 export interface UploadUrlResponse {
     assetId: number
