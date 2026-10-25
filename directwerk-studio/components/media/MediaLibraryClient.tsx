@@ -151,6 +151,16 @@ export default function MediaLibraryClient(): React.JSX.Element {
         {assets: MediaAsset[]; title: string} | null
     >(null)
     const [moveFolderState, setMoveFolderState] = useState<MediaFolder | null>(null)
+    const moveExcludeFolderIds = useMemo(
+        () =>
+            moveFolderState === null
+                ? undefined
+                : new Set([
+                      moveFolderState.id,
+                      ...descendantFolderIds(folders, moveFolderState.id),
+                  ]),
+        [folders, moveFolderState],
+    )
     const [deleteFolderTarget, setDeleteFolderTarget] = useState<MediaFolder | null>(null)
     const [renameAssetTarget, setRenameAssetTarget] = useState<MediaAsset | null>(null)
     const [renameAssetError, setRenameAssetError] = useState<string | null>(null)
@@ -1203,14 +1213,7 @@ export default function MediaLibraryClient(): React.JSX.Element {
                               : ''
                     }
                     errorMessage={folderDialogError}
-                    excludeFolderIds={
-                        moveFolderState !== null
-                            ? new Set([
-                                moveFolderState.id,
-                                ...descendantFolderIds(folders, moveFolderState.id),
-                            ])
-                            : undefined
-                    }
+                    excludeFolderIds={moveExcludeFolderIds}
                     folders={folders}
                     initialParentId={folderView}
                     isSaving={isBusy}
