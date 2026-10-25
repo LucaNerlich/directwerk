@@ -3,6 +3,9 @@ package de.pnnit.directwerk.modules.digital.job;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -14,10 +17,12 @@ import de.pnnit.directwerk.config.DirectwerkProperties;
 import de.pnnit.directwerk.modules.core.entity.Tenant;
 import de.pnnit.directwerk.modules.core.repository.TenantRepository;
 import de.pnnit.directwerk.modules.digital.repository.MediaAssetRepository;
+import de.pnnit.directwerk.modules.digital.storage.S3BulkObjectDeleter;
 import de.pnnit.directwerk.multitenancy.TenantContext;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.Collection;
 import java.util.List;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -32,7 +37,6 @@ import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
 import software.amazon.awssdk.services.s3.model.ListObjectsV2Request;
 import software.amazon.awssdk.services.s3.model.ListObjectsV2Response;
-import software.amazon.awssdk.services.s3.model.NoSuchKeyException;
 import software.amazon.awssdk.services.s3.model.S3Exception;
 import software.amazon.awssdk.services.s3.model.S3Object;
 
@@ -41,6 +45,9 @@ class StagingCleanupServiceTest {
 
     @Mock
     private S3Client s3Client;
+
+    @Mock
+    private S3BulkObjectDeleter bulkObjectDeleter;
 
     @Mock
     private DirectwerkConfig directwerkConfig;
@@ -64,12 +71,17 @@ class StagingCleanupServiceTest {
     void setUp() {
         stagingCleanupService = new StagingCleanupService(
                 s3Client,
+                bulkObjectDeleter,
                 directwerkConfig,
                 tenantRepository,
                 mediaAssetRepository,
                 transactionManager
         );
         lenient().when(transactionManager.getTransaction(any())).thenReturn(transactionStatus);
+        lenient().when(bulkObjectDeleter.deleteQuietly(any(), any())).thenAnswer(invocation -> {
+            Collection<?> keys = invocation.getArgument(1);
+            return List.copyOf(keys);
+        });
         tenant = new Tenant();
         tenant.setId(10L);
         tenant.setSlug("alpha-show-a");
@@ -81,21 +93,22 @@ class StagingCleanupServiceTest {
     }
 
     @Test
-    void deleteStagingKeyAndFolderDeletesFileAndFolderMarkers() {
+    void deleteStagingKeyAndFolderDeletesFileAndFolderMarkersViaBulkDelete() {
         stagingCleanupService.deleteStagingKeyAndFolder(
                 "directwerk-dev",
                 "alpha-show-a/staging/sess/recording.mp3"
         );
 
-        ArgumentCaptor<DeleteObjectRequest> captor = ArgumentCaptor.forClass(DeleteObjectRequest.class);
-        verify(s3Client, times(3)).deleteObject(captor.capture());
-        List<String> keys = captor.getAllValues().stream().map(DeleteObjectRequest::key).toList();
-        assertThat(keys)
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<Collection<String>> keysCaptor = ArgumentCaptor.forClass(Collection.class);
+        verify(bulkObjectDeleter).deleteQuietly(eq("directwerk-dev"), keysCaptor.capture());
+        assertThat(keysCaptor.getValue())
                 .containsExactlyInAnyOrder(
                         "alpha-show-a/staging/sess/recording.mp3",
                         "alpha-show-a/staging/sess/",
                         "alpha-show-a/staging/sess"
                 );
+        verify(s3Client, never()).deleteObject(any(DeleteObjectRequest.class));
     }
 
     @Test
@@ -104,33 +117,18 @@ class StagingCleanupServiceTest {
                 "directwerk-dev",
                 "alpha-show-a/private/audio/x.mp3"
         )).isInstanceOf(IllegalArgumentException.class);
-        verify(s3Client, never()).deleteObject(any(DeleteObjectRequest.class));
+        verify(bulkObjectDeleter, never()).deleteQuietly(any(), any());
     }
 
     @Test
-    void deleteStagingKeyAndFolderIsIdempotentWhenObjectsMissing() {
-        when(s3Client.deleteObject(any(DeleteObjectRequest.class)))
-                .thenThrow(NoSuchKeyException.builder().message("gone").build());
+    void deleteStagingKeyAndFolderPropagatesBulkDeleteFailures() {
+        doThrow(S3Exception.builder().statusCode(503).message("unavailable").build())
+                .when(bulkObjectDeleter).deleteQuietly(any(), any());
 
-        stagingCleanupService.deleteStagingKeyAndFolder(
+        assertThatThrownBy(() -> stagingCleanupService.deleteStagingKeyAndFolder(
                 "directwerk-dev",
                 "alpha-show-a/staging/sess/recording.mp3"
-        );
-
-        verify(s3Client, times(3)).deleteObject(any(DeleteObjectRequest.class));
-    }
-
-    @Test
-    void deleteStagingKeyAndFolderIgnoresHttp404() {
-        when(s3Client.deleteObject(any(DeleteObjectRequest.class)))
-                .thenThrow(S3Exception.builder().statusCode(404).message("not found").build());
-
-        stagingCleanupService.deleteStagingKeyAndFolder(
-                "directwerk-dev",
-                "alpha-show-a/staging/sess/recording.mp3"
-        );
-
-        verify(s3Client, times(3)).deleteObject(any(DeleteObjectRequest.class));
+        )).isInstanceOf(S3Exception.class);
     }
 
     @Test
@@ -154,10 +152,10 @@ class StagingCleanupServiceTest {
 
         stagingCleanupService.cleanupExpiredStaging();
 
-        ArgumentCaptor<DeleteObjectRequest> captor = ArgumentCaptor.forClass(DeleteObjectRequest.class);
-        verify(s3Client, times(2)).deleteObject(captor.capture());
-        List<String> keys = captor.getAllValues().stream().map(DeleteObjectRequest::key).toList();
-        assertThat(keys)
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<Collection<String>> keysCaptor = ArgumentCaptor.forClass(Collection.class);
+        verify(bulkObjectDeleter).deleteQuietly(eq("directwerk-dev"), keysCaptor.capture());
+        assertThat(keysCaptor.getValue())
                 .containsExactlyInAnyOrder(
                         "alpha-show-a/staging/sess/expired.mp3",
                         "alpha-show-a/staging/sess/"
@@ -191,6 +189,7 @@ class StagingCleanupServiceTest {
         ArgumentCaptor<ListObjectsV2Request> captor = ArgumentCaptor.forClass(ListObjectsV2Request.class);
         verify(s3Client, times(2)).listObjectsV2(captor.capture());
         assertThat(captor.getAllValues().get(1).continuationToken()).isEqualTo("token-1");
+        verify(bulkObjectDeleter, times(2)).deleteQuietly(eq("directwerk-dev"), any());
         verify(mediaAssetRepository).archivePendingByS3Key(10L, "alpha-show-a/staging/sess/page1.mp3");
         verify(mediaAssetRepository).archivePendingByS3Key(10L, "alpha-show-a/staging/sess/page2.mp3");
     }
@@ -214,7 +213,37 @@ class StagingCleanupServiceTest {
         stagingCleanupService.cleanupExpiredStaging();
 
         verify(mediaAssetRepository).archivePendingByS3Key(10L, "alpha-show-a/staging/sess/page1.mp3");
+        verify(bulkObjectDeleter).deleteQuietly(eq("directwerk-dev"), any());
         verify(s3Client, times(2)).listObjectsV2(any(ListObjectsV2Request.class));
+    }
+
+    @Test
+    void cleanupExpiredStagingArchivesSuccessfulKeysOnPartialBulkDelete() {
+        when(directwerkConfig.isStorageEnabled()).thenReturn(true);
+        when(directwerkConfig.storage()).thenReturn(storageProps());
+        when(tenantRepository.findAll()).thenReturn(List.of(tenant));
+
+        Instant old = Instant.now().minus(48, ChronoUnit.HOURS);
+        when(s3Client.listObjectsV2(any(ListObjectsV2Request.class))).thenReturn(
+                ListObjectsV2Response.builder()
+                        .isTruncated(false)
+                        .contents(
+                                S3Object.builder().key("alpha-show-a/staging/sess/ok.mp3").lastModified(old).build(),
+                                S3Object.builder().key("alpha-show-a/staging/sess/locked.mp3").lastModified(old).build()
+                        )
+                        .build()
+        );
+        doAnswer(invocation -> {
+            throw new S3BulkObjectDeleter.PartialBulkDeleteException(
+                    List.of("alpha-show-a/staging/sess/ok.mp3"),
+                    S3Exception.builder().statusCode(403).message("AccessDenied").build()
+            );
+        }).when(bulkObjectDeleter).deleteQuietly(any(), any());
+
+        stagingCleanupService.cleanupExpiredStaging();
+
+        verify(mediaAssetRepository).archivePendingByS3Key(10L, "alpha-show-a/staging/sess/ok.mp3");
+        verify(mediaAssetRepository, never()).archivePendingByS3Key(10L, "alpha-show-a/staging/sess/locked.mp3");
     }
 
     @Test
@@ -236,6 +265,7 @@ class StagingCleanupServiceTest {
         verify(s3Client, times(2)).listObjectsV2(captor.capture());
         List<String> prefixes = captor.getAllValues().stream().map(ListObjectsV2Request::prefix).toList();
         assertThat(prefixes).containsExactlyInAnyOrder("broken-tenant/staging/", "alpha-show-a/staging/");
+        verify(bulkObjectDeleter, never()).deleteQuietly(any(), any());
     }
 
     private static DirectwerkProperties.Storage storageProps() {

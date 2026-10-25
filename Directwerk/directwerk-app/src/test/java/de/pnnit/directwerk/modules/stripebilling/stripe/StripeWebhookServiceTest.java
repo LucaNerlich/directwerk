@@ -5,6 +5,7 @@ import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.inOrder;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -22,7 +23,6 @@ import de.pnnit.directwerk.modules.subscription.repository.SubscriptionProductRe
 import de.pnnit.directwerk.modules.subscription.repository.SubscriptionRepository;
 import de.pnnit.directwerk.modules.stripebilling.service.StripeSubscriptionSyncService;
 import java.time.Instant;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
@@ -31,6 +31,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.SimpleTransactionStatus;
 
 @ExtendWith(MockitoExtension.class)
 class StripeWebhookServiceTest {
@@ -53,17 +55,25 @@ class StripeWebhookServiceTest {
     @Mock
     private SubscriptionRepository subscriptionRepository;
 
+    @Mock
+    private PlatformTransactionManager transactionManager;
+
     private StripeWebhookService service;
 
     @BeforeEach
     void setUp() {
+        when(transactionManager.getTransaction(any())).thenReturn(new SimpleTransactionStatus());
+        // Prefetch may probe local cancellation before event-specific stubs run.
+        lenient().when(subscriptionRepository.findByTenantIdAndExternalSubscriptionId(any(), any()))
+                .thenReturn(Optional.empty());
         service = new StripeWebhookService(
                 stripeOperations,
                 stripeConnectService,
                 stripeSubscriptionSyncService,
                 subscriptionProductRepository,
                 processedWebhookEventRepository,
-                subscriptionRepository
+                subscriptionRepository,
+                transactionManager
         );
     }
 
@@ -188,11 +198,13 @@ class StripeWebhookServiceTest {
         service.applyParsedEvent(service.parseAndValidate("{}", "t=1,v1=sig"));
 
         verify(stripeOperations).retrieveSubscriptionStatus("acct_1", "sub_2");
-        // Issue #547: the provider HTTP call must happen before the row lock is taken.
-        InOrder inOrder = inOrder(subscriptionRepository, stripeOperations);
+        // Issue #745: the provider HTTP call must finish before the write transaction opens;
+        // issue #547: the row lock is taken only after that, inside the short transaction.
+        InOrder inOrder = inOrder(subscriptionRepository, stripeOperations, transactionManager);
         inOrder.verify(subscriptionRepository)
                 .findByTenantIdAndExternalSubscriptionId(7L, "sub_2");
         inOrder.verify(stripeOperations).retrieveSubscriptionStatus("acct_1", "sub_2");
+        inOrder.verify(transactionManager).getTransaction(any());
         inOrder.verify(subscriptionRepository)
                 .findByTenantIdAndExternalSubscriptionIdForUpdate(7L, "sub_2");
         verify(stripeSubscriptionSyncService).upsertStripeSubscription(

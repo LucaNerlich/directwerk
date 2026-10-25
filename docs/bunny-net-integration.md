@@ -70,7 +70,7 @@ Operator setup todos below. See [Architecture](#recommended-architecture) and
 | 500 RPS / 1 Gbps per zone (S3) | Fine for MVP; monitor before high-traffic tenants |
 | Max 4 replication regions with S3 | Pick `de` + one backup EU region (e.g. `uk`) |
 | Presigned URL TTL 1 s – 7 days | API 1h and RSS 24h are within limits |
-| No batch `DeleteObjects` | Delete staging objects one-by-one |
+| `DeleteObjects` max 1000 keys / request | `S3BulkObjectDeleter` chunks staging/multi-key deletes |
 | CORS not on S3 endpoint | Configure CORS on the Pull Zone if browsers upload directly |
 | Presigned URL edge cache | Objects ≤256 MB may be cached after 2+ hits — fine for public; private uses short TTL |
 | Public traffic must use CDN | Per [Bunny S3 docs](https://docs.bunny.net/storage/s3): presigned URLs “fronted by CDN” need a Pull Zone |
@@ -339,8 +339,7 @@ access control.
 
 | Feature | Workaround |
 |---------|------------|
-| `DeleteObjects` (batch) | Loop `DeleteObject` |
-| Lifecycle policies | App scheduled job for `staging/` |
+| Lifecycle policies | App scheduled job for `staging/` (`DeleteObjects` bulk delete, ≤1000 keys) |
 | ACLs, object tagging, versioning | Tenant isolation via key prefix + `AssetAccessService` |
 | SSE / SSE-C encryption | **Not provided** — sensitive media requires application-side encryption or a provider with documented at-rest encryption guarantee; EU region choice addresses residency separately |
 | `Cache-Control` on `PutObject` | Pull Zone cache rules for `public/` paths |

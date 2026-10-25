@@ -2,14 +2,18 @@ package de.pnnit.directwerk.modules.digital.job;
 
 import de.pnnit.directwerk.config.DirectwerkConfig;
 import de.pnnit.directwerk.config.DirectwerkProperties;
-import de.pnnit.directwerk.modules.digital.storage.StorageConfigs;
 import de.pnnit.directwerk.modules.core.entity.Tenant;
 import de.pnnit.directwerk.modules.core.repository.TenantRepository;
 import de.pnnit.directwerk.modules.digital.repository.MediaAssetRepository;
+import de.pnnit.directwerk.modules.digital.storage.S3BulkObjectDeleter;
+import de.pnnit.directwerk.modules.digital.storage.S3BulkObjectDeleter.PartialBulkDeleteException;
+import de.pnnit.directwerk.modules.digital.storage.StorageConfigs;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -17,11 +21,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
 import software.amazon.awssdk.services.s3.S3Client;
-import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
 import software.amazon.awssdk.services.s3.model.ListObjectsV2Request;
 import software.amazon.awssdk.services.s3.model.ListObjectsV2Response;
-import software.amazon.awssdk.services.s3.model.NoSuchKeyException;
-import software.amazon.awssdk.services.s3.model.S3Exception;
 import software.amazon.awssdk.services.s3.model.S3Object;
 
 /**
@@ -31,6 +32,8 @@ import software.amazon.awssdk.services.s3.model.S3Object;
  * not enough — the {@code {tenant}/staging/{session}/} marker must be deleted as well. Bunny S3 has
  * no bucket lifecycle policies, so abandoned staging objects (failed uploads, unconfirmed assets)
  * are purged by {@link #cleanupExpiredStaging()} instead.
+ * <p>
+ * Multi-key deletes use {@link S3BulkObjectDeleter} ({@code DeleteObjects}, ≤1000 keys per request).
  */
 @Slf4j
 @Service
@@ -39,6 +42,7 @@ import software.amazon.awssdk.services.s3.model.S3Object;
 public class StagingCleanupService {
 
     private final S3Client s3Client;
+    private final S3BulkObjectDeleter bulkObjectDeleter;
     private final DirectwerkConfig directwerkConfig;
     private final TenantRepository tenantRepository;
     private final MediaAssetRepository mediaAssetRepository;
@@ -57,10 +61,12 @@ public class StagingCleanupService {
         if (stagingKey == null || !stagingKey.contains("/staging/")) {
             throw new IllegalArgumentException("Not a staging key: " + stagingKey);
         }
-        deleteObjectQuietly(bucket, stagingKey);
         String folderKey = sessionFolderKey(stagingKey);
-        deleteObjectQuietly(bucket, folderKey);
-        deleteObjectQuietly(bucket, stripTrailingSlash(folderKey));
+        bulkObjectDeleter.deleteQuietly(bucket, List.of(
+                stagingKey,
+                folderKey,
+                stripTrailingSlash(folderKey)
+        ));
     }
 
     /**
@@ -92,6 +98,7 @@ public class StagingCleanupService {
         String prefix = tenant.getSlug() + "/staging/";
         String continuationToken = null;
         do {
+            List<String> expiredKeys = new ArrayList<>();
             List<String> deletedFileKeys = new ArrayList<>();
             ListObjectsV2Request.Builder request = ListObjectsV2Request.builder()
                     .bucket(storage.bucket())
@@ -104,14 +111,36 @@ public class StagingCleanupService {
                 if (object.lastModified() == null || object.lastModified().toEpochMilli() >= cutoffMillis) {
                     continue;
                 }
-                deleteObjectQuietly(storage.bucket(), object.key());
+                expiredKeys.add(object.key());
                 if (!object.key().endsWith("/")) {
                     deletedFileKeys.add(object.key());
                 }
             }
+            List<String> deletedKeys;
+            try {
+                deletedKeys = bulkObjectDeleter.deleteQuietly(storage.bucket(), expiredKeys);
+            } catch (PartialBulkDeleteException ex) {
+                // Archive rows for keys S3 already removed before the partial failure (#811 review).
+                archivePendingAssets(tenant, intersect(deletedFileKeys, ex.getDeletedKeys()));
+                throw ex;
+            }
             continuationToken = response.isTruncated() ? response.nextContinuationToken() : null;
-            archivePendingAssets(tenant, deletedFileKeys);
+            archivePendingAssets(tenant, intersect(deletedFileKeys, deletedKeys));
         } while (continuationToken != null);
+    }
+
+    private static List<String> intersect(List<String> candidates, List<String> deletedKeys) {
+        if (candidates.isEmpty() || deletedKeys.isEmpty()) {
+            return List.of();
+        }
+        Set<String> deleted = new HashSet<>(deletedKeys);
+        List<String> matched = new ArrayList<>();
+        for (String key : candidates) {
+            if (deleted.contains(key)) {
+                matched.add(key);
+            }
+        }
+        return matched;
     }
 
     private void archivePendingAssets(Tenant tenant, List<String> keys) {
@@ -128,23 +157,6 @@ public class StagingCleanupService {
         if (archived != null && archived > 0) {
             log.info("Archived {} PENDING media asset(s) for expired staging objects tenant={}",
                     archived, tenant.getSlug());
-        }
-    }
-
-    private void deleteObjectQuietly(String bucket, String key) {
-        try {
-            s3Client.deleteObject(DeleteObjectRequest.builder()
-                    .bucket(bucket)
-                    .key(key)
-                    .build());
-        } catch (NoSuchKeyException ex) {
-            log.debug("Staging object already absent (idempotent): {}", key);
-        } catch (S3Exception ex) {
-            if (ex.statusCode() == 404) {
-                log.debug("Staging object already absent (HTTP 404): {}", key);
-                return;
-            }
-            throw ex;
         }
     }
 
