@@ -2,10 +2,11 @@ package de.pnnit.directwerk.modules.digital.job;
 
 import de.pnnit.directwerk.config.DirectwerkConfig;
 import de.pnnit.directwerk.config.DirectwerkProperties;
-import de.pnnit.directwerk.modules.digital.storage.StorageConfigs;
 import de.pnnit.directwerk.modules.core.entity.Tenant;
 import de.pnnit.directwerk.modules.core.repository.TenantRepository;
 import de.pnnit.directwerk.modules.digital.repository.MediaAssetRepository;
+import de.pnnit.directwerk.modules.digital.storage.S3BulkObjectDeleter;
+import de.pnnit.directwerk.modules.digital.storage.StorageConfigs;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
@@ -17,11 +18,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
 import software.amazon.awssdk.services.s3.S3Client;
-import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
 import software.amazon.awssdk.services.s3.model.ListObjectsV2Request;
 import software.amazon.awssdk.services.s3.model.ListObjectsV2Response;
-import software.amazon.awssdk.services.s3.model.NoSuchKeyException;
-import software.amazon.awssdk.services.s3.model.S3Exception;
 import software.amazon.awssdk.services.s3.model.S3Object;
 
 /**
@@ -31,6 +29,8 @@ import software.amazon.awssdk.services.s3.model.S3Object;
  * not enough — the {@code {tenant}/staging/{session}/} marker must be deleted as well. Bunny S3 has
  * no bucket lifecycle policies, so abandoned staging objects (failed uploads, unconfirmed assets)
  * are purged by {@link #cleanupExpiredStaging()} instead.
+ * <p>
+ * Multi-key deletes use {@link S3BulkObjectDeleter} ({@code DeleteObjects}, ≤1000 keys per request).
  */
 @Slf4j
 @Service
@@ -39,6 +39,7 @@ import software.amazon.awssdk.services.s3.model.S3Object;
 public class StagingCleanupService {
 
     private final S3Client s3Client;
+    private final S3BulkObjectDeleter bulkObjectDeleter;
     private final DirectwerkConfig directwerkConfig;
     private final TenantRepository tenantRepository;
     private final MediaAssetRepository mediaAssetRepository;
@@ -57,10 +58,12 @@ public class StagingCleanupService {
         if (stagingKey == null || !stagingKey.contains("/staging/")) {
             throw new IllegalArgumentException("Not a staging key: " + stagingKey);
         }
-        deleteObjectQuietly(bucket, stagingKey);
         String folderKey = sessionFolderKey(stagingKey);
-        deleteObjectQuietly(bucket, folderKey);
-        deleteObjectQuietly(bucket, stripTrailingSlash(folderKey));
+        bulkObjectDeleter.deleteQuietly(bucket, List.of(
+                stagingKey,
+                folderKey,
+                stripTrailingSlash(folderKey)
+        ));
     }
 
     /**
@@ -92,6 +95,7 @@ public class StagingCleanupService {
         String prefix = tenant.getSlug() + "/staging/";
         String continuationToken = null;
         do {
+            List<String> expiredKeys = new ArrayList<>();
             List<String> deletedFileKeys = new ArrayList<>();
             ListObjectsV2Request.Builder request = ListObjectsV2Request.builder()
                     .bucket(storage.bucket())
@@ -104,11 +108,12 @@ public class StagingCleanupService {
                 if (object.lastModified() == null || object.lastModified().toEpochMilli() >= cutoffMillis) {
                     continue;
                 }
-                deleteObjectQuietly(storage.bucket(), object.key());
+                expiredKeys.add(object.key());
                 if (!object.key().endsWith("/")) {
                     deletedFileKeys.add(object.key());
                 }
             }
+            bulkObjectDeleter.deleteQuietly(storage.bucket(), expiredKeys);
             continuationToken = response.isTruncated() ? response.nextContinuationToken() : null;
             archivePendingAssets(tenant, deletedFileKeys);
         } while (continuationToken != null);
@@ -128,23 +133,6 @@ public class StagingCleanupService {
         if (archived != null && archived > 0) {
             log.info("Archived {} PENDING media asset(s) for expired staging objects tenant={}",
                     archived, tenant.getSlug());
-        }
-    }
-
-    private void deleteObjectQuietly(String bucket, String key) {
-        try {
-            s3Client.deleteObject(DeleteObjectRequest.builder()
-                    .bucket(bucket)
-                    .key(key)
-                    .build());
-        } catch (NoSuchKeyException ex) {
-            log.debug("Staging object already absent (idempotent): {}", key);
-        } catch (S3Exception ex) {
-            if (ex.statusCode() == 404) {
-                log.debug("Staging object already absent (HTTP 404): {}", key);
-                return;
-            }
-            throw ex;
         }
     }
 
