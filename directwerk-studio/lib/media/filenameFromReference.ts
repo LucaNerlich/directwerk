@@ -47,3 +47,28 @@ export function filenameFromReferenceTitle(
     const safeStem = capped.length > 0 ? capped : 'asset'
     return `${safeStem}${ext}`
 }
+
+/**
+ * Proposed rename-from-reference filename, or {@code null} when the action should
+ * not be offered: no references, or the URL-safe proposal already matches the
+ * stored {@code originalFilename} (after the same sanitize mirror the API uses).
+ *
+ * Not limited to generic names like {@code download.mp3} — any differing name qualifies.
+ */
+export function proposedRenameFromReference(
+    currentFilename: string | null | undefined,
+    references: ReadonlyArray<{id: number; title: string}>,
+): string | null {
+    if (references.length === 0) {
+        return null
+    }
+    const first = references[0]!
+    const derived = filenameFromReferenceTitle(
+        currentFilename,
+        first.title || `ref-${first.id}`,
+    )
+    if (sanitizeFilenameMirror(derived) === (currentFilename ?? '').trim()) {
+        return null
+    }
+    return derived
+}

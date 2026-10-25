@@ -2,6 +2,10 @@
 
 import {useEffect, useId, useState} from 'react'
 
+import {useDictionary} from '@/components/i18n/LocaleProvider'
+import {getMediaReferences} from '@/lib/api/mediaApi'
+import {proposedRenameFromReference} from '@/lib/media/filenameFromReference'
+import {t} from '@/lib/i18n/dictionary'
 import {Button} from '@directwerk/ui/components/button'
 import {
     Dialog,
@@ -38,6 +42,10 @@ function isValidAssetFilename(name: string): boolean {
 /**
  * Rename dialog for a single media asset. The backend sanitizes
  * authoritatively (400 on invalid) — client checks only give instant feedback.
+ *
+ * When the asset has ≥1 content reference and the URL-safe proposal from the
+ * first reference title differs from {@code originalFilename}, offers
+ * “from reference” to fill the input (submit still via Umbenennen).
  */
 export default function MediaAssetRenameDialog({
     open,
@@ -47,32 +55,65 @@ export default function MediaAssetRenameDialog({
     errorMessage,
     onSubmit,
 }: MediaAssetRenameDialogProps): React.JSX.Element {
+    const dict = useDictionary()
     const [filename, setFilename] = useState('')
+    const [proposedFromReference, setProposedFromReference] = useState<string | null>(null)
     const filenameId = useId()
+
+    const assetId = asset?.id
 
     useEffect(() => {
         if (open) {
             setFilename(asset?.originalFilename ?? '')
+            setProposedFromReference(null)
         }
     }, [open, asset])
+
+    useEffect(() => {
+        if (!open || assetId === undefined || asset === null) {
+            return
+        }
+        let cancelled = false
+        void getMediaReferences(assetId)
+            .then((rows) => {
+                if (cancelled) {
+                    return
+                }
+                setProposedFromReference(
+                    proposedRenameFromReference(asset.originalFilename, rows),
+                )
+            })
+            .catch(() => {
+                if (!cancelled) {
+                    setProposedFromReference(null)
+                }
+            })
+        return () => {
+            cancelled = true
+        }
+    }, [open, assetId, asset])
 
     const trimmed = filename.trim()
     const valid = isValidAssetFilename(filename)
     const unchanged = trimmed === (asset?.originalFilename ?? '')
+    const showApplyFromReference =
+        proposedFromReference !== null && trimmed !== proposedFromReference
 
     return (
         <Dialog onOpenChange={onOpenChange} open={open}>
-            <DialogContent className="sm:max-w-md">
+            <DialogContent className="sm:max-w-md" closeLabel={dict.media.schliessen}>
                 <DialogHeader>
-                    <DialogTitle>Datei umbenennen</DialogTitle>
+                    <DialogTitle>{dict.media.dateiUmbenennen}</DialogTitle>
                     <DialogDescription>
                         {asset !== null
-                            ? `„${asset.originalFilename ?? `Asset #${asset.id}`}“ umbenennen. Der S3-Schlüssel bleibt unverändert.`
-                            : 'Datei umbenennen.'}
+                            ? t(dict.media.dateiUmbenennenBeschreibung, {
+                                  filename: asset.originalFilename ?? `Asset #${asset.id}`,
+                              })
+                            : dict.media.dateiUmbenennen2}
                     </DialogDescription>
                 </DialogHeader>
                 <label className="grid gap-2 text-sm font-medium" htmlFor={filenameId}>
-                    <span>Dateiname</span>
+                    <span>{dict.media.dateiname}</span>
                     <Input
                         aria-invalid={trimmed.length > 0 && !valid}
                         autoComplete="off"
@@ -80,13 +121,36 @@ export default function MediaAssetRenameDialog({
                         id={filenameId}
                         maxLength={255}
                         onChange={(event) => setFilename(event.target.value)}
-                        placeholder="z. B. interview-final.mp3"
+                        placeholder={dict.media.dateinamePlatzhalter}
                         value={filename}
                     />
                 </label>
+                {proposedFromReference !== null ? (
+                    <div className="space-y-2 rounded-md border px-3 py-3 text-sm">
+                        <p className="text-xs text-muted-foreground">
+                            {dict.media.vonReferenzUmbenennenHinweis}
+                        </p>
+                        <p className="font-medium">
+                            {t(dict.media.vonReferenzUmbenennenVorschlag, {
+                                filename: proposedFromReference,
+                            })}
+                        </p>
+                        {showApplyFromReference ? (
+                            <Button
+                                disabled={isSaving}
+                                onClick={() => setFilename(proposedFromReference)}
+                                size="sm"
+                                type="button"
+                                variant="secondary"
+                            >
+                                {dict.media.vonReferenzUmbenennen}
+                            </Button>
+                        ) : null}
+                    </div>
+                ) : null}
                 {trimmed.length > 0 && !valid ? (
                     <p className="text-xs text-destructive" role="alert">
-                        Der Dateiname darf nicht leer sein, keine Pfade enthalten (max. 255 Zeichen).
+                        {dict.media.dateinameUngueltig}
                     </p>
                 ) : null}
                 {errorMessage !== null ? (
@@ -96,19 +160,18 @@ export default function MediaAssetRenameDialog({
                 ) : null}
                 <DialogFooter>
                     <Button
-                        disabled={isSaving}
                         onClick={() => onOpenChange(false)}
                         type="button"
                         variant="outline"
                     >
-                        Abbrechen
+                        {dict.common.cancel}
                     </Button>
                     <Button
                         disabled={isSaving || !valid || unchanged}
                         onClick={() => onSubmit(trimmed)}
                         type="button"
                     >
-                        {isSaving ? 'Speichert…' : 'Umbenennen'}
+                        {isSaving ? dict.media.speichert : dict.media.umbenennenAktion}
                     </Button>
                 </DialogFooter>
             </DialogContent>
