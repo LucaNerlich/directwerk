@@ -4,6 +4,7 @@ import de.pnnit.directwerk.modules.digital.entity.AssetStatus;
 import de.pnnit.directwerk.modules.digital.entity.AssetType;
 import de.pnnit.directwerk.modules.digital.entity.MediaAsset;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -100,6 +101,19 @@ public interface MediaAssetQueryApi {
      * Aggregate storage usage for the tenant overview (counts + bytes by type/status).
      */
     MediaStorageSummary storageSummary(Long tenantId);
+
+    /**
+     * Direct (non-recursive) active asset counts keyed by folder id. Folders with zero matching
+     * assets are omitted. Status filter matches the default media list (excludes
+     * {@code ARCHIVED} / {@code PENDING_DELETE}).
+     */
+    Map<Long, Long> countActiveAssetsByFolder(Long tenantId);
+
+    /**
+     * Direct active asset count for one folder (same status filter as
+     * {@link #countActiveAssetsByFolder(Long)}).
+     */
+    long countActiveAssetsInFolder(Long tenantId, Long folderId);
 
     record MediaStorageSummary(
             long totalAssets,

@@ -38,13 +38,13 @@ import {
 import type {MediaAsset, MediaFolder, MediaUploadLimits} from '@directwerk/api/types'
 import {MEDIA_TYPE_LIMITS, mediaLimitLabelFor, resolveMediaLimits} from '@/lib/media/limits'
 import {
-    assetsInFolder,
     assetFolderId,
     childFolders,
     descendantFolderIds,
     folderErrorMessage,
     folderParentId,
     folderPath,
+    folderTileAssetCount,
 } from '@/lib/media/folders'
 import MediaAudioPreview from '@/components/media/MediaAudioPreview'
 import MediaAssetDetailPanel from '@/components/media/MediaAssetDetailPanel'
@@ -408,7 +408,11 @@ export default function MediaLibraryClient(): React.JSX.Element {
         setStatusMessage(null)
         try {
             await deleteMedia( assetId)
-            setAssets((current) => current.filter((item) => item.id !== assetId))
+            // Reload so folder tiles pick up fresh API assetCount (not stale optimistic list).
+            await reload()
+            if (!mountedRef.current) {
+                return
+            }
             setStatusMessage('Medium gelöscht.')
         } catch (error: unknown) {
             if (authRedirect(error)) return
@@ -517,12 +521,14 @@ export default function MediaLibraryClient(): React.JSX.Element {
                     } => entry.result.status === 'rejected',
                 )
 
-            setAssets((current) =>
-                current.filter((item) => !deletedIds.has(item.id)),
-            )
             onSettled?.(rejected.length)
 
             if (deletedIds.size > 0) {
+                // Reload so folder tiles pick up fresh API assetCount (not stale optimistic list).
+                await reload()
+                if (!mountedRef.current) {
+                    return
+                }
                 setStatusMessage(successMessage(deletedIds.size))
             }
             if (rejected.length > 0) {
@@ -639,9 +645,11 @@ export default function MediaLibraryClient(): React.JSX.Element {
                 }
             })
             if (movedById.size > 0) {
-                setAssets((current) =>
-                    current.map((item) => movedById.get(item.id) ?? item),
-                )
+                // Reload so folder tiles pick up fresh API assetCount (not stale optimistic list).
+                await reload()
+                if (!mountedRef.current) {
+                    return
+                }
                 clearSelection()
             }
             if (failures.length === 0) {
@@ -1079,7 +1087,7 @@ export default function MediaLibraryClient(): React.JSX.Element {
                 {visibleChildFolders.length > 0 ? (
                     <ul className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
                         {visibleChildFolders.map((folder) => {
-                            const fileCount = assetsInFolder(assets, folder.id).length
+                            const fileCount = folderTileAssetCount(folder, assets)
                             const subCount = childFolders(folders, folder.id).length
                             return (
                                 <li key={folder.id}>

@@ -293,4 +293,43 @@ class MediaAssetQueryServiceTest {
         assertThatThrownBy(() -> service.listAttachedReferences(7L))
                 .isInstanceOf(MediaAssetNotFoundException.class);
     }
+
+    @Test
+    void countActiveAssetsByFolderMapsRepositoryRowsAndOmitsEmptyFolders() {
+        Tenant tenant = new Tenant();
+        tenant.setId(42L);
+        when(tenantRepository.requireById(42L)).thenReturn(tenant);
+        when(mediaAssetRepository.countActiveByFolder(42L)).thenReturn(List.of(
+                folderAssetCount(3L, 4L),
+                folderAssetCount(9L, 1L)
+        ));
+
+        assertThat(service.countActiveAssetsByFolder(42L))
+                .containsExactlyInAnyOrderEntriesOf(java.util.Map.of(3L, 4L, 9L, 1L));
+    }
+
+    @Test
+    void countActiveAssetsInFolderDelegatesToRepository() {
+        Tenant tenant = new Tenant();
+        tenant.setId(42L);
+        when(tenantRepository.requireById(42L)).thenReturn(tenant);
+        when(mediaAssetRepository.countActiveByTenantIdAndFolderId(42L, 3L)).thenReturn(7L);
+
+        assertThat(service.countActiveAssetsInFolder(42L, 3L)).isEqualTo(7L);
+        assertThat(service.countActiveAssetsInFolder(42L, null)).isZero();
+    }
+
+    private static MediaAssetRepository.FolderAssetCount folderAssetCount(Long folderId, Long assetCount) {
+        return new MediaAssetRepository.FolderAssetCount() {
+            @Override
+            public Long getFolderId() {
+                return folderId;
+            }
+
+            @Override
+            public Long getAssetCount() {
+                return assetCount;
+            }
+        };
+    }
 }

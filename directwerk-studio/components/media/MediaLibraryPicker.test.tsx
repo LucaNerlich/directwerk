@@ -33,6 +33,7 @@ function folder(overrides: Partial<MediaFolder> & {id: number; name: string}): M
         createdBy: null,
         createdAt: '2026-01-01T00:00:00Z',
         updatedAt: '2026-01-01T00:00:00Z',
+        assetCount: 0,
         ...overrides,
     }
 }

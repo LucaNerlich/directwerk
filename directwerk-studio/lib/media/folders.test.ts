@@ -8,12 +8,18 @@ import {
     flattenFolderTree,
     folderDepth,
     folderPath,
+    folderTileAssetCount,
     isValidFolderName,
     siblingNameTaken,
 } from '@/lib/media/folders'
 import type {MediaAsset, MediaFolder} from '@directwerk/api/types'
 
-function folder(id: number, name: string, parentId: number | null): MediaFolder {
+function folder(
+    id: number,
+    name: string,
+    parentId: number | null,
+    assetCount = 0,
+): MediaFolder {
     return {
         id,
         name,
@@ -21,6 +27,7 @@ function folder(id: number, name: string, parentId: number | null): MediaFolder 
         createdAt: '2026-01-01T00:00:00Z',
         createdBy: null,
         updatedAt: '2026-01-01T00:00:00Z',
+        assetCount,
     }
 }
 
@@ -116,5 +123,21 @@ describe('media folders', () => {
         expect(assetsInFolder(assets, 2).map((entry) => entry.id)).toEqual([2])
         expect(childFolders(folders, null).map((entry) => entry.name)).toEqual(['A', 'B'])
         expect(childFolders(folders, 2).map((entry) => entry.name)).toEqual(['Mitte'])
+    })
+
+    it('prefers API assetCount on folder tiles when the loaded page is folder-scoped', () => {
+        // Regression: after folder-scoped listing, root loads only unassigned assets, so
+        // counting via assetsInFolder always yielded "0 Dateien" for child folders.
+        const scopedRootAssets = [asset(1, null)]
+        const interviews = folder(2, 'Interviews', null, 3)
+
+        expect(folderTileAssetCount(interviews, scopedRootAssets)).toBe(3)
+        expect(assetsInFolder(scopedRootAssets, interviews.id)).toHaveLength(0)
+    })
+
+    it('falls back to counting loaded assets when assetCount is absent', () => {
+        const assets = [asset(1, 2), asset(2, 2), asset(3, null)]
+        expect(folderTileAssetCount({id: 2}, assets)).toBe(2)
+        expect(folderTileAssetCount({id: 9}, assets)).toBe(0)
     })
 })

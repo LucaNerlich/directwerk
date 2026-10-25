@@ -538,6 +538,11 @@ export interface MediaFolder {
     createdBy: number | null
     createdAt: string
     updatedAt: string
+    /**
+     * Direct (non-recursive) count of active assets in this folder. Matches the default
+     * media list status filter so folder tiles stay truthful under folder-scoped paging.
+     */
+    assetCount: number
 }
 
 /**

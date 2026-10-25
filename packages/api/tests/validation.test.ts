@@ -653,9 +653,19 @@ describe('isQueueJob', () => {
                 parentId: null,
                 createdAt: '2026-01-01T00:00:00Z',
                 updatedAt: '2026-01-01T00:00:00Z',
+                assetCount: 2,
             }),
-        ).toMatchObject({id: 3, name: 'Interviews', parentId: null})
+        ).toMatchObject({id: 3, name: 'Interviews', parentId: null, assetCount: 2})
         expect(parseMediaFolder({id: 3, name: 'x', parentId: -1})).toBeNull()
+        expect(
+            parseMediaFolder({
+                id: 3,
+                name: 'Interviews',
+                parentId: null,
+                createdAt: '2026-01-01T00:00:00Z',
+                updatedAt: '2026-01-01T00:00:00Z',
+            }),
+        ).toBeNull()
         expect(
             parseMediaFolderListEnvelope({
                 statusCode: 200,
@@ -667,6 +677,7 @@ describe('isQueueJob', () => {
                         parentId: 1,
                         createdAt: '2026-01-01T00:00:00Z',
                         updatedAt: '2026-01-01T00:00:00Z',
+                        assetCount: 0,
                     },
                 ],
                 errors: [],
@@ -685,6 +696,7 @@ describe('isQueueJob', () => {
                 parentId: null,
                 createdAt: '2026-01-01T00:00:00Z',
                 updatedAt: '2026-01-01T00:00:00Z',
+                assetCount: 0,
             })),
         })
 
@@ -823,6 +835,7 @@ describe('isQueueJob', () => {
                 createdBy: 5,
                 createdAt: '2026-01-01T00:00:00Z',
                 updatedAt: '2026-01-01T00:00:00Z',
+                assetCount: 0,
             })?.createdBy,
         ).toBe(5)
     })

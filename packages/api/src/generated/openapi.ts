@@ -3639,6 +3639,11 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string;
+            /**
+             * Format: int64
+             * @description Direct (non-recursive) count of active assets in this folder.
+             */
+            assetCount?: number;
         };
         ResponseMediaFolderView: {
             /** Format: int32 */
