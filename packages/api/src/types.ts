@@ -650,7 +650,7 @@ export interface ConnectMailgunInput {
     apiKey: string
 }
 
-export type MailgunTestRecipientStatus = 'SENT' | 'FAILED'
+export type MailgunTestRecipientStatus = 'QUEUED' | 'FAILED'
 
 export interface MailgunTestRecipientResult {
     email: string
@@ -659,7 +659,7 @@ export interface MailgunTestRecipientResult {
 }
 
 export interface MailgunTestSendResult {
-    sentCount: number
+    queuedCount: number
     failedCount: number
     results: MailgunTestRecipientResult[]
 }

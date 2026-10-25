@@ -131,14 +131,14 @@ export default function IntegrationsClient(): React.JSX.Element {
                     .join(', ')
                 setErrorMessage(
                     t(s.testEMailTeilweise, {
-                        sentCount: result.sentCount,
+                        queuedCount: result.queuedCount,
                         failedCount: result.failedCount,
                         failedEmails,
                     }),
                 )
             } else {
                 setStatusMessage(
-                    t(s.testEMailErfolg, {sentCount: result.sentCount}),
+                    t(s.testEMailErfolg, {queuedCount: result.queuedCount}),
                 )
             }
         } catch (error: unknown) {

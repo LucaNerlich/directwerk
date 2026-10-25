@@ -2433,7 +2433,7 @@ export function parseMailgunTestSendResult(
 ): MailgunTestSendResult | null {
     if (
         !isRecord(value) ||
-        !isNonNegativeSafeInteger(value.sentCount) ||
+        !isNonNegativeSafeInteger(value.queuedCount) ||
         !isNonNegativeSafeInteger(value.failedCount) ||
         !Array.isArray(value.results)
     ) {
@@ -2457,7 +2457,7 @@ export function parseMailgunTestSendResult(
     }
 
     return {
-        sentCount: value.sentCount,
+        queuedCount: value.queuedCount,
         failedCount: value.failedCount,
         results,
     }

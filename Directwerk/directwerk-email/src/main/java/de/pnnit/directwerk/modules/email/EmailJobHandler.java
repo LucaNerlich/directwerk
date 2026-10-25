@@ -125,6 +125,9 @@ public class EmailJobHandler implements JobHandler {
             case RSS_BULK_IMPORT_FINISHED -> {
                 // validated by producer
             }
+            case MAILGUN_CONNECTION_TEST -> {
+                requireDisplayVariable(variables, "recipientName", 200, false);
+            }
         }
     }
 

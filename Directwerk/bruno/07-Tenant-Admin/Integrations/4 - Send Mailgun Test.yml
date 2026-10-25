@@ -14,12 +14,12 @@ runtime:
   scripts:
     - type: tests
       code: |-
-        test("sends test or returns structured config/admin error", function() {
+        test("queues test jobs or returns structured config/admin error", function() {
           expect([200, 400, 401, 403].includes(res.getStatus())).to.equal(true);
           if (res.getStatus() === 200) {
             const body = res.getBody();
             expect(body.data).to.be.an("object");
-            expect(body.data.sentCount).to.be.a("number");
+            expect(body.data.queuedCount).to.be.a("number");
             expect(body.data.failedCount).to.be.a("number");
             expect(body.data.results).to.be.an("array");
           }
@@ -38,6 +38,6 @@ settings:
   forwardAuthorizationHeader: true
 
 docs: |
-  Sends one Mailgun test email to each active TENANT_ADMIN of the current tenant,
-  using the tenant's connected Mailgun credentials. Requires TENANT_ADMIN.
+  Enqueues one MAILGUN_CONNECTION_TEST email job per active TENANT_ADMIN of the
+  current tenant (normal email queue → tenant Mailgun). Requires TENANT_ADMIN.
   Error codes: MAILGUN_NOT_CONFIGURED, NO_TENANT_ADMINS.
