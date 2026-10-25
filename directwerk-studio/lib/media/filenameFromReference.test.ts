@@ -1,6 +1,10 @@
 import {describe, expect, it} from 'vitest'
 
-import {extensionOfFilename, filenameFromReferenceTitle} from '@/lib/media/filenameFromReference'
+import {
+    extensionOfFilename,
+    filenameFromReferenceTitle,
+    sanitizeFilenameMirror,
+} from '@/lib/media/filenameFromReference'
 
 describe('extensionOfFilename', () => {
     it('returns the extension including the dot', () => {
@@ -14,6 +18,14 @@ describe('extensionOfFilename', () => {
         expect(extensionOfFilename('ends-with-dot.')).toBe('')
         expect(extensionOfFilename(null)).toBe('')
         expect(extensionOfFilename(undefined)).toBe('')
+    })
+})
+
+describe('sanitizeFilenameMirror', () => {
+    it('mirrors backend unsafe-character replacement', () => {
+        expect(sanitizeFilenameMirror('Folge 42.mp3')).toBe('Folge_42.mp3')
+        expect(sanitizeFilenameMirror('evil name!!.mp3')).toBe('evil_name_.mp3')
+        expect(sanitizeFilenameMirror('../../evil name!!.mp3')).toBe('evil_name_.mp3')
     })
 })
 

@@ -5,7 +5,10 @@ import {useEffect, useState} from 'react'
 import LocaleLink from '@/components/i18n/LocaleLink'
 import {useDictionary} from '@/components/i18n/LocaleProvider'
 import {getMediaReferences, renameMediaAsset} from '@/lib/api/mediaApi'
-import {filenameFromReferenceTitle} from '@/lib/media/filenameFromReference'
+import {
+    filenameFromReferenceTitle,
+    sanitizeFilenameMirror,
+} from '@/lib/media/filenameFromReference'
 import {t} from '@/lib/i18n/dictionary'
 import {assetTypeLabel, mediaStatusLabel, visibilityLabel} from '@/lib/subscription/displayLabels'
 import {formatBytes} from '@directwerk/api/format/bytes'
@@ -82,8 +85,10 @@ export default function MediaAssetDetailPanel({
     const [isRenaming, setIsRenaming] = useState(false)
     const [renameError, setRenameError] = useState<string | null>(null)
 
+    const assetId = asset?.id
+
     useEffect(() => {
-        if (!open || asset === null) {
+        if (!open || assetId === undefined) {
             return
         }
         let cancelled = false
@@ -92,7 +97,7 @@ export default function MediaAssetDetailPanel({
         setReferences(null)
         setProposedFilename(null)
         setRenameError(null)
-        void getMediaReferences(asset.id)
+        void getMediaReferences(assetId)
             .then((rows) => {
                 if (!cancelled) {
                     setReferences(rows)
@@ -116,7 +121,7 @@ export default function MediaAssetDetailPanel({
         return () => {
             cancelled = true
         }
-    }, [open, asset, dict.media.referenzenKonnteNichtGeladen])
+    }, [open, assetId, dict.media.referenzenKonnteNichtGeladen])
 
     const title =
         asset !== null
@@ -133,7 +138,7 @@ export default function MediaAssetDetailPanel({
             : null
     const canProposeRename =
         derivedFilename !== null &&
-        derivedFilename.trim() !== (asset?.originalFilename ?? '').trim()
+        sanitizeFilenameMirror(derivedFilename) !== (asset?.originalFilename ?? '').trim()
 
     async function handleConfirmRename(): Promise<void> {
         if (asset === null || proposedFilename === null) {

@@ -15,6 +15,17 @@ export function extensionOfFilename(filename: string | null | undefined): string
 }
 
 /**
+ * Client mirror of backend {@code MediaUploadRules.sanitizeFilename} character
+ * replacement (`[^a-zA-Z0-9._-]+` → `_`). Used only to decide whether a
+ * rename-from-reference would change the stored name; the API remains authoritative.
+ */
+export function sanitizeFilenameMirror(filename: string): string {
+    const trimmed = filename.trim()
+    const base = trimmed.replaceAll('\\', '/').split('/').pop() ?? trimmed
+    return base.replace(/[^a-zA-Z0-9._-]+/g, '_')
+}
+
+/**
  * Builds a display filename from a content reference title while keeping the
  * current asset's extension. The backend sanitizes authoritatively on rename.
  *

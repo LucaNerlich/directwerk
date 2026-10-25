@@ -544,6 +544,56 @@ describe('MediaLibraryClient', () => {
         )
         expect(await screen.findByText(/Datei in „Folge_42\.mp3“ umbenannt/)).toBeInTheDocument()
         expect(await within(detailDialog).findByText('Folge_42.mp3')).toBeInTheDocument()
+        expect(
+            within(detailDialog).queryByRole('button', {name: 'Von Referenz umbenennen'}),
+        ).not.toBeInTheDocument()
+        expect(getMediaReferences).toHaveBeenCalledTimes(1)
+    })
+
+    it('does not reopen the detail dialog when rename finishes after dismiss', async () => {
+        const downloadAsset = {
+            ...coverAsset,
+            id: 11,
+            originalFilename: 'download.mp3',
+            assetType: 'AUDIO',
+            mimeType: 'audio/mpeg',
+            s3Key: 'tenant/staging/download.mp3',
+        }
+        vi.mocked(listMedia).mockResolvedValue([downloadAsset])
+        vi.mocked(getMediaReferences).mockResolvedValue([
+            {kind: 'EPISODE_AUDIO', id: 42, title: 'Folge 42'},
+        ])
+        let resolveRename: (asset: MediaAsset) => void = () => undefined
+        vi.mocked(renameMediaAsset).mockImplementation(
+            () =>
+                new Promise<MediaAsset>((resolve) => {
+                    resolveRename = resolve
+                }),
+        )
+
+        renderWithLocale(<MediaLibraryClient />)
+
+        expect(await screen.findByText('download.mp3')).toBeInTheDocument()
+        fireEvent.click(screen.getByRole('button', {name: 'Details'}))
+
+        const detailDialog = await screen.findByRole('dialog')
+        fireEvent.click(
+            await within(detailDialog).findByRole('button', {name: 'Von Referenz umbenennen'}),
+        )
+        fireEvent.click(within(detailDialog).getByRole('button', {name: 'Datei umbenennen'}))
+
+        await waitFor(() => expect(renameMediaAsset).toHaveBeenCalled())
+        fireEvent.click(within(detailDialog).getByRole('button', {name: 'Schließen'}))
+        await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+
+        resolveRename({
+            ...downloadAsset,
+            originalFilename: 'Folge_42.mp3',
+        })
+
+        expect(await screen.findByText(/Datei in „Folge_42\.mp3“ umbenannt/)).toBeInTheDocument()
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+        expect(await screen.findByText('Folge_42.mp3')).toBeInTheDocument()
     })
 
     it('hides rename-from-reference when the asset has no references', async () => {

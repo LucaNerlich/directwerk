@@ -1326,7 +1326,9 @@ export default function MediaLibraryClient(): React.JSX.Element {
                     setAssets((current) =>
                         current.map((item) => (item.id === renamed.id ? renamed : item)),
                     )
-                    setDetailAsset(renamed)
+                    setDetailAsset((current) =>
+                        current !== null && current.id === renamed.id ? renamed : current,
+                    )
                     setStatusMessage(
                         `Datei in „${renamed.originalFilename ?? renamed.id}“ umbenannt.`,
                     )
