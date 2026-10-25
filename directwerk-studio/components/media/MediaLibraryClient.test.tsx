@@ -422,6 +422,27 @@ describe('MediaLibraryClient', () => {
         )
     })
 
+    it('refetches with unreferencedOnly when the orphan filter is enabled', async () => {
+        renderWithLocale(<MediaLibraryClient />)
+
+        await waitFor(() =>
+            expect(vi.mocked(listMedia)).toHaveBeenCalled(),
+        )
+        vi.mocked(listMedia).mockClear()
+
+        fireEvent.click(screen.getByRole('checkbox', {name: 'Nur unverknüpfte Dateien'}))
+        await waitFor(() =>
+            expect(vi.mocked(listMedia)).toHaveBeenLastCalledWith({
+                limit: 100,
+                offset: 0,
+                folderId: undefined,
+                recursive: false,
+                unassignedOnly: true,
+                unreferencedOnly: true,
+            }),
+        )
+    })
+
     it('creates a folder in the current location', async () => {
         vi.mocked(createMediaFolder).mockResolvedValue(testFolder(5, 'Neu', null))
 

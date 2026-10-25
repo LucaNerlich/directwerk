@@ -30,15 +30,18 @@ public interface MediaAssetQueryApi {
      * {@code unassignedOnly} lists root-level (unassigned) assets; without either flag
      * this behaves like {@link #list}. When {@code recursive} is true, descendants of
      * {@code folderId} are included. {@code folderId} and {@code unassignedOnly} together
-     * are rejected.
+     * are rejected. {@code unreferencedOnly} keeps only assets with no content attachments
+     * (same definition as delete-time {@code hasAttachedReferences}).
      */
-    List<MediaAsset> listInFolder(
+    default List<MediaAsset> listInFolder(
             AssetType assetType,
             AssetStatus status,
             Long folderId,
             boolean recursive,
             boolean unassignedOnly,
-            int limit);
+            int limit) {
+        return listInFolder(assetType, status, folderId, recursive, unassignedOnly, false, limit, 0);
+    }
 
     /**
      * Same as the six-argument {@code listInFolder}, starting at {@code offset} rows.
@@ -46,12 +49,28 @@ public interface MediaAssetQueryApi {
      * <p>Offset paging exists because the endpoint used to expose only {@code limit}, which made
      * every asset past the cap unreachable (#725).
      */
+    default List<MediaAsset> listInFolder(
+            AssetType assetType,
+            AssetStatus status,
+            Long folderId,
+            boolean recursive,
+            boolean unassignedOnly,
+            int limit,
+            int offset) {
+        return listInFolder(assetType, status, folderId, recursive, unassignedOnly, false, limit, offset);
+    }
+
+    /**
+     * Full folder/list query including the content-unreferenced filter ({@code unreferencedOnly}).
+     * Distinct from {@code unassignedOnly}, which means library-root ({@code folderId} null) only.
+     */
     List<MediaAsset> listInFolder(
             AssetType assetType,
             AssetStatus status,
             Long folderId,
             boolean recursive,
             boolean unassignedOnly,
+            boolean unreferencedOnly,
             int limit,
             int offset);
 

@@ -190,6 +190,12 @@ describe('buildSafeMediaListQueryString', () => {
         ).toBe(
             '?assetType=AUDIO&status=READY&limit=50&folderId=3&recursive=true&unassignedOnly=true',
         )
+        expect(
+            buildSafeMediaListQueryString(
+                '/api/v1/media',
+                new URLSearchParams('limit=100&unreferencedOnly=true'),
+            ),
+        ).toBe('?limit=100&unreferencedOnly=true')
     })
 
     it('rejects unknown paths, keys, duplicates, and invalid values', () => {
@@ -245,6 +251,12 @@ describe('buildSafeMediaListQueryString', () => {
             buildSafeMediaListQueryString(
                 '/api/v1/media',
                 new URLSearchParams('recursive=false'),
+            ),
+        ).toBeNull()
+        expect(
+            buildSafeMediaListQueryString(
+                '/api/v1/media',
+                new URLSearchParams('unreferencedOnly=false'),
             ),
         ).toBeNull()
     })

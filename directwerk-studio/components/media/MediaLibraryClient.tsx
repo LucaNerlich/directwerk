@@ -128,6 +128,7 @@ export default function MediaLibraryClient(): React.JSX.Element {
     const loadSequenceRef = useRef(0)
     const folderViewRef = useRef<number | null>(null)
     const includeSubfoldersRef = useRef(false)
+    const orphanOnlyRef = useRef(false)
     const [assets, setAssets] = useState<MediaAsset[]>([])
     // The endpoint pages with offset/limit (media-library pages are capped at 100 rows).
     const [hasMoreAssets, setHasMoreAssets] = useState(false)
@@ -180,16 +181,21 @@ export default function MediaLibraryClient(): React.JSX.Element {
     useEffect(() => {
         includeSubfoldersRef.current = includeSubfolders
     }, [includeSubfolders])
+    useEffect(() => {
+        orphanOnlyRef.current = orphanOnly
+    }, [orphanOnly])
 
     async function loadMoreAssets(): Promise<void> {
         const currentFolderView = folderViewRef.current
         const currentIncludeSubfolders = includeSubfoldersRef.current
+        const currentOrphanOnly = orphanOnlyRef.current
         const page = await listMedia({
             limit: MEDIA_PAGE_SIZE,
             offset: assets.length,
             folderId: currentFolderView ?? undefined,
             recursive: currentIncludeSubfolders,
             unassignedOnly: currentFolderView === null && !currentIncludeSubfolders,
+            ...(currentOrphanOnly ? {unreferencedOnly: true} : {}),
         })
         setAssets((current) => [
             ...current,
@@ -202,6 +208,7 @@ export default function MediaLibraryClient(): React.JSX.Element {
         const sequence = ++loadSequenceRef.current
         const currentFolderView = folderViewRef.current
         const currentIncludeSubfolders = includeSubfoldersRef.current
+        const currentOrphanOnly = orphanOnlyRef.current
         let result: [MediaAsset[], MediaFolder[]]
         try {
             result = await Promise.all([
@@ -211,6 +218,7 @@ export default function MediaLibraryClient(): React.JSX.Element {
                     folderId: currentFolderView ?? undefined,
                     recursive: currentIncludeSubfolders,
                     unassignedOnly: currentFolderView === null && !currentIncludeSubfolders,
+                    ...(currentOrphanOnly ? {unreferencedOnly: true} : {}),
                 }),
                 listMediaFolders(),
             ])
@@ -283,7 +291,7 @@ export default function MediaLibraryClient(): React.JSX.Element {
             active = false
             mountedRef.current = false
         }
-    }, [folderView, includeSubfolders, reloadToken, router])
+    }, [folderView, includeSubfolders, orphanOnly, reloadToken, router])
 
     async function uploadFile(file: File | undefined): Promise<void> {
         if (file === undefined) {
@@ -460,15 +468,12 @@ export default function MediaLibraryClient(): React.JSX.Element {
             if (statusFilter.length > 0 && asset.status !== statusFilter) {
                 return false
             }
-            if (orphanOnly && asset.episodeId !== null) {
-                return false
-            }
             if (!acceptedFolders.has(assetFolderId(asset))) {
                 return false
             }
             return true
         })
-    }, [assets, folders, folderView, includeSubfolders, orphanOnly, statusFilter, typeFilter])
+    }, [assets, folders, folderView, includeSubfolders, statusFilter, typeFilter])
 
     const visibleAssetIds = useMemo(
         () => visibleAssets.map((asset) => asset.id),
@@ -969,7 +974,7 @@ export default function MediaLibraryClient(): React.JSX.Element {
                         id="orphanFilter"
                         onCheckedChange={(checked) => setOrphanOnly(checked === true)}
                     />
-                    <span>Nur unverknüpfte Dateien</span>
+                    <span>{dict.media.unverknuepfteDateien}</span>
                 </Label>
                 <Label className="flex items-end gap-2 text-sm font-medium">
                     <Checkbox
@@ -977,7 +982,7 @@ export default function MediaLibraryClient(): React.JSX.Element {
                         id="subfolderFilter"
                         onCheckedChange={(checked) => setIncludeSubfolders(checked === true)}
                     />
-                    <span>Unterordner einbeziehen</span>
+                    <span>{dict.media.unterordnerEinbeziehen}</span>
                 </Label>
             </div>
             </section>

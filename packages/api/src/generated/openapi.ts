@@ -10875,6 +10875,7 @@ export interface operations {
                 folderId?: number;
                 recursive?: boolean;
                 unassignedOnly?: boolean;
+                unreferencedOnly?: boolean;
                 limit?: number;
                 offset?: number;
             };

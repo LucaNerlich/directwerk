@@ -112,11 +112,20 @@ public class MediaController {
             @RequestParam(required = false) Long folderId,
             @RequestParam(defaultValue = "false") boolean recursive,
             @RequestParam(defaultValue = "false") boolean unassignedOnly,
+            @RequestParam(defaultValue = "false") boolean unreferencedOnly,
             @RequestParam(defaultValue = "50") @Min(1) @Max(100) int limit,
             @RequestParam(defaultValue = "0") @Min(0) int offset
     ) {
         List<MediaAssetView> assets = mediaAssetQueryApi
-                .listInFolder(assetType, status, folderId, recursive, unassignedOnly, limit, offset)
+                .listInFolder(
+                        assetType,
+                        status,
+                        folderId,
+                        recursive,
+                        unassignedOnly,
+                        unreferencedOnly,
+                        limit,
+                        offset)
                 .stream()
                 .map(mediaAssetViewMapper::toView)
                 .toList();

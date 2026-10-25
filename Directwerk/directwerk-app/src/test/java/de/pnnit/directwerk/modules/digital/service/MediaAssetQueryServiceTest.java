@@ -172,6 +172,37 @@ class MediaAssetQueryServiceTest {
     }
 
     @Test
+    void listInFolderWithUnreferencedOnlyQueriesUnreferencedIdsAndHydrates() {
+        TenantContext.setTenantId(42L);
+        MediaAsset orphan = new MediaAsset();
+        orphan.setId(11L);
+        when(mediaAssetRepository.findFilteredUnreferencedIds(
+                        eq(42L), eq("IMAGE"), isNull(), any(Pageable.class)))
+                .thenReturn(List.of(11L));
+        when(mediaAssetRepository.findAllWithTenantByIdIn(eq(List.of(11L))))
+                .thenReturn(List.of(orphan));
+
+        assertThat(service.listInFolder(AssetType.IMAGE, null, null, false, false, true, 20, 0))
+                .containsExactly(orphan);
+        verify(mediaAssetRepository)
+                .findFilteredUnreferencedIds(eq(42L), eq("IMAGE"), isNull(), any(Pageable.class));
+    }
+
+    @Test
+    void listInFolderWithUnreferencedAndUnassignedOnlyQueriesRootOrphans() {
+        TenantContext.setTenantId(42L);
+        when(mediaAssetRepository.findFilteredUnassignedUnreferencedIds(
+                        eq(42L), isNull(), eq("READY"), any(Pageable.class)))
+                .thenReturn(List.of());
+
+        assertThat(service.listInFolder(null, AssetStatus.READY, null, false, true, true, 20, 0))
+                .isEmpty();
+        verify(mediaAssetRepository)
+                .findFilteredUnassignedUnreferencedIds(
+                        eq(42L), isNull(), eq("READY"), any(Pageable.class));
+    }
+
+    @Test
     void listInFolderQueriesExactFolder() {
         MediaFolder folder = new MediaFolder();
         folder.setId(3L);
