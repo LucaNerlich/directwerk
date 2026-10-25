@@ -96,7 +96,7 @@ export default function MediaAssetDetailPanel({
                             ? error.message
                             : dict.media.referenzenKonnteNichtGeladen,
                     )
-                    setReferences([])
+                    // Keep references null so the unused empty state does not render with the alert.
                 }
             })
             .finally(() => {

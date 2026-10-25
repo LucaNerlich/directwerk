@@ -484,6 +484,22 @@ describe('MediaLibraryClient', () => {
         ).toBeInTheDocument()
     })
 
+    it('shows a references load error without the unused empty state', async () => {
+        vi.mocked(listMedia).mockResolvedValue([coverAsset])
+        vi.mocked(getMediaReferences).mockRejectedValue(new Error('Referenzen offline'))
+
+        renderWithLocale(<MediaLibraryClient />)
+
+        expect(await screen.findByText('cover.png')).toBeInTheDocument()
+        fireEvent.click(screen.getByRole('button', {name: 'Details'}))
+
+        const detailDialog = await screen.findByRole('dialog')
+        expect(await within(detailDialog).findByRole('alert')).toHaveTextContent(
+            'Referenzen offline',
+        )
+        expect(within(detailDialog).queryByText('Nicht verknüpft')).not.toBeInTheDocument()
+    })
+
     it('creates a folder in the current location', async () => {
         vi.mocked(createMediaFolder).mockResolvedValue(testFolder(5, 'Neu', null))
 
