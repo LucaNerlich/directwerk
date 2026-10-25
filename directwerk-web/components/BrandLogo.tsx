@@ -1,11 +1,13 @@
 import Image from 'next/image'
 
 import {isAllowedFeedUrl} from '@directwerk/api/validation/primitives'
+import {cn} from '@directwerk/ui/lib/utils'
 
 /**
  * Tenant brand logo. Uses `next/image` (see `MEDIA_IMAGE_REMOTE_HOSTS` in
- * `next.config.ts`) with explicit dimensions; pass `priority` for the hero
- * logo, everywhere else it lazy-loads.
+ * `next.config.ts`) with intrinsic aspect preserved via `object-contain`
+ * and auto width/height — never stretched to a fixed box. Pass `priority`
+ * for the hero logo; everywhere else it lazy-loads.
  *
  * Only renders when the URL is https or loopback http.
  */
@@ -27,12 +29,13 @@ export default function BrandLogo({
     return (
         <Image
             alt={name}
-            className={className ?? 'h-10 w-auto'}
-            height={48}
+            className={cn('h-auto w-auto max-h-10 object-contain', className)}
+            height={160}
             priority={priority}
-            sizes="(max-width: 640px) 120px, 160px"
+            sizes="(max-width: 640px) 140px, 200px"
             src={logoUrl}
-            width={160}
+            style={{width: 'auto', height: 'auto'}}
+            width={320}
         />
     )
 }

@@ -160,14 +160,15 @@ export default function SiteHeader({
 
     return (
         <SiteShell
+            className="dw-web-shell bg-transparent"
             brand={
                 <Link className="flex min-w-0 items-center gap-2 min-h-[44px]" href={href('/')}>
                     <BrandLogo
-                        className="h-8 w-auto"
+                        className="max-h-8"
                         logoUrl={config.branding.logoUrl}
                         name={brand}
                     />
-                    <span className="truncate text-lg font-semibold tracking-tight">
+                    <span className="truncate text-lg font-semibold tracking-tight text-[color:var(--dw-brand-ink,var(--foreground))]">
                         {brand}
                     </span>
                 </Link>
