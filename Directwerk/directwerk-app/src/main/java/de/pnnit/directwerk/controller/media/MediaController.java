@@ -36,6 +36,7 @@ import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import java.net.URL;
 import java.util.List;
+import java.util.Map;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -229,14 +230,17 @@ public class MediaController {
     ) {
         Long tenantId = TenantContext.requireTenantId();
         MediaFolder folder = mediaFolderApi.createFolder(tenantId, request.name(), request.parentId());
-        return ResponseEntity.status(HttpStatus.CREATED).body(Response.created(toFolderView(folder)));
+        return ResponseEntity.status(HttpStatus.CREATED).body(Response.created(toFolderView(folder, 0L)));
     }
 
     @GetMapping("/folders")
     ResponseEntity<Response<List<MediaFolderView>>> listFolders() {
         Long tenantId = TenantContext.requireTenantId();
+        Map<Long, Long> assetCounts = mediaAssetQueryApi.countActiveAssetsByFolder(tenantId);
         List<MediaFolderView> folders = mediaFolderApi.list(tenantId).stream()
-                .map(MediaController::toFolderView)
+                .map(folder -> toFolderView(
+                        folder,
+                        assetCounts.getOrDefault(folder.getId(), 0L)))
                 .toList();
         return ResponseEntity.ok(Response.ok(folders));
     }
@@ -248,7 +252,9 @@ public class MediaController {
     ) {
         Long tenantId = TenantContext.requireTenantId();
         MediaFolder folder = mediaFolderApi.renameFolder(tenantId, id, request.name());
-        return ResponseEntity.ok(Response.ok(toFolderView(folder)));
+        return ResponseEntity.ok(Response.ok(toFolderView(
+                folder,
+                mediaAssetQueryApi.countActiveAssetsInFolder(tenantId, folder.getId()))));
     }
 
     @PostMapping("/folders/{id}/move")
@@ -258,7 +264,9 @@ public class MediaController {
     ) {
         Long tenantId = TenantContext.requireTenantId();
         MediaFolder folder = mediaFolderApi.moveFolder(tenantId, id, request.parentId());
-        return ResponseEntity.ok(Response.ok(toFolderView(folder)));
+        return ResponseEntity.ok(Response.ok(toFolderView(
+                folder,
+                mediaAssetQueryApi.countActiveAssetsInFolder(tenantId, folder.getId()))));
     }
 
     @DeleteMapping("/folders/{id}")
@@ -269,19 +277,23 @@ public class MediaController {
         Long tenantId = TenantContext.requireTenantId();
         DirectwerkUserPrincipal principal = SecurityUtils.requirePrincipal();
         // Snapshot the view first: after removal the entity is detached.
-        MediaFolderView deleted = toFolderView(mediaFolderApi.requireFolder(tenantId, id));
+        MediaFolder folder = mediaFolderApi.requireFolder(tenantId, id);
+        MediaFolderView deleted = toFolderView(
+                folder,
+                mediaAssetQueryApi.countActiveAssetsInFolder(tenantId, folder.getId()));
         mediaFolderApi.deleteFolder(tenantId, id, FolderDeleteMode.parse(mode), principal);
         return ResponseEntity.ok(Response.ok(deleted));
     }
 
-    static MediaFolderView toFolderView(MediaFolder folder) {
+    static MediaFolderView toFolderView(MediaFolder folder, long assetCount) {
         return new MediaFolderView(
                 folder.getId(),
                 folder.getName(),
                 folder.getParent() != null ? folder.getParent().getId() : null,
                 folder.getCreatedBy(),
                 folder.getCreatedAt(),
-                folder.getUpdatedAt()
+                folder.getUpdatedAt(),
+                assetCount
         );
     }
 

@@ -208,6 +208,10 @@ Accept: application/json
         client.assert(response.status === 200 || response.status === 503, "Expected 200/503");
         if (response.status === 200) {
             client.assert(Array.isArray(response.body.data), "Expected data array");
+            for (const folder of response.body.data) {
+                client.assert(typeof folder.assetCount === "number" && folder.assetCount >= 0,
+                    "Expected non-negative assetCount on each folder");
+            }
         }
     });
 %}

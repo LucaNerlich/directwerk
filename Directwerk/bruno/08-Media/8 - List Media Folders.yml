@@ -23,4 +23,4 @@ settings:
   maxRedirects: 5
   forwardAuthorizationHeader: true
 
-docs: Flat folder list (id, name, parentId); clients build the tree. Null parentId means library root.
+docs: Flat folder list (id, name, parentId, assetCount); clients build the tree. Null parentId means library root. assetCount is the direct (non-recursive) active-asset count for folder tiles.

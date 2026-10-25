@@ -149,6 +149,21 @@ export function assetsInFolder(assets: MediaAsset[], folderId: number | null): M
     return assets.filter((asset) => assetFolderId(asset) === folderId)
 }
 
+/**
+ * File count shown on a folder tile. Prefers the API {@code assetCount} (truthful when the
+ * media list is folder-scoped / paged); falls back to counting currently loaded assets only
+ * when the field is missing from an older payload.
+ */
+export function folderTileAssetCount(
+    folder: Pick<MediaFolder, 'id'> & {assetCount?: number},
+    loadedAssets: MediaAsset[],
+): number {
+    if (typeof folder.assetCount === 'number') {
+        return folder.assetCount
+    }
+    return assetsInFolder(loadedAssets, folder.id).length
+}
+
 /** Direct subfolders of a folder (null = root-level folders). */
 export function childFolders(folders: MediaFolder[], folderId: number | null): MediaFolder[] {
     return folders

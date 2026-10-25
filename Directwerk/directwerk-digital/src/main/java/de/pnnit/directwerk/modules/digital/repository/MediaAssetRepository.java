@@ -214,6 +214,43 @@ public interface MediaAssetRepository extends JpaRepository<MediaAsset, Long> {
             """)
     List<StorageSummary> summarizeStorage(@Param("tenantId") Long tenantId);
 
+    /**
+     * Direct (non-recursive) asset counts per folder. Excludes tombstones the same way the
+     * default media list does ({@code ARCHIVED}, {@code PENDING_DELETE}), so folder tiles match
+     * what opening the folder would show.
+     */
+    @Query("""
+            select m.folderId as folderId,
+                   count(m) as assetCount
+            from MediaAsset m
+            where m.tenant.id = :tenantId
+              and m.folderId is not null
+              and m.status not in (
+                    de.pnnit.directwerk.modules.digital.entity.AssetStatus.ARCHIVED,
+                    de.pnnit.directwerk.modules.digital.entity.AssetStatus.PENDING_DELETE
+              )
+            group by m.folderId
+            """)
+    List<FolderAssetCount> countActiveByFolder(@Param("tenantId") Long tenantId);
+
+    /**
+     * Direct asset count for one folder. Same status filter as {@link #countActiveByFolder(Long)}.
+     */
+    @Query("""
+            select count(m)
+            from MediaAsset m
+            where m.tenant.id = :tenantId
+              and m.folderId = :folderId
+              and m.status not in (
+                    de.pnnit.directwerk.modules.digital.entity.AssetStatus.ARCHIVED,
+                    de.pnnit.directwerk.modules.digital.entity.AssetStatus.PENDING_DELETE
+              )
+            """)
+    long countActiveByTenantIdAndFolderId(
+            @Param("tenantId") Long tenantId,
+            @Param("folderId") Long folderId
+    );
+
     /** Projection row for {@link #summarizeStorage(Long)}. */
     interface StorageSummary {
         AssetType getAssetType();
@@ -223,5 +260,12 @@ public interface MediaAssetRepository extends JpaRepository<MediaAsset, Long> {
         Long getAssetCount();
 
         Long getTotalBytes();
+    }
+
+    /** Projection row for {@link #countActiveByFolder(Long)}. */
+    interface FolderAssetCount {
+        Long getFolderId();
+
+        Long getAssetCount();
     }
 }

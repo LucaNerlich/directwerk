@@ -230,4 +230,25 @@ public class MediaAssetQueryService implements MediaAssetQueryApi {
         }
         return new MediaStorageSummary(totalAssets, totalBytes, buckets);
     }
+
+    @Override
+    public Map<Long, Long> countActiveAssetsByFolder(Long tenantId) {
+        tenantRepository.requireById(tenantId);
+        Map<Long, Long> counts = new HashMap<>();
+        for (MediaAssetRepository.FolderAssetCount row : mediaAssetRepository.countActiveByFolder(tenantId)) {
+            if (row.getFolderId() != null && row.getAssetCount() != null) {
+                counts.put(row.getFolderId(), row.getAssetCount());
+            }
+        }
+        return counts;
+    }
+
+    @Override
+    public long countActiveAssetsInFolder(Long tenantId, Long folderId) {
+        tenantRepository.requireById(tenantId);
+        if (folderId == null) {
+            return 0L;
+        }
+        return mediaAssetRepository.countActiveByTenantIdAndFolderId(tenantId, folderId);
+    }
 }

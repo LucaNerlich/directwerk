@@ -830,7 +830,8 @@ export function parseMediaFolder(value: unknown): MediaFolder | null {
         !isBoundedString(value.name, 255) ||
         !(value.parentId === null || isPositiveSafeInteger(value.parentId)) ||
         !isBoundedString(value.createdAt, 64) ||
-        !isBoundedString(value.updatedAt, 64)
+        !isBoundedString(value.updatedAt, 64) ||
+        !isNonNegativeSafeInteger(value.assetCount)
     ) {
         return null
     }
@@ -842,6 +843,7 @@ export function parseMediaFolder(value: unknown): MediaFolder | null {
         createdBy: parseNullableUserId(value.createdBy),
         createdAt: value.createdAt,
         updatedAt: value.updatedAt,
+        assetCount: value.assetCount,
     }
 }
 

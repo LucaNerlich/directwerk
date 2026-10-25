@@ -62,7 +62,12 @@ const coverAsset = {
     updatedAt: '2026-01-01T00:00:00Z',
 }
 
-function testFolder(id: number, name: string, parentId: number | null): MediaFolder {
+function testFolder(
+    id: number,
+    name: string,
+    parentId: number | null,
+    assetCount = 0,
+): MediaFolder {
     return {
         id,
         name,
@@ -70,6 +75,7 @@ function testFolder(id: number, name: string, parentId: number | null): MediaFol
         createdBy: null,
         createdAt: '2026-01-01T00:00:00Z',
         updatedAt: '2026-01-01T00:00:00Z',
+        assetCount,
     }
 }
 
@@ -365,7 +371,7 @@ describe('MediaLibraryClient', () => {
 
     it('navigates into folders via tiles and back via breadcrumbs', async () => {
         vi.mocked(listMediaFolders).mockResolvedValue([
-            testFolder(1, 'Interviews', null),
+            testFolder(1, 'Interviews', null, 1),
             testFolder(2, 'Cuts', 1),
         ])
         vi.mocked(listMedia).mockResolvedValue([
@@ -386,6 +392,22 @@ describe('MediaLibraryClient', () => {
         fireEvent.click(screen.getByRole('button', {name: 'Bibliothek'}))
         expect(await screen.findByText('cover.png')).toBeInTheDocument()
         expect(screen.queryByText('filed.png')).not.toBeInTheDocument()
+    })
+
+    it('shows API assetCount on folder tiles when the scoped asset page omits folder contents', async () => {
+        // Root load uses unassignedOnly — child-folder assets are not in `assets`, so
+        // counting via assetsInFolder would always show "0 Dateien".
+        vi.mocked(listMediaFolders).mockResolvedValue([
+            testFolder(1, 'Interviews', null, 4),
+            testFolder(2, 'Empty', null, 0),
+        ])
+        vi.mocked(listMedia).mockResolvedValue([coverAsset])
+
+        renderWithLocale(<MediaLibraryClient />)
+
+        const interviews = await screen.findByRole('button', {name: /Interviews/})
+        expect(within(interviews).getByText('4 Dateien')).toBeInTheDocument()
+        expect(within(await screen.findByRole('button', {name: /Empty/})).getByText('0 Dateien')).toBeInTheDocument()
     })
 
     it('refetches assets with the active folder scope', async () => {
