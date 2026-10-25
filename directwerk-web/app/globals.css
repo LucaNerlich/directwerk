@@ -2,3 +2,165 @@
 @source '../app/**/*.{ts,tsx}';
 @source '../components/**/*.{ts,tsx}';
 @source '../../packages/ui/src/**/*.{ts,tsx}';
+
+/*
+ * Tenant brand atmosphere for the public site. All tints derive from
+ * BrandTheme's `--primary` / `--secondary` — never a hardcoded purple stack.
+ */
+.dw-web-brand {
+    --dw-brand-mist: color-mix(in oklab, var(--primary) 22%, var(--background));
+    --dw-brand-wash: color-mix(in oklab, var(--primary) 34%, transparent);
+    --dw-brand-glass: color-mix(in oklab, var(--background) 68%, transparent);
+    --dw-brand-glass-border: color-mix(in oklab, var(--primary) 28%, var(--border));
+    /* Readable text stays on semantic foreground — primary mixes fail AA for light brands. */
+    --dw-brand-ink: var(--foreground);
+    --dw-neo-dark: color-mix(in oklab, var(--foreground) 14%, transparent);
+    --dw-neo-light: color-mix(in oklab, white 78%, transparent);
+    min-height: 100%;
+    background:
+        radial-gradient(
+            120% 80% at 12% -10%,
+            color-mix(in oklab, var(--primary) 42%, transparent),
+            transparent 58%
+        ),
+        radial-gradient(
+            90% 70% at 100% 8%,
+            color-mix(in oklab, var(--secondary, var(--primary)) 30%, transparent),
+            transparent 52%
+        ),
+        linear-gradient(
+            165deg,
+            var(--dw-brand-mist) 0%,
+            var(--background) 38%,
+            color-mix(in oklab, var(--primary) 14%, var(--background)) 100%
+        );
+    /* No background-attachment: fixed — iOS Safari mispaints fixed washes on non-body wrappers. */
+}
+
+.dw-web-shell > header {
+    border-bottom-color: var(--dw-brand-glass-border);
+    background: color-mix(in oklab, var(--primary) 10%, var(--dw-brand-glass));
+    box-shadow: 0 1px 0 color-mix(in oklab, white 40%, transparent);
+}
+
+.dw-web-shell footer {
+    border-top-color: var(--dw-brand-glass-border);
+    background: color-mix(in oklab, var(--primary) 6%, var(--dw-brand-glass));
+    backdrop-filter: blur(16px);
+}
+
+.dw-glass {
+    background: var(--dw-brand-glass);
+    border: 1px solid var(--dw-brand-glass-border);
+    backdrop-filter: blur(18px) saturate(1.2);
+    box-shadow:
+        0 1px 0 color-mix(in oklab, white 55%, transparent) inset,
+        0 18px 40px color-mix(in oklab, var(--primary) 12%, transparent);
+}
+
+.dw-neo {
+    background: color-mix(in oklab, var(--primary) 7%, var(--background));
+    border: 1px solid color-mix(in oklab, var(--primary) 16%, transparent);
+    box-shadow:
+        10px 10px 24px var(--dw-neo-dark),
+        -8px -8px 20px var(--dw-neo-light),
+        0 1px 0 color-mix(in oklab, white 50%, transparent) inset;
+}
+
+.dw-home-hero {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    min-height: min(92vh, 52rem);
+    display: flex;
+    align-items: center;
+    padding-block: 2.5rem 3rem;
+}
+
+.dw-home-hero::before {
+    content: '';
+    position: absolute;
+    inset: -20% -10% auto;
+    height: 85%;
+    z-index: -2;
+    background:
+        radial-gradient(
+            closest-side at 30% 40%,
+            color-mix(in oklab, var(--primary) 58%, transparent),
+            transparent 72%
+        ),
+        radial-gradient(
+            closest-side at 78% 30%,
+            color-mix(in oklab, var(--secondary, var(--primary)) 40%, transparent),
+            transparent 74%
+        );
+    animation: dw-brand-drift 18s ease-in-out infinite alternate;
+}
+
+.dw-home-hero::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background:
+        linear-gradient(
+            to bottom,
+            transparent 55%,
+            color-mix(in oklab, var(--background) 88%, transparent) 100%
+        );
+    pointer-events: none;
+}
+
+.dw-home-hero-panel {
+    animation: dw-glass-in 700ms ease-out both;
+}
+
+.dw-home-hero-media {
+    animation: dw-glass-in 900ms ease-out 120ms both;
+}
+
+.dw-waveform {
+    color: color-mix(in oklab, var(--primary) 55%, var(--foreground));
+    opacity: 0.55;
+}
+
+.dw-type-lines {
+    color: color-mix(in oklab, var(--primary) 40%, var(--muted-foreground));
+}
+
+.dw-hero-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+}
+
+@keyframes dw-brand-drift {
+    from {
+        transform: translate3d(-1.5%, -1%, 0) scale(1);
+    }
+    to {
+        transform: translate3d(2%, 1.5%, 0) scale(1.06);
+    }
+}
+
+@keyframes dw-glass-in {
+    from {
+        opacity: 0;
+        transform: translateY(12px);
+        filter: blur(6px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+        filter: blur(0);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .dw-home-hero::before,
+    .dw-home-hero-panel,
+    .dw-home-hero-media {
+        animation: none !important;
+    }
+}

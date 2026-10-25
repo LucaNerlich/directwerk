@@ -64,15 +64,17 @@ export function CardGridSkeleton({
 
 export function HeroSkeleton(): React.JSX.Element {
     return (
-        <div className="mx-auto flex max-w-3xl flex-col gap-4 py-8 sm:py-14">
-            <Skeleton className="h-14 w-40" />
-            <Skeleton className="h-4 w-24" />
-            <Skeleton className="h-10 w-3/4" />
-            <Skeleton className="h-20 w-full" />
-            <div className="flex gap-3">
-                <Skeleton className="h-11 w-40" />
-                <Skeleton className="h-11 w-36" />
+        <div className="mx-auto grid max-w-6xl items-center gap-10 py-10 lg:grid-cols-2">
+            <div className="dw-glass flex flex-col gap-4 rounded-3xl p-6 sm:p-8">
+                <Skeleton className="h-16 w-40" />
+                <Skeleton className="h-12 w-4/5" />
+                <Skeleton className="h-16 w-full" />
+                <div className="flex gap-3">
+                    <Skeleton className="h-11 w-40" />
+                    <Skeleton className="h-11 w-36" />
+                </div>
             </div>
+            <Skeleton className="aspect-[4/5] w-full rounded-3xl sm:aspect-square" />
         </div>
     )
 }

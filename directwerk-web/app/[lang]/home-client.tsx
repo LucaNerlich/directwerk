@@ -7,10 +7,13 @@ import {buttonVariants} from '@directwerk/ui/components/button'
 import EmptyState from '@directwerk/ui/components/empty-state'
 import FeatureCard from '@directwerk/ui/components/feature-card'
 import SectionHeader from '@directwerk/ui/components/section-header'
+import {cn} from '@directwerk/ui/lib/utils'
 
 import AccessPolicyBadge from '@/components/AccessPolicyBadge'
 import BrandLogo from '@/components/BrandLogo'
 import {CardGridSkeleton, HeroSkeleton} from '@/components/ContentLoadingSkeleton'
+import HomeHeroImage from '@/components/HomeHeroImage'
+import HomeHeroMotif from '@/components/HomeHeroMotif'
 import SubscriberContextBanner from '@/components/SubscriberContextBanner'
 import {
     listPublicArticles,
@@ -160,231 +163,308 @@ export default function HomeClient({
         },
     ].filter((item): item is {href: string; label: string} => item !== null)
 
+    const heroImageSrc =
+        latestEpisode?.coverImageUrl ?? latestArticle?.heroImageUrl ?? null
+    const heroImageAlt =
+        latestEpisode?.coverImageUrl != null
+            ? latestEpisode.title
+            : latestArticle?.heroImageUrl != null
+              ? latestArticle.title
+              : title
+
     return (
-        <div className="page-container">
-            {isLoading ? (
-                <div aria-busy="true" aria-label={common.loadingHome} role="status">
-                    <HeroSkeleton />
-                </div>
-            ) : (
-                <section className="mx-auto flex max-w-6xl flex-col gap-6 py-8 sm:py-14">
-                    <BrandLogo
-                        className="h-14 w-auto"
-                        logoUrl={config.branding.logoUrl}
-                        name={title}
-                        priority
-                    />
-                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                        {config.tenant.name}
-                    </p>
-                    <h1 className="text-pretty text-4xl font-semibold tracking-tight sm:text-5xl">
-                        {title}
-                    </h1>
-                    <p className="max-w-2xl text-pretty text-base leading-7 text-muted-foreground sm:text-lg">
-                        {showPodcast ? home.taglinePodcast : home.taglineArticles}
-                    </p>
-                    <div className="flex flex-wrap gap-3">
-                        <Link className={buttonVariants({size: 'lg'})} href={primaryHref}>
-                            {primaryLabel}
-                        </Link>
-                        {showPricing ? (
-                            <Link
-                                className={buttonVariants({variant: 'outline', size: 'lg'})}
-                                href={localizedPath(lang, '/pricing')}
-                            >
-                                {nav.membership}
-                            </Link>
-                        ) : (
-                            <Link
-                                className={buttonVariants({variant: 'outline', size: 'lg'})}
-                                href={localizedPath(lang, '/register')}
-                            >
-                                {nav.register}
-                            </Link>
-                        )}
-                    </div>
-                    {quickLinks.length > 0 ? (
-                        <nav
-                            aria-label={nav.quickAccess}
-                            className="flex flex-wrap gap-x-4 gap-y-2 text-sm text-muted-foreground"
-                        >
-                            {quickLinks.map((item) => (
-                                <Link
-                                    className="underline-offset-4 hover:text-foreground hover:underline"
-                                    href={item.href}
-                                    key={item.href}
-                                >
-                                    {item.label}
-                                </Link>
-                            ))}
-                        </nav>
-                    ) : null}
-                </section>
-            )}
-
-            <div className="mx-auto mt-2 max-w-6xl">
-                <SubscriberContextBanner />
-            </div>
-
+        <div>
             {isLoading ? (
                 <div
                     aria-busy="true"
-                    aria-label={common.loadingContent}
-                    className="mx-auto mt-10 max-w-6xl"
+                    aria-label={common.loadingHome}
+                    className="page-container"
                     role="status"
                 >
-                    <CardGridSkeleton cards={2} columns={2} />
+                    <HeroSkeleton />
                 </div>
-            ) : latestEpisode !== null || latestArticle !== null ? (
-                <section className="mx-auto mt-10 grid max-w-6xl gap-4 sm:grid-cols-2">
-                    {latestEpisode !== null ? (
-                        <FeatureCard
-                            description={
-                                <>
-                                    <span className="inline-flex flex-wrap items-center gap-2">
-                                        <AccessPolicyBadge
-                                            policy={latestEpisode.accessPolicy}
-                                            isEntitled={
-                                                latestEpisode.accessPolicy === 'PAID'
-                                                    ? latestEpisode.audioCdnUrl !== null
-                                                    : undefined
-                                            }
-                                        />
-                                        {formatPublishedAt(latestEpisode.publishedAt, lang, format)}
-                                        {formatDuration(latestEpisode.durationSeconds) !== null
-                                            ? ` · ${formatDuration(latestEpisode.durationSeconds)}`
-                                            : null}
-                                    </span>
-                                    <span className="mt-3 block">
-                                        <Link href={localizedPath(lang, '/episodes')}>{nav.allEpisodes}</Link>
-                                    </span>
-                                </>
-                            }
-                            eyebrow={home.latestEpisodeEyebrow}
-                            title={
+            ) : (
+                <section className="dw-home-hero">
+                    <div className="mx-auto grid w-full max-w-6xl items-center gap-10 px-4 sm:px-6 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)] lg:gap-14">
+                        <div className="dw-home-hero-panel dw-glass space-y-6 rounded-3xl p-6 sm:p-8">
+                            <BrandLogo
+                                className="max-h-20 max-w-[min(100%,16rem)]"
+                                logoUrl={config.branding.logoUrl}
+                                name={title}
+                                priority
+                            />
+                            <h1 className="text-pretty text-4xl font-semibold tracking-tight text-[color:var(--dw-brand-ink)] sm:text-5xl lg:text-6xl">
+                                {title}
+                            </h1>
+                            <p className="max-w-xl text-pretty text-base leading-7 text-muted-foreground sm:text-lg">
+                                {showPodcast ? home.taglinePodcast : home.taglineArticles}
+                            </p>
+                            <div className="flex flex-wrap gap-3">
                                 <Link
-                                    className="hover:underline"
-                                    href={localizedPath(lang, `/episodes/${encodeURIComponent(latestEpisode.slug)}`)}
+                                    className={buttonVariants({size: 'lg'})}
+                                    href={primaryHref}
                                 >
-                                    {latestEpisode.episodeNumber !== null
-                                        ? `#${latestEpisode.episodeNumber} `
-                                        : ''}
-                                    {latestEpisode.title}
+                                    {primaryLabel}
                                 </Link>
-                            }
-                        />
-                    ) : null}
-                    {latestArticle !== null ? (
-                        <FeatureCard
-                            description={
-                                <>
-                                    <span className="inline-flex flex-wrap items-center gap-2">
-                                        <AccessPolicyBadge
-                                            policy={latestArticle.accessPolicy}
-                                            isEntitled={
-                                                latestArticle.accessPolicy === 'PAID'
-                                                    ? latestArticle.body !== null
-                                                    : undefined
-                                            }
-                                        />
-                                        {formatPublishedAt(latestArticle.publishedAt, lang, format)}
-                                    </span>
-                                    {latestArticle.excerpt !== null &&
-                                    latestArticle.excerpt.length > 0 ? (
-                                        <span className="mt-2 line-clamp-2 block">
-                                            {latestArticle.excerpt}
-                                        </span>
-                                    ) : null}
-                                    <span className="mt-3 block">
-                                        <Link href={localizedPath(lang, '/articles')}>{nav.allArticles}</Link>
-                                    </span>
-                                </>
-                            }
-                            eyebrow={home.latestArticleEyebrow}
-                            title={
-                                <Link
-                                    className="hover:underline"
-                                    href={localizedPath(lang, `/articles/${encodeURIComponent(latestArticle.slug)}`)}
-                                >
-                                    {latestArticle.title}
-                                </Link>
-                            }
-                        />
-                    ) : null}
+                                {showPricing ? (
+                                    <Link
+                                        className={buttonVariants({
+                                            variant: 'outline',
+                                            size: 'lg',
+                                            className:
+                                                'border-[color:var(--dw-brand-glass-border)] bg-[color-mix(in_oklab,var(--background)_55%,transparent)] backdrop-blur-md',
+                                        })}
+                                        href={localizedPath(lang, '/pricing')}
+                                    >
+                                        {nav.membership}
+                                    </Link>
+                                ) : (
+                                    <Link
+                                        className={buttonVariants({
+                                            variant: 'outline',
+                                            size: 'lg',
+                                            className:
+                                                'border-[color:var(--dw-brand-glass-border)] bg-[color-mix(in_oklab,var(--background)_55%,transparent)] backdrop-blur-md',
+                                        })}
+                                        href={localizedPath(lang, '/register')}
+                                    >
+                                        {nav.register}
+                                    </Link>
+                                )}
+                            </div>
+                        </div>
+                        <div className="dw-home-hero-media mx-auto w-full max-w-md lg:mx-0 lg:max-w-none">
+                            {heroImageSrc !== null ? (
+                                <HomeHeroImage
+                                    alt={heroImageAlt}
+                                    priority
+                                    src={heroImageSrc}
+                                />
+                            ) : (
+                                <HomeHeroMotif
+                                    showAudio={showPodcast || !showArticles}
+                                    showText={showArticles || !showPodcast}
+                                />
+                            )}
+                        </div>
+                    </div>
                 </section>
-            ) : null}
+            )}
 
-            {showPricing && products.length > 0 ? (
-                <section className="mx-auto mt-10 max-w-6xl space-y-4">
-                    <SectionHeader
-                        description={home.productsDescription}
-                        title={home.productsTitle}
-                    />
-                    <ul className="grid gap-3 sm:grid-cols-3">
-                        {products.map((product) => (
-                            <li key={product.slug}>
-                                <FeatureCard
-                                    description={
-                                        <>
-                                            {product.offeringType === 'LEVEL' ? common.level : common.package}
-                                            {' · '}
-                                            {formatMoney(
-                                                product.priceCents,
-                                                product.currency,
-                                                product.billingInterval,
+            <div className="page-container !pt-2">
+                <div className="mx-auto max-w-6xl">
+                    <SubscriberContextBanner />
+                </div>
+
+                {quickLinks.length > 0 && !isLoading ? (
+                    <nav
+                        aria-label={nav.quickAccess}
+                        className="dw-neo mx-auto mt-6 flex max-w-6xl flex-wrap gap-x-4 gap-y-2 rounded-2xl px-4 py-3 text-sm text-muted-foreground"
+                    >
+                        {quickLinks.map((item) => (
+                            <Link
+                                className="underline-offset-4 hover:text-foreground hover:underline"
+                                href={item.href}
+                                key={item.href}
+                            >
+                                {item.label}
+                            </Link>
+                        ))}
+                    </nav>
+                ) : null}
+
+                {isLoading ? (
+                    <div
+                        aria-busy="true"
+                        aria-label={common.loadingContent}
+                        className="mx-auto mt-10 max-w-6xl"
+                        role="status"
+                    >
+                        <CardGridSkeleton cards={2} columns={2} />
+                    </div>
+                ) : latestEpisode !== null || latestArticle !== null ? (
+                    <section className="mx-auto mt-10 grid max-w-6xl gap-4 sm:grid-cols-2">
+                        {latestEpisode !== null ? (
+                            <FeatureCard
+                                className="dw-neo"
+                                description={
+                                    <>
+                                        <span className="inline-flex flex-wrap items-center gap-2">
+                                            <AccessPolicyBadge
+                                                policy={latestEpisode.accessPolicy}
+                                                isEntitled={
+                                                    latestEpisode.accessPolicy === 'PAID'
+                                                        ? latestEpisode.audioCdnUrl !== null
+                                                        : undefined
+                                                }
+                                            />
+                                            {formatPublishedAt(
+                                                latestEpisode.publishedAt,
                                                 lang,
                                                 format,
                                             )}
-                                            {product.description !== null &&
-                                            product.description.length > 0 ? (
-                                                <span className="mt-2 line-clamp-3 block">
-                                                    {product.description}
-                                                </span>
-                                            ) : null}
-                                        </>
-                                    }
-                                    title={product.title}
-                                />
-                            </li>
-                        ))}
-                    </ul>
-                    <p className="text-sm">
-                        <Link href={localizedPath(lang, '/pricing')}>{home.allMemberships}</Link>
+                                            {formatDuration(latestEpisode.durationSeconds) !==
+                                            null
+                                                ? ` · ${formatDuration(latestEpisode.durationSeconds)}`
+                                                : null}
+                                        </span>
+                                        <span className="mt-3 block">
+                                            <Link href={localizedPath(lang, '/episodes')}>
+                                                {nav.allEpisodes}
+                                            </Link>
+                                        </span>
+                                    </>
+                                }
+                                eyebrow={home.latestEpisodeEyebrow}
+                                title={
+                                    <Link
+                                        className="hover:underline"
+                                        href={localizedPath(
+                                            lang,
+                                            `/episodes/${encodeURIComponent(latestEpisode.slug)}`,
+                                        )}
+                                    >
+                                        {latestEpisode.episodeNumber !== null
+                                            ? `#${latestEpisode.episodeNumber} `
+                                            : ''}
+                                        {latestEpisode.title}
+                                    </Link>
+                                }
+                            />
+                        ) : null}
+                        {latestArticle !== null ? (
+                            <FeatureCard
+                                className="dw-glass"
+                                description={
+                                    <>
+                                        <span className="inline-flex flex-wrap items-center gap-2">
+                                            <AccessPolicyBadge
+                                                policy={latestArticle.accessPolicy}
+                                                isEntitled={
+                                                    latestArticle.accessPolicy === 'PAID'
+                                                        ? latestArticle.body !== null
+                                                        : undefined
+                                                }
+                                            />
+                                            {formatPublishedAt(
+                                                latestArticle.publishedAt,
+                                                lang,
+                                                format,
+                                            )}
+                                        </span>
+                                        {latestArticle.excerpt !== null &&
+                                        latestArticle.excerpt.length > 0 ? (
+                                            <span className="mt-2 line-clamp-2 block">
+                                                {latestArticle.excerpt}
+                                            </span>
+                                        ) : null}
+                                        <span className="mt-3 block">
+                                            <Link href={localizedPath(lang, '/articles')}>
+                                                {nav.allArticles}
+                                            </Link>
+                                        </span>
+                                    </>
+                                }
+                                eyebrow={home.latestArticleEyebrow}
+                                title={
+                                    <Link
+                                        className="hover:underline"
+                                        href={localizedPath(
+                                            lang,
+                                            `/articles/${encodeURIComponent(latestArticle.slug)}`,
+                                        )}
+                                    >
+                                        {latestArticle.title}
+                                    </Link>
+                                }
+                            />
+                        ) : null}
+                    </section>
+                ) : null}
+
+                {showPricing && products.length > 0 ? (
+                    <section className="mx-auto mt-10 max-w-6xl space-y-4">
+                        <SectionHeader
+                            description={home.productsDescription}
+                            title={home.productsTitle}
+                        />
+                        <ul className="grid gap-3 sm:grid-cols-3">
+                            {products.map((product) => (
+                                <li key={product.slug}>
+                                    <FeatureCard
+                                        className={cn('dw-glass')}
+                                        description={
+                                            <>
+                                                {product.offeringType === 'LEVEL'
+                                                    ? common.level
+                                                    : common.package}
+                                                {' · '}
+                                                {formatMoney(
+                                                    product.priceCents,
+                                                    product.currency,
+                                                    product.billingInterval,
+                                                    lang,
+                                                    format,
+                                                )}
+                                                {product.description !== null &&
+                                                product.description.length > 0 ? (
+                                                    <span className="mt-2 line-clamp-3 block">
+                                                        {product.description}
+                                                    </span>
+                                                ) : null}
+                                            </>
+                                        }
+                                        title={product.title}
+                                    />
+                                </li>
+                            ))}
+                        </ul>
+                        <p className="text-sm">
+                            <Link href={localizedPath(lang, '/pricing')}>
+                                {home.allMemberships}
+                            </Link>
+                        </p>
+                    </section>
+                ) : null}
+
+                {showFeeds ? (
+                    <p className="mx-auto mt-10 max-w-6xl text-sm text-muted-foreground">
+                        {showPodcast && showArticles
+                            ? home.feedHintBoth
+                            : showPodcast
+                              ? home.feedHintPodcast
+                              : home.feedHintArticles}
+                        <Link
+                            className="font-medium text-foreground underline-offset-4 hover:underline"
+                            href={localizedPath(lang, '/feeds')}
+                        >
+                            {home.openFeeds}
+                        </Link>
                     </p>
-                </section>
-            ) : null}
+                ) : null}
 
-            {showFeeds ? (
-                <p className="mx-auto mt-10 max-w-6xl text-sm text-muted-foreground">
-                    {showPodcast && showArticles
-                        ? home.feedHintBoth
-                        : showPodcast
-                          ? home.feedHintPodcast
-                          : home.feedHintArticles}
-                    <Link
-                        className="font-medium text-foreground underline-offset-4 hover:underline"
-                        href={localizedPath(lang, '/feeds')}
-                    >
-                        {home.openFeeds}
-                    </Link>
-                </p>
-            ) : null}
-
-            {!isLoading && (showPodcast || showArticles) && latestEpisode === null && latestArticle === null ? (
-                <div className="mx-auto mt-8 max-w-6xl">
-                    <EmptyState
-                        title={home.emptyTitle}
-                        description={home.emptyDescription}
-                        action={
-                            showPricing ? (
-                                <Link className={buttonVariants({variant: 'outline'})} href={localizedPath(lang, '/pricing')}>
-                                    {common.viewMembership}
-                                </Link>
-                            ) : undefined
-                        }
-                    />
-                </div>
-            ) : null}
+                {!isLoading &&
+                (showPodcast || showArticles) &&
+                latestEpisode === null &&
+                latestArticle === null ? (
+                    <div className="mx-auto mt-8 max-w-6xl">
+                        <EmptyState
+                            title={home.emptyTitle}
+                            description={home.emptyDescription}
+                            action={
+                                showPricing ? (
+                                    <Link
+                                        className={buttonVariants({variant: 'outline'})}
+                                        href={localizedPath(lang, '/pricing')}
+                                    >
+                                        {common.viewMembership}
+                                    </Link>
+                                ) : undefined
+                            }
+                        />
+                    </div>
+                ) : null}
+            </div>
         </div>
     )
 }
