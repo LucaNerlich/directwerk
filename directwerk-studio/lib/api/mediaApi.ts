@@ -35,6 +35,9 @@ function mediaQueryString(query?: TenantMediaQuery): string {
     if (query.unassignedOnly === true) {
         params.set('unassignedOnly', 'true')
     }
+    if (query.unreferencedOnly === true) {
+        params.set('unreferencedOnly', 'true')
+    }
     const serialized = params.toString()
     return serialized.length > 0 ? `?${serialized}` : ''
 }

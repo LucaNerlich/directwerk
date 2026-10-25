@@ -15,6 +15,7 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -67,17 +68,6 @@ public class MediaAssetQueryService implements MediaAssetQueryApi {
     }
 
     @Override
-    public List<MediaAsset> listInFolder(
-            AssetType assetType,
-            AssetStatus status,
-            Long folderId,
-            boolean recursive,
-            boolean unassignedOnly,
-            int limit) {
-        return listInFolder(assetType, status, folderId, recursive, unassignedOnly, limit, 0);
-    }
-
-    @Override
     @Transactional(readOnly = true)
     public List<MediaAsset> listInFolder(
             AssetType assetType,
@@ -85,11 +75,15 @@ public class MediaAssetQueryService implements MediaAssetQueryApi {
             Long folderId,
             boolean recursive,
             boolean unassignedOnly,
+            boolean unreferencedOnly,
             int limit,
             int offset) {
         PageRequest page = pageRequest(limit, offset);
         if (folderId != null && unassignedOnly) {
             throw new IllegalArgumentException("folderId and unassignedOnly are mutually exclusive");
+        }
+        if (unreferencedOnly) {
+            return listUnreferenced(assetType, status, folderId, recursive, unassignedOnly, page);
         }
         if (unassignedOnly) {
             return mediaAssetRepository.findFilteredUnassigned(assetType, status, page);
@@ -104,6 +98,53 @@ public class MediaAssetQueryService implements MediaAssetQueryApi {
             folderIds.addAll(collectDescendantIds(tenantId, folderId));
         }
         return mediaAssetRepository.findFilteredInFolders(assetType, status, folderIds, page);
+    }
+
+    private List<MediaAsset> listUnreferenced(
+            AssetType assetType,
+            AssetStatus status,
+            Long folderId,
+            boolean recursive,
+            boolean unassignedOnly,
+            PageRequest page) {
+        Long tenantId = TenantContext.requireTenantId();
+        String assetTypeName = assetType == null ? null : assetType.name();
+        String statusName = status == null ? null : status.name();
+        List<Long> ids;
+        if (unassignedOnly) {
+            ids = mediaAssetRepository.findFilteredUnassignedUnreferencedIds(
+                    tenantId, assetTypeName, statusName, page);
+        } else if (folderId == null) {
+            ids = mediaAssetRepository.findFilteredUnreferencedIds(
+                    tenantId, assetTypeName, statusName, page);
+        } else {
+            List<Long> folderIds = new ArrayList<>();
+            folderIds.add(requireFolderInContext(tenantId, folderId).getId());
+            if (recursive) {
+                folderIds.addAll(collectDescendantIds(tenantId, folderId));
+            }
+            ids = mediaAssetRepository.findFilteredInFoldersUnreferencedIds(
+                    tenantId, assetTypeName, statusName, folderIds, page);
+        }
+        return hydrateInOrder(ids);
+    }
+
+    private List<MediaAsset> hydrateInOrder(List<Long> ids) {
+        if (ids.isEmpty()) {
+            return List.of();
+        }
+        Map<Long, MediaAsset> byId = new LinkedHashMap<>();
+        for (MediaAsset asset : mediaAssetRepository.findAllWithTenantByIdIn(ids)) {
+            byId.put(asset.getId(), asset);
+        }
+        List<MediaAsset> ordered = new ArrayList<>(ids.size());
+        for (Long id : ids) {
+            MediaAsset asset = byId.get(id);
+            if (asset != null) {
+                ordered.add(asset);
+            }
+        }
+        return ordered;
     }
 
     private static PageRequest pageRequest(int limit, int offset) {

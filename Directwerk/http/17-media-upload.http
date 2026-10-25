@@ -207,6 +207,21 @@ Accept: application/json
 
 ###
 
+### @name listUnreferencedMedia
+### Content orphans only (no episode/series/format/article/digital refs). Distinct from unassignedOnly.
+GET {{baseUrl}}/api/v1/media?unreferencedOnly=true&limit=20
+Authorization: Bearer {{tenantAAccessToken}}
+Host: {{tenantAHost}}
+Accept: application/json
+
+> {%
+    client.test("List unreferenced media", function() {
+        client.assert(response.status === 200 || response.status === 503, "Expected 200/503");
+    });
+%}
+
+###
+
 ### @name renameMediaFolder
 PUT {{baseUrl}}/api/v1/media/folders/{{mediaFolderId}}
 Authorization: Bearer {{tenantAAccessToken}}

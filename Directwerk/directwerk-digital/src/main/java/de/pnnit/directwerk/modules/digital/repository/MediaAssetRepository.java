@@ -36,20 +36,39 @@ public interface MediaAssetRepository extends JpaRepository<MediaAsset, Long> {
     Optional<MediaAsset> findByIdForUpdate(@Param("id") Long id);
 
     /** Checks every schema-level attachment while the caller holds the asset row lock. */
-    @Query(
-            value = """
-                    SELECT EXISTS (
-                        SELECT 1 FROM media_assets m WHERE m.id = :id AND m.episode_id IS NOT NULL
-                        UNION ALL SELECT 1 FROM podcast_series s WHERE s.cover_asset_id = :id
-                        UNION ALL SELECT 1 FROM formats f WHERE f.cover_asset_id = :id
-                        UNION ALL SELECT 1 FROM episodes e WHERE e.audio_asset_id = :id OR e.cover_asset_id = :id
-                        UNION ALL SELECT 1 FROM articles a WHERE a.hero_asset_id = :id
-                        UNION ALL SELECT 1 FROM digital_publications d WHERE d.asset_id = :id
-                    )
-                    """,
-            nativeQuery = true
-    )
+    @Query(value = MediaAssetReferenceSql.HAS_ATTACHED_REFERENCES, nativeQuery = true)
     boolean hasAttachedReferences(@Param("id") Long id);
+
+    /**
+     * Ids of assets with no content attachments (mirrors {@link #hasAttachedReferences}).
+     * Pass enum names as strings; {@code null} means no type/status filter.
+     */
+    @Query(value = MediaAssetReferenceSql.FIND_FILTERED_UNREFERENCED_IDS, nativeQuery = true)
+    List<Long> findFilteredUnreferencedIds(
+            @Param("tenantId") Long tenantId,
+            @Param("assetType") String assetType,
+            @Param("status") String status,
+            Pageable pageable
+    );
+
+    /** Root-folder ({@code folder_id} null) variant of {@link #findFilteredUnreferencedIds}. */
+    @Query(value = MediaAssetReferenceSql.FIND_FILTERED_UNASSIGNED_UNREFERENCED_IDS, nativeQuery = true)
+    List<Long> findFilteredUnassignedUnreferencedIds(
+            @Param("tenantId") Long tenantId,
+            @Param("assetType") String assetType,
+            @Param("status") String status,
+            Pageable pageable
+    );
+
+    /** Folder-scoped variant of {@link #findFilteredUnreferencedIds}; {@code folderIds} must be non-empty. */
+    @Query(value = MediaAssetReferenceSql.FIND_FILTERED_IN_FOLDERS_UNREFERENCED_IDS, nativeQuery = true)
+    List<Long> findFilteredInFoldersUnreferencedIds(
+            @Param("tenantId") Long tenantId,
+            @Param("assetType") String assetType,
+            @Param("status") String status,
+            @Param("folderIds") Collection<Long> folderIds,
+            Pageable pageable
+    );
 
     @EntityGraph(attributePaths = "tenant")
     @Query("""

@@ -503,6 +503,11 @@ export interface TenantMediaQuery {
     recursive?: boolean
     /** Only root-level (unassigned) assets; mutually exclusive with folderId. */
     unassignedOnly?: boolean
+    /**
+     * Only assets with no content attachments (episode/series/format/article/digital).
+     * Distinct from unassignedOnly (folder root).
+     */
+    unreferencedOnly?: boolean
 }
 
 /** User-facing folder in the media library. Null parentId means the library root. */
