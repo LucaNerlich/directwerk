@@ -89,12 +89,26 @@ export function usePublicationListPage<T extends {
 
     const [hasMore, setHasMore] = useState(false)
 
+    // Shared by row + bulk actions so a late completion cannot overwrite a newer message.
+    const actionEpochRef = useRef(0)
+    const beginActionEpoch = useCallback((): number => {
+        actionEpochRef.current += 1
+        return actionEpochRef.current
+    }, [])
+    const isActionEpoch = useCallback(
+        (epoch: number): boolean => epoch === actionEpochRef.current,
+        [],
+    )
+
     const load = useCallback(async (offset = 0): Promise<void> => {
         const current = configRef.current
         setIsLoading(offset === 0)
         setListError(null)
-        setActionErrorMessage(null)
-        setActionStatusMessage(null)
+        // loadMore must not wipe in-flight or completed action messages (#729 review).
+        if (offset === 0) {
+            setActionErrorMessage(null)
+            setActionStatusMessage(null)
+        }
         try {
             const loaded = await current.load({limit: LIST_PAGE_SIZE, offset})
             setItems((existing) =>
@@ -142,6 +156,8 @@ export function usePublicationListPage<T extends {
         setErrorMessage: setActionErrorMessage,
         statusMessage: actionStatusMessage,
         setStatusMessage: setActionStatusMessage,
+        beginActionEpoch,
+        isActionEpoch,
     })
 
     const bulkActions = usePublicationBulkActions({
@@ -164,6 +180,8 @@ export function usePublicationListPage<T extends {
         setErrorMessage: setActionErrorMessage,
         statusMessage: actionStatusMessage,
         setStatusMessage: setActionStatusMessage,
+        beginActionEpoch,
+        isActionEpoch,
     })
 
     useEffect(() => {
@@ -182,7 +200,8 @@ export function usePublicationListPage<T extends {
         displayError,
         statusMessage: actionStatusMessage,
         reload: load,
-        isBulkBusy: bulkActions.isBulkBusy,
+        // Disable bulk + other rows while any row action is in flight (shared message channel).
+        isBulkBusy: bulkActions.isBulkBusy || listActions.busyItemId !== null,
         publishableCount: bulkActions.publishableCount,
         unpublishableCount: bulkActions.unpublishableCount,
         handleBulkPublish: bulkActions.handleBulkPublish,

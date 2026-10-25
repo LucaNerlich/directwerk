@@ -71,6 +71,8 @@ export function usePublicationBulkActions<T extends {
     setErrorMessage,
     statusMessage,
     setStatusMessage,
+    beginActionEpoch,
+    isActionEpoch,
 }: {
     items: T[]
     selectedIds: Set<number>
@@ -86,6 +88,8 @@ export function usePublicationBulkActions<T extends {
     setErrorMessage: Dispatch<SetStateAction<string | null>>
     statusMessage: string | null
     setStatusMessage: Dispatch<SetStateAction<string | null>>
+    beginActionEpoch: () => number
+    isActionEpoch: (epoch: number) => boolean
 }) {
     const [isBulkBusy, setIsBulkBusy] = useState(false)
 
@@ -118,6 +122,7 @@ export function usePublicationBulkActions<T extends {
                 return
             }
 
+            const epoch = beginActionEpoch()
             setIsBulkBusy(true)
             clearActionMessages()
 
@@ -150,6 +155,10 @@ export function usePublicationBulkActions<T extends {
                     )
                 }
 
+                if (!isActionEpoch(epoch)) {
+                    return
+                }
+
                 if (successCount > 0 && failureCount === 0) {
                     setStatusMessage(successMessage(successCount))
                     clearSelection()
@@ -167,8 +176,10 @@ export function usePublicationBulkActions<T extends {
         },
         [
             authRedirect,
+            beginActionEpoch,
             clearActionMessages,
             clearSelection,
+            isActionEpoch,
             retainSelection,
             setActionError,
             setItems,
@@ -184,6 +195,7 @@ export function usePublicationBulkActions<T extends {
             partialMessage: (successCount: number, failureCount: number) => string,
             errorMessageText: string,
         ) => {
+            const epoch = beginActionEpoch()
             setIsBulkBusy(true)
             clearActionMessages()
 
@@ -202,6 +214,9 @@ export function usePublicationBulkActions<T extends {
                 if (failures.some(({reason}) => authRedirect(reason))) {
                     return
                 }
+                if (!isActionEpoch(epoch)) {
+                    return
+                }
                 if (failures.length === 0) {
                     setStatusMessage(successMessage(updated.length))
                     clearSelection()
@@ -217,6 +232,9 @@ export function usePublicationBulkActions<T extends {
                 if (authRedirect(error)) {
                     return
                 }
+                if (!isActionEpoch(epoch)) {
+                    return
+                }
                 setActionError(
                     error instanceof Error ? error.message : errorMessageText,
                 )
@@ -226,8 +244,10 @@ export function usePublicationBulkActions<T extends {
         },
         [
             authRedirect,
+            beginActionEpoch,
             clearActionMessages,
             clearSelection,
+            isActionEpoch,
             retainSelection,
             setActionError,
             setItems,
@@ -269,6 +289,7 @@ export function usePublicationBulkActions<T extends {
         if (removeMany === undefined || selectedItems.length === 0) {
             return
         }
+        const epoch = beginActionEpoch()
         setIsBulkBusy(true)
         clearActionMessages()
 
@@ -276,10 +297,16 @@ export function usePublicationBulkActions<T extends {
             const deletedIds = await removeMany(selectedItems.map((item) => item.id))
             const deleted = new Set(deletedIds)
             setItems((current) => current.filter((entry) => !deleted.has(entry.id)))
+            if (!isActionEpoch(epoch)) {
+                return
+            }
             setStatusMessage(labels.deleteSuccess(deletedIds.length))
             clearSelection()
         } catch (error) {
             if (authRedirect(error)) {
+                return
+            }
+            if (!isActionEpoch(epoch)) {
                 return
             }
             setActionError(
@@ -290,8 +317,10 @@ export function usePublicationBulkActions<T extends {
         }
     }, [
         authRedirect,
+        beginActionEpoch,
         clearActionMessages,
         clearSelection,
+        isActionEpoch,
         labels,
         removeMany,
         selectedItems,

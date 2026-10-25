@@ -45,6 +45,8 @@ export function usePublicationListActions<T extends {
     setErrorMessage,
     statusMessage,
     setStatusMessage,
+    beginActionEpoch,
+    isActionEpoch,
 }: {
     setItems: Dispatch<SetStateAction<T[]>>
     publish: (id: number) => Promise<T>
@@ -58,6 +60,8 @@ export function usePublicationListActions<T extends {
     setErrorMessage: Dispatch<SetStateAction<string | null>>
     statusMessage: string | null
     setStatusMessage: Dispatch<SetStateAction<string | null>>
+    beginActionEpoch: () => number
+    isActionEpoch: (epoch: number) => boolean
 }): PublicationListActionsState<T> {
     const [busyItemId, setBusyItemId] = useState<number | null>(null)
 
@@ -81,6 +85,7 @@ export function usePublicationListActions<T extends {
             successMessage: string,
             errorMessageText: string,
         ) => {
+            const epoch = beginActionEpoch()
             setBusyItemId(item.id)
             clearActionMessages()
             try {
@@ -88,9 +93,15 @@ export function usePublicationListActions<T extends {
                 setItems((current) =>
                     current.map((entry) => (entry.id === item.id ? updated : entry)),
                 )
+                if (!isActionEpoch(epoch)) {
+                    return
+                }
                 setStatusMessage(successMessage)
             } catch (error) {
                 if (authRedirect(error)) {
+                    return
+                }
+                if (!isActionEpoch(epoch)) {
                     return
                 }
                 setActionError(
@@ -100,7 +111,15 @@ export function usePublicationListActions<T extends {
                 setBusyItemId(null)
             }
         },
-        [authRedirect, clearActionMessages, setActionError, setItems, setStatusMessage],
+        [
+            authRedirect,
+            beginActionEpoch,
+            clearActionMessages,
+            isActionEpoch,
+            setActionError,
+            setItems,
+            setStatusMessage,
+        ],
     )
 
     const handlePublish = useCallback(
@@ -156,11 +175,15 @@ export function usePublicationListActions<T extends {
             if (remove === undefined) {
                 return
             }
+            const epoch = beginActionEpoch()
             setBusyItemId(item.id)
             clearActionMessages()
             try {
                 await remove(item.id)
                 setItems((current) => current.filter((entry) => entry.id !== item.id))
+                if (!isActionEpoch(epoch)) {
+                    return
+                }
                 setStatusMessage(
                     labels.deleteSuccess !== undefined
                         ? labels.deleteSuccess(item.title)
@@ -168,6 +191,9 @@ export function usePublicationListActions<T extends {
                 )
             } catch (error) {
                 if (authRedirect(error)) {
+                    return
+                }
+                if (!isActionEpoch(epoch)) {
                     return
                 }
                 setActionError(
@@ -179,7 +205,17 @@ export function usePublicationListActions<T extends {
                 setBusyItemId(null)
             }
         },
-        [authRedirect, clearActionMessages, labels, remove, setActionError, setItems, setStatusMessage],
+        [
+            authRedirect,
+            beginActionEpoch,
+            clearActionMessages,
+            isActionEpoch,
+            labels,
+            remove,
+            setActionError,
+            setItems,
+            setStatusMessage,
+        ],
     )
 
     return {

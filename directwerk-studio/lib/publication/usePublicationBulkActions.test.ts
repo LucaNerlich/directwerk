@@ -1,5 +1,5 @@
 import {describe, expect, it, vi} from 'vitest'
-import {useState} from 'react'
+import {useCallback, useRef, useState} from 'react'
 
 import {
     runSequentialPublicationBulkAction,
@@ -10,20 +10,41 @@ import {renderHook, act} from '@testing-library/react'
 
 type BulkItem = {id: number; title: string; status: Extract<PublicationStatus, 'DRAFT' | 'PUBLISHED'>}
 
+function useActionEpoch() {
+    const epochRef = useRef(0)
+    const beginActionEpoch = useCallback(() => {
+        epochRef.current += 1
+        return epochRef.current
+    }, [])
+    const isActionEpoch = useCallback(
+        (epoch: number) => epoch === epochRef.current,
+        [],
+    )
+    return {beginActionEpoch, isActionEpoch}
+}
+
 function useBulkActionsWithSharedMessages(
     options: Omit<
         Parameters<typeof usePublicationBulkActions<BulkItem>>[0],
-        'errorMessage' | 'setErrorMessage' | 'statusMessage' | 'setStatusMessage'
+        | 'errorMessage'
+        | 'setErrorMessage'
+        | 'statusMessage'
+        | 'setStatusMessage'
+        | 'beginActionEpoch'
+        | 'isActionEpoch'
     >,
 ) {
     const [errorMessage, setErrorMessage] = useState<string | null>(null)
     const [statusMessage, setStatusMessage] = useState<string | null>(null)
+    const {beginActionEpoch, isActionEpoch} = useActionEpoch()
     return usePublicationBulkActions({
         ...options,
         errorMessage,
         setErrorMessage,
         statusMessage,
         setStatusMessage,
+        beginActionEpoch,
+        isActionEpoch,
     })
 }
 
@@ -348,6 +369,7 @@ describe('usePublicationBulkActions', () => {
         const {result} = renderHook(() => {
             const [errorMessage, setErrorMessage] = useState<string | null>(null)
             const [statusMessage, setStatusMessage] = useState<string | null>('stale status')
+            const {beginActionEpoch, isActionEpoch} = useActionEpoch()
             const bulk = usePublicationBulkActions({
                 items,
                 selectedIds: new Set([2]),
@@ -361,6 +383,8 @@ describe('usePublicationBulkActions', () => {
                 setErrorMessage,
                 statusMessage,
                 setStatusMessage,
+                beginActionEpoch,
+                isActionEpoch,
             })
             return bulk
         })
