@@ -1,6 +1,6 @@
 import {describe, expect, it} from 'vitest'
 
-import {assetLabel, matchesQuery} from '@/lib/media/assetSearch'
+import {assetLabel, filterAssetsByQuery, matchesQuery} from '@/lib/media/assetSearch'
 import type {MediaAsset} from '@directwerk/api/types'
 
 function asset(partial: Pick<MediaAsset, 'id'> & Partial<MediaAsset>): MediaAsset {
@@ -30,11 +30,22 @@ describe('assetSearch', () => {
         expect(assetLabel(asset({id: 9, originalFilename: null}))).toBe('Asset 9')
     })
 
-    it('matches case-insensitive substrings; empty needle matches all', () => {
+    it('returns all assets for an empty query', () => {
+        const list = [
+            asset({id: 1, originalFilename: 'Cover-Art.PNG'}),
+            asset({id: 2, originalFilename: 'episode-01.mp3'}),
+        ]
+        expect(filterAssetsByQuery(list, '')).toBe(list)
+        expect(matchesQuery(list[0]!, '')).toBe(true)
+    })
+
+    it('fuzzy-matches filenames and rejects unrelated queries', () => {
         const cover = asset({id: 1, originalFilename: 'Cover-Art.PNG'})
-        // Callers lower-case the needle (see MediaLibraryPicker / MediaLibraryClient).
-        expect(matchesQuery(cover, '')).toBe(true)
-        expect(matchesQuery(cover, 'cover')).toBe(true)
+        const list = [cover, asset({id: 2, originalFilename: 'episode-01.mp3'})]
+
+        expect(filterAssetsByQuery(list, 'cover').map((row) => row.id)).toEqual([1])
+        expect(filterAssetsByQuery(list, 'covr art').map((row) => row.id)).toEqual([1])
+        expect(filterAssetsByQuery(list, 'logo')).toEqual([])
         expect(matchesQuery(cover, 'art')).toBe(true)
         expect(matchesQuery(cover, 'logo')).toBe(false)
     })

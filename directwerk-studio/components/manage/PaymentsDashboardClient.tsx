@@ -30,6 +30,7 @@ import type {BillingDashboard, BillingMembership} from '@directwerk/api/types'
 import {formatMoney} from '@directwerk/api/format'
 
 import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
+import {fuzzyFilter} from '@directwerk/ui/lib/fuzzy'
 import {useTwoStepConfirm} from '@/lib/hooks/useTwoStepConfirm'
 
 const REVOCABLE_STATUSES = new Set(['ACTIVE', 'PAST_DUE', 'INCOMPLETE'])
@@ -130,22 +131,16 @@ export default function PaymentsDashboardClient(): React.JSX.Element {
         if (dashboard === null) {
             return []
         }
-        const needle = query.trim().toLowerCase()
-        return dashboard.memberships.filter((row) => {
+        const scoped = dashboard.memberships.filter((row) => {
             if (statusFilter !== 'all' && row.status !== statusFilter) {
                 return false
             }
             if (sourceFilter !== 'all' && row.source !== sourceFilter) {
                 return false
             }
-            if (needle.length === 0) {
-                return true
-            }
-            return (
-                row.email.toLowerCase().includes(needle) ||
-                row.productTitle.toLowerCase().includes(needle)
-            )
+            return true
         })
+        return fuzzyFilter(scoped, query, {keys: ['email', 'productTitle']})
     }, [dashboard, query, sourceFilter, statusFilter])
 
     async function reloadDashboard(): Promise<BillingDashboard> {

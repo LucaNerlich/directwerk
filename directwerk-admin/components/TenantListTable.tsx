@@ -14,6 +14,7 @@ import {useListViewMode} from '@directwerk/ui/hooks/use-list-view-mode'
 
 import {formatTimestamp} from '@directwerk/api/format/datetime'
 import type {Tenant} from '@directwerk/api/types'
+import {fuzzyFilter} from '@directwerk/ui/lib/fuzzy'
 
 interface TenantListTableProps {
     tenants: Tenant[]
@@ -61,22 +62,17 @@ export default function TenantListTable({
     }
 
     const filteredTenants = useMemo(() => {
-        const normalizedQuery = query.trim().toLowerCase()
+        const byStatus =
+            statusFilter === 'ALL'
+                ? tenants
+                : tenants.filter((tenant) => tenant.status === statusFilter)
 
-        return tenants.filter((tenant) => {
-            if (statusFilter !== 'ALL' && tenant.status !== statusFilter) {
-                return false
-            }
+        if (serverSearch) {
+            return byStatus
+        }
 
-            if (serverSearch || normalizedQuery.length === 0) {
-                return true
-            }
-
-            return (
-                tenant.name.toLowerCase().includes(normalizedQuery) ||
-                tenant.slug.toLowerCase().includes(normalizedQuery) ||
-                (tenant.primaryDomain ?? '').toLowerCase().includes(normalizedQuery)
-            )
+        return fuzzyFilter(byStatus, query, {
+            keys: ['name', 'slug', 'primaryDomain'],
         })
     }, [query, serverSearch, statusFilter, tenants])
 
