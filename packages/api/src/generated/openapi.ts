@@ -3196,6 +3196,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/media/{id}/references": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List content that references a media asset
+         * @description FK-backed attachments only (episode audio/cover, series/format cover, article hero, digital publication, denormalized media episode link). CDN URLs pasted into HTML show notes or article bodies are out of scope.
+         */
+        get: operations["references"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -5777,6 +5797,22 @@ export interface components {
             statusCode?: number;
             statusMessage?: string;
             data?: components["schemas"]["PlatformAdminView"];
+            errors?: components["schemas"]["ErrorDetail"][];
+            metadata?: {
+                [key: string]: unknown;
+            };
+        };
+        MediaAssetReferenceView: {
+            kind?: string;
+            /** Format: int64 */
+            id?: number;
+            title?: string;
+        };
+        ResponseListMediaAssetReferenceView: {
+            /** Format: int32 */
+            statusCode?: number;
+            statusMessage?: string;
+            data?: components["schemas"]["MediaAssetReferenceView"][];
             errors?: components["schemas"]["ErrorDetail"][];
             metadata?: {
                 [key: string]: unknown;
@@ -11372,6 +11408,35 @@ export interface operations {
         responses: {
             /** @description No content */
             204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    references: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Reference list (empty when unused) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ResponseListMediaAssetReferenceView"];
+                };
+            };
+            /** @description Unknown id, or id belongs to another tenant (MEDIA_ASSET_NOT_FOUND) */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };

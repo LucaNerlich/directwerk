@@ -9,6 +9,7 @@ import {
     deleteMedia,
     deleteMediaFolder,
     getMediaPreviewUrl,
+    getMediaReferences,
     getMediaUploadLimits,
     listMedia,
     listMediaFolders,
@@ -28,6 +29,7 @@ vi.mock('@/lib/api/mediaApi', () => ({
     listMediaFolders: vi.fn().mockResolvedValue([]),
     getMediaUploadLimits: vi.fn().mockResolvedValue(null),
     getMediaPreviewUrl: vi.fn(),
+    getMediaReferences: vi.fn().mockResolvedValue([]),
     createMediaFolder: vi.fn(),
     renameMediaFolder: vi.fn(),
     moveMediaFolder: vi.fn(),
@@ -92,6 +94,8 @@ describe('MediaLibraryClient', () => {
         })
         vi.mocked(getMediaPreviewUrl).mockReset()
         vi.mocked(getMediaPreviewUrl).mockResolvedValue('https://cdn.example/preview.mp3')
+        vi.mocked(getMediaReferences).mockReset()
+        vi.mocked(getMediaReferences).mockResolvedValue([])
         vi.mocked(createMediaFolder).mockReset()
         vi.mocked(renameMediaFolder).mockReset()
         vi.mocked(moveMediaFolder).mockReset()
@@ -441,6 +445,59 @@ describe('MediaLibraryClient', () => {
                 unreferencedOnly: true,
             }),
         )
+    })
+
+    it('opens detail panel with referencing entities and empty state', async () => {
+        vi.mocked(listMedia).mockResolvedValue([coverAsset])
+        vi.mocked(getMediaReferences).mockResolvedValue([
+            {kind: 'EPISODE_COVER', id: 42, title: 'Folge 42'},
+        ])
+
+        renderWithLocale(<MediaLibraryClient />)
+
+        expect(await screen.findByText('cover.png')).toBeInTheDocument()
+        fireEvent.click(screen.getByRole('button', {name: 'Details'}))
+
+        const detailDialog = await screen.findByRole('dialog')
+        await waitFor(() =>
+            expect(getMediaReferences).toHaveBeenCalledWith(7),
+        )
+        expect(await within(detailDialog).findByText('Folgen-Cover')).toBeInTheDocument()
+        expect(within(detailDialog).getByRole('link', {name: 'Folge 42'})).toHaveAttribute(
+            'href',
+            expect.stringContaining('/podcast/episodes/42'),
+        )
+
+        fireEvent.click(within(detailDialog).getAllByRole('button', {name: 'Schließen'})[0]!)
+        await waitFor(() =>
+            expect(screen.queryByRole('dialog')).not.toBeInTheDocument(),
+        )
+
+        vi.mocked(getMediaReferences).mockResolvedValue([])
+        fireEvent.click(screen.getByRole('button', {name: 'Details'}))
+        const emptyDialog = await screen.findByRole('dialog')
+        expect(await within(emptyDialog).findByText('Nicht verknüpft')).toBeInTheDocument()
+        expect(
+            within(emptyDialog).getByText(
+                'Diese Datei wird derzeit von keinem Inhalt referenziert.',
+            ),
+        ).toBeInTheDocument()
+    })
+
+    it('shows a references load error without the unused empty state', async () => {
+        vi.mocked(listMedia).mockResolvedValue([coverAsset])
+        vi.mocked(getMediaReferences).mockRejectedValue(new Error('Referenzen offline'))
+
+        renderWithLocale(<MediaLibraryClient />)
+
+        expect(await screen.findByText('cover.png')).toBeInTheDocument()
+        fireEvent.click(screen.getByRole('button', {name: 'Details'}))
+
+        const detailDialog = await screen.findByRole('dialog')
+        expect(await within(detailDialog).findByRole('alert')).toHaveTextContent(
+            'Referenzen offline',
+        )
+        expect(within(detailDialog).queryByText('Nicht verknüpft')).not.toBeInTheDocument()
     })
 
     it('creates a folder in the current location', async () => {

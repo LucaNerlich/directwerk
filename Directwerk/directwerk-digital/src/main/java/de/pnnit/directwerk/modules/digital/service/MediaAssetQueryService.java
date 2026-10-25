@@ -7,6 +7,7 @@ import de.pnnit.directwerk.modules.digital.entity.AssetStatus;
 import de.pnnit.directwerk.modules.digital.entity.AssetType;
 import de.pnnit.directwerk.modules.digital.entity.MediaAsset;
 import de.pnnit.directwerk.modules.digital.entity.MediaFolder;
+import de.pnnit.directwerk.modules.digital.exception.MediaAssetNotFoundException;
 import de.pnnit.directwerk.modules.digital.exception.MediaFolderNotFoundException;
 import de.pnnit.directwerk.modules.digital.repository.MediaAssetRepository;
 import de.pnnit.directwerk.modules.digital.repository.MediaFolderRepository;
@@ -53,6 +54,26 @@ public class MediaAssetQueryService implements MediaAssetQueryApi {
         }
         return asset.filter(candidate ->
                 candidate.getTenant() != null && contextTenantId.equals(candidate.getTenant().getId()));
+    }
+
+    @Override
+    public List<MediaAssetReference> listAttachedReferences(Long assetId) {
+        if (findById(assetId).isEmpty()) {
+            throw new MediaAssetNotFoundException(assetId);
+        }
+        List<Object[]> rows = mediaAssetRepository.findAttachedReferences(assetId);
+        List<MediaAssetReference> references = new ArrayList<>(rows.size());
+        for (Object[] row : rows) {
+            if (row == null || row.length < 3 || row[0] == null || row[1] == null) {
+                continue;
+            }
+            references.add(new MediaAssetReference(
+                    String.valueOf(row[0]),
+                    ((Number) row[1]).longValue(),
+                    row[2] == null ? "" : String.valueOf(row[2])
+            ));
+        }
+        return references;
     }
 
     @Override

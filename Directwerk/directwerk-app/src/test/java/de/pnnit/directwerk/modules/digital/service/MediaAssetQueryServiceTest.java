@@ -14,6 +14,8 @@ import de.pnnit.directwerk.modules.digital.entity.AssetStatus;
 import de.pnnit.directwerk.modules.digital.entity.AssetType;
 import de.pnnit.directwerk.modules.digital.entity.MediaAsset;
 import de.pnnit.directwerk.modules.digital.entity.MediaFolder;
+import de.pnnit.directwerk.modules.digital.api.MediaAssetQueryApi.MediaAssetReference;
+import de.pnnit.directwerk.modules.digital.exception.MediaAssetNotFoundException;
 import de.pnnit.directwerk.modules.digital.exception.MediaFolderNotFoundException;
 import de.pnnit.directwerk.modules.digital.repository.MediaAssetRepository;
 import de.pnnit.directwerk.modules.digital.repository.MediaFolderRepository;
@@ -247,5 +249,48 @@ class MediaAssetQueryServiceTest {
 
         assertThatThrownBy(() -> service.listInFolder(null, null, 99L, false, false, 20))
                 .isInstanceOf(MediaFolderNotFoundException.class);
+    }
+
+    @Test
+    void listAttachedReferencesMapsRowsForTenantAsset() {
+        Tenant tenant = new Tenant();
+        tenant.setId(42L);
+        MediaAsset asset = new MediaAsset();
+        asset.setId(7L);
+        asset.setTenant(tenant);
+        TenantContext.setTenantId(42L);
+        when(mediaAssetRepository.findById(7L)).thenReturn(java.util.Optional.of(asset));
+        when(mediaAssetRepository.findAttachedReferences(7L)).thenReturn(List.of(
+                new Object[] {"EPISODE_AUDIO", 11L, "Folge 1"},
+                new Object[] {"ARTICLE_HERO", 22L, "Beitrag"}
+        ));
+
+        assertThat(service.listAttachedReferences(7L)).containsExactly(
+                new MediaAssetReference("EPISODE_AUDIO", 11L, "Folge 1"),
+                new MediaAssetReference("ARTICLE_HERO", 22L, "Beitrag")
+        );
+    }
+
+    @Test
+    void listAttachedReferencesReturnsEmptyWhenUnused() {
+        Tenant tenant = new Tenant();
+        tenant.setId(42L);
+        MediaAsset asset = new MediaAsset();
+        asset.setId(7L);
+        asset.setTenant(tenant);
+        TenantContext.setTenantId(42L);
+        when(mediaAssetRepository.findById(7L)).thenReturn(java.util.Optional.of(asset));
+        when(mediaAssetRepository.findAttachedReferences(7L)).thenReturn(List.of());
+
+        assertThat(service.listAttachedReferences(7L)).isEmpty();
+    }
+
+    @Test
+    void listAttachedReferencesThrowsForMissingOrForeignAsset() {
+        TenantContext.setTenantId(42L);
+        when(mediaAssetRepository.findById(7L)).thenReturn(java.util.Optional.empty());
+
+        assertThatThrownBy(() -> service.listAttachedReferences(7L))
+                .isInstanceOf(MediaAssetNotFoundException.class);
     }
 }

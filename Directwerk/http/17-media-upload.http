@@ -73,6 +73,28 @@ Accept: application/json
 
 ###
 
+### @name getMediaReferences
+### FK-backed attachments only (episode/series/format/article/digital + media episode_id).
+### Empty array when unused. HTML CDN embeds in show notes are out of MVP scope.
+GET {{baseUrl}}/api/v1/media/{{mediaAssetId}}/references
+Authorization: Bearer {{tenantAAccessToken}}
+Host: {{tenantAHost}}
+Accept: application/json
+
+> {%
+    client.test("Get media references", function() {
+        client.assert(
+            response.status === 200 || response.status === 404 || response.status === 503,
+            "Expected 200/404/503"
+        );
+        if (response.status === 200) {
+            client.assert(Array.isArray(response.body.data), "Expected data array");
+        }
+    });
+%}
+
+###
+
 ### @name confirmUpload
 POST {{baseUrl}}/api/v1/media/{{mediaAssetId}}/confirm
 Authorization: Bearer {{tenantAAccessToken}}

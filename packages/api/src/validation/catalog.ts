@@ -34,6 +34,7 @@ import type {
     LevelSummary,
     Me,
     MediaAsset,
+    MediaAssetReference,
     MediaUploadLimits,
     BulkImportQueuedResult,
     BulkDeleteResult,
@@ -1059,6 +1060,42 @@ export function parseMediaListEnvelope(
     value: unknown,
 ): ApiEnvelope<MediaAsset[]> | null {
     return parseEnvelope(value, (data) => parseBoundedArray(data, 100, parseMediaAsset))
+}
+
+const MEDIA_ASSET_REFERENCE_KINDS = new Set([
+    'EPISODE_AUDIO',
+    'EPISODE_COVER',
+    'SERIES_COVER',
+    'FORMAT_COVER',
+    'ARTICLE_HERO',
+    'DIGITAL_PUBLICATION',
+    'MEDIA_EPISODE_LINK',
+])
+
+export function parseMediaAssetReference(value: unknown): MediaAssetReference | null {
+    if (
+        !isRecord(value) ||
+        !isBoundedString(value.kind, 64) ||
+        !MEDIA_ASSET_REFERENCE_KINDS.has(value.kind) ||
+        !isPositiveSafeInteger(value.id) ||
+        !isBoundedString(value.title, 255)
+    ) {
+        return null
+    }
+
+    return {
+        kind: value.kind,
+        id: value.id,
+        title: value.title,
+    }
+}
+
+export function parseMediaAssetReferenceListEnvelope(
+    value: unknown,
+): ApiEnvelope<MediaAssetReference[]> | null {
+    return parseEnvelope(value, (data) =>
+        parseBoundedArray(data, 500, parseMediaAssetReference),
+    )
 }
 
 /** Validates a signed preview/onboarding URL (https only). */

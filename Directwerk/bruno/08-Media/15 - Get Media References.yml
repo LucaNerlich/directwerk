@@ -1,0 +1,34 @@
+info:
+  name: 15 - Get Media References
+  type: http
+  seq: 15
+
+http:
+  method: GET
+  url: "{{baseUrl}}/api/v1/media/{{mediaAssetId}}/references"
+  auth: inherit
+
+docs: |
+  Lists FK-backed content attachments (episode audio/cover, series/format cover, article hero,
+  digital publication, denormalized media episode_id). Empty array when unused.
+  CDN URLs pasted into HTML show notes / article bodies are out of MVP scope.
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("returns expected status", function() {
+          expect(res.getStatus() === 200 || res.getStatus() === 404 || res.getStatus() === 503).to.equal(true);
+        });
+        test("200 body is a reference array", function() {
+          if (res.getStatus() === 200) {
+            expect(Array.isArray(res.getBody().data)).to.equal(true);
+          }
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true

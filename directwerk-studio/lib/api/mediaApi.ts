@@ -1,8 +1,8 @@
 'use client'
 
-import {parseMediaAssetEnvelope, parseMediaFolderEnvelope, parseMediaFolderListEnvelope, parseMediaListEnvelope, parseMediaStorageSummaryEnvelope, parseMediaUploadLimitsEnvelope, parsePreviewUrlEnvelope} from '@directwerk/api/validation/catalog'
+import {parseMediaAssetEnvelope, parseMediaAssetReferenceListEnvelope, parseMediaFolderEnvelope, parseMediaFolderListEnvelope, parseMediaListEnvelope, parseMediaStorageSummaryEnvelope, parseMediaUploadLimitsEnvelope, parsePreviewUrlEnvelope} from '@directwerk/api/validation/catalog'
 
-import type {MediaAsset, MediaFolder, MediaStorageSummary, MediaUploadLimits, TenantMediaQuery} from '@directwerk/api/types'
+import type {MediaAsset, MediaAssetReference, MediaFolder, MediaStorageSummary, MediaUploadLimits, TenantMediaQuery} from '@directwerk/api/types'
 import {authenticatedRequest, studioGet, studioMutate} from './studioApiCore'
 import {jsonInit} from './studioTransport'
 
@@ -71,6 +71,16 @@ export async function getMedia(
         
         parseMediaAssetEnvelope,
         invalidMediaMessage,
+    )
+}
+
+export async function getMediaReferences(
+        assetId: number,
+): Promise<MediaAssetReference[]> {
+    return studioGet(
+        `/api/proxy/media/${assetId}/references`,
+        parseMediaAssetReferenceListEnvelope,
+        'Der Server hat ungültige Medien-Referenzen gesendet.',
     )
 }
 

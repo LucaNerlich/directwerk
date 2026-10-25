@@ -12,6 +12,8 @@ import {
     parseIntegrationsStatusEnvelope,
     parseMeEnvelope,
     parseMediaAsset,
+    parseMediaAssetReference,
+    parseMediaAssetReferenceListEnvelope,
     parseMediaFolder,
     parseMediaFolderListEnvelope,
     parseMediaStorageSummaryEnvelope,
@@ -749,6 +751,27 @@ describe('isQueueJob', () => {
                 metadata: {},
             }),
         ).toBeNull()
+    })
+
+    it('parses media asset references from GET /media/{id}/references', () => {
+        expect(
+            parseMediaAssetReference({
+                kind: 'EPISODE_AUDIO',
+                id: 11,
+                title: 'Folge 1',
+            }),
+        ).toEqual({kind: 'EPISODE_AUDIO', id: 11, title: 'Folge 1'})
+        expect(parseMediaAssetReference({kind: 'UNKNOWN', id: 1, title: 'x'})).toBeNull()
+        expect(parseMediaAssetReference({kind: 'ARTICLE_HERO', id: -1, title: 'x'})).toBeNull()
+        expect(
+            parseMediaAssetReferenceListEnvelope({
+                statusCode: 200,
+                statusMessage: 'OK',
+                data: [{kind: 'SERIES_COVER', id: 3, title: 'Serie'}],
+                errors: [],
+                metadata: {},
+            })?.data,
+        ).toEqual([{kind: 'SERIES_COVER', id: 3, title: 'Serie'}])
     })
 
     it('parses media asset folder ids, tolerating older responses without one', () => {        const base = {
