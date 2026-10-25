@@ -255,7 +255,11 @@ describe('MediaLibraryClient', () => {
         ]
         vi.mocked(listMedia).mockResolvedValue(pendingAssets)
         vi.mocked(deleteMedia)
-            .mockResolvedValueOnce(pendingAssets[0])
+            .mockImplementationOnce(async () => {
+                // Post-delete reload must see only the survivor (API truth).
+                vi.mocked(listMedia).mockResolvedValue([pendingAssets[1]])
+                return pendingAssets[0]
+            })
             .mockRejectedValueOnce(new Error('delete failed'))
         vi.spyOn(window, 'confirm').mockReturnValue(true)
 
@@ -288,7 +292,10 @@ describe('MediaLibraryClient', () => {
         ]
         vi.mocked(listMedia).mockResolvedValue(selectedAssets)
         vi.mocked(deleteMedia)
-            .mockResolvedValueOnce(selectedAssets[0])
+            .mockImplementationOnce(async () => {
+                vi.mocked(listMedia).mockResolvedValue([selectedAssets[1]])
+                return selectedAssets[0]
+            })
             .mockRejectedValueOnce(new Error('delete failed'))
         vi.spyOn(window, 'confirm').mockReturnValue(true)
 
@@ -673,6 +680,36 @@ describe('MediaLibraryClient', () => {
             expect(moveMediaAsset).toHaveBeenCalledWith(7, 1),
         )
         expect(await screen.findByText('1 Datei(en) verschoben.')).toBeInTheDocument()
+    })
+
+    it('refreshes folder tile assetCount after moving an asset into a folder', async () => {
+        // Preferring API assetCount without a post-move reload leaves tiles stale.
+        vi.mocked(listMediaFolders).mockResolvedValue([testFolder(1, 'Interviews', null, 3)])
+        vi.mocked(listMedia).mockResolvedValue([coverAsset])
+
+        renderWithLocale(<MediaLibraryClient />)
+
+        const interviewsBefore = await screen.findByRole('button', {name: /Interviews/})
+        expect(within(interviewsBefore).getByText('3 Dateien')).toBeInTheDocument()
+
+        vi.mocked(listMediaFolders).mockResolvedValue([testFolder(1, 'Interviews', null, 4)])
+        vi.mocked(listMedia).mockResolvedValue([])
+
+        fireEvent.click(screen.getByRole('button', {name: 'Verschieben'}))
+        const dialog = await screen.findByRole('dialog')
+        fireEvent.change(within(dialog).getByLabelText('Zielordner'), {
+            target: {value: '1'},
+        })
+        fireEvent.click(within(dialog).getByRole('button', {name: 'Verschieben'}))
+
+        await waitFor(() =>
+            expect(moveMediaAsset).toHaveBeenCalledWith(7, 1),
+        )
+        expect(await screen.findByText('1 Datei(en) verschoben.')).toBeInTheDocument()
+
+        const interviewsAfter = await screen.findByRole('button', {name: /Interviews/})
+        expect(within(interviewsAfter).getByText('4 Dateien')).toBeInTheDocument()
+        expect(vi.mocked(listMediaFolders).mock.calls.length).toBeGreaterThan(1)
     })
 
     it('moves selected assets in bulk back to the library root', async () => {
