@@ -458,6 +458,7 @@ export function useEpisodeContentEditor(
 
             setIsUploading(true)
             setErrorMessage(null)
+            const previousFilename = audioFilename
             setAudioFilename(file.name)
             setUploadProgress({file, progress: 0})
             try {
@@ -482,6 +483,7 @@ export function useEpisodeContentEditor(
                     router.replace(localize(descriptor.paths.editor(updated.id)))
                 }
             } catch (error) {
+                setAudioFilename(previousFilename)
                 handleAuthError(error)
                 // Leave /new so a retry updates the created episode instead of creating another.
                 if (wasCreate) {
@@ -495,6 +497,7 @@ export function useEpisodeContentEditor(
             }
         },
         [
+            audioFilename,
             descriptor.paths,
             episodeId,
             handleAuthError,
@@ -513,6 +516,7 @@ export function useEpisodeContentEditor(
                 return
             }
 
+            const previousFilename = audioFilename
             const optimistic = asset.originalFilename?.trim()
             if (optimistic !== undefined && optimistic.length > 0) {
                 setAudioFilename(optimistic)
@@ -527,6 +531,7 @@ export function useEpisodeContentEditor(
                     router.replace(localize(descriptor.paths.editor(updated.id)))
                 }
             } catch (error) {
+                setAudioFilename(previousFilename)
                 handleAuthError(error)
                 if (wasCreate) {
                     router.replace(localize(descriptor.paths.editor(saved.id)))
@@ -536,6 +541,7 @@ export function useEpisodeContentEditor(
             }
         },
         [
+            audioFilename,
             descriptor.paths,
             episodeId,
             handleAuthError,
