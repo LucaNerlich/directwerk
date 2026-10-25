@@ -15,6 +15,7 @@ import {
     listMediaFolders,
     moveMediaAsset,
     moveMediaFolder,
+    renameMediaAsset,
     renameMediaFolder,
 } from '@/lib/api/mediaApi'
 import {uploadMediaFile} from '@/lib/media/upload'
@@ -31,6 +32,7 @@ vi.mock('@/lib/api/mediaApi', () => ({
     getMediaPreviewUrl: vi.fn(),
     getMediaReferences: vi.fn().mockResolvedValue([]),
     createMediaFolder: vi.fn(),
+    renameMediaAsset: vi.fn(),
     renameMediaFolder: vi.fn(),
     moveMediaFolder: vi.fn(),
     deleteMediaFolder: vi.fn(),
@@ -97,6 +99,7 @@ describe('MediaLibraryClient', () => {
         vi.mocked(getMediaReferences).mockReset()
         vi.mocked(getMediaReferences).mockResolvedValue([])
         vi.mocked(createMediaFolder).mockReset()
+        vi.mocked(renameMediaAsset).mockReset()
         vi.mocked(renameMediaFolder).mockReset()
         vi.mocked(moveMediaFolder).mockReset()
         vi.mocked(deleteMediaFolder).mockReset()
@@ -498,6 +501,65 @@ describe('MediaLibraryClient', () => {
             'Referenzen offline',
         )
         expect(within(detailDialog).queryByText('Nicht verknüpft')).not.toBeInTheDocument()
+    })
+
+    it('renames an asset from the first reference title in the detail panel', async () => {
+        const downloadAsset = {
+            ...coverAsset,
+            id: 11,
+            originalFilename: 'download.mp3',
+            assetType: 'AUDIO',
+            mimeType: 'audio/mpeg',
+            s3Key: 'tenant/staging/download.mp3',
+        }
+        vi.mocked(listMedia).mockResolvedValue([downloadAsset])
+        vi.mocked(getMediaReferences).mockResolvedValue([
+            {kind: 'EPISODE_AUDIO', id: 42, title: 'Folge 42'},
+            {kind: 'EPISODE_COVER', id: 42, title: 'Folge 42'},
+        ])
+        vi.mocked(renameMediaAsset).mockResolvedValue({
+            ...downloadAsset,
+            originalFilename: 'Folge_42.mp3',
+        })
+
+        renderWithLocale(<MediaLibraryClient />)
+
+        expect(await screen.findByText('download.mp3')).toBeInTheDocument()
+        fireEvent.click(screen.getByRole('button', {name: 'Details'}))
+
+        const detailDialog = await screen.findByRole('dialog')
+        expect(
+            await within(detailDialog).findByRole('button', {name: 'Von Referenz umbenennen'}),
+        ).toBeInTheDocument()
+        fireEvent.click(
+            within(detailDialog).getByRole('button', {name: 'Von Referenz umbenennen'}),
+        )
+        expect(
+            within(detailDialog).getByText(/Datei in „Folge 42\.mp3“ umbenennen/),
+        ).toBeInTheDocument()
+        fireEvent.click(within(detailDialog).getByRole('button', {name: 'Datei umbenennen'}))
+
+        await waitFor(() =>
+            expect(renameMediaAsset).toHaveBeenCalledWith(11, 'Folge 42.mp3'),
+        )
+        expect(await screen.findByText(/Datei in „Folge_42\.mp3“ umbenannt/)).toBeInTheDocument()
+        expect(await within(detailDialog).findByText('Folge_42.mp3')).toBeInTheDocument()
+    })
+
+    it('hides rename-from-reference when the asset has no references', async () => {
+        vi.mocked(listMedia).mockResolvedValue([coverAsset])
+        vi.mocked(getMediaReferences).mockResolvedValue([])
+
+        renderWithLocale(<MediaLibraryClient />)
+
+        expect(await screen.findByText('cover.png')).toBeInTheDocument()
+        fireEvent.click(screen.getByRole('button', {name: 'Details'}))
+
+        const detailDialog = await screen.findByRole('dialog')
+        expect(await within(detailDialog).findByText('Nicht verknüpft')).toBeInTheDocument()
+        expect(
+            within(detailDialog).queryByRole('button', {name: 'Von Referenz umbenennen'}),
+        ).not.toBeInTheDocument()
     })
 
     it('creates a folder in the current location', async () => {

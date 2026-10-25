@@ -1071,8 +1071,12 @@
     "referenzenHtmlHinweis": "Eingebettete CDN-URLs in Show Notes oder Artikel-HTML werden hier nicht erfasst.",
     "referenzenKonnteNichtGeladen": "Verwendungen konnten nicht geladen werden.",
     "referenzenWerdenGeladen": "Verwendungen werden geladen…",
+    "vonReferenzUmbenennen": "Von Referenz umbenennen",
+    "vonReferenzUmbenennenBestaetigen": "Datei in „${filename}“ umbenennen? Der S3-Schlüssel bleibt unverändert.",
+    "vonReferenzUmbenennenHinweis": "Übernimmt den Titel der ersten Verknüpfung und behält die Dateiendung.",
     "visibilitySuffix": "· ${subCount} ${subCount === 1 ? 'Ordner' : 'Ordner'}"
   },
+
   "bonus": {
     "b": "${sizeBytes} B",
     "bonusdateiKonnteAngelegt": "Bonusdatei konnte nicht angelegt werden.",
