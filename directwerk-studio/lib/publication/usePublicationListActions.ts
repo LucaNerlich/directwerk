@@ -1,6 +1,6 @@
 'use client'
 
-import {useCallback, useState} from 'react'
+import {useCallback, useState, type Dispatch, type SetStateAction} from 'react'
 
 import type {PublicationStatus} from '@directwerk/api/types'
 
@@ -41,8 +41,12 @@ export function usePublicationListActions<T extends {
     remove,
     labels,
     authRedirect,
+    errorMessage,
+    setErrorMessage,
+    statusMessage,
+    setStatusMessage,
 }: {
-    setItems: React.Dispatch<React.SetStateAction<T[]>>
+    setItems: Dispatch<SetStateAction<T[]>>
     publish: (id: number) => Promise<T>
     unpublish: (id: number) => Promise<T>
     cancelSchedule: (id: number) => Promise<T>
@@ -50,10 +54,25 @@ export function usePublicationListActions<T extends {
     remove?: (id: number) => Promise<void>
     labels: PublicationListActionLabels
     authRedirect: (error: unknown) => boolean
+    errorMessage: string | null
+    setErrorMessage: Dispatch<SetStateAction<string | null>>
+    statusMessage: string | null
+    setStatusMessage: Dispatch<SetStateAction<string | null>>
 }): PublicationListActionsState<T> {
     const [busyItemId, setBusyItemId] = useState<number | null>(null)
-    const [errorMessage, setErrorMessage] = useState<string | null>(null)
-    const [statusMessage, setStatusMessage] = useState<string | null>(null)
+
+    const clearActionMessages = useCallback(() => {
+        setErrorMessage(null)
+        setStatusMessage(null)
+    }, [setErrorMessage, setStatusMessage])
+
+    const setActionError = useCallback(
+        (message: string) => {
+            setStatusMessage(null)
+            setErrorMessage(message)
+        },
+        [setErrorMessage, setStatusMessage],
+    )
 
     const runAction = useCallback(
         async (
@@ -63,8 +82,7 @@ export function usePublicationListActions<T extends {
             errorMessageText: string,
         ) => {
             setBusyItemId(item.id)
-            setErrorMessage(null)
-            setStatusMessage(null)
+            clearActionMessages()
             try {
                 const updated = await action(item.id)
                 setItems((current) =>
@@ -75,14 +93,14 @@ export function usePublicationListActions<T extends {
                 if (authRedirect(error)) {
                     return
                 }
-                setErrorMessage(
+                setActionError(
                     error instanceof Error ? error.message : errorMessageText,
                 )
             } finally {
                 setBusyItemId(null)
             }
         },
-        [authRedirect, setItems],
+        [authRedirect, clearActionMessages, setActionError, setItems, setStatusMessage],
     )
 
     const handlePublish = useCallback(
@@ -139,8 +157,7 @@ export function usePublicationListActions<T extends {
                 return
             }
             setBusyItemId(item.id)
-            setErrorMessage(null)
-            setStatusMessage(null)
+            clearActionMessages()
             try {
                 await remove(item.id)
                 setItems((current) => current.filter((entry) => entry.id !== item.id))
@@ -153,7 +170,7 @@ export function usePublicationListActions<T extends {
                 if (authRedirect(error)) {
                     return
                 }
-                setErrorMessage(
+                setActionError(
                     error instanceof Error
                         ? error.message
                         : (labels.deleteError ?? 'Löschen fehlgeschlagen.'),
@@ -162,7 +179,7 @@ export function usePublicationListActions<T extends {
                 setBusyItemId(null)
             }
         },
-        [authRedirect, labels, remove, setItems],
+        [authRedirect, clearActionMessages, labels, remove, setActionError, setItems, setStatusMessage],
     )
 
     return {
