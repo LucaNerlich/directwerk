@@ -8,5 +8,6 @@ import {directwerkFetch, REFRESH_COOKIE} from '@/lib/server/api'
  */
 export const POST = createLogoutRoute({
     clearCookies: [REFRESH_COOKIE],
+    guardSameOrigin: true,
     revoke: [createTenantRefreshTokenRevoker({directwerkFetch, refreshCookie: REFRESH_COOKIE})],
 })
