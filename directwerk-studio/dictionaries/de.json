@@ -1073,7 +1073,7 @@
     "referenzenWerdenGeladen": "Verwendungen werden geladen…",
     "vonReferenzUmbenennen": "Von Referenz umbenennen",
     "vonReferenzUmbenennenBestaetigen": "Datei in „${filename}“ umbenennen? Der S3-Schlüssel bleibt unverändert.",
-    "vonReferenzUmbenennenHinweis": "Übernimmt den Titel der ersten Verknüpfung und behält die Dateiendung.",
+    "vonReferenzUmbenennenHinweis": "Übernimmt den Titel der ersten Verknüpfung als URL-sicheren Dateinamen und behält die Dateiendung.",
     "visibilitySuffix": "· ${subCount} ${subCount === 1 ? 'Ordner' : 'Ordner'}"
   },
 

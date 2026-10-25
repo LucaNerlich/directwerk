@@ -1073,7 +1073,7 @@
     "referenzenWerdenGeladen": "Loading usages…",
     "vonReferenzUmbenennen": "Rename from reference",
     "vonReferenzUmbenennenBestaetigen": "Rename file to “${filename}”? The S3 key stays unchanged.",
-    "vonReferenzUmbenennenHinweis": "Uses the title of the first linked item and keeps the file extension.",
+    "vonReferenzUmbenennenHinweis": "Uses a URL-safe slug of the first linked title and keeps the file extension.",
     "visibilitySuffix": "· ${subCount} ${subCount === 1 ? 'folder' : 'folders'}"
   },
 
