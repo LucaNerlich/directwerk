@@ -95,6 +95,21 @@ describe('EpisodeDetailClient content rendering', () => {
                     episodeSlug: 'sichere-folge',
                 }),
             )
+
+            // Pause/resume must not fire a second episode-play for the same load.
+            fireEvent.click(screen.getAllByRole('button', {name: 'Pause'})[0]!)
+            await waitFor(() =>
+                expect(
+                    screen.getAllByRole('button', {name: 'Abspielen'}).length,
+                ).toBeGreaterThan(0),
+            )
+            fireEvent.click(screen.getAllByRole('button', {name: 'Abspielen'})[0]!)
+            await waitFor(() =>
+                expect(
+                    screen.getAllByRole('button', {name: 'Pause'}).length,
+                ).toBeGreaterThan(0),
+            )
+            expect(track).toHaveBeenCalledTimes(1)
         } finally {
             media.restore()
             Reflect.deleteProperty(

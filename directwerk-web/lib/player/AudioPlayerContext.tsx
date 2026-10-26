@@ -57,6 +57,8 @@ export function AudioPlayerProvider({
     const pendingPlayTrackSlugRef = useRef<string | null>(null)
     /** Slug currently loaded into the `<audio>` element. */
     const loadedSlugRef = useRef<string | null>(null)
+    /** `audioUrl` currently assigned to `<audio src>` (presigns can rotate). */
+    const loadedUrlRef = useRef<string | null>(null)
 
     useEffect(() => {
         const audio = audioRef.current
@@ -113,11 +115,15 @@ export function AudioPlayerProvider({
             return
         }
 
-        const sameSource = loadedSlugRef.current === next.slug
+        // Slug alone is not enough: entitled private URLs rotate (presign TTL).
+        const sameSource =
+            loadedSlugRef.current === next.slug &&
+            loadedUrlRef.current === next.audioUrl
         setTrack(next)
         if (!sameSource) {
             pendingPlayTrackSlugRef.current = next.slug
             loadedSlugRef.current = next.slug
+            loadedUrlRef.current = next.audioUrl
             // Assigning `src` runs the media load algorithm; avoid an extra
             // `load()` call (jsdom throws "Not implemented" for it).
             audio.src = next.audioUrl
@@ -125,7 +131,11 @@ export function AudioPlayerProvider({
             setDuration(0)
         }
         void audio.play().catch(() => {
-            setIsPlaying(false)
+            // Aborted play() (src change / newer play) must not clear a live
+            // track's playing state.
+            if (audio.paused) {
+                setIsPlaying(false)
+            }
         })
     }, [])
 
@@ -140,7 +150,9 @@ export function AudioPlayerProvider({
         }
         if (audio.paused) {
             void audio.play().catch(() => {
-                setIsPlaying(false)
+                if (audio.paused) {
+                    setIsPlaying(false)
+                }
             })
         } else {
             audio.pause()
@@ -177,6 +189,7 @@ export function AudioPlayerProvider({
         }
         pendingPlayTrackSlugRef.current = null
         loadedSlugRef.current = null
+        loadedUrlRef.current = null
         setTrack(null)
         setIsPlaying(false)
         setCurrentTime(0)
@@ -223,9 +236,4 @@ export function useAudioPlayer(): AudioPlayerValue {
         throw new Error('useAudioPlayer must be used within AudioPlayerProvider')
     }
     return ctx
-}
-
-/** Optional hook for components that may render outside the provider in tests. */
-export function useOptionalAudioPlayer(): AudioPlayerValue | null {
-    return useContext(AudioPlayerContext)
 }

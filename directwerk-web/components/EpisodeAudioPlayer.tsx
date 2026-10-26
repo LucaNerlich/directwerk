@@ -24,7 +24,8 @@ export default function EpisodeAudioPlayer({
     const showingPlaying = isThisTrack && isPlaying
 
     function handlePrimary(): void {
-        if (isThisTrack) {
+        // Same slug with a rotated entitled URL must reload src, not toggle.
+        if (isThisTrack && active?.audioUrl === track.audioUrl) {
             togglePlay()
             return
         }
