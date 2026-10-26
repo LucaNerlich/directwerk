@@ -35,9 +35,11 @@ Each app imports the shared theme from its `app/globals.css`:
 | `content.css` | `.content-prose` for article/episode HTML bodies |
 | `layout.css` | `.page-container`, `.media-player`, `.marketing-container`, `.marketing-section` |
 | `forms.css` | `.native-select` for admin filter forms |
+| `brand-atmosphere.css` | Tenant brand wash (`.dw-brand`), `.dw-glass`, `.dw-neo`, dashboard panel depth |
 
 App `globals.css` should only add **app-specific** utilities (e.g. studio
-`.editor-surface`, admin `.media-asset-row`, homepage `.marketing-container`).
+`.editor-surface`, admin `.media-asset-row`, homepage `.marketing-container`,
+web hero motif). Brand atmosphere belongs in `@directwerk/ui`, not copied per app.
 
 ### Semantic tokens
 
@@ -52,6 +54,11 @@ Components and utilities reference tokens, not raw colors:
 
 Tenant branding overrides `--primary` and `--ring` at runtime via `BrandTheme`
 (web layout, studio shell). Fallback primary is defined in `:root`.
+
+Put `className="dw-brand"` on `BrandTheme` to enable brand-token atmosphere
+(gradients, glass chrome, soft neumorphic panels). Surfaces opt in with
+`data-dw-surface="panel|empty|auth"`. Do not hardcode purple SaaS palettes —
+drive from `--primary` / `--secondary`.
 
 ### Layout and content utilities
 

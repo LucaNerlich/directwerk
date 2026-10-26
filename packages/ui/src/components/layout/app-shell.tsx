@@ -45,8 +45,14 @@ export default function AppShell({
                 </Sidebar>
                 {/* Plain div (not SidebarInset, which renders <main>): the
                     skip-link target below is the single main landmark. */}
-                <div className="relative flex w-full flex-1 flex-col bg-background">
-                    <div className="sticky top-0 z-30 flex h-12 items-center border-b bg-background/90 px-4 backdrop-blur md:hidden">
+                <div
+                    className="relative flex w-full flex-1 flex-col bg-background"
+                    data-dw-shell="app-main"
+                >
+                    <div
+                        className="sticky top-0 z-30 flex h-12 items-center border-b bg-background/90 px-4 backdrop-blur md:hidden"
+                        data-dw-shell="app-mobile-bar"
+                    >
                         <SidebarTrigger aria-label={navigationTriggerLabel} />
                     </div>
                     <main

@@ -21,6 +21,7 @@ export default function FeatureCard({
                 'flex flex-col gap-4 rounded-xl border bg-card p-5 shadow-sm',
                 className,
             )}
+            data-dw-surface="panel"
         >
             <div>
                 {eyebrow !== undefined ? (

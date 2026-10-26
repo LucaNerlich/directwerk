@@ -12,6 +12,7 @@ export default function ListPanel({
                 'divide-y overflow-hidden rounded-xl border bg-card shadow-sm',
                 className,
             )}
+            data-dw-surface="panel"
             {...props}
         />
     )
