@@ -1,8 +1,10 @@
-import {fireEvent, render, screen, waitFor} from '@testing-library/react'
-import {describe, expect, it, vi} from 'vitest'
+import {cleanup, fireEvent, render, screen, waitFor} from '@testing-library/react'
+import {afterEach, describe, expect, it, vi} from 'vitest'
 
 import type {PublicEpisode} from '@directwerk/api/types'
 
+import {AudioPlayerProvider} from '@/lib/player/AudioPlayerContext'
+import {mockHtmlMedia} from '@/lib/player/mockHtmlMedia'
 import {TestLocale} from '@/lib/i18n/testWrapper'
 
 import EpisodeDetailClient from './episode-detail-client'
@@ -33,9 +35,21 @@ function buildEpisode(description: string): PublicEpisode {
     }
 }
 
+function renderDetail(
+    ui: React.ReactElement,
+): ReturnType<typeof render> {
+    return render(
+        <TestLocale>
+            <AudioPlayerProvider>{ui}</AudioPlayerProvider>
+        </TestLocale>,
+    )
+}
+
+afterEach(cleanup)
+
 describe('EpisodeDetailClient content rendering', () => {
     it('renders the dedicated empty-slug message', async () => {
-        render(<TestLocale><EpisodeDetailClient slug="" /></TestLocale>)
+        renderDetail(<EpisodeDetailClient slug="" />)
 
         await waitFor(() =>
             expect(screen.getByText('Folge nicht gefunden.')).toBeInTheDocument(),
@@ -44,11 +58,11 @@ describe('EpisodeDetailClient content rendering', () => {
     })
 
     it('sanitizes stored episode HTML before injecting it into the DOM', () => {
-        const {container} = render(
-            <TestLocale><EpisodeDetailClient
+        const {container} = renderDetail(
+            <EpisodeDetailClient
                 slug="sichere-folge"
                 initialPublicEpisode={buildEpisode(MALICIOUS_DESCRIPTION)}
-            /></TestLocale>,
+            />,
         )
 
         expect(container.querySelector('script')).toBeNull()
@@ -58,29 +72,46 @@ describe('EpisodeDetailClient content rendering', () => {
         expect(container.textContent).toContain('Hörbarer Text')
     })
 
-    it('reports an episode-play event when playback starts', () => {
+    it('reports an episode-play event when playback starts', async () => {
         const track = vi.fn()
         ;(window as unknown as {umami: unknown}).umami = {track}
+        const media = mockHtmlMedia()
         try {
-            render(
-                <TestLocale><EpisodeDetailClient
+            renderDetail(
+                <EpisodeDetailClient
                     slug="sichere-folge"
                     initialPublicEpisode={{
                         ...buildEpisode('<p>Hallo</p>'),
                         audioCdnUrl: 'https://cdn.example.com/folge.mp3',
                     }}
-                /></TestLocale>,
+                />,
             )
 
-            const audio = document.querySelector('audio')
-            expect(audio).not.toBeNull()
-            fireEvent.play(audio as HTMLAudioElement)
+            fireEvent.click(screen.getByRole('button', {name: 'Abspielen'}))
 
-            expect(track).toHaveBeenCalledWith('episode-play', {
-                url: '/episodes/sichere-folge',
-                episodeSlug: 'sichere-folge',
-            })
+            await waitFor(() =>
+                expect(track).toHaveBeenCalledWith('episode-play', {
+                    url: '/episodes/sichere-folge',
+                    episodeSlug: 'sichere-folge',
+                }),
+            )
+
+            // Pause/resume must not fire a second episode-play for the same load.
+            fireEvent.click(screen.getAllByRole('button', {name: 'Pause'})[0]!)
+            await waitFor(() =>
+                expect(
+                    screen.getAllByRole('button', {name: 'Abspielen'}).length,
+                ).toBeGreaterThan(0),
+            )
+            fireEvent.click(screen.getAllByRole('button', {name: 'Abspielen'})[0]!)
+            await waitFor(() =>
+                expect(
+                    screen.getAllByRole('button', {name: 'Pause'}).length,
+                ).toBeGreaterThan(0),
+            )
+            expect(track).toHaveBeenCalledTimes(1)
         } finally {
+            media.restore()
             Reflect.deleteProperty(
                 window as unknown as Record<string, unknown>,
                 'umami',
@@ -88,21 +119,29 @@ describe('EpisodeDetailClient content rendering', () => {
         }
     })
 
-    it('plays fine without a tracker (adblocker / analytics off)', () => {
-        render(
-            <TestLocale><EpisodeDetailClient
-                slug="sichere-folge"
-                initialPublicEpisode={{
-                    ...buildEpisode('<p>Hallo</p>'),
-                    audioCdnUrl: 'https://cdn.example.com/folge.mp3',
-                }}
-            /></TestLocale>,
-        )
+    it('plays fine without a tracker (adblocker / analytics off)', async () => {
+        const media = mockHtmlMedia()
+        try {
+            renderDetail(
+                <EpisodeDetailClient
+                    slug="sichere-folge"
+                    initialPublicEpisode={{
+                        ...buildEpisode('<p>Hallo</p>'),
+                        audioCdnUrl: 'https://cdn.example.com/folge.mp3',
+                    }}
+                />,
+            )
 
-        const audio = document.querySelector('audio')
-        expect(audio).not.toBeNull()
-        expect(() =>
-            fireEvent.play(audio as HTMLAudioElement),
-        ).not.toThrow()
+            expect(() =>
+                fireEvent.click(screen.getByRole('button', {name: 'Abspielen'})),
+            ).not.toThrow()
+            await waitFor(() =>
+                expect(
+                    screen.getAllByRole('button', {name: 'Pause'}).length,
+                ).toBeGreaterThan(0),
+            )
+        } finally {
+            media.restore()
+        }
     })
 })
