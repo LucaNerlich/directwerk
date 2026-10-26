@@ -25,6 +25,8 @@ export interface EntitledDetailResult<T> {
  *
  * - Skips the fetch when a server-rendered `initial` item exists and the
  *   viewer is anonymous.
+ * - Keeps SSR seed visible for authenticated viewers while the entitled
+ *   fetch runs in the background (#860).
  * - Uses the entitled source for subscribers, the public source otherwise.
  * - Single-by-slug fetchers where the API allows them (articles), list scan
  *   otherwise (episodes) — both are just `() => Promise<T | null>` loaders.
@@ -52,7 +54,7 @@ export function useEntitledDetail<T>({
     loadersRef.current = {loadPublic, loadEntitled, messages}
     const [item, setItem] = useState<T | null>(initial)
     const [status, setStatus] = useState<EntitledDetailStatus>(
-        initial === null || isAuthenticated ? 'loading' : 'ready',
+        initial !== null ? 'ready' : 'loading',
     )
     const [errorMessage, setErrorMessage] = useState<string | null>(null)
     const [attempt, setAttempt] = useState(0)
@@ -72,8 +74,15 @@ export function useEntitledDetail<T>({
             return
         }
 
-        setStatus('loading')
-        setErrorMessage(null)
+        // Keep SSR seed on screen for subscribers; only blank when we have nothing.
+        if (initial === null) {
+            setStatus('loading')
+            setErrorMessage(null)
+        } else {
+            setItem(initial)
+            setStatus('ready')
+            setErrorMessage(null)
+        }
 
         const load = isAuthenticated
             ? loadersRef.current.loadEntitled
@@ -91,7 +100,10 @@ export function useEntitledDetail<T>({
                 if (!active) {
                     return
                 }
-                setItem(null)
+                // Keep seeded content if the entitled refresh fails.
+                if (initial === null) {
+                    setItem(null)
+                }
                 if (error instanceof Error && error.message === AUTH_REQUIRED) {
                     setErrorMessage(loadersRef.current.messages.authRequired)
                 } else {
@@ -100,7 +112,7 @@ export function useEntitledDetail<T>({
                         userFacingGeneralError(error, loadersRef.current.messages.loadFailed),
                     )
                 }
-                setStatus('error')
+                setStatus(initial !== null ? 'ready' : 'error')
             })
 
         return () => {
