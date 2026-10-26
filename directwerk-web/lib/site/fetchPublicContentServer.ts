@@ -167,29 +167,29 @@ export const fetchPublicArticleServer = cache(async (
     host: string,
     slug: string,
 ): Promise<PublicArticle | null> => {
-    return cachePublicBffByHostSlug('article', host, slug, async () => {
-        const response = await directwerkFetch({
-            path: `/api/v1/public/articles/${encodeURIComponent(slug)}`,
-            tenantHost: host,
-            method: 'GET',
-        })
-
-        if (response.status === 404) {
-            return null
-        }
-        if (!response.ok) {
-            throw new Error(
-                `public article request failed (HTTP ${response.status}) for host ${host}`,
-            )
-        }
-
-        const parsed = parsePublicArticleEnvelope(await response.json())
-        if (parsed === null) {
-            throw new Error(`public article response invalid for host ${host}`)
-        }
-
-        return parsed.data
+    // Do not cross-request-cache by-slug article GETs: each upstream hit records
+    // a public article-view analytics event (#863 review).
+    const response = await directwerkFetch({
+        path: `/api/v1/public/articles/${encodeURIComponent(slug)}`,
+        tenantHost: host,
+        method: 'GET',
     })
+
+    if (response.status === 404) {
+        return null
+    }
+    if (!response.ok) {
+        throw new Error(
+            `public article request failed (HTTP ${response.status}) for host ${host}`,
+        )
+    }
+
+    const parsed = parsePublicArticleEnvelope(await response.json())
+    if (parsed === null) {
+        throw new Error(`public article response invalid for host ${host}`)
+    }
+
+    return parsed.data
 })
 
 /**
