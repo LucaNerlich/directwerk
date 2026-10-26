@@ -55,7 +55,7 @@ const pendingImage = {
     originalFilename: 'wartend.png',
 }
 
-const listMedia = vi.fn().mockResolvedValue([publicImage, publicAudio, privateImage, pendingImage])
+const listAllMedia = vi.fn().mockResolvedValue([publicImage, publicAudio, privateImage, pendingImage])
 const listMediaFolders = vi.fn().mockResolvedValue([
     {
         id: 11,
@@ -67,8 +67,11 @@ const listMediaFolders = vi.fn().mockResolvedValue([
     },
 ])
 
+vi.mock('@/lib/api/listAllMedia', () => ({
+    listAllMedia: (...args: unknown[]) => listAllMedia(...args),
+}))
+
 vi.mock('@/lib/api/mediaApi', () => ({
-    listMedia: (...args: unknown[]) => listMedia(...args),
     listMediaFolders: (...args: unknown[]) => listMediaFolders(...args),
 }))
 
@@ -129,7 +132,7 @@ describe('MediaInlinePickerDialog', () => {
     })
 
     it('filters by folder and shows folder names', async () => {
-        listMedia.mockResolvedValueOnce([
+        listAllMedia.mockResolvedValueOnce([
             {...publicImage, folderId: 11},
             {...publicAudio, folderId: null},
         ])
@@ -153,5 +156,17 @@ describe('MediaInlinePickerDialog', () => {
         expect(await screen.findByText('cover.png')).toBeInTheDocument()
         expect(screen.getByText('jingle.mp3')).toBeInTheDocument()
         expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+    })
+
+    it('loads the catalog through the shared page walk (#885)', async () => {
+        listAllMedia.mockResolvedValueOnce([
+            publicImage,
+            {...publicImage, id: 101, originalFilename: 'page2.png'},
+        ])
+        renderDialog()
+
+        expect(await screen.findByText('cover.png')).toBeInTheDocument()
+        expect(screen.getByText('page2.png')).toBeInTheDocument()
+        expect(listAllMedia).toHaveBeenCalledWith()
     })
 })
