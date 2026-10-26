@@ -4,9 +4,11 @@ import de.pnnit.directwerk.api.dto.ContentNotifyPreviewView;
 import de.pnnit.directwerk.modules.content.ContentType;
 import de.pnnit.directwerk.modules.content.InvalidPublicationTransitionException;
 import de.pnnit.directwerk.modules.content.NewsletterNotificationApi;
+import de.pnnit.directwerk.modules.core.RequiresModule;
 import de.pnnit.directwerk.modules.core.entity.MembershipStatus;
 import de.pnnit.directwerk.modules.core.notification.SubscriberNotificationGate;
 import de.pnnit.directwerk.modules.core.repository.TenantMembershipRepository;
+import de.pnnit.directwerk.modules.newsletter.ArticlesModule;
 import de.pnnit.directwerk.modules.newsletter.entity.Article;
 import de.pnnit.directwerk.modules.newsletter.entity.ArticleStatus;
 import de.pnnit.directwerk.modules.newsletter.entity.NewsletterListStatus;
@@ -64,6 +66,7 @@ public class ContentNotifyStudioService {
     }
 
     @Transactional(readOnly = true)
+    @RequiresModule(ArticlesModule.KEY)
     public ContentNotifyPreviewView previewArticle(Long tenantId, Long articleId) {
         Article article = articleRepository.findByIdAndTenantId(articleId, tenantId)
                 .orElseThrow(() -> new ArticleNotFoundException(articleId));
@@ -89,6 +92,7 @@ public class ContentNotifyStudioService {
     }
 
     @Transactional
+    @RequiresModule(ArticlesModule.KEY)
     public Article retryArticle(Long tenantId, Long articleId) {
         ContentNotifyPreviewView preview = previewArticle(tenantId, articleId);
         requireRetryable(preview);
@@ -119,13 +123,15 @@ public class ContentNotifyStudioService {
                 .map(status -> status == JobStatus.QUEUED || status == JobStatus.PROCESSING)
                 .orElse(false);
         boolean failed = job.map(QueueJob::status).map(status -> status == JobStatus.FAILED).orElse(false);
-        boolean orphanedClaim = emailNotifiedAt != null && job.isEmpty();
+        // emailNotifiedAt + missing job is the normal post-retention shape for a successful
+        // send (COMPLETED rows are purged). Do not treat that as retryable — only never-sent
+        // or an extant FAILED job.
         boolean neverSent = emailNotifiedAt == null;
         boolean canRetry = notifyAvailable
                 && published
                 && audienceOk
                 && !inFlight
-                && (failed || orphanedClaim || neverSent);
+                && (failed || neverSent);
         return new ContentNotifyPreviewView(
                 estimatedRecipients,
                 emailNotifiedAt,

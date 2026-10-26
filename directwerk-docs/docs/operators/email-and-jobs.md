@@ -113,8 +113,9 @@ Creators see audience size and last-send status before checking notify-on-publis
 | `POST /api/v1/articles/{id}/notify` | Same for articles (requires ≥1 ACTIVE list) |
 
 `canRetry` is true when EMAIL_NOTIFY is available, the item is published, audience exists, and the
-latest content-notify job is not in flight — and either never sent, claim orphaned, or job
-`FAILED`. Studio surfaces this under the publish checkbox (draft) and as status + retry when
+latest content-notify job is not in flight — and either never sent or job `FAILED`.
+(`email_notified_at` set with no job row is the normal post-retention shape for a successful send —
+not retryable.) Studio surfaces this under the publish checkbox (draft) and as status + retry when
 published. Bruno `8c`/`8d` and `6c`/`6d`; http names `notifyPreview*` / `notify*Subscribers`.
 
 ## Platform admin enqueue API

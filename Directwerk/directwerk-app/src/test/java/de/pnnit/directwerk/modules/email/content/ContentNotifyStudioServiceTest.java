@@ -105,6 +105,19 @@ class ContentNotifyStudioServiceTest {
     }
 
     @Test
+    void previewEpisodeBlocksRetryWhenClaimRemainsAfterJobRetention() {
+        // Successful send leaves emailNotifiedAt; COMPLETED job rows are purged by retention.
+        stubEpisodeAudience();
+        when(queueService.findLatestByCorrelation(any(), anyLong(), any())).thenReturn(Optional.empty());
+
+        ContentNotifyPreviewView preview = service.previewEpisode(TENANT_ID, EPISODE_ID);
+
+        assertThat(preview.emailNotifiedAt()).isNotNull();
+        assertThat(preview.jobId()).isNull();
+        assertThat(preview.canRetry()).isFalse();
+    }
+
+    @Test
     void retryEpisodeDelegatesWhenCanRetry() {
         stubEpisodeAudience();
         when(queueService.findLatestByCorrelation(any(), anyLong(), any()))
