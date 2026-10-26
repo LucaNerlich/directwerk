@@ -98,7 +98,8 @@
  * Softer panel depth for dashboard surfaces (StatCard, FeatureCard, ListPanel).
  * Opt in with data-dw-surface="panel" under a .dw-brand ancestor.
  */
-.dw-brand [data-dw-surface='panel'] {
+/* Skip when the card already opted into marketing .dw-glass / .dw-neo. */
+.dw-brand [data-dw-surface='panel']:not(.dw-glass):not(.dw-neo) {
     background: color-mix(in oklab, var(--primary) 6%, var(--card));
     border-color: color-mix(in oklab, var(--primary) 18%, var(--border));
     box-shadow:
@@ -108,7 +109,11 @@
 }
 
 .dw-brand [data-dw-surface='empty'] {
-    background: color-mix(in oklab, var(--primary) 5%, var(--muted) / 0.35);
+    background: color-mix(
+        in oklab,
+        var(--primary) 5%,
+        color-mix(in oklab, var(--muted) 35%, transparent)
+    );
     border-color: color-mix(in oklab, var(--primary) 22%, var(--border));
 }
 

@@ -22,7 +22,7 @@ export default function AuthCard({
     return (
         <main className="grid min-h-[calc(100vh-5rem)] place-items-center px-4 py-12">
             <Card
-                className="w-full max-w-md shadow-lg shadow-foreground/5 ring-0"
+                className="w-full max-w-md shadow-lg shadow-foreground/5"
                 data-dw-surface="auth"
             >
                 <CardHeader>
