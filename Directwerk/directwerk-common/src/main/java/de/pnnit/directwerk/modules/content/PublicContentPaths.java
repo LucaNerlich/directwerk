@@ -39,7 +39,7 @@ public final class PublicContentPaths {
     }
 
     public static String notificationPreferences() {
-        return localized(DEFAULT_LOCALE, "/account/notifications");
+        return localized(DEFAULT_LOCALE, "/account");
     }
 
     public static String newsletterConfirm() {

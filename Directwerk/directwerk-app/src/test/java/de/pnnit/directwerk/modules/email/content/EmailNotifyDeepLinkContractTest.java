@@ -116,7 +116,7 @@ class EmailNotifyDeepLinkContractTest {
         String expectedContent = "https://podcast.example/"
                 + PublicContentPaths.DEFAULT_LOCALE + "/episodes/folge-1";
         String expectedPrefs = "https://podcast.example/"
-                + PublicContentPaths.DEFAULT_LOCALE + "/account/notifications";
+                + PublicContentPaths.DEFAULT_LOCALE + "/account";
         assertThat(variables.getValue().get("contentUrl")).isEqualTo(expectedContent);
         assertThat(variables.getValue().get("preferencesUrl")).isEqualTo(expectedPrefs);
         assertThat(variables.getValue().get("title")).isEqualTo("Folge 1");

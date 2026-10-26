@@ -19,7 +19,7 @@ class PublicContentPathsTest {
         assertThat(PublicContentPaths.articlePage("post"))
                 .isEqualTo("/" + PublicContentPaths.DEFAULT_LOCALE + "/articles/post");
         assertThat(PublicContentPaths.notificationPreferences())
-                .isEqualTo("/" + PublicContentPaths.DEFAULT_LOCALE + "/account/notifications");
+                .isEqualTo("/" + PublicContentPaths.DEFAULT_LOCALE + "/account");
         assertThat(PublicContentPaths.newsletterConfirm())
                 .isEqualTo("/" + PublicContentPaths.DEFAULT_LOCALE + "/newsletter/confirm");
         assertThat(PublicContentPaths.newsletterUnsubscribe())

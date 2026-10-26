@@ -48,7 +48,7 @@ class PublicContentUrlResolverTest {
         assertThat(resolver.contentPageUrl(TENANT_ID, ContentType.ARTICLE, "post"))
                 .isEqualTo("https://demo.example/" + PublicContentPaths.DEFAULT_LOCALE + "/articles/post");
         assertThat(resolver.notificationPreferencesUrl(TENANT_ID))
-                .isEqualTo("https://demo.example/" + PublicContentPaths.DEFAULT_LOCALE + "/account/notifications");
+                .isEqualTo("https://demo.example/" + PublicContentPaths.DEFAULT_LOCALE + "/account");
     }
 
     @Test
