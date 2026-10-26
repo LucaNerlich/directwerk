@@ -186,14 +186,14 @@ export default function HomeClient({
             ) : (
                 <section className="dw-home-hero">
                     <div className="mx-auto grid w-full max-w-6xl items-center gap-10 px-4 sm:px-6 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)] lg:gap-14">
-                        <div className="dw-home-hero-panel dw-glass space-y-6 rounded-3xl p-6 sm:p-8">
+                        <div className="dw-home-hero-panel dw-glass min-w-0 space-y-6 rounded-3xl p-6 sm:p-8">
                             <BrandLogo
                                 className="max-h-20 max-w-[min(100%,16rem)]"
                                 logoUrl={config.branding.logoUrl}
                                 name={title}
                                 priority={heroImageSrc === null}
                             />
-                            <h1 className="text-pretty text-4xl font-semibold tracking-tight text-[color:var(--dw-brand-ink)] sm:text-5xl lg:text-6xl">
+                            <h1 className="[overflow-wrap:anywhere] text-pretty text-4xl font-semibold tracking-tight text-[color:var(--dw-brand-ink)] sm:text-5xl lg:text-6xl">
                                 {title}
                             </h1>
                             <p className="max-w-xl text-pretty text-base leading-7 text-muted-foreground sm:text-lg">
