@@ -66,7 +66,7 @@ describe('DeskSwitcher', () => {
     it('renders Write and Podcast links for hybrid tenants', () => {
         renderWithLocale(<DeskSwitcher config={config()} />)
 
-        const writeLink = screen.getByRole('link', {name: 'Schreiben'})
+        const writeLink = screen.getByRole('link', {name: 'Artikel'})
         const podcastLink = screen.getByRole('link', {name: 'Podcast'})
 
         expect(writeLink).toHaveAttribute('href', '/de/write')
@@ -77,7 +77,7 @@ describe('DeskSwitcher', () => {
         currentPathname = '/write/articles'
         renderWithLocale(<DeskSwitcher config={config()} />)
 
-        expect(screen.getByRole('link', {name: 'Schreiben'})).toHaveAttribute(
+        expect(screen.getByRole('link', {name: 'Artikel'})).toHaveAttribute(
             'aria-current',
             'page',
         )
@@ -92,7 +92,7 @@ describe('DeskSwitcher', () => {
             'aria-current',
             'page',
         )
-        expect(screen.getByRole('link', {name: 'Schreiben'})).not.toHaveAttribute('aria-current')
+        expect(screen.getByRole('link', {name: 'Artikel'})).not.toHaveAttribute('aria-current')
     })
 
     it('restores last active desk on shared routes when remembered', () => {
@@ -104,7 +104,7 @@ describe('DeskSwitcher', () => {
             'aria-current',
             'page',
         )
-        expect(screen.getByRole('link', {name: 'Schreiben'})).not.toHaveAttribute('aria-current')
+        expect(screen.getByRole('link', {name: 'Artikel'})).not.toHaveAttribute('aria-current')
     })
 
     it('persists desk choice on click', () => {
@@ -135,7 +135,7 @@ describe('DeskSwitcher', () => {
         expect(screen.queryByRole('navigation', {name: 'Desks'})).not.toBeInTheDocument()
 
         rerender(<DeskSwitcher config={config()} />)
-        expect(screen.getByRole('link', {name: 'Schreiben'})).toBeInTheDocument()
+        expect(screen.getByRole('link', {name: 'Artikel'})).toBeInTheDocument()
 
         rerender(<DeskSwitcher config={config({studioDesks: ['PODCAST']})} />)
         expect(screen.queryByRole('navigation', {name: 'Desks'})).not.toBeInTheDocument()

@@ -85,7 +85,7 @@ export default function NewsletterListDetailClient(): React.JSX.Element {
     return (
         <PageStack>
             <PageHeader
-                eyebrow="Write Desk"
+                eyebrow={dict.shell.home.writeDeskEyebrow}
                 title={list?.name ?? 'Newsletter-Liste'}
                 description={list ? `Slug: ${list.slug}` : undefined}
                 actions={

@@ -37,7 +37,7 @@ export default function BrandPreviewPage(): React.JSX.Element {
                         <span className="rounded-md bg-sidebar-accent px-3 py-2 text-sm font-medium">
                             Übersicht
                         </span>
-                        <span className="px-3 py-2 text-sm text-muted-foreground">Schreiben</span>
+                        <span className="px-3 py-2 text-sm text-muted-foreground">Artikel</span>
                         <span className="px-3 py-2 text-sm text-muted-foreground">Podcast</span>
                         <span className="px-3 py-2 text-sm text-muted-foreground">Medien</span>
                     </nav>
@@ -58,9 +58,9 @@ export default function BrandPreviewPage(): React.JSX.Element {
                     </section>
                     <section className="grid gap-4 sm:grid-cols-2">
                         <FeatureCard
-                            description="Artikel und Listen aus dem Schreibpult."
-                            eyebrow="Schreiben"
-                            title="Schreibpult"
+                            description="Artikel und Listen aus dem Artikel-Desk."
+                            eyebrow="Artikel"
+                            title="Artikel-Desk"
                         >
                             <Button type="button">Neuer Artikel</Button>
                         </FeatureCard>

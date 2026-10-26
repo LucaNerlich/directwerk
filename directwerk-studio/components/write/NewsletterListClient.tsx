@@ -70,7 +70,7 @@ export default function NewsletterListClient(): React.JSX.Element {
     return (
         <PageStack>
             <PageHeader
-                eyebrow="Write Desk"
+                eyebrow={dict.shell.home.writeDeskEyebrow}
                 title="Newsletter-Listen"
                 description={dict.write.newsletterListsDescription}
             />
