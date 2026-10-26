@@ -100,10 +100,16 @@ class EpisodeDownloadAnalyticsServiceTest {
                 org.mockito.ArgumentMatchers.isNull()
         );
         org.assertj.core.api.Assertions.assertThat(dataCaptor.getValue())
+                .containsEntry("slug", "episode-1")
+                .containsEntry("title", "Episode 1")
                 .containsEntry("episodeSlug", "episode-1")
+                .containsEntry("episodeId", "30")
+                .containsEntry("episodeTitle", "Episode 1")
                 .containsEntry("seriesSlug", "main")
                 .containsEntry("accessPolicy", "FREE")
-                .containsEntry("source", "stream");
+                .containsEntry("source", "stream")
+                .containsEntry("isRangeRequest", "false")
+                .containsEntry("clientUserAgent", "");
     }
 
     @Test

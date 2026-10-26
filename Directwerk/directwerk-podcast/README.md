@@ -129,8 +129,11 @@ Umami tracking is platform-configured with `DIRECTWERK_ANALYTICS_*`; tenants sto
 Tenant overrides work even when no platform default is set, but non-routable hosts
 (loopback/private/reserved) fall back to the platform host. When the tenant `ANALYTICS`
 module and a website ID are present, stream/download/RSS enclosure redirects emit
-`episode-download` with `{episodeSlug, seriesSlug, accessPolicy, source, isRangeRequest,
-clientUserAgent}` (truncated UA in event data; the client IP is forwarded to Umami via
+`episode-download` with event data
+`{slug, title?, episodeSlug, episodeId, episodeTitle?, seriesSlug, accessPolicy, source,
+isRangeRequest, clientUserAgent}` — `slug`/`title` match the proven m10z Umami download
+contract (Properties + `event-data/values?propertyName=slug`); Directwerk-specific keys stay
+alongside (truncated UA in event data; the client IP is forwarded to Umami via
 `X-Forwarded-For` for session attribution while the collector `User-Agent` stays a stable
 browser token — Umami `isbot`-drops custom/bot UAs with HTTP 200, so the real podcatcher UA
 is never used as the collector header). Feed XML fetches emit
