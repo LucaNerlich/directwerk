@@ -320,11 +320,57 @@ export function buildSafeDirectoryListQueryString(
 }
 
 /**
+ * Subscriber entitlement debugger (#77):
+ * `GET /api/v1/tenant/subscribers/{userId}/access?episodeId=` or `?articleId=`
+ * (at most one). Studio hits this via the tenant BFF; without an allowlist the
+ * proxy rejects every query string.
+ */
+const SUBSCRIBER_ACCESS_PATH =
+    /^\/api\/v1\/tenant\/subscribers\/\d+\/access$/
+
+/**
+ * Builds a canonical `?episodeId=` or `?articleId=` query for subscriber
+ * access checks. Returns `null` for any other path, both keys, unknown key,
+ * duplicate key, empty query, or non-positive id.
+ */
+export function buildSafeSubscriberAccessQueryString(
+    apiPath: string,
+    searchParams: URLSearchParams,
+): string | null {
+    if (!SUBSCRIBER_ACCESS_PATH.test(apiPath)) {
+        return null
+    }
+
+    const names = [...searchParams.keys()]
+    if (names.length !== 1 || new Set(names).size !== 1) {
+        return null
+    }
+
+    const name = names[0]
+    if (name !== 'episodeId' && name !== 'articleId') {
+        return null
+    }
+
+    const value = singleValue(searchParams, name)
+    if (value === null || !POSITIVE_ID.test(value)) {
+        return null
+    }
+    const parsed = Number.parseInt(value, 10)
+    if (!Number.isSafeInteger(parsed) || parsed < 1) {
+        return null
+    }
+
+    const safeParams = new URLSearchParams()
+    safeParams.set(name, String(parsed))
+    return `?${safeParams.toString()}`
+}
+
+/**
  * Resolves the canonical upstream `?…` query for an allowlisted
  * proxy call (feed-builder previews, media library list/delete,
- * episode/article lists, tenant directory lists). Returns `null`
- * when the path/method/query combination is not allowlisted —
- * callers keep the blanket query rejection then.
+ * episode/article lists, tenant directory lists, subscriber access).
+ * Returns `null` when the path/method/query combination is not
+ * allowlisted — callers keep the blanket query rejection then.
  */
 export function buildSafeProxyQuery(
     apiPath: string,
@@ -336,7 +382,8 @@ export function buildSafeProxyQuery(
             buildSafePreviewQueryString(apiPath, searchParams) ??
             buildSafeMediaListQueryString(apiPath, searchParams) ??
             buildSafePublicationListQueryString(apiPath, searchParams) ??
-            buildSafeDirectoryListQueryString(apiPath, searchParams)
+            buildSafeDirectoryListQueryString(apiPath, searchParams) ??
+            buildSafeSubscriberAccessQueryString(apiPath, searchParams)
         )
     }
     if (method === 'DELETE') {

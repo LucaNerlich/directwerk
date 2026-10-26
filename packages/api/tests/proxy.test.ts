@@ -7,6 +7,7 @@ import {
     buildSafeMediaListQueryString,
     buildSafePreviewQueryString,
     buildSafePublicationListQueryString,
+    buildSafeSubscriberAccessQueryString,
     readBearerToken,
 } from '../src/proxy/path'
 import {parseTenantHost} from '../src/proxy/tenantHost'
@@ -301,6 +302,56 @@ describe('buildSafeDirectoryListQueryString', () => {
             buildSafeDirectoryListQueryString(
                 '/api/v1/tenant/users',
                 new URLSearchParams('q='),
+            ),
+        ).toBeNull()
+    })
+})
+
+describe('buildSafeSubscriberAccessQueryString', () => {
+    it('forwards a single episodeId or articleId on the access path', () => {
+        expect(
+            buildSafeSubscriberAccessQueryString(
+                '/api/v1/tenant/subscribers/4/access',
+                new URLSearchParams('episodeId=12'),
+            ),
+        ).toBe('?episodeId=12')
+        expect(
+            buildSafeSubscriberAccessQueryString(
+                '/api/v1/tenant/subscribers/4/access',
+                new URLSearchParams('articleId=7'),
+            ),
+        ).toBe('?articleId=7')
+    })
+
+    it('rejects wrong paths, both keys, unknown keys, and invalid ids', () => {
+        expect(
+            buildSafeSubscriberAccessQueryString(
+                '/api/v1/tenant/subscribers',
+                new URLSearchParams('episodeId=12'),
+            ),
+        ).toBeNull()
+        expect(
+            buildSafeSubscriberAccessQueryString(
+                '/api/v1/tenant/subscribers/4/access',
+                new URLSearchParams('episodeId=12&articleId=7'),
+            ),
+        ).toBeNull()
+        expect(
+            buildSafeSubscriberAccessQueryString(
+                '/api/v1/tenant/subscribers/4/access',
+                new URLSearchParams('q=alex'),
+            ),
+        ).toBeNull()
+        expect(
+            buildSafeSubscriberAccessQueryString(
+                '/api/v1/tenant/subscribers/4/access',
+                new URLSearchParams('episodeId=0'),
+            ),
+        ).toBeNull()
+        expect(
+            buildSafeSubscriberAccessQueryString(
+                '/api/v1/tenant/subscribers/4/access',
+                new URLSearchParams(),
             ),
         ).toBeNull()
     })
