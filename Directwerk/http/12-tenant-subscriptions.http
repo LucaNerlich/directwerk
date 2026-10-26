@@ -28,6 +28,50 @@ Accept: application/json
 
 ###
 
+### @name getSubscriberAccess
+GET {{baseUrl}}/api/v1/tenant/subscribers/{{subscriberUserId}}/access
+Host: {{tenantAHost}}
+Authorization: Bearer {{tenantAAccessToken}}
+Accept: application/json
+
+> {%
+    client.test("GET /tenant/subscribers/{id}/access", function() {
+        client.assert(response.status === 200 || response.status === 404, "Expected 200 or 404");
+        if (response.status === 200) {
+            client.assert(Array.isArray(response.body.data.activeLevels), "Expected activeLevels");
+            client.assert(Array.isArray(response.body.data.activePackages), "Expected activePackages");
+            client.assert(
+                Object.prototype.hasOwnProperty.call(response.body.data, "maxLevelSortOrder"),
+                "Expected maxLevelSortOrder"
+            );
+        }
+    });
+%}
+
+###
+
+### @name getSubscriberAccessEpisodeCheck
+GET {{baseUrl}}/api/v1/tenant/subscribers/{{subscriberUserId}}/access?episodeId={{episodeId}}
+Host: {{tenantAHost}}
+Authorization: Bearer {{tenantAAccessToken}}
+Accept: application/json
+
+> {%
+    client.test("GET subscriber access with episodeId", function() {
+        client.assert(
+            response.status === 200 || response.status === 404,
+            "Expected 200 or 404"
+        );
+        if (response.status === 200 && response.body.data.check) {
+            client.assert(response.body.data.check.kind === "EPISODE", "Expected EPISODE check");
+            client.assert(typeof response.body.data.check.allowed === "boolean", "Expected allowed");
+            client.assert(typeof response.body.data.check.reason === "string", "Expected reason");
+        }
+    });
+%}
+
+###
+
 ### @name grantSubscription
 POST {{baseUrl}}/api/v1/tenant/subscriptions
 Host: {{tenantAHost}}

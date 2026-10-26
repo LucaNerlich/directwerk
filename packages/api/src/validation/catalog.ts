@@ -64,6 +64,10 @@ import type {
     TenantDomain,
     TenantSubscriber,
     TenantSubscriberSubscription,
+    SubscriberAccess,
+    SubscriberAccessCheck,
+    SubscriberAccessMatchedRule,
+    SubscriberAccessSubject,
     TenantUser,
     DirectoryListPage,
     UploadUrlResponse,
@@ -1947,6 +1951,149 @@ export function parseSubscriberListEnvelope(
  * Parses a paged subscriber directory response (#561).
  * Bound is 100 to match the API's max page size.
  */
+function parseSubscriberAccessMatchedRule(
+    value: unknown,
+): SubscriberAccessMatchedRule | null {
+    if (
+        !isRecord(value) ||
+        !isNullableSafeInteger(value.ruleId) ||
+        !isPositiveSafeInteger(value.productId) ||
+        !isBoundedString(value.productSlug, 128) ||
+        !isBoundedString(value.productTitle, 255) ||
+        !isBoundedString(value.scopeType, 32) ||
+        !isNullableSafeInteger(value.scopeId)
+    ) {
+        return null
+    }
+    return {
+        ruleId: value.ruleId,
+        productId: value.productId,
+        productSlug: value.productSlug,
+        productTitle: value.productTitle,
+        scopeType: value.scopeType,
+        scopeId: value.scopeId,
+    }
+}
+
+function parseSubscriberAccessSubject(value: unknown): SubscriberAccessSubject | null {
+    if (
+        !isRecord(value) ||
+        typeof value.free !== 'boolean' ||
+        !isSafeInteger(value.requiredLevelSortOrder) ||
+        !isNullableSafeInteger(value.maxFormatRequiredLevel) ||
+        !isNullableSafeInteger(value.seriesId)
+    ) {
+        return null
+    }
+    const formatIds = parseBoundedArray(value.formatIds, 200, (id) =>
+        isPositiveSafeInteger(id) ? id : null,
+    )
+    const categoryIds = parseBoundedArray(value.categoryIds, 200, (id) =>
+        isPositiveSafeInteger(id) ? id : null,
+    )
+    if (formatIds === null || categoryIds === null) {
+        return null
+    }
+    return {
+        free: value.free,
+        requiredLevelSortOrder: value.requiredLevelSortOrder,
+        maxFormatRequiredLevel: value.maxFormatRequiredLevel,
+        seriesId: value.seriesId,
+        formatIds,
+        categoryIds,
+    }
+}
+
+function parseSubscriberAccessCheck(value: unknown): SubscriberAccessCheck | null {
+    if (
+        !isRecord(value) ||
+        (value.kind !== 'EPISODE' && value.kind !== 'ARTICLE') ||
+        !isPositiveSafeInteger(value.id) ||
+        !isNullableString(value.title, 512) ||
+        !isNullableString(value.slug, 128) ||
+        typeof value.allowed !== 'boolean' ||
+        !isBoundedString(value.reason, 64)
+    ) {
+        return null
+    }
+    let subject: SubscriberAccessSubject | null = null
+    if (value.subject !== null && value.subject !== undefined) {
+        subject = parseSubscriberAccessSubject(value.subject)
+        if (subject === null) {
+            return null
+        }
+    }
+    const matchedRules = parseBoundedArray(
+        value.matchedRules,
+        100,
+        parseSubscriberAccessMatchedRule,
+    )
+    if (matchedRules === null) {
+        return null
+    }
+    return {
+        kind: value.kind,
+        id: value.id,
+        title: value.title,
+        slug: value.slug,
+        allowed: value.allowed,
+        reason: value.reason,
+        subject,
+        matchedRules,
+    }
+}
+
+function parseSubscriberAccess(value: unknown): SubscriberAccess | null {
+    if (!isRecord(value) || !isPositiveSafeInteger(value.userId)) {
+        return null
+    }
+    if (!isNullableSafeInteger(value.maxLevelSortOrder)) {
+        return null
+    }
+    const activeLevels = parseBoundedArray(value.activeLevels, 100, parseLevelSummary)
+    if (activeLevels === null) {
+        return null
+    }
+    const activePackages = parseBoundedArray(value.activePackages, 100, (pkg) => {
+        if (
+            !isRecord(pkg) ||
+            !isPositiveSafeInteger(pkg.id) ||
+            !isBoundedString(pkg.slug, 128) ||
+            !isBoundedString(pkg.title, 255)
+        ) {
+            return null
+        }
+        return {
+            id: pkg.id,
+            slug: pkg.slug,
+            title: pkg.title,
+        }
+    })
+    if (activePackages === null) {
+        return null
+    }
+    let check: SubscriberAccessCheck | null = null
+    if (value.check !== null && value.check !== undefined) {
+        check = parseSubscriberAccessCheck(value.check)
+        if (check === null) {
+            return null
+        }
+    }
+    return {
+        userId: value.userId,
+        activeLevels,
+        maxLevelSortOrder: value.maxLevelSortOrder,
+        activePackages,
+        check,
+    }
+}
+
+export function parseSubscriberAccessEnvelope(
+    value: unknown,
+): ApiEnvelope<SubscriberAccess> | null {
+    return parseEnvelope(value, parseSubscriberAccess)
+}
+
 export function parseSubscriberDirectoryPage(
     value: unknown,
 ): DirectoryListPage<TenantSubscriber> | null {
