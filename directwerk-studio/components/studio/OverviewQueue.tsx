@@ -32,8 +32,6 @@ import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
 
 const AWAITING_STATUSES = new Set(['DRAFT', 'SCHEDULED'])
 
-const OVERVIEW_LIST_LIMIT = 50
-
 interface OverviewQueueProps {
     desks: StudioDesk[]
 }
@@ -91,10 +89,9 @@ export default function OverviewQueue({desks}: OverviewQueueProps): React.JSX.El
             setErrorMessage(null)
             setIsLoading(true)
             try {
-                const overviewPage = {limit: OVERVIEW_LIST_LIMIT}
                 const [loadedArticles, loadedEpisodes, loadedSeries] = await Promise.all([
-                    showWrite ? listArticles(overviewPage) : Promise.resolve([]),
-                    showPodcast ? listEpisodes(overviewPage) : Promise.resolve([]),
+                    showWrite ? listArticles() : Promise.resolve([]),
+                    showPodcast ? listEpisodes() : Promise.resolve([]),
                     showPodcast ? listSeries() : Promise.resolve([]),
                 ])
                 if (!active) {
