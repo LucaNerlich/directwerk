@@ -45,6 +45,9 @@ describe('OverviewQueue', () => {
                 '/de/podcast/series/new',
             ),
         )
+        expect(listArticlesMock).toHaveBeenCalledWith({limit: 50})
+        expect(listEpisodesMock).toHaveBeenCalledWith({limit: 50})
+        expect(listSeriesMock).toHaveBeenCalledWith()
         expect(screen.getByRole('link', {name: 'Ersten Beitrag schreiben'})).toHaveAttribute(
             'href',
             '/de/write/articles/new',
