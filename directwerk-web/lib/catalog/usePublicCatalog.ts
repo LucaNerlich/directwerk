@@ -19,6 +19,13 @@ export interface PublicCatalogOptions<T, S = never> {
     loadPublic: () => Promise<T[]>
     /** Optional second list loaded alongside the items (e.g. podcast series). */
     loadSeries?: () => Promise<S[]>
+    /**
+     * Server-rendered public items. When non-null and the viewer is anonymous,
+     * skip the items fetch so first paint is not a client waterfall (#855).
+     */
+    initialItems?: T[] | null
+    /** Optional server-rendered series list paired with {@link initialItems}. */
+    initialSeries?: S[] | null
 }
 
 export interface PublicCatalogState<T, S = never> {
@@ -41,17 +48,43 @@ export function usePublicCatalog<T, S = never>({
     loadMine,
     loadPublic,
     loadSeries,
+    initialItems = null,
+    initialSeries = null,
 }: PublicCatalogOptions<T, S>): PublicCatalogState<T, S> {
     // Issue #434: the [lang] layout already provides the site config; re-fetching it here cost a
     // public GET per page view and created a second source of truth for enabledModules.
     const siteConfig = useSiteConfig()
-    const [series, setSeries] = useState<S[]>([])
-    const [items, setItems] = useState<T[]>([])
+    const anonymousSeeded = !isAuthenticated && initialItems !== null
+    const [series, setSeries] = useState<S[]>(initialSeries ?? [])
+    const [items, setItems] = useState<T[]>(initialItems ?? [])
     const [errorMessage, setErrorMessage] = useState<string | null>(null)
-    const [isLoading, setIsLoading] = useState(true)
+    const [isLoading, setIsLoading] = useState(!anonymousSeeded)
 
     useEffect(() => {
         let active = true
+
+        if (!isAuthenticated && initialItems !== null) {
+            setItems(initialItems)
+            setSeries(initialSeries ?? [])
+            setErrorMessage(null)
+            setIsLoading(false)
+            // Series may still be unseeded — refresh it without blocking the item list.
+            if (loadSeries && initialSeries === null) {
+                void loadSeries()
+                    .then((seriesList) => {
+                        if (active) {
+                            setSeries(seriesList)
+                        }
+                    })
+                    .catch(() => {
+                        // Keep the seeded catalog; series strip is secondary.
+                    })
+            }
+            return () => {
+                active = false
+            }
+        }
+
         setIsLoading(true)
         setErrorMessage(null)
 
@@ -97,6 +130,8 @@ export function usePublicCatalog<T, S = never>({
         loadMine,
         loadPublic,
         loadSeries,
+        initialItems,
+        initialSeries,
     ])
 
     return {siteConfig, items, series, errorMessage, isLoading}
