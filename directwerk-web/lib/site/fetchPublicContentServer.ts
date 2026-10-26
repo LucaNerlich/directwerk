@@ -10,12 +10,18 @@ import {
     parsePublicNewsletterListListEnvelope,
     parsePublicProductListEnvelope,
 } from '@directwerk/api/validation/public'
+import {parseLevelListEnvelope} from '@directwerk/api/validation'
 import type {
+    LevelSummary,
     PublicArticle,
     PublicEpisode,
     PublicNewsletterList,
     PublicProduct,
 } from '@directwerk/api/types'
+import {
+    cachePublicBffByHost,
+    cachePublicBffByHostSlug,
+} from '@/lib/site/publicBffCache'
 
 const {
     parsePublicArticleEnvelope,
@@ -23,28 +29,54 @@ const {
     parsePublicEpisodeListEnvelope,
 } = createWebPublicParsers()
 
+async function loadPublicEpisodeList(host: string): Promise<PublicEpisode[]> {
+    const response = await directwerkFetch({
+        path: '/api/v1/public/episodes',
+        tenantHost: host,
+        method: 'GET',
+    })
+    if (!response.ok) {
+        throw new Error(`public episodes request failed (HTTP ${response.status})`)
+    }
+    const parsed = parsePublicEpisodeListEnvelope(await response.json())
+    if (parsed === null) {
+        throw new Error(`public episodes response invalid for host ${host}`)
+    }
+    return parsed.data
+}
+
 /**
  * Lists the public episode catalog for server-rendered pages. Returns `null`
  * when the upstream call fails so the caller can fall back to a client fetch
  * instead of rendering a false empty state.
+ * Cached across requests per host (#856 / #857). Failures are not cached.
  */
 export async function fetchPublicEpisodesServer(
     host: string,
 ): Promise<PublicEpisode[] | null> {
     try {
-        const response = await directwerkFetch({
-            path: '/api/v1/public/episodes',
-            tenantHost: host,
-            method: 'GET',
-        })
-        if (!response.ok) {
-            return null
-        }
-        const parsed = parsePublicEpisodeListEnvelope(await response.json())
-        return parsed === null ? null : parsed.data
+        return await cachePublicBffByHost('episodes', host, () =>
+            loadPublicEpisodeList(host),
+        )
     } catch {
         return null
     }
+}
+
+async function loadPublicArticleList(host: string): Promise<PublicArticle[]> {
+    const response = await directwerkFetch({
+        path: '/api/v1/public/articles',
+        tenantHost: host,
+        method: 'GET',
+    })
+    if (!response.ok) {
+        throw new Error(`public articles request failed (HTTP ${response.status})`)
+    }
+    const parsed = parsePublicArticleListEnvelope(await response.json())
+    if (parsed === null) {
+        throw new Error(`public articles response invalid for host ${host}`)
+    }
+    return parsed.data
 }
 
 /**
@@ -55,16 +87,9 @@ export async function fetchPublicArticlesServer(
     host: string,
 ): Promise<PublicArticle[] | null> {
     try {
-        const response = await directwerkFetch({
-            path: '/api/v1/public/articles',
-            tenantHost: host,
-            method: 'GET',
-        })
-        if (!response.ok) {
-            return null
-        }
-        const parsed = parsePublicArticleListEnvelope(await response.json())
-        return parsed === null ? null : parsed.data
+        return await cachePublicBffByHost('articles', host, () =>
+            loadPublicArticleList(host),
+        )
     } catch {
         return null
     }
@@ -78,16 +103,53 @@ export async function fetchPublicProductsServer(
     host: string,
 ): Promise<PublicProduct[] | null> {
     try {
-        const response = await directwerkFetch({
-            path: '/api/v1/public/products',
-            tenantHost: host,
-            method: 'GET',
+        return await cachePublicBffByHost('products', host, async () => {
+            const response = await directwerkFetch({
+                path: '/api/v1/public/products',
+                tenantHost: host,
+                method: 'GET',
+            })
+            if (!response.ok) {
+                throw new Error(
+                    `public products request failed (HTTP ${response.status})`,
+                )
+            }
+            const parsed = parsePublicProductListEnvelope(await response.json())
+            if (parsed === null) {
+                throw new Error(`public products response invalid for host ${host}`)
+            }
+            return parsed.data
         })
-        if (!response.ok) {
-            return null
-        }
-        const parsed = parsePublicProductListEnvelope(await response.json())
-        return parsed === null ? null : parsed.data
+    } catch {
+        return null
+    }
+}
+
+/**
+ * Lists public membership levels for server-rendered pricing. Returns `null`
+ * on upstream failure.
+ */
+export async function fetchPublicLevelsServer(
+    host: string,
+): Promise<LevelSummary[] | null> {
+    try {
+        return await cachePublicBffByHost('levels', host, async () => {
+            const response = await directwerkFetch({
+                path: '/api/v1/public/levels',
+                tenantHost: host,
+                method: 'GET',
+            })
+            if (!response.ok) {
+                throw new Error(
+                    `public levels request failed (HTTP ${response.status})`,
+                )
+            }
+            const parsed = parseLevelListEnvelope(await response.json())
+            if (parsed === null) {
+                throw new Error(`public levels response invalid for host ${host}`)
+            }
+            return parsed.data
+        })
     } catch {
         return null
     }
@@ -105,56 +167,46 @@ export const fetchPublicArticleServer = cache(async (
     host: string,
     slug: string,
 ): Promise<PublicArticle | null> => {
-    const response = await directwerkFetch({
-        path: `/api/v1/public/articles/${encodeURIComponent(slug)}`,
-        tenantHost: host,
-        method: 'GET',
+    return cachePublicBffByHostSlug('article', host, slug, async () => {
+        const response = await directwerkFetch({
+            path: `/api/v1/public/articles/${encodeURIComponent(slug)}`,
+            tenantHost: host,
+            method: 'GET',
+        })
+
+        if (response.status === 404) {
+            return null
+        }
+        if (!response.ok) {
+            throw new Error(
+                `public article request failed (HTTP ${response.status}) for host ${host}`,
+            )
+        }
+
+        const parsed = parsePublicArticleEnvelope(await response.json())
+        if (parsed === null) {
+            throw new Error(`public article response invalid for host ${host}`)
+        }
+
+        return parsed.data
     })
-
-    if (response.status === 404) {
-        return null
-    }
-    if (!response.ok) {
-        throw new Error(
-            `public article request failed (HTTP ${response.status}) for host ${host}`,
-        )
-    }
-
-    const parsed = parsePublicArticleEnvelope(await response.json())
-    if (parsed === null) {
-        throw new Error(`public article response invalid for host ${host}`)
-    }
-
-    return parsed.data
 })
 
 /**
  * Fetches a single public episode by slug from the public catalog.
  * Returns `null` when the slug is not part of the public catalog (unknown or
  * paid/unpublished); throws for transport/validation failures.
+ * Uses the host-keyed cached episode list (#856) instead of a fresh full GET.
  */
 export const fetchPublicEpisodeServer = cache(async (
     host: string,
     slug: string,
 ): Promise<PublicEpisode | null> => {
-    const response = await directwerkFetch({
-        path: '/api/v1/public/episodes',
-        tenantHost: host,
-        method: 'GET',
-    })
-
-    if (!response.ok) {
-        throw new Error(
-            `public episodes request failed (HTTP ${response.status}) for host ${host}`,
-        )
+    const list = await fetchPublicEpisodesServer(host)
+    if (list === null) {
+        throw new Error(`public episodes request failed for host ${host}`)
     }
-
-    const parsed = parsePublicEpisodeListEnvelope(await response.json())
-    if (parsed === null) {
-        throw new Error(`public episodes response invalid for host ${host}`)
-    }
-
-    return parsed.data.find((item) => item.slug === slug) ?? null
+    return list.find((item) => item.slug === slug) ?? null
 })
 
 /**
@@ -164,22 +216,11 @@ export const fetchPublicEpisodeServer = cache(async (
 export async function fetchPublicArticleSlugsServer(
     host: string,
 ): Promise<{slug: string; publishedAt: string | null}[]> {
-    const response = await directwerkFetch({
-        path: '/api/v1/public/articles',
-        tenantHost: host,
-        method: 'GET',
-    })
-    if (!response.ok) {
+    const list = await fetchPublicArticlesServer(host)
+    if (list === null) {
         return []
     }
-
-    const value: unknown = await response.json()
-    const parsed = parsePublicArticleListEnvelope(value)
-    if (parsed === null) {
-        return []
-    }
-
-    return parsed.data.map((article) => ({
+    return list.map((article) => ({
         slug: article.slug,
         publishedAt: article.publishedAt,
     }))
@@ -192,22 +233,11 @@ export async function fetchPublicArticleSlugsServer(
 export async function fetchPublicEpisodeSlugsServer(
     host: string,
 ): Promise<{slug: string; publishedAt: string | null}[]> {
-    const response = await directwerkFetch({
-        path: '/api/v1/public/episodes',
-        tenantHost: host,
-        method: 'GET',
-    })
-    if (!response.ok) {
+    const list = await fetchPublicEpisodesServer(host)
+    if (list === null) {
         return []
     }
-
-    const value: unknown = await response.json()
-    const parsed = parsePublicEpisodeListEnvelope(value)
-    if (parsed === null) {
-        return []
-    }
-
-    return parsed.data.map((episode) => ({
+    return list.map((episode) => ({
         slug: episode.slug,
         publishedAt: episode.publishedAt,
     }))
@@ -222,33 +252,35 @@ export const fetchPublicNewsletterListServer = cache(async (
     host: string,
     slug: string,
 ): Promise<PublicNewsletterList | null> => {
-    const response = await directwerkFetch({
-        path: `/api/v1/public/newsletter-lists/${encodeURIComponent(slug)}`,
-        tenantHost: host,
-        method: 'GET',
-    })
+    return cachePublicBffByHostSlug('newsletter-list', host, slug, async () => {
+        const response = await directwerkFetch({
+            path: `/api/v1/public/newsletter-lists/${encodeURIComponent(slug)}`,
+            tenantHost: host,
+            method: 'GET',
+        })
 
-    if (response.status === 404) {
-        const body: unknown = await response.json().catch(() => null)
-        if (extractApiErrorCode(body) === 'NEWSLETTER_LIST_NOT_FOUND') {
-            return null
+        if (response.status === 404) {
+            const body: unknown = await response.json().catch(() => null)
+            if (extractApiErrorCode(body) === 'NEWSLETTER_LIST_NOT_FOUND') {
+                return null
+            }
+            throw new Error(
+                `public newsletter list request failed (HTTP ${response.status}) for host ${host}`,
+            )
         }
-        throw new Error(
-            `public newsletter list request failed (HTTP ${response.status}) for host ${host}`,
-        )
-    }
-    if (!response.ok) {
-        throw new Error(
-            `public newsletter list request failed (HTTP ${response.status}) for host ${host}`,
-        )
-    }
+        if (!response.ok) {
+            throw new Error(
+                `public newsletter list request failed (HTTP ${response.status}) for host ${host}`,
+            )
+        }
 
-    const parsed = parsePublicNewsletterListEnvelope(await response.json())
-    if (parsed === null) {
-        throw new Error(`public newsletter list response invalid for host ${host}`)
-    }
+        const parsed = parsePublicNewsletterListEnvelope(await response.json())
+        if (parsed === null) {
+            throw new Error(`public newsletter list response invalid for host ${host}`)
+        }
 
-    return parsed.data
+        return parsed.data
+    })
 })
 
 /**
@@ -258,21 +290,23 @@ export const fetchPublicNewsletterListServer = cache(async (
 export async function fetchPublicNewsletterListsServer(
     host: string,
 ): Promise<PublicNewsletterList[]> {
-    const response = await directwerkFetch({
-        path: '/api/v1/public/newsletter-lists',
-        tenantHost: host,
-        method: 'GET',
+    return cachePublicBffByHost('newsletter-lists', host, async () => {
+        const response = await directwerkFetch({
+            path: '/api/v1/public/newsletter-lists',
+            tenantHost: host,
+            method: 'GET',
+        })
+        if (!response.ok) {
+            throw new Error(
+                `public newsletter lists request failed (HTTP ${response.status}) for host ${host}`,
+            )
+        }
+
+        const parsed = parsePublicNewsletterListListEnvelope(await response.json())
+        if (parsed === null) {
+            throw new Error(`public newsletter lists response invalid for host ${host}`)
+        }
+
+        return parsed.data
     })
-    if (!response.ok) {
-        throw new Error(
-            `public newsletter lists request failed (HTTP ${response.status}) for host ${host}`,
-        )
-    }
-
-    const parsed = parsePublicNewsletterListListEnvelope(await response.json())
-    if (parsed === null) {
-        throw new Error(`public newsletter lists response invalid for host ${host}`)
-    }
-
-    return parsed.data
 }
