@@ -22,11 +22,9 @@ import {
     Strikethrough,
     Undo2,
 } from 'lucide-react'
+import dynamic from 'next/dynamic'
 import {useCallback, useEffect, useId, useRef, useState, type ReactNode} from 'react'
 
-import MediaInlinePickerDialog, {
-    inlineInsertKind,
-} from '@/components/media/MediaInlinePickerDialog'
 import type {MediaAsset} from '@directwerk/api/types'
 import {sanitizeContentHtml} from '@directwerk/api/content/sanitizeContentHtml'
 import {safeImageSrc, safeLinkHref} from '@/lib/url/safeUrl'
@@ -34,6 +32,12 @@ import {useDictionary} from '@/components/i18n/LocaleProvider'
 
 /** Push HTML to the parent after typing settles; blur/unmount flush immediately. */
 const BODY_PUSH_DEBOUNCE_MS = 200
+
+/** Load media-insert UI only on first Medium click — keep it out of the TipTap chunk. */
+const MediaInlinePickerDialog = dynamic(
+    () => import('@/components/media/MediaInlinePickerDialog'),
+    {ssr: false},
+)
 
 
 function escapeHtml(value: string): string {
@@ -333,6 +337,7 @@ export default function ShowNotesEditor({
     const labelId = useId()
     const helperId = useId()
     const [mediaDialogOpen, setMediaDialogOpen] = useState(false)
+    const [mediaDialogLoaded, setMediaDialogLoaded] = useState(false)
     const onChangeRef = useRef(onChange)
     onChangeRef.current = onChange
     /** Last HTML we pushed (or accepted from props) — skips setContent feedback thrash. */
@@ -442,7 +447,7 @@ export default function ShowNotesEditor({
 
     const handleInsertMedia = (asset: MediaAsset): void => {
         const fileLabel = asset.originalFilename ?? `Datei ${asset.id}`
-        if (inlineInsertKind(asset) === 'image') {
+        if (asset.assetType === 'IMAGE') {
             const src = safeImageSrc(asset.cdnUrl)
             if (src === null) {
                 return
@@ -463,6 +468,11 @@ export default function ShowNotesEditor({
             .run()
     }
 
+    const openMediaDialog = (): void => {
+        setMediaDialogLoaded(true)
+        setMediaDialogOpen(true)
+    }
+
     return (
         <div className="grid gap-2">
             <p className="text-sm font-medium" id={labelId}>{label}</p>
@@ -471,7 +481,7 @@ export default function ShowNotesEditor({
                 disabled={disabled}
                 editor={editor}
                 formatLabel={label}
-                onOpenMedia={() => setMediaDialogOpen(true)}
+                onOpenMedia={openMediaDialog}
             />
             <div aria-labelledby={labelId}>
                 <EditorContent editor={editor} />
@@ -479,7 +489,7 @@ export default function ShowNotesEditor({
             <p className="text-xs font-normal text-muted-foreground" id={helperId}>
                 {helperText ?? 'Formatierung über die Werkzeugleiste. Links brauchen https://, http://, mailto: oder tel:.'}
             </p>
-            {allowMediaInsert ? (
+            {allowMediaInsert && mediaDialogLoaded ? (
                 <MediaInlinePickerDialog
                     onAuthRequired={onAuthRequired ?? (() => {})}
                     onInsert={handleInsertMedia}
