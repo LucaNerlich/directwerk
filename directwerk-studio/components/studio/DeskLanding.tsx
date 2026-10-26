@@ -93,6 +93,7 @@ export default function DeskLanding({
                         <li
                             key={step.id}
                             className="flex flex-col gap-3 rounded-xl border bg-card p-4 sm:flex-row sm:items-center sm:justify-between"
+                            data-dw-surface="panel"
                         >
                             <div className="min-w-0">
                                 <div className="flex flex-wrap items-center gap-2">

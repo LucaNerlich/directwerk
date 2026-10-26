@@ -21,7 +21,10 @@ export default function AuthCard({
 }): React.JSX.Element {
     return (
         <main className="grid min-h-[calc(100vh-5rem)] place-items-center px-4 py-12">
-            <Card className="w-full max-w-md shadow-lg shadow-foreground/5">
+            <Card
+                className="w-full max-w-md shadow-lg shadow-foreground/5 ring-0"
+                data-dw-surface="auth"
+            >
                 <CardHeader>
                     <CardTitle className="text-2xl">{title}</CardTitle>
                     {description !== undefined ? (

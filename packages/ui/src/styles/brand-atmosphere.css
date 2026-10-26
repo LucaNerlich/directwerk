@@ -1,0 +1,123 @@
+/*
+ * Tenant brand atmosphere shared by directwerk-web and directwerk-studio.
+ * All tints derive from BrandTheme's `--primary` / `--secondary` — never a
+ * hardcoded purple stack. Apps opt in by putting `.dw-brand` on BrandTheme.
+ */
+
+.dw-brand,
+.dw-web-brand {
+    --dw-brand-mist: color-mix(in oklab, var(--primary) 22%, var(--background));
+    --dw-brand-wash: color-mix(in oklab, var(--primary) 34%, transparent);
+    --dw-brand-glass: color-mix(in oklab, var(--background) 68%, transparent);
+    --dw-brand-glass-border: color-mix(in oklab, var(--primary) 28%, var(--border));
+    /* Readable text stays on semantic foreground — primary mixes fail AA for light brands. */
+    --dw-brand-ink: var(--foreground);
+    --dw-neo-dark: color-mix(in oklab, var(--foreground) 14%, transparent);
+    --dw-neo-light: color-mix(in oklab, white 78%, transparent);
+    min-height: 100%;
+    background:
+        radial-gradient(
+            120% 80% at 12% -10%,
+            color-mix(in oklab, var(--primary) 42%, transparent),
+            transparent 58%
+        ),
+        radial-gradient(
+            90% 70% at 100% 8%,
+            color-mix(in oklab, var(--secondary, var(--primary)) 30%, transparent),
+            transparent 52%
+        ),
+        linear-gradient(
+            165deg,
+            var(--dw-brand-mist) 0%,
+            var(--background) 38%,
+            color-mix(in oklab, var(--primary) 14%, var(--background)) 100%
+        );
+    /* No background-attachment: fixed — iOS Safari mispaints fixed washes on non-body wrappers. */
+}
+
+/* Public site sticky chrome (web SiteHeader / footer). */
+.dw-web-shell > header {
+    border-bottom-color: var(--dw-brand-glass-border);
+    background: color-mix(in oklab, var(--primary) 10%, var(--dw-brand-glass));
+    box-shadow: 0 1px 0 color-mix(in oklab, white 40%, transparent);
+}
+
+.dw-web-shell footer {
+    border-top-color: var(--dw-brand-glass-border);
+    background: color-mix(in oklab, var(--primary) 6%, var(--dw-brand-glass));
+    backdrop-filter: blur(16px);
+}
+
+/* Studio AppShell: let the brand wash show through; glass sidebar + mobile bar. */
+.dw-brand [data-dw-shell='app-main'] {
+    background: transparent;
+}
+
+.dw-brand [data-dw-shell='app-mobile-bar'] {
+    border-bottom-color: var(--dw-brand-glass-border);
+    background: color-mix(in oklab, var(--primary) 10%, var(--dw-brand-glass));
+    box-shadow: 0 1px 0 color-mix(in oklab, white 40%, transparent);
+}
+
+.dw-brand [data-sidebar='sidebar'],
+.dw-brand [data-slot='sidebar-inner'] {
+    border-color: var(--dw-brand-glass-border);
+    background: color-mix(in oklab, var(--primary) 8%, var(--dw-brand-glass));
+    backdrop-filter: blur(18px) saturate(1.15);
+    box-shadow: 1px 0 0 color-mix(in oklab, white 35%, transparent);
+}
+
+.dw-brand [data-slot='sidebar'] [data-slot='sidebar-header'],
+.dw-brand [data-slot='sidebar'] [data-slot='sidebar-footer'],
+.dw-brand [data-sidebar='sidebar'] .border-b,
+.dw-brand [data-sidebar='sidebar'] .border-t,
+.dw-brand [data-slot='sidebar-inner'] .border-b,
+.dw-brand [data-slot='sidebar-inner'] .border-t {
+    border-color: var(--dw-brand-glass-border);
+}
+
+.dw-glass {
+    background: var(--dw-brand-glass);
+    border: 1px solid var(--dw-brand-glass-border);
+    backdrop-filter: blur(18px) saturate(1.2);
+    box-shadow:
+        0 1px 0 color-mix(in oklab, white 55%, transparent) inset,
+        0 18px 40px color-mix(in oklab, var(--primary) 12%, transparent);
+}
+
+.dw-neo {
+    background: color-mix(in oklab, var(--primary) 7%, var(--background));
+    border: 1px solid color-mix(in oklab, var(--primary) 16%, transparent);
+    box-shadow:
+        10px 10px 24px var(--dw-neo-dark),
+        -8px -8px 20px var(--dw-neo-light),
+        0 1px 0 color-mix(in oklab, white 50%, transparent) inset;
+}
+
+/*
+ * Softer panel depth for dashboard surfaces (StatCard, FeatureCard, ListPanel).
+ * Opt in with data-dw-surface="panel" under a .dw-brand ancestor.
+ */
+.dw-brand [data-dw-surface='panel'] {
+    background: color-mix(in oklab, var(--primary) 6%, var(--card));
+    border-color: color-mix(in oklab, var(--primary) 18%, var(--border));
+    box-shadow:
+        8px 8px 20px var(--dw-neo-dark),
+        -6px -6px 16px var(--dw-neo-light),
+        0 1px 0 color-mix(in oklab, white 45%, transparent) inset;
+}
+
+.dw-brand [data-dw-surface='empty'] {
+    background: color-mix(in oklab, var(--primary) 5%, var(--muted) / 0.35);
+    border-color: color-mix(in oklab, var(--primary) 22%, var(--border));
+}
+
+/* Auth cards: frost over the brand wash (opt in via data-dw-surface="auth"). */
+.dw-brand [data-dw-surface='auth'] {
+    background: var(--dw-brand-glass);
+    border: 1px solid var(--dw-brand-glass-border);
+    backdrop-filter: blur(18px) saturate(1.2);
+    box-shadow:
+        0 1px 0 color-mix(in oklab, white 55%, transparent) inset,
+        0 18px 40px color-mix(in oklab, var(--primary) 12%, transparent);
+}

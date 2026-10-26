@@ -21,6 +21,7 @@ export default function StatCard({
                 'rounded-xl border bg-card p-5 shadow-sm',
                 className,
             )}
+            data-dw-surface="panel"
         >
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
                 {label}

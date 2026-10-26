@@ -25,7 +25,7 @@ export default function StudioShell({
     return (
         <SiteConfigProvider config={config}>
             <BrandTheme
-                className="min-h-svh"
+                className="dw-brand min-h-svh"
                 primaryHex={config.branding.primaryColor}
                 secondaryHex={config.branding.secondaryColor}
             >
