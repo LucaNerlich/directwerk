@@ -79,6 +79,52 @@
     }
 }
 
+/* Site-wide mini-player: glass bar over brand wash; pad main so content clears it. */
+.dw-mini-player {
+    border-color: var(--dw-brand-glass-border, var(--border));
+    background: color-mix(in oklab, var(--primary) 10%, var(--dw-brand-glass, var(--background)));
+    backdrop-filter: blur(18px) saturate(1.15);
+    box-shadow: 0 -1px 0 color-mix(in oklab, white 40%, transparent);
+    padding-bottom: max(0.625rem, env(safe-area-inset-bottom));
+}
+
+body:has([data-dw-mini-player]) main {
+    padding-bottom: 5.75rem;
+}
+
+.dw-player-scrubber {
+    appearance: none;
+    height: 0.35rem;
+    border-radius: 999px;
+    background: linear-gradient(
+        to right,
+        var(--primary) 0%,
+        var(--primary) var(--dw-scrub-pct, 0%),
+        color-mix(in oklab, var(--primary) 18%, var(--muted)) var(--dw-scrub-pct, 0%),
+        color-mix(in oklab, var(--primary) 18%, var(--muted)) 100%
+    );
+    cursor: pointer;
+}
+
+.dw-player-scrubber::-webkit-slider-thumb {
+    appearance: none;
+    width: 0.9rem;
+    height: 0.9rem;
+    border-radius: 999px;
+    background: var(--primary);
+    border: 2px solid var(--background);
+    box-shadow: 0 0 0 1px color-mix(in oklab, var(--primary) 35%, transparent);
+}
+
+.dw-player-scrubber::-moz-range-thumb {
+    width: 0.9rem;
+    height: 0.9rem;
+    border-radius: 999px;
+    background: var(--primary);
+    border: 2px solid var(--background);
+    box-shadow: 0 0 0 1px color-mix(in oklab, var(--primary) 35%, transparent);
+}
+
 @media (prefers-reduced-motion: reduce) {
     .dw-home-hero::before {
         animation: none !important;

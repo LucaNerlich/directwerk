@@ -5,8 +5,10 @@ import {notFound} from 'next/navigation'
 import BrandTheme from '@directwerk/ui/components/brand-theme'
 
 import AuthBootstrap from '@/components/AuthBootstrap'
+import MiniPlayer from '@/components/MiniPlayer'
 import SiteHeader from '@/components/SiteHeader'
 import UmamiAnalytics from '@/components/UmamiAnalytics'
+import {AudioPlayerProvider} from '@/lib/player/AudioPlayerContext'
 import {LocaleProvider} from '@/lib/i18n/LocaleProvider'
 import {getDictionary} from '@/lib/i18n/getDictionary'
 import {interpolate} from '@/lib/i18n/interpolate'
@@ -211,7 +213,10 @@ export default async function LangLayout({
                     secondaryHex={secondary}
                 >
                     <AuthBootstrap>
-                        <SiteHeader>{children}</SiteHeader>
+                        <AudioPlayerProvider>
+                            <SiteHeader>{children}</SiteHeader>
+                            <MiniPlayer />
+                        </AudioPlayerProvider>
                     </AuthBootstrap>
                 </BrandTheme>
             </SiteConfigProvider>

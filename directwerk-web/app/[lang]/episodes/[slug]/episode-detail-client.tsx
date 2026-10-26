@@ -10,8 +10,8 @@ import AccessPolicyBadge from '@/components/AccessPolicyBadge'
 import CatalogMediaThumb from '@/components/CatalogMediaThumb'
 import ContentMetaLine from '@/components/ContentMetaLine'
 import DetailShell, {DetailLockedPanel} from '@/components/DetailShell'
+import EpisodeAudioPlayer from '@/components/EpisodeAudioPlayer'
 import {listMyEpisodes} from '@/lib/api/client'
-import {trackEpisodePlay} from '@/lib/analytics/umamiTrack'
 import {sanitizeContentHtml} from '@/lib/sanitizeContentHtml'
 import {
     getAccessToken,
@@ -149,15 +149,18 @@ export default function EpisodeDetailClient({
                     <section className="flex flex-col gap-3 rounded-xl border bg-card p-5">
                         <SectionHeader title={common.player} />
                         {episode.audioCdnUrl !== null ? (
-                            <audio
-                                className="media-player w-full"
-                                controls
-                                onPlay={() => trackEpisodePlay(episode.slug)}
-                                preload="metadata"
-                                src={episode.audioCdnUrl}
-                            >
-                                {catalog.audioUnavailable}
-                            </audio>
+                            <EpisodeAudioPlayer
+                                track={{
+                                    slug: episode.slug,
+                                    title,
+                                    audioUrl: episode.audioCdnUrl,
+                                    coverImageUrl: episode.coverImageUrl,
+                                    href: localizedPath(
+                                        lang,
+                                        `/episodes/${episode.slug}`,
+                                    ),
+                                }}
+                            />
                         ) : episode.accessPolicy === 'PAID' ? (
                             <DetailLockedPanel
                                 title={catalog.lockedEpisodeTitle}
