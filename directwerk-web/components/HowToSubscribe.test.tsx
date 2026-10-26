@@ -14,6 +14,7 @@ describe('HowToSubscribe', () => {
             screen.getByRole('heading', {name: 'So hörst du in der Podcast-App'}),
         ).toBeInTheDocument()
         expect(screen.getByText(/Apple Podcasts, Spotify, AntennaPod/)).toBeInTheDocument()
+        expect(screen.getByText(/öffentlich oder privat/i)).toBeInTheDocument()
         expect(
             screen.queryByRole('heading', {name: 'So liest du im Feed-Reader'}),
         ).not.toBeInTheDocument()

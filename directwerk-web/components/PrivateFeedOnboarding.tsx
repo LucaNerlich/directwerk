@@ -1,7 +1,6 @@
 'use client'
 
 import Link from 'next/link'
-import {useEffect, useRef, useState} from 'react'
 
 import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
 import {Button, buttonVariants} from '@directwerk/ui/components/button'
@@ -15,11 +14,10 @@ import type {ArticleFeedView, SubscriberFeedView} from '@directwerk/api/types'
 import {useArticleFeeds} from '@/lib/auth/useArticleFeeds'
 import {useSubscriberAuth} from '@/lib/auth/useSubscriberAuth'
 import {useSubscriberFeeds} from '@/lib/auth/useSubscriberFeeds'
+import {useDelayedEmptyReload} from '@/lib/feeds/useDelayedEmptyReload'
 import {useDictionary, useLocale} from '@/lib/i18n/LocaleProvider'
 import {localizedPath} from '@/lib/i18n/paths'
 import {useSiteConfig} from '@/lib/site/SiteConfigProvider'
-
-const EMPTY_RETRY_MS = 1500
 
 export type PrivateFeedOnboardingVariant = 'full' | 'compact'
 
@@ -160,75 +158,22 @@ export default function PrivateFeedOnboarding({
     const podcastQuery = useSubscriberFeeds(showPodcast)
     const articleQuery = useArticleFeeds(showArticles)
 
-    const [podcastPreparing, setPodcastPreparing] = useState(false)
-    const [articlePreparing, setArticlePreparing] = useState(false)
-    const podcastRetried = useRef(false)
-    const articleRetried = useRef(false)
-
     const defaultPodcast = defaultFeedOf(podcastQuery.feeds)
     const defaultArticle = defaultFeedOf(articleQuery.feeds)
-    const podcastReload = podcastQuery.reload
-    const articleReload = articleQuery.reload
-    const podcastLoading = podcastQuery.isLoading
-    const articleLoading = articleQuery.isLoading
-    const podcastError = podcastQuery.error
-    const articleError = articleQuery.error
-
-    useEffect(() => {
-        if (
-            !showPodcast ||
-            podcastLoading ||
-            podcastError !== null ||
-            defaultPodcast !== null ||
-            podcastRetried.current
-        ) {
-            return
-        }
-        podcastRetried.current = true
-        setPodcastPreparing(true)
-        const timer = window.setTimeout(() => {
-            podcastReload()
-            setPodcastPreparing(false)
-        }, EMPTY_RETRY_MS)
-        return () => {
-            window.clearTimeout(timer)
-            setPodcastPreparing(false)
-        }
-    }, [
-        defaultPodcast,
-        podcastError,
-        podcastLoading,
-        podcastReload,
-        showPodcast,
-    ])
-
-    useEffect(() => {
-        if (
-            !showArticles ||
-            articleLoading ||
-            articleError !== null ||
-            defaultArticle !== null ||
-            articleRetried.current
-        ) {
-            return
-        }
-        articleRetried.current = true
-        setArticlePreparing(true)
-        const timer = window.setTimeout(() => {
-            articleReload()
-            setArticlePreparing(false)
-        }, EMPTY_RETRY_MS)
-        return () => {
-            window.clearTimeout(timer)
-            setArticlePreparing(false)
-        }
-    }, [
-        articleError,
-        articleLoading,
-        articleReload,
-        defaultArticle,
-        showArticles,
-    ])
+    const podcastPreparing = useDelayedEmptyReload({
+        enabled: showPodcast,
+        error: podcastQuery.error,
+        hasDefault: defaultPodcast !== null,
+        isLoading: podcastQuery.isLoading,
+        reload: podcastQuery.reload,
+    })
+    const articlePreparing = useDelayedEmptyReload({
+        enabled: showArticles,
+        error: articleQuery.error,
+        hasDefault: defaultArticle !== null,
+        isLoading: articleQuery.isLoading,
+        reload: articleQuery.reload,
+    })
 
     if (!showPodcast && !showArticles) {
         return null

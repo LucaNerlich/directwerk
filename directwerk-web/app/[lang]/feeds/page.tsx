@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import {Suspense, useEffect, useRef, useState} from 'react'
+import {Suspense, useState} from 'react'
 import useSWR from 'swr'
 
 import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
@@ -46,6 +46,7 @@ import {localizedPath} from '@/lib/i18n/paths'
 import {getWebClientTenantHost} from '@/lib/tenant/clientHost'
 import {useSiteConfig} from '@/lib/site/SiteConfigProvider'
 import {userFacingFeedsError} from '@/lib/billing/userFacingBillingError'
+import {useDelayedEmptyReload} from '@/lib/feeds/useDelayedEmptyReload'
 import {
     webPublicArticleFeedUrl,
     webPublicPodcastFeedUrl,
@@ -213,10 +214,6 @@ export default function FeedsPage() {
     const [articleToggleError, setArticleToggleError] = useState<string | null>(null)
     const [articleRotateError, setArticleRotateError] = useState<string | null>(null)
     const [articleCustomError, setArticleCustomError] = useState<string | null>(null)
-    const [podcastEmptyPreparing, setPodcastEmptyPreparing] = useState(false)
-    const [articleEmptyPreparing, setArticleEmptyPreparing] = useState(false)
-    const podcastEmptyRetried = useRef(false)
-    const articleEmptyRetried = useRef(false)
 
     const podcastFeedUrl =
         siteConfig === undefined
@@ -230,36 +227,13 @@ export default function FeedsPage() {
     const defaultPodcastPrivate =
         podcastPrivateFeeds.find((feed) => feed.isDefault) ?? null
     const customPodcastFeeds = podcastPrivateFeeds.filter((feed) => !feed.isDefault)
-
-    useEffect(() => {
-        if (
-            !isAuthenticated ||
-            !showPodcastFeeds ||
-            isPodcastPrivateLoading ||
-            podcastPrivateError !== null ||
-            defaultPodcastPrivate !== null ||
-            podcastEmptyRetried.current
-        ) {
-            return
-        }
-        podcastEmptyRetried.current = true
-        setPodcastEmptyPreparing(true)
-        const timer = window.setTimeout(() => {
-            reloadPodcastPrivateFeeds()
-            setPodcastEmptyPreparing(false)
-        }, 1500)
-        return () => {
-            window.clearTimeout(timer)
-            setPodcastEmptyPreparing(false)
-        }
-    }, [
-        defaultPodcastPrivate,
-        isAuthenticated,
-        isPodcastPrivateLoading,
-        podcastPrivateError,
-        reloadPodcastPrivateFeeds,
-        showPodcastFeeds,
-    ])
+    const podcastEmptyPreparing = useDelayedEmptyReload({
+        enabled: isAuthenticated && showPodcastFeeds,
+        error: podcastPrivateError,
+        hasDefault: defaultPodcastPrivate !== null,
+        isLoading: isPodcastPrivateLoading,
+        reload: reloadPodcastPrivateFeeds,
+    })
     const showPodcastFeedBuilder =
         showPodcastFeeds &&
         isAuthenticated &&
@@ -273,36 +247,13 @@ export default function FeedsPage() {
     const defaultArticlePrivate =
         articlePrivateFeeds.find((feed) => feed.isDefault) ?? null
     const customArticleFeeds = articlePrivateFeeds.filter((feed) => !feed.isDefault)
-
-    useEffect(() => {
-        if (
-            !isAuthenticated ||
-            !showArticleFeeds ||
-            isArticlePrivateLoading ||
-            articlePrivateError !== null ||
-            defaultArticlePrivate !== null ||
-            articleEmptyRetried.current
-        ) {
-            return
-        }
-        articleEmptyRetried.current = true
-        setArticleEmptyPreparing(true)
-        const timer = window.setTimeout(() => {
-            reloadArticlePrivateFeeds()
-            setArticleEmptyPreparing(false)
-        }, 1500)
-        return () => {
-            window.clearTimeout(timer)
-            setArticleEmptyPreparing(false)
-        }
-    }, [
-        articlePrivateError,
-        defaultArticlePrivate,
-        isArticlePrivateLoading,
-        isAuthenticated,
-        reloadArticlePrivateFeeds,
-        showArticleFeeds,
-    ])
+    const articleEmptyPreparing = useDelayedEmptyReload({
+        enabled: isAuthenticated && showArticleFeeds,
+        error: articlePrivateError,
+        hasDefault: defaultArticlePrivate !== null,
+        isLoading: isArticlePrivateLoading,
+        reload: reloadArticlePrivateFeeds,
+    })
     const showArticleFeedBuilder =
         showArticleFeeds &&
         isAuthenticated &&
