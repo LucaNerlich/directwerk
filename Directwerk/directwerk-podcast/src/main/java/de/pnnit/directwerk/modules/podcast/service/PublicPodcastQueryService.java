@@ -7,6 +7,7 @@ import de.pnnit.directwerk.modules.podcast.entity.EpisodeStatus;
 import de.pnnit.directwerk.modules.podcast.entity.Format;
 import de.pnnit.directwerk.modules.podcast.entity.PodcastSeries;
 import de.pnnit.directwerk.modules.podcast.entity.SeriesStatus;
+import de.pnnit.directwerk.modules.podcast.exception.EpisodeNotFoundException;
 import de.pnnit.directwerk.modules.podcast.repository.EpisodeRepository;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -42,6 +43,20 @@ public class PublicPodcastQueryService {
                 EpisodeStatus.PUBLISHED,
                 SeriesStatus.PUBLISHED
         );
+    }
+
+    /**
+     * Published episode on a published series for the public catalog, or {@link EpisodeNotFoundException}.
+     * Slug is unique per tenant (not per series). Returns FREE and PAID alike — audio gating is in the view mapper.
+     */
+    @Transactional(readOnly = true)
+    public Episode requirePublishedEpisode(Long tenantId, String slug) {
+        return episodeRepository.findByTenantIdAndSlugAndStatusAndSeriesStatus(
+                tenantId,
+                slug,
+                EpisodeStatus.PUBLISHED,
+                SeriesStatus.PUBLISHED
+        ).orElseThrow(() -> new EpisodeNotFoundException(slug));
     }
 
     @Transactional(readOnly = true)

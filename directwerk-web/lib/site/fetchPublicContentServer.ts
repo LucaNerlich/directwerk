@@ -26,6 +26,7 @@ import {
 const {
     parsePublicArticleEnvelope,
     parsePublicArticleListEnvelope,
+    parsePublicEpisodeEnvelope,
     parsePublicEpisodeListEnvelope,
 } = createWebPublicParsers()
 
@@ -193,20 +194,39 @@ export const fetchPublicArticleServer = cache(async (
 })
 
 /**
- * Fetches a single public episode by slug from the public catalog.
- * Returns `null` when the slug is not part of the public catalog (unknown or
- * paid/unpublished); throws for transport/validation failures.
- * Uses the host-keyed cached episode list (#856) instead of a fresh full GET.
+ * Fetches a single public episode by slug (`GET /api/v1/public/episodes/{slug}`).
+ * Returns `null` when the slug is unknown / unpublished / series unpublished;
+ * throws for transport/validation failures. PAID published episodes return
+ * metadata with `audioCdnUrl: null` (not null overall).
+ * Cached across requests per host+slug (#856); no public-view analytics side effect.
  */
 export const fetchPublicEpisodeServer = cache(async (
     host: string,
     slug: string,
 ): Promise<PublicEpisode | null> => {
-    const list = await fetchPublicEpisodesServer(host)
-    if (list === null) {
-        throw new Error(`public episodes request failed for host ${host}`)
-    }
-    return list.find((item) => item.slug === slug) ?? null
+    return cachePublicBffByHostSlug('episode', host, slug, async () => {
+        const response = await directwerkFetch({
+            path: `/api/v1/public/episodes/${encodeURIComponent(slug)}`,
+            tenantHost: host,
+            method: 'GET',
+        })
+
+        if (response.status === 404) {
+            return null
+        }
+        if (!response.ok) {
+            throw new Error(
+                `public episode request failed (HTTP ${response.status}) for host ${host}`,
+            )
+        }
+
+        const parsed = parsePublicEpisodeEnvelope(await response.json())
+        if (parsed === null) {
+            throw new Error(`public episode response invalid for host ${host}`)
+        }
+
+        return parsed.data
+    })
 })
 
 /**

@@ -487,6 +487,10 @@ export function createPublicContentParsers(policy: PublicContentPolicy) {
                 parseBoundedArray(data, 500, parsePublicEpisode),
             )
         },
+
+        parsePublicEpisodeEnvelope(value: unknown): ApiEnvelope<PublicEpisode> | null {
+            return parseEnvelope(value, parsePublicEpisode)
+        },
     }
 }
 

@@ -533,6 +533,25 @@ Accept: application/json
 
 ###
 
+### @name getPublicPodcastEpisodeBySlug
+GET {{baseUrl}}/api/v1/public/episodes/{{podcastEpisodeSlug}}
+Host: {{tenantAHost}}
+Accept: application/json
+
+> {%
+    client.test("Get public podcast episode by slug", function() {
+        client.assert(
+            response.status === 200 || response.status === 404,
+            "Expected 200 for published episode or 404 EPISODE_NOT_FOUND"
+        );
+        if (response.status === 200) {
+            client.assert(response.body.data && response.body.data.slug, "Expected episode slug");
+        }
+    });
+%}
+
+###
+
 ### @name unpublishPodcastEpisode
 POST {{baseUrl}}/api/v1/episodes/{{podcastEpisodeId}}/unpublish
 Host: {{tenantAHost}}
