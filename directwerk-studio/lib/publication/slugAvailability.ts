@@ -3,6 +3,12 @@ export interface SlugEntry {
     slug: string
 }
 
+/** Drop bodies/descriptions — slug checks only need id + slug. */
+export function toSlugEntries(
+    items: ReadonlyArray<{id: number; slug: string}>,
+): SlugEntry[] {
+    return items.map((item) => ({id: item.id, slug: item.slug}))
+}
 
 export function isSlugTaken(
     entries: SlugEntry[],

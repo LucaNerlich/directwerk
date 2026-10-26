@@ -27,7 +27,7 @@ import type {ArticleDetail, CategorySummary, NewsletterListSummary} from '@direc
 import {useCoverImageUpload} from '@/lib/media/useCoverImageUpload'
 import {usePublicationEditorFields} from '@/lib/publication/usePublicationEditorFields'
 import {usePublicationEditorWorkflow} from '@/lib/publication/usePublicationEditorWorkflow'
-import {isSlugTaken} from '@/lib/publication/slugAvailability'
+import {isSlugTaken, toSlugEntries, type SlugEntry} from '@/lib/publication/slugAvailability'
 import {useContentNotifyPreview} from '@/lib/publication/useContentNotifyPreview'
 import {useDefaultNotifySubscribers} from '@/lib/publication/useDefaultNotifySubscribers'
 import {useSiteConfig} from '@/lib/site/SiteConfigProvider'
@@ -56,7 +56,7 @@ export function useArticleContentEditor(
     const config = useSiteConfig()
     const showNotify = config.emailNotifyAvailable === true
     const [article, setArticle] = useState<ArticleDetail | null>(null)
-    const [allArticles, setAllArticles] = useState<ArticleDetail[]>([])
+    const [slugIndex, setSlugIndex] = useState<SlugEntry[]>([])
     const [title, setTitle] = useState('')
     const [slug, setSlug] = useState('')
     const [body, setBody] = useState('')
@@ -185,7 +185,10 @@ export function useArticleContentEditor(
         if (articleId === undefined) {
             const created = await createArticle(payload)
             setArticle(created)
-            setAllArticles((current) => [...current, created])
+            setSlugIndex((current) => [
+                ...current,
+                {id: created.id, slug: created.slug},
+            ])
             routerRef.current.replace(localize(descriptor.paths.editor(created.id)))
             return created
         }
@@ -196,8 +199,12 @@ export function useArticleContentEditor(
         })
         const withTags = await persistTags(updated)
         setArticle(withTags)
-        setAllArticles((current) =>
-            current.map((item) => (item.id === withTags.id ? withTags : item)),
+        setSlugIndex((current) =>
+            current.map((item) =>
+                item.id === withTags.id
+                    ? {id: withTags.id, slug: withTags.slug}
+                    : item,
+            ),
         )
         return withTags
     }, [
@@ -255,20 +262,31 @@ export function useArticleContentEditor(
     useEffect(() => {
         mountedRef.current = true
         let active = true
+        let idleHandle: number | undefined
+        let timeoutHandle: ReturnType<typeof setTimeout> | undefined
 
-        async function loadSlugIndex(): Promise<void> {
-            const loaded = await listArticles()
-            if (active) {
-                setAllArticles(loaded)
-            }
+        // Slug uniqueness only needs {id,slug}. Defer after first paint so
+        // TipTap / media chrome are not contended by the full list download.
+        const loadSlugIndex = (): void => {
+            void listArticles()
+                .then((loaded) => {
+                    if (active) {
+                        setSlugIndex(toSlugEntries(loaded))
+                    }
+                })
+                .catch((error: unknown) => {
+                    if (!active) {
+                        return
+                    }
+                    authRedirect(error)
+                })
         }
 
-        void loadSlugIndex().catch((error: unknown) => {
-            if (!active) {
-                return
-            }
-            authRedirect(error)
-        })
+        if (typeof requestIdleCallback === 'function') {
+            idleHandle = requestIdleCallback(() => loadSlugIndex(), {timeout: 1500})
+        } else {
+            timeoutHandle = setTimeout(loadSlugIndex, 0)
+        }
 
         if (articleId === undefined) {
             Promise.all([
@@ -300,6 +318,12 @@ export function useArticleContentEditor(
             return () => {
                 active = false
                 mountedRef.current = false
+                if (idleHandle !== undefined && typeof cancelIdleCallback === 'function') {
+                    cancelIdleCallback(idleHandle)
+                }
+                if (timeoutHandle !== undefined) {
+                    clearTimeout(timeoutHandle)
+                }
             }
         }
 
@@ -357,6 +381,12 @@ export function useArticleContentEditor(
         return () => {
             active = false
             mountedRef.current = false
+            if (idleHandle !== undefined && typeof cancelIdleCallback === 'function') {
+                cancelIdleCallback(idleHandle)
+            }
+            if (timeoutHandle !== undefined) {
+                clearTimeout(timeoutHandle)
+            }
         }
     }, [articleId, authRedirect, setWorkflowError, showNotify])
 
@@ -400,8 +430,8 @@ export function useArticleContentEditor(
     )
 
     const slugTaken = useCallback(
-        (candidate: string) => isSlugTaken(allArticles, candidate, articleId),
-        [allArticles, articleId],
+        (candidate: string) => isSlugTaken(slugIndex, candidate, articleId),
+        [slugIndex, articleId],
     )
     /** Saving and hero uploads share one busy flag so a manual save cannot
      * persist the article while the hero image is still uploading. */
