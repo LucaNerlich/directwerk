@@ -9,14 +9,15 @@ import {buttonVariants, Button} from '@directwerk/ui/components/button'
 import PageHeader from '@directwerk/ui/components/page-header'
 import PageStack from '@directwerk/ui/components/page-stack'
 
+import PrivateFeedOnboarding from '@/components/PrivateFeedOnboarding'
 import {getAccess, listMySubscriptions} from '@/lib/api/client'
 import {AUTH_REQUIRED} from '@directwerk/api/constants'
 import type {Access, SubscriptionSummary} from '@directwerk/api/types'
 import {getWebClientTenantHost} from '@/lib/tenant/clientHost'
 import {userFacingBillingError} from '@/lib/billing/userFacingBillingError'
 import {useDictionary, useLocale} from '@/lib/i18n/LocaleProvider'
-import {interpolate} from '@/lib/i18n/interpolate'
 import {localizedPath} from '@/lib/i18n/paths'
+import {useSiteConfig} from '@/lib/site/SiteConfigProvider'
 
 const POLL_MS = 2000
 const MAX_ATTEMPTS = 30
@@ -39,6 +40,7 @@ function CheckoutSuccessContent(): React.JSX.Element {
     const router = useRouter()
     const lang = useLocale()
     const {billing, common, errors, nav} = useDictionary()
+    const siteConfig = useSiteConfig()
     const searchParams = useSearchParams()
     const sessionParam = searchParams.get('session_id') ?? ''
     const sessionId = SESSION_ID_PATTERN.test(sessionParam) ? sessionParam : null
@@ -46,6 +48,10 @@ function CheckoutSuccessContent(): React.JSX.Element {
     const [error, setError] = useState<string | null>(null)
     const [subscriptions, setSubscriptions] = useState<SubscriptionSummary[]>([])
     const [round, setRound] = useState(0)
+    const showPrivateFeedOnboarding =
+        phase === 'ready' &&
+        ((siteConfig?.enabledModules.includes('PODCAST_RSS') ?? false) ||
+            (siteConfig?.enabledModules.includes('ARTICLE_RSS') ?? false))
 
     useEffect(() => {
         let cancelled = false
@@ -180,11 +186,30 @@ function CheckoutSuccessContent(): React.JSX.Element {
                     </AlertDescription>
                 </Alert>
             ) : null}
+            {showPrivateFeedOnboarding ? (
+                <PrivateFeedOnboarding enabled variant="full" />
+            ) : null}
             <div className="flex flex-wrap gap-3">
-                <Link className={buttonVariants()} href={localizedPath(lang, '/account')}>
+                {showPrivateFeedOnboarding ? (
+                    <Link
+                        className={buttonVariants()}
+                        href={localizedPath(lang, '/feeds?setup=1')}
+                    >
+                        {billing.successOpenFeeds}
+                    </Link>
+                ) : null}
+                <Link
+                    className={buttonVariants({
+                        variant: showPrivateFeedOnboarding ? 'outline' : 'default',
+                    })}
+                    href={localizedPath(lang, '/account')}
+                >
                     {nav.toAccount}
                 </Link>
-                <Link className={buttonVariants({variant: 'outline'})} href={localizedPath(lang, '/downloads')}>
+                <Link
+                    className={buttonVariants({variant: 'outline'})}
+                    href={localizedPath(lang, '/downloads')}
+                >
                     {nav.downloads}
                 </Link>
             </div>

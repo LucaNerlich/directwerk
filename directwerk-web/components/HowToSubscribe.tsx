@@ -12,6 +12,11 @@ interface HowToSubscribeProps {
     podcast?: boolean
     /** Show feed-reader setup steps. */
     articles?: boolean
+    /**
+     * When false, render steps without the bordered card wrapper (for nesting
+     * inside PrivateFeedOnboarding).
+     */
+    framed?: boolean
 }
 
 function PodcastBlock(): React.JSX.Element {
@@ -64,15 +69,24 @@ function ArticlesBlock(): React.JSX.Element {
 export default function HowToSubscribe({
     podcast = false,
     articles = false,
+    framed = true,
 }: HowToSubscribeProps): React.JSX.Element | null {
     if (!podcast && !articles) {
         return null
     }
-    return (
-        <section className="space-y-6 rounded-xl border bg-card p-5 shadow-sm">
+    const body = (
+        <>
             {podcast ? <PodcastBlock /> : null}
             {podcast && articles ? <div aria-hidden="true" className="border-t" /> : null}
             {articles ? <ArticlesBlock /> : null}
+        </>
+    )
+    if (!framed) {
+        return <div className="space-y-6">{body}</div>
+    }
+    return (
+        <section className="space-y-6 rounded-xl border bg-card p-5 shadow-sm">
+            {body}
         </section>
     )
 }

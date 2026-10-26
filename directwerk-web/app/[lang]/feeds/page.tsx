@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import {useState} from 'react'
+import {Suspense, useState} from 'react'
 import useSWR from 'swr'
 
 import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
@@ -18,6 +18,7 @@ import CustomFeedsPanel, {
     articleCustomFeedsConfig,
     podcastCustomFeedsConfig,
 } from '@/components/CustomFeedsPanel'
+import FeedSetupBanner from '@/components/FeedSetupBanner'
 import FeedUrlDisplay from '@/components/FeedUrlDisplay'
 import HowToSubscribe from '@/components/HowToSubscribe'
 import {ListPanelSkeleton} from '@/components/ContentLoadingSkeleton'
@@ -45,6 +46,7 @@ import {localizedPath} from '@/lib/i18n/paths'
 import {getWebClientTenantHost} from '@/lib/tenant/clientHost'
 import {useSiteConfig} from '@/lib/site/SiteConfigProvider'
 import {userFacingFeedsError} from '@/lib/billing/userFacingBillingError'
+import {useDelayedEmptyReload} from '@/lib/feeds/useDelayedEmptyReload'
 import {
     webPublicArticleFeedUrl,
     webPublicPodcastFeedUrl,
@@ -176,6 +178,7 @@ export default function FeedsPage() {
         feeds: podcastPrivateFeeds,
         error: podcastPrivateError,
         isLoading: isPodcastPrivateLoading,
+        reload: reloadPodcastPrivateFeeds,
         setFeeds: setPodcastPrivateFeeds,
     } = useSubscriberFeeds(isAuthenticated && showPodcastFeeds)
 
@@ -183,6 +186,7 @@ export default function FeedsPage() {
         feeds: articlePrivateFeeds,
         error: articlePrivateError,
         isLoading: isArticlePrivateLoading,
+        reload: reloadArticlePrivateFeeds,
         setFeeds: setArticlePrivateFeeds,
     } = useArticleFeeds(isAuthenticated && showArticleFeeds)
 
@@ -223,6 +227,13 @@ export default function FeedsPage() {
     const defaultPodcastPrivate =
         podcastPrivateFeeds.find((feed) => feed.isDefault) ?? null
     const customPodcastFeeds = podcastPrivateFeeds.filter((feed) => !feed.isDefault)
+    const podcastEmptyPreparing = useDelayedEmptyReload({
+        enabled: isAuthenticated && showPodcastFeeds,
+        error: podcastPrivateError,
+        hasDefault: defaultPodcastPrivate !== null,
+        isLoading: isPodcastPrivateLoading,
+        reload: reloadPodcastPrivateFeeds,
+    })
     const showPodcastFeedBuilder =
         showPodcastFeeds &&
         isAuthenticated &&
@@ -236,6 +247,13 @@ export default function FeedsPage() {
     const defaultArticlePrivate =
         articlePrivateFeeds.find((feed) => feed.isDefault) ?? null
     const customArticleFeeds = articlePrivateFeeds.filter((feed) => !feed.isDefault)
+    const articleEmptyPreparing = useDelayedEmptyReload({
+        enabled: isAuthenticated && showArticleFeeds,
+        error: articlePrivateError,
+        hasDefault: defaultArticlePrivate !== null,
+        isLoading: isArticlePrivateLoading,
+        reload: reloadArticlePrivateFeeds,
+    })
     const showArticleFeedBuilder =
         showArticleFeeds &&
         isAuthenticated &&
@@ -396,7 +414,13 @@ export default function FeedsPage() {
                         {!isPodcastPrivateLoading &&
                             podcastPrivateError === null &&
                             (defaultPodcastPrivate === null ? (
-                                <PrivateFeedEmptyState kind="podcast" />
+                                podcastEmptyPreparing ? (
+                                    <p className="text-sm text-muted-foreground" role="status">
+                                        {feeds.onboardingPreparing}
+                                    </p>
+                                ) : (
+                                    <PrivateFeedEmptyState kind="podcast" />
+                                )
                             ) : (
                                 <ListPanel>
                                     {renderDefaultFeedRow({
@@ -576,7 +600,13 @@ export default function FeedsPage() {
                         {!isArticlePrivateLoading &&
                             articlePrivateError === null &&
                             (defaultArticlePrivate === null ? (
-                                <PrivateFeedEmptyState kind="articles" />
+                                articleEmptyPreparing ? (
+                                    <p className="text-sm text-muted-foreground" role="status">
+                                        {feeds.onboardingPreparing}
+                                    </p>
+                                ) : (
+                                    <PrivateFeedEmptyState kind="articles" />
+                                )
                             ) : (
                                 <ListPanel>
                                     {renderDefaultFeedRow({
@@ -679,6 +709,10 @@ export default function FeedsPage() {
             <PageHeader title={pageCopy.title} description={pageCopy.description} />
 
             <SubscriberContextBanner showWhenAuthenticated={false} />
+
+            <Suspense fallback={null}>
+                <FeedSetupBanner />
+            </Suspense>
 
             {showPodcastFeeds || showArticleFeeds ? (
                 <HowToSubscribe

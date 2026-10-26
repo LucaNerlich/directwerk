@@ -24,7 +24,9 @@ import {
 
 import {useAccountDashboard} from '@/lib/account/useAccountDashboard'
 import {CardGridSkeleton} from '@/components/ContentLoadingSkeleton'
+import PrivateFeedOnboarding from '@/components/PrivateFeedOnboarding'
 import {forgotPassword} from '@/lib/api/client'
+import {useSiteConfig} from '@/lib/site/SiteConfigProvider'
 import {parseForgotPasswordInput} from '@directwerk/api/validation/input'
 import {
     billingSourceLabel,
@@ -137,6 +139,7 @@ export default function AccountPage() {
     const router = useRouter()
     const lang = useLocale()
     const {account, common, errors, format, nav} = useDictionary()
+    const siteConfig = useSiteConfig()
     const {
         me,
         access,
@@ -153,6 +156,10 @@ export default function AccountPage() {
         handleToggleNotifications,
         handlePortal,
     } = useAccountDashboard()
+    const showPrivateFeedOnboarding =
+        me !== null &&
+        ((siteConfig?.enabledModules.includes('PODCAST_RSS') ?? false) ||
+            (siteConfig?.enabledModules.includes('ARTICLE_RSS') ?? false))
     const [, logoutAction, isLoggingOut] = useActionState(
         async (): Promise<LogoutState> => {
             try {
@@ -263,6 +270,10 @@ export default function AccountPage() {
                         value={String(access.activePackages.length)}
                     />
                 </section>
+            ) : null}
+
+            {showPrivateFeedOnboarding ? (
+                <PrivateFeedOnboarding enabled variant="compact" />
             ) : null}
 
             {me !== null && (
