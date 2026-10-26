@@ -41,7 +41,7 @@ import {uploadMediaFile} from '@/lib/media/upload'
 import {useCoverImageUpload} from '@/lib/media/useCoverImageUpload'
 import {episodePublishBlockReason} from '@/lib/podcast/episodePreflight'
 import {publicEpisodePageUrl} from '@directwerk/api/urls/publicContentUrls'
-import {isSlugTaken} from '@/lib/publication/slugAvailability'
+import {isSlugTaken, toSlugEntries, type SlugEntry} from '@/lib/publication/slugAvailability'
 import {parseOptionalInt as optionalMinInt} from '@/lib/publication/parsePositiveInt'
 import {resolvePersistEpisodeId} from '@/lib/publication/resolvePersistEpisodeId'
 import {usePublicationEditorFields} from '@/lib/publication/usePublicationEditorFields'
@@ -89,7 +89,7 @@ export function useEpisodeContentEditor(
             : null
     // Survives a deferred-create attach failure while the route is still /new (#731 review).
     const deferredCreateIdRef = useRef<number | undefined>(undefined)
-    const [allEpisodes, setAllEpisodes] = useState<EpisodeDetail[]>([])
+    const [slugIndex, setSlugIndex] = useState<SlugEntry[]>([])
     const [series, setSeries] = useState<SeriesSummary[]>([])
     const [seriesId, setSeriesId] = useState<number | null>(null)
     const [title, setTitle] = useState('')
@@ -220,6 +220,10 @@ export function useEpisodeContentEditor(
                 })
                 deferredCreateIdRef.current = created.id
                 setEpisode(created)
+                setSlugIndex((current) => [
+                    ...current,
+                    {id: created.id, slug: created.slug},
+                ])
                 // #731: audio upload/library attach navigates after attachEpisodeAudio.
                 if (options?.deferCreateRedirect !== true) {
                     router.replace(localize(descriptor.paths.editor(created.id)))
@@ -233,8 +237,12 @@ export function useEpisodeContentEditor(
             })
             const withTags = await persistTags(updated)
             setEpisode(withTags)
-            setAllEpisodes((current) =>
-                current.map((item) => (item.id === withTags.id ? withTags : item)),
+            setSlugIndex((current) =>
+                current.map((item) =>
+                    item.id === withTags.id
+                        ? {id: withTags.id, slug: withTags.slug}
+                        : item,
+                ),
             )
             return withTags
         },
@@ -389,12 +397,11 @@ export function useEpisodeContentEditor(
 
         async function load(): Promise<void> {
             try {
-                const [seriesList, formatList, categoryList, episodeList, loadedEpisode] =
+                const [seriesList, formatList, categoryList, loadedEpisode] =
                     await Promise.all([
                         listSeries(),
                         listFormats(),
                         listCategories(),
-                        listEpisodes(),
                         episodeId === undefined ? null : getEpisode(episodeId),
                     ])
 
@@ -403,7 +410,6 @@ export function useEpisodeContentEditor(
                 }
 
                 setSeries(seriesList)
-                setAllEpisodes(episodeList)
                 setAvailableFormats(formatList.filter((item) => item.active))
                 setAvailableCategories(categoryList.filter((item) => item.active))
                 if (seriesList.length > 0) {
@@ -456,6 +462,45 @@ export function useEpisodeContentEditor(
             mountedRef.current = false
         }
     }, [episodeId, authRedirect, setErrorMessage])
+
+    // Slug uniqueness only needs {id,slug}. Do not block editor chrome on the
+    // full list (bodies included); load after first paint and keep a slim index.
+    useEffect(() => {
+        let active = true
+        let idleHandle: number | undefined
+        let timeoutHandle: ReturnType<typeof setTimeout> | undefined
+
+        const loadSlugIndex = (): void => {
+            void listEpisodes()
+                .then((loaded) => {
+                    if (active) {
+                        setSlugIndex(toSlugEntries(loaded))
+                    }
+                })
+                .catch((error: unknown) => {
+                    if (!active) {
+                        return
+                    }
+                    authRedirect(error)
+                })
+        }
+
+        if (typeof requestIdleCallback === 'function') {
+            idleHandle = requestIdleCallback(() => loadSlugIndex(), {timeout: 1500})
+        } else {
+            timeoutHandle = setTimeout(loadSlugIndex, 0)
+        }
+
+        return () => {
+            active = false
+            if (idleHandle !== undefined && typeof cancelIdleCallback === 'function') {
+                cancelIdleCallback(idleHandle)
+            }
+            if (timeoutHandle !== undefined) {
+                clearTimeout(timeoutHandle)
+            }
+        }
+    }, [authRedirect])
 
     const handleAuthRequired = useCallback(() => {
         router.replace(localize('/login'))
@@ -595,8 +640,8 @@ export function useEpisodeContentEditor(
     )
 
     const slugTaken = useCallback(
-        (candidate: string) => isSlugTaken(allEpisodes, candidate, episodeId),
-        [allEpisodes, episodeId],
+        (candidate: string) => isSlugTaken(slugIndex, candidate, episodeId),
+        [slugIndex, episodeId],
     )
 
     const busy =
