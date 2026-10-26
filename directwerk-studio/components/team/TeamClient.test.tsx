@@ -119,6 +119,25 @@ describe('TeamClient RBAC', () => {
         expect(within(document.body).queryByLabelText('Folgen: Löschen')).not.toBeInTheDocument()
     })
 
+    it('does not show rights empty-state while editors are still loading', async () => {
+        let resolveEditors!: (users: TenantUser[]) => void
+        listAllTenantEditorsMock.mockReturnValue(
+            new Promise<TenantUser[]>((resolve) => {
+                resolveEditors = resolve
+            }),
+        )
+        vi.mocked(listTenantUsers).mockResolvedValue(pageOf(admin))
+        renderTeam()
+
+        expect(await screen.findByText('Zugriffsrechte')).toBeInTheDocument()
+        expect(screen.queryByText(/Keine aktiven Redakteure vorhanden/)).not.toBeInTheDocument()
+
+        resolveEditors([])
+        expect(
+            await screen.findByText(/Keine aktiven Redakteure vorhanden/),
+        ).toBeInTheDocument()
+    })
+
     it('sends server-side search to the directory endpoint without re-walking editors', async () => {
         vi.mocked(listTenantUsers).mockResolvedValue(pageOf(admin, editor))
         listAllTenantEditorsMock.mockResolvedValue([editor])

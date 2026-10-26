@@ -108,6 +108,7 @@ export default function TeamClient(): React.JSX.Element {
     const [searchInput, setSearchInput] = useState('')
     const [searchQuery, setSearchQuery] = useState('')
     const [editors, setEditors] = useState<TenantUser[]>([])
+    const [editorsReady, setEditorsReady] = useState(false)
     const [loadError, setLoadError] = useState<string | null>(null)
     const [isLoading, setIsLoading] = useState(true)
     const [actionError, setActionError] = useState<string | null>(null)
@@ -176,17 +177,26 @@ export default function TeamClient(): React.JSX.Element {
     useEffect(() => {
         let active = true
 
-        reloadEditors().catch((error: unknown) => {
-            if (!active) {
-                return
-            }
-            if (authRedirect(error)) return
-            setLoadError(
-                error instanceof Error
-                    ? error.message
-                    : 'Team konnte nicht geladen werden.',
-            )
-        })
+        setEditorsReady(false)
+        reloadEditors()
+            .then(() => {
+                if (!active) {
+                    return
+                }
+                setEditorsReady(true)
+            })
+            .catch((error: unknown) => {
+                if (!active) {
+                    return
+                }
+                if (authRedirect(error)) return
+                setLoadError(
+                    error instanceof Error
+                        ? error.message
+                        : 'Team konnte nicht geladen werden.',
+                )
+                setEditorsReady(true)
+            })
 
         return () => {
             active = false
@@ -422,7 +432,9 @@ export default function TeamClient(): React.JSX.Element {
                     title={team.accessRights}
                     description={team.redakteureStandardmaessigVollenZugriffInhalt}
                 />
-                {editors.length === 0 ? (
+                {!editorsReady ? (
+                    <Skeleton className="h-24 w-full max-w-2xl" />
+                ) : editors.length === 0 ? (
                     <p className="text-sm text-muted-foreground">
                         Keine aktiven Redakteure vorhanden — lade unten jemanden als Redakteur ein,
                         um Rechte zu vergeben.
