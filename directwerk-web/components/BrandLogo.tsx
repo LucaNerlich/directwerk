@@ -4,10 +4,14 @@ import {isAllowedFeedUrl} from '@directwerk/api/validation/primitives'
 import {cn} from '@directwerk/ui/lib/utils'
 
 /**
- * Tenant brand logo. Uses `next/image` (see `MEDIA_IMAGE_REMOTE_HOSTS` in
- * `next.config.ts`) with intrinsic aspect preserved via `object-contain`
- * and auto width/height — never stretched to a fixed box. Pass `priority`
- * for the hero logo; everywhere else it lazy-loads.
+ * Tenant brand logo. Branding `logoUrl` is an arbitrary https URL (platform CDN
+ * or external host). `next/image` optimization only allows
+ * `MEDIA_IMAGE_REMOTE_HOSTS`, so this always uses `unoptimized` and loads the
+ * URL directly — otherwise external logos 400 via `/_next/image`.
+ *
+ * Intrinsic aspect is preserved via `object-contain` and auto width/height —
+ * never stretched to a fixed box. Pass `priority` for the hero logo;
+ * everywhere else it lazy-loads.
  *
  * Only renders when the URL is https or loopback http.
  */
@@ -35,6 +39,7 @@ export default function BrandLogo({
             sizes="(max-width: 640px) 140px, 200px"
             src={logoUrl}
             style={{width: 'auto', height: 'auto'}}
+            unoptimized
             width={320}
         />
     )
