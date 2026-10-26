@@ -1,18 +1,23 @@
+'use client'
+
+import type {ReactNode} from 'react'
+
 import {hasModule} from '@/lib/api/client'
-import {requireStudioSiteConfig} from '@/lib/site/requireSiteConfig'
+import {useSiteConfig} from '@/lib/site/SiteConfigProvider'
 
 import SubscriptionModuleUnavailable from '@/components/studio/SubscriptionModuleUnavailable'
 
-export default async function SubscriptionModuleGate({
+/** Client gate mirroring DeskGate — reads layout-provided SiteConfigProvider. */
+export default function SubscriptionModuleGate({
     children,
 }: {
-    children: React.ReactNode
-}): Promise<React.JSX.Element> {
-    const {config} = await requireStudioSiteConfig()
+    children: ReactNode
+}) {
+    const config = useSiteConfig()
 
     if (!hasModule(config, 'SUBSCRIPTION')) {
         return <SubscriptionModuleUnavailable />
     }
 
-    return <>{children}</>
+    return children
 }

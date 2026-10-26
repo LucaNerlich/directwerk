@@ -1,12 +1,14 @@
+'use client'
+
 import PageHeader from '@directwerk/ui/components/page-header'
 import PageStack from '@directwerk/ui/components/page-stack'
 
 import AnalyticsDashboardClient from '@/components/analytics/AnalyticsDashboardClient'
 import {hasModule} from '@/lib/api/client'
-import {requireStudioSiteConfig} from '@/lib/site/requireSiteConfig'
+import {useSiteConfig} from '@/lib/site/SiteConfigProvider'
 
-export default async function AnalyticsPage(): Promise<React.JSX.Element> {
-    const {config} = await requireStudioSiteConfig()
+export default function AnalyticsPage(): React.JSX.Element {
+    const config = useSiteConfig()
 
     return (
         <PageStack>

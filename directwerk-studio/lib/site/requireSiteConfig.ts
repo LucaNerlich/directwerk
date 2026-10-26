@@ -1,5 +1,6 @@
 import 'server-only'
 
+import {cache} from 'react'
 import {cookies, headers} from 'next/headers'
 import {redirect} from 'next/navigation'
 
@@ -12,10 +13,10 @@ import {DEFAULT_STUDIO_SITE_CONFIG} from '@/lib/site/defaultStudioSiteConfig'
 import {fetchSiteConfigServerOptional} from '@/lib/site/fetchSiteConfigServer'
 import {getTenantHost} from '@/lib/site/getTenantHost'
 
-export async function resolveStudioSiteContext(): Promise<{
+export const resolveStudioSiteContext = cache(async (): Promise<{
     host: string | null
     config: SiteConfig
-}> {
+}> => {
     const host = await getTenantHost()
     if (host === null) {
         return {host: null, config: DEFAULT_STUDIO_SITE_CONFIG}
@@ -27,7 +28,7 @@ export async function resolveStudioSiteContext(): Promise<{
     }
 
     return {host, config}
-}
+})
 
 async function resolveLoginRedirect(lang?: Locale): Promise<string> {
     if (lang !== undefined) {
@@ -44,10 +45,14 @@ async function resolveLoginRedirect(lang?: Locale): Promise<string> {
     return localizedPath(preferred, '/login')
 }
 
-export async function requireStudioSiteConfig(lang?: Locale): Promise<{
+/**
+ * Request-scoped: layout + page/gate callers share one host resolve + upstream fetch.
+ * Missing host still redirects to login.
+ */
+export const requireStudioSiteConfig = cache(async (lang?: Locale): Promise<{
     host: string
     config: SiteConfig
-}> {
+}> => {
     const host = await getTenantHost()
     if (host === null) {
         redirect(await resolveLoginRedirect(lang))
@@ -55,4 +60,4 @@ export async function requireStudioSiteConfig(lang?: Locale): Promise<{
 
     const config = await fetchSiteConfigServerOptional(host)
     return {host, config: config ?? DEFAULT_STUDIO_SITE_CONFIG}
-}
+})
