@@ -20,7 +20,7 @@ export default function FeedsSection({
                 <div className="mt-10 grid items-start gap-4 lg:grid-cols-2">
                     <div className="grid gap-4">
                         {copy.types.map((feed) => (
-                            <article className="glass-panel rounded-2xl p-6" key={feed.title}>
+                            <article className="dw-neo rounded-2xl p-6" key={feed.title}>
                                 <h3 className="font-semibold">{feed.title}</h3>
                                 <p className="mt-2 text-sm leading-6 text-muted-foreground">
                                     {feed.copy}

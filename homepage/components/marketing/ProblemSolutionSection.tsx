@@ -16,7 +16,7 @@ export default function ProblemSolutionSection({
                 <div className="mt-10 grid gap-6 lg:grid-cols-3">
                     {copy.pairs.map((item, index) => (
                         <article
-                            className="glass-panel rounded-2xl p-6"
+                            className="dw-neo rounded-2xl p-6"
                             key={item.problem.slice(0, 24)}
                         >
                             <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">

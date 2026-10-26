@@ -15,7 +15,7 @@ export default function FaqSection({
                 </h2>
                 <div className="mt-8 grid gap-3">
                     {copy.items.map((faq) => (
-                        <details className="glass-panel group rounded-2xl px-6 py-4" key={faq.question}>
+                        <details className="dw-neo group rounded-2xl px-6 py-4" key={faq.question}>
                             <summary className="cursor-pointer list-none font-medium [&::-webkit-details-marker]:hidden">
                                 <span className="flex items-center justify-between gap-4">
                                     {faq.question}

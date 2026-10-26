@@ -14,7 +14,7 @@ export default function MarketingFooter(): React.JSX.Element {
     const copy = dictionary.footer
 
     return (
-        <footer className="border-t bg-muted/30">
+        <footer className="border-t">
             <div className="marketing-container flex flex-col gap-8 py-12 sm:flex-row sm:items-start sm:justify-between">
                 <div>
                     <p className="text-lg font-semibold tracking-tight">Directwerk</p>

@@ -66,7 +66,7 @@ export default async function DevelopersPage({
                 </div>
             </section>
 
-            <section className="marketing-section border-t bg-muted/20">
+            <section className="marketing-section border-t border-foreground/10">
                 <div className="marketing-container max-w-4xl">
                     <h2 className="text-2xl font-semibold tracking-tight">
                         {copy.integratorTitle}
@@ -103,7 +103,7 @@ export default async function DevelopersPage({
                 </div>
             </section>
 
-            <section className="marketing-section border-t bg-muted/20">
+            <section className="marketing-section border-t border-foreground/10">
                 <div className="marketing-container max-w-4xl space-y-8">
                     <div>
                         <h2 className="text-2xl font-semibold tracking-tight">
@@ -139,7 +139,7 @@ export default async function DevelopersPage({
                             <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                                 {copy.successLabel}
                             </p>
-                            <pre className="overflow-x-auto rounded-xl border bg-muted/40 p-4 font-mono text-xs leading-6">
+                            <pre className="dw-neo overflow-x-auto rounded-xl p-4 font-mono text-xs leading-6">
                                 {RESPONSE_ENVELOPE_EXAMPLE}
                             </pre>
                         </div>
@@ -147,7 +147,7 @@ export default async function DevelopersPage({
                             <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                                 {copy.moduleDisabledLabel}
                             </p>
-                            <pre className="overflow-x-auto rounded-xl border bg-muted/40 p-4 font-mono text-xs leading-6">
+                            <pre className="dw-neo overflow-x-auto rounded-xl p-4 font-mono text-xs leading-6">
                                 {ERROR_EXAMPLE}
                             </pre>
                         </div>
@@ -155,7 +155,7 @@ export default async function DevelopersPage({
                 </div>
             </section>
 
-            <section className="marketing-section border-t bg-muted/20">
+            <section className="marketing-section border-t border-foreground/10">
                 <div className="marketing-container max-w-4xl">
                     <DocsCta copy={copy} />
                 </div>

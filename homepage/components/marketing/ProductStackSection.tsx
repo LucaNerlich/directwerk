@@ -19,6 +19,7 @@ export default function ProductStackSection({
                 <div className="mt-10 grid gap-4 sm:grid-cols-2">
                     {copy.items.map((product) => (
                         <StatCard
+                            className="dw-neo border-0 shadow-none"
                             hint={product.copy}
                             key={product.name}
                             label={product.role}
