@@ -413,10 +413,16 @@ export default function ShowNotesEditor({
         if (!editor) {
             return
         }
-        // Skip echoes of our own pushes and unflushed local edits.
-        if (pendingHtmlRef.current !== null || value === syncedHtmlRef.current) {
+        // Skip echoes of our own pushes and unflushed local edits only.
+        if (value === syncedHtmlRef.current || value === pendingHtmlRef.current) {
             return
         }
+        // Divergent parent value (soft-nav / reload) — drop pending debounce and apply.
+        if (pushTimerRef.current !== null) {
+            clearTimeout(pushTimerRef.current)
+            pushTimerRef.current = null
+        }
+        pendingHtmlRef.current = null
         if (editor.getHTML() !== value) {
             editor.commands.setContent(value, {emitUpdate: false})
         }
