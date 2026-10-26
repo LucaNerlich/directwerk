@@ -256,9 +256,9 @@ export default function MediaLibraryPicker({
             ? assetLabel(selectedAsset)
             : selectedId !== null
               ? `Asset ${selectedId}`
-              : assets.length === 0
-                ? dict.media.keinePassendenMedien
-                : dict.media.mediathekWaehlen
+              : !hasLoaded || assets.length > 0
+                ? dict.media.mediathekWaehlen
+                : dict.media.keinePassendenMedien
 
     const controlsDisabled = disabled || (hasLoaded && !isLoading && assets.length === 0)
 

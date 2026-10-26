@@ -134,7 +134,10 @@ describe('media library picker open-gated load (#889)', () => {
             />,
         )
 
-        expect(await screen.findByRole('button', {name: 'Titelbild aus Mediathek'})).toBeEnabled()
+        const trigger = await screen.findByRole('button', {name: 'Titelbild aus Mediathek'})
+        expect(trigger).toBeEnabled()
+        // Closed trigger must not claim an empty catalog before the first open-gated load.
+        expect(trigger).toHaveTextContent('Aus Mediathek wählen…')
         expect(listAllMediaMock).not.toHaveBeenCalled()
 
         const listbox = await openPicker('Titelbild aus Mediathek')
