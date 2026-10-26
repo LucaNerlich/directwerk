@@ -22,7 +22,7 @@ import {
     Strikethrough,
     Undo2,
 } from 'lucide-react'
-import {useEffect, useId, useState, type ReactNode} from 'react'
+import {useCallback, useEffect, useId, useRef, useState, type ReactNode} from 'react'
 
 import MediaInlinePickerDialog, {
     inlineInsertKind,
@@ -31,6 +31,9 @@ import type {MediaAsset} from '@directwerk/api/types'
 import {sanitizeContentHtml} from '@directwerk/api/content/sanitizeContentHtml'
 import {safeImageSrc, safeLinkHref} from '@/lib/url/safeUrl'
 import {useDictionary} from '@/components/i18n/LocaleProvider'
+
+/** Push HTML to the parent after typing settles; blur/unmount flush immediately. */
+const BODY_PUSH_DEBOUNCE_MS = 200
 
 
 function escapeHtml(value: string): string {
@@ -330,6 +333,43 @@ export default function ShowNotesEditor({
     const labelId = useId()
     const helperId = useId()
     const [mediaDialogOpen, setMediaDialogOpen] = useState(false)
+    const onChangeRef = useRef(onChange)
+    onChangeRef.current = onChange
+    /** Last HTML we pushed (or accepted from props) — skips setContent feedback thrash. */
+    const syncedHtmlRef = useRef(value)
+    const pendingHtmlRef = useRef<string | null>(null)
+    const pushTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+    const flushBody = useCallback((): void => {
+        if (pushTimerRef.current !== null) {
+            clearTimeout(pushTimerRef.current)
+            pushTimerRef.current = null
+        }
+        const pending = pendingHtmlRef.current
+        if (pending === null) {
+            return
+        }
+        pendingHtmlRef.current = null
+        syncedHtmlRef.current = pending
+        onChangeRef.current(pending)
+    }, [])
+
+    const scheduleBodyPush = useCallback(
+        (html: string): void => {
+            pendingHtmlRef.current = html
+            if (pushTimerRef.current !== null) {
+                clearTimeout(pushTimerRef.current)
+            }
+            pushTimerRef.current = setTimeout(() => {
+                pushTimerRef.current = null
+                flushBody()
+            }, BODY_PUSH_DEBOUNCE_MS)
+        },
+        [flushBody],
+    )
+
+    useEffect(() => () => flushBody(), [flushBody])
+
     const editor = useEditor({
         // Required for Next.js App Router — avoids SSR/client hydration mismatch.
         immediatelyRender: false,
@@ -351,7 +391,10 @@ export default function ShowNotesEditor({
         ],
         content: value,
         onUpdate: ({editor: currentEditor}) => {
-            onChange(currentEditor.getHTML())
+            scheduleBodyPush(currentEditor.getHTML())
+        },
+        onBlur: () => {
+            flushBody()
         },
         editorProps: {
             attributes: {
@@ -370,9 +413,14 @@ export default function ShowNotesEditor({
         if (!editor) {
             return
         }
+        // Skip echoes of our own pushes and unflushed local edits.
+        if (pendingHtmlRef.current !== null || value === syncedHtmlRef.current) {
+            return
+        }
         if (editor.getHTML() !== value) {
             editor.commands.setContent(value, {emitUpdate: false})
         }
+        syncedHtmlRef.current = value
     }, [editor, value])
 
     useEffect(() => {

@@ -1,9 +1,17 @@
 import {screen, within} from '@testing-library/react'
 import {renderWithLocale} from '@/lib/i18n/testUtils'
 import userEvent from '@testing-library/user-event'
-import {describe, expect, it, vi} from 'vitest'
+import {beforeEach, describe, expect, it, vi} from 'vitest'
 
 import PublicationEditorLayout from '@/components/publication/PublicationEditorLayout'
+
+const sanitizeContentHtml = vi.hoisted(() =>
+    vi.fn((html: string) =>
+        html
+            .replace(/<script[\s\S]*?<\/script>/gi, '')
+            .replace(/\s*src="javascript:[^"]*"/gi, ''),
+    ),
+)
 
 vi.mock('next/link', () => ({
     default: ({children, href}: {children: React.ReactNode; href: string}) => (
@@ -15,6 +23,9 @@ vi.mock('@/lib/dynamic/ShowNotesEditor', () => ({
 }))
 vi.mock('@/components/studio/LevelSelect', () => ({
     default: () => <select aria-label="Mindest-Stufe" />,
+}))
+vi.mock('@directwerk/api/content/sanitizeContentHtml', () => ({
+    sanitizeContentHtml,
 }))
 
 function renderLayout(body = '<p>Text</p>') {
@@ -86,6 +97,20 @@ describe('PublicationEditorLayout locale', () => {
 })
 
 describe('PublicationEditorLayout tabs', () => {
+    beforeEach(() => {
+        sanitizeContentHtml.mockClear()
+    })
+
+    it('does not sanitize body HTML while the Write tab is active', () => {
+        renderLayout('<p>Draft</p><script>alert(1)</script>')
+
+        expect(sanitizeContentHtml).not.toHaveBeenCalled()
+        expect(screen.getByRole('tab', {name: 'Schreiben'})).toHaveAttribute(
+            'aria-selected',
+            'true',
+        )
+    })
+
     it('links tabs and panels and supports arrow-key navigation with wraparound', async () => {
         const user = userEvent.setup()
         renderLayout()
@@ -125,7 +150,9 @@ describe('PublicationEditorLayout tabs', () => {
         const user = userEvent.setup()
         renderLayout('<p>Safe</p><img src="javascript:alert(1)"><script>alert(2)</script>')
 
+        expect(sanitizeContentHtml).not.toHaveBeenCalled()
         await user.click(screen.getByRole('tab', {name: 'Vorschau'}))
+        expect(sanitizeContentHtml).toHaveBeenCalled()
         const previewPanel = screen.getByRole('tabpanel', {name: 'Vorschau'})
 
         expect(within(previewPanel).getByText('Safe')).toBeInTheDocument()

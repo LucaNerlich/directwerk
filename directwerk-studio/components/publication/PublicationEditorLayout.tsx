@@ -182,7 +182,8 @@ export default function PublicationEditorLayout({
     const isPublished = status === 'PUBLISHED'
     const isArchived = status === 'ARCHIVED'
     const previewLink = previewUrl !== null ? safeLinkHref(previewUrl) : null
-    const sanitizedBody = sanitizeContentHtml(body)
+    // Only sanitize when Preview is shown — Write tab typing must not pay this cost.
+    const sanitizedBody = activeTab === 'preview' ? sanitizeContentHtml(body) : ''
 
     const handleTabKeyDown = (
         event: KeyboardEvent<HTMLButtonElement>,
