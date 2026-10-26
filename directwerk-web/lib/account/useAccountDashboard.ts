@@ -71,20 +71,20 @@ export function useAccountDashboard(): AccountDashboardState {
         let isCurrent = true
         const tenantHost = getWebClientTenantHost()
         // Issue #434: the site config comes from SiteConfigProvider instead of a fourth request.
+        // Subscriptions only need the module gate (already in context), so load
+        // them in parallel with me/access/prefs instead of after (#861).
+        const subscriptionPromise: Promise<SubscriptionSummary[]> =
+            siteConfig.enabledModules.includes('SUBSCRIPTION')
+                ? listMySubscriptions(tenantHost)
+                : Promise.resolve([])
+
         Promise.all([
             getMe(),
             getAccess(),
             getNotificationPreferences(),
+            subscriptionPromise,
         ])
-            .then(async ([meResponse, accessResponse, prefs]) => {
-                // Subscriptions live behind the SUBSCRIPTION module: only call
-                // the endpoint when it is active so a disabled module cannot
-                // fail the whole account page with FEATURE_NOT_ENABLED.
-                const subscriptionList: SubscriptionSummary[] =
-                    siteConfig.enabledModules.includes('SUBSCRIPTION')
-                        ? await listMySubscriptions(tenantHost)
-                        : []
-
+            .then(([meResponse, accessResponse, prefs, subscriptionList]) => {
                 return {
                     meResponse,
                     accessResponse,
