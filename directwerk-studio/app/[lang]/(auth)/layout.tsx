@@ -11,7 +11,7 @@ export default async function AuthLayout({children}: {children: React.ReactNode}
 
     return (
         <SiteConfigProvider config={config}>
-            <BrandTheme className="min-h-svh bg-background" primaryHex={config.branding.primaryColor} secondaryHex={config.branding.secondaryColor}>
+            <BrandTheme className="dw-brand min-h-svh" primaryHex={config.branding.primaryColor} secondaryHex={config.branding.secondaryColor}>
                 <AuthChrome>{children}</AuthChrome>
             </BrandTheme>
         </SiteConfigProvider>

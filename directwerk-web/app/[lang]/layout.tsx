@@ -206,7 +206,7 @@ export default async function LangLayout({
             <UmamiAnalytics analytics={config.analytics} />
             <SiteConfigProvider config={config}>
                 <BrandTheme
-                    className="dw-web-brand"
+                    className="dw-brand"
                     primaryHex={primary}
                     secondaryHex={secondary}
                 >
