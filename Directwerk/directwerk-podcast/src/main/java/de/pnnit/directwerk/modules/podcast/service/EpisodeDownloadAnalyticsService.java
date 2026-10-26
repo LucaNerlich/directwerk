@@ -67,13 +67,18 @@ public class EpisodeDownloadAnalyticsService {
         String episodeSlug = episode.getSlug().trim();
         String episodeTitle = episode.getTitle() != null ? episode.getTitle().trim() : "";
         String seriesSlug = episode.getSeries() != null ? episode.getSeries().getSlug() : null;
+        // Match m10z's proven Umami contract: identity lives in data.slug (+ data.title),
+        // not first-class payload title/tag. Keep Directwerk-specific dimensions alongside.
         Map<String, String> data = new LinkedHashMap<>();
+        data.put("slug", episodeSlug);
         data.put("episodeSlug", episodeSlug);
         if (episode.getId() != null) {
             data.put("episodeId", String.valueOf(episode.getId()));
         }
         if (!episodeTitle.isEmpty()) {
-            data.put("episodeTitle", truncateProp(episodeTitle));
+            String cappedTitle = truncateProp(episodeTitle);
+            data.put("title", cappedTitle);
+            data.put("episodeTitle", cappedTitle);
         }
         if (seriesSlug != null && !seriesSlug.isBlank()) {
             data.put("seriesSlug", seriesSlug.trim());
@@ -81,9 +86,6 @@ public class EpisodeDownloadAnalyticsService {
         data.put("accessPolicy", episode.getAccessPolicy().name());
         data.put("source", source);
         data.put("isRangeRequest", isRangeRequest ? "true" : "false");
-        // title → Umami page_title; tag → first-class Events filter (Umami tag max 50).
-        // Custom props also stay in data so the Properties tab can break down by episode.
-        String tag = episodeSlug.length() <= 50 ? episodeSlug : episodeSlug.substring(0, 50);
         tenantEventTracker.track(
                 tenantId,
                 EVENT_NAME,
@@ -92,9 +94,7 @@ public class EpisodeDownloadAnalyticsService {
                 data,
                 clientUserAgent,
                 clientIp,
-                "episode '" + episodeSlug + "'",
-                episodeTitle.isEmpty() ? episodeSlug : truncateProp(episodeTitle),
-                tag);
+                "episode '" + episodeSlug + "'");
     }
 
     /** Umami event-data string values cap at 500; keep titles comfortably under that. */

@@ -1,6 +1,5 @@
 package de.pnnit.directwerk.modules.core.analytics;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
 import de.pnnit.directwerk.config.DirectwerkConfig;
 import de.pnnit.directwerk.config.DirectwerkProperties;
 import de.pnnit.directwerk.modules.core.util.UmamiHostUrlValidator;
@@ -117,24 +116,6 @@ public class UmamiEventClient {
             Map<String, Object> data,
             String clientIp
     ) {
-        trackEvent(hostUrl, websiteId, hostname, url, eventName, null, null, data, clientIp);
-    }
-
-    /**
-     * Full server-side collect call. {@code title} and {@code tag} are first-class Umami
-     * columns (visible outside the Properties tab); {@code data} holds custom event props.
-     */
-    public void trackEvent(
-            String hostUrl,
-            String websiteId,
-            String hostname,
-            String url,
-            String eventName,
-            String title,
-            String tag,
-            Map<String, Object> data,
-            String clientIp
-    ) {
         if (isBlank(websiteId)) {
             return;
         }
@@ -145,15 +126,7 @@ public class UmamiEventClient {
 
         try {
             executor.execute(() -> sendEvent(
-                    sendUri.get(),
-                    websiteId,
-                    hostname,
-                    url,
-                    eventName,
-                    title,
-                    tag,
-                    data,
-                    clientIp));
+                    sendUri.get(), websiteId, hostname, url, eventName, data, clientIp));
         } catch (RuntimeException ex) {
             log.debug("Umami event task could not be scheduled: {}", ex.toString());
         }
@@ -176,8 +149,6 @@ public class UmamiEventClient {
             String hostname,
             String url,
             String eventName,
-            String title,
-            String tag,
             Map<String, Object> data,
             String clientIp
     ) {
@@ -189,8 +160,6 @@ public class UmamiEventClient {
                             hostname,
                             url,
                             eventName,
-                            blankToNull(title),
-                            blankToNull(tag),
                             data == null ? Map.of() : Map.copyOf(data)
                     )
             ));
@@ -214,10 +183,6 @@ public class UmamiEventClient {
             }
             log.warn("Umami event delivery failed for event {}: {}", eventName, ex.toString());
         }
-    }
-
-    private static String blankToNull(String value) {
-        return isBlank(value) ? null : value.trim();
     }
 
     /**
@@ -521,20 +486,11 @@ public class UmamiEventClient {
     private record UmamiRequest(String type, UmamiPayload payload) {
     }
 
-    /**
-     * Collect payload shape expected by Umami {@code POST /api/send}. {@code title} maps to
-     * page title; {@code tag} is a first-class filter column; {@code data} is event properties.
-     * Null title/tag must be omitted — Umami's Zod schema treats them as optional strings and
-     * rejects explicit JSON nulls.
-     */
-    @JsonInclude(JsonInclude.Include.NON_NULL)
     private record UmamiPayload(
             String website,
             String hostname,
             String url,
             String name,
-            String title,
-            String tag,
             Map<String, Object> data
     ) {
     }

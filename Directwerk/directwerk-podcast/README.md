@@ -130,13 +130,13 @@ Tenant overrides work even when no platform default is set, but non-routable hos
 (loopback/private/reserved) fall back to the platform host. When the tenant `ANALYTICS`
 module and a website ID are present, stream/download/RSS enclosure redirects emit
 `episode-download` with event data
-`{episodeSlug, episodeId, episodeTitle, seriesSlug, accessPolicy, source, isRangeRequest,
-clientUserAgent}` (truncated UA in event data; the client IP is forwarded to Umami via
+`{slug, title?, episodeSlug, episodeId, episodeTitle?, seriesSlug, accessPolicy, source,
+isRangeRequest, clientUserAgent}` — `slug`/`title` match the proven m10z Umami download
+contract (Properties + `event-data/values?propertyName=slug`); Directwerk-specific keys stay
+alongside (truncated UA in event data; the client IP is forwarded to Umami via
 `X-Forwarded-For` for session attribution while the collector `User-Agent` stays a stable
 browser token — Umami `isbot`-drops custom/bot UAs with HTTP 200, so the real podcatcher UA
-is never used as the collector header). The collect payload also sets Umami first-class
-`title` (episode title) and `tag` (episode slug, ≤50 chars) so listens are identifiable in
-the Events UI without opening the Properties tab. Feed XML fetches emit
+is never used as the collector header). Feed XML fetches emit
 `feed-fetch {feedKind=podcast, visibility}`. Public+private RSS enclosures are stable
 proxies (`/feeds/{tenant}/e/{episode}.mp3`, `/feeds/{tenant}/u/{token}/e/{episode}.mp3`,
 legacy alias `/api/v1/public/episodes/{slug}/download`) with `Cache-Control: no-store`

@@ -76,8 +76,6 @@ class ArticleViewAnalyticsServiceTest {
                 eq("alpha.example.test"),
                 eq("/articles/article-1"),
                 eq("article-view"),
-                org.mockito.ArgumentMatchers.isNull(),
-                org.mockito.ArgumentMatchers.isNull(),
                 dataCaptor.capture(),
                 org.mockito.ArgumentMatchers.isNull()
         );
@@ -124,8 +122,6 @@ class ArticleViewAnalyticsServiceTest {
                 eq("alpha.example.test"),
                 eq("/articles/article-1"),
                 eq("article-view"),
-                org.mockito.ArgumentMatchers.isNull(),
-                org.mockito.ArgumentMatchers.isNull(),
                 org.mockito.ArgumentMatchers.any(),
                 org.mockito.ArgumentMatchers.isNull()
         );
@@ -148,8 +144,6 @@ class ArticleViewAnalyticsServiceTest {
                 eq("alpha.example.test"),
                 eq("/articles/article-1"),
                 eq("article-view"),
-                org.mockito.ArgumentMatchers.isNull(),
-                org.mockito.ArgumentMatchers.isNull(),
                 org.mockito.ArgumentMatchers.any(),
                 org.mockito.ArgumentMatchers.isNull()
         );
@@ -166,8 +160,6 @@ class ArticleViewAnalyticsServiceTest {
 
     private void verifyNeverTracked() {
         verify(umamiEventClient, never()).trackEvent(
-                org.mockito.ArgumentMatchers.any(),
-                org.mockito.ArgumentMatchers.any(),
                 org.mockito.ArgumentMatchers.any(),
                 org.mockito.ArgumentMatchers.any(),
                 org.mockito.ArgumentMatchers.any(),

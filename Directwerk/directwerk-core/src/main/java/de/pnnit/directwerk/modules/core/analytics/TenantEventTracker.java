@@ -55,30 +55,13 @@ public class TenantEventTracker {
             String userAgent,
             String clientIp
     ) {
-        return track(tenantId, eventName, path, hostname, data, userAgent, clientIp, null, null, null);
+        return track(tenantId, eventName, path, hostname, data, userAgent, clientIp, null);
     }
 
     /**
      * Emits {@code eventName} for {@code tenantId}. When {@code logSubject} is non-null, skipped
      * events are logged at INFO with the event-specific subject wording callers rely on;
      * {@code null} keeps the silent skip used by the feed-fetch and article-view adapters.
-     */
-    public boolean track(
-            Long tenantId,
-            String eventName,
-            String path,
-            String hostname,
-            Map<String, String> data,
-            String userAgent,
-            String clientIp,
-            String logSubject
-    ) {
-        return track(tenantId, eventName, path, hostname, data, userAgent, clientIp, logSubject, null, null);
-    }
-
-    /**
-     * Full emit path. {@code title}/{@code tag} are optional Umami first-class fields (page
-     * title / filter tag); custom dimensions stay in {@code data}.
      */
     @Transactional(readOnly = true)
     public boolean track(
@@ -89,9 +72,7 @@ public class TenantEventTracker {
             Map<String, String> data,
             String userAgent,
             String clientIp,
-            String logSubject,
-            String title,
-            String tag
+            String logSubject
     ) {
         try {
             if (tenantId == null || hostname == null || hostname.isBlank()) {
@@ -136,8 +117,6 @@ public class TenantEventTracker {
                     hostname.trim().toLowerCase(Locale.ROOT),
                     path,
                     eventName,
-                    title,
-                    tag,
                     payload(data, userAgent),
                     clientIp);
             return true;
