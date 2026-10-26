@@ -1,4 +1,4 @@
-import AuthGuard from '@/components/studio/AuthGuard'
+import AuthGuard, {AuthContentGate} from '@/components/studio/AuthGuard'
 import StudioShell from '@/components/studio/StudioShell'
 import {assertLocale} from '@/lib/i18n'
 import {requireStudioSiteConfig} from '@/lib/site/requireSiteConfig'
@@ -18,7 +18,9 @@ export default async function StudioLayout({
 
     return (
         <AuthGuard>
-            <StudioShell config={config}>{children}</StudioShell>
+            <StudioShell config={config}>
+                <AuthContentGate>{children}</AuthContentGate>
+            </StudioShell>
         </AuthGuard>
     )
 }

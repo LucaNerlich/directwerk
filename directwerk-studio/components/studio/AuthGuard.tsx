@@ -1,7 +1,13 @@
 'use client'
 
 import {useRouter} from 'next/navigation'
-import {useEffect, useState} from 'react'
+import {
+    createContext,
+    useContext,
+    useEffect,
+    useState,
+    type ReactNode,
+} from 'react'
 
 import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
 import {Button} from '@directwerk/ui/components/button'
@@ -18,6 +24,22 @@ import {clearAllCachedTenantData} from '@directwerk/api/client/useCachedTenantQu
 import {getAccessToken} from '@/lib/auth/tokenStore'
 
 import type {Me} from '@directwerk/api/types'
+
+type AuthStatus = {
+    ready: boolean
+    verifyError: string | null
+    retry: () => void
+}
+
+const AuthStatusContext = createContext<AuthStatus | null>(null)
+
+function useAuthStatus(): AuthStatus {
+    const value = useContext(AuthStatusContext)
+    if (value === null) {
+        throw new Error('AuthContentGate must be used within AuthGuard')
+    }
+    return value
+}
 
 function AuthLoading(): React.JSX.Element {
     const dict = useDictionary()
@@ -36,7 +58,11 @@ function AuthLoading(): React.JSX.Element {
     )
 }
 
-export default function AuthGuard({children}: Readonly<{children: React.ReactNode}>) {
+/**
+ * Boots auth for the studio tree: always renders children (shell chrome first)
+ * and supplies MeProvider. Gate page content with {@link AuthContentGate}.
+ */
+export default function AuthGuard({children}: Readonly<{children: ReactNode}>) {
     const router = useRouter()
     const localize = useLocalizedPath()
     const dict = useDictionary()
@@ -98,28 +124,44 @@ export default function AuthGuard({children}: Readonly<{children: React.ReactNod
         }
     }, [dict.auth.connectionFailed, localize, router, attempt])
 
-    if (me === null) {
-        if (verifyError !== null) {
-            return (
-                <div className="mx-auto flex w-full max-w-md flex-col gap-4 p-6">
-                    <Alert variant="destructive">
-                        <AlertDescription>{verifyError}</AlertDescription>
-                    </Alert>
-                    <Button
-                        onClick={() => {
-                            setAttempt((value) => value + 1)
-                        }}
-                        type="button"
-                        variant="outline"
-                    >
-                        {dict.common.retry}
-                    </Button>
-                </div>
-            )
-        }
-
-        return <AuthLoading />
+    const status: AuthStatus = {
+        ready: me !== null,
+        verifyError,
+        retry: () => {
+            setAttempt((value) => value + 1)
+        },
     }
 
-    return <MeProvider me={me}>{children}</MeProvider>
+    return (
+        <AuthStatusContext.Provider value={status}>
+            <MeProvider me={me}>{children}</MeProvider>
+        </AuthStatusContext.Provider>
+    )
+}
+
+/** Skeletons (or retry) for main content until /me succeeds. Shell stays visible. */
+export function AuthContentGate({
+    children,
+}: Readonly<{children: ReactNode}>): React.JSX.Element {
+    const dict = useDictionary()
+    const {ready, verifyError, retry} = useAuthStatus()
+
+    if (ready) {
+        return <>{children}</>
+    }
+
+    if (verifyError !== null) {
+        return (
+            <div className="mx-auto flex w-full max-w-md flex-col gap-4 p-6">
+                <Alert variant="destructive">
+                    <AlertDescription>{verifyError}</AlertDescription>
+                </Alert>
+                <Button onClick={retry} type="button" variant="outline">
+                    {dict.common.retry}
+                </Button>
+            </div>
+        )
+    }
+
+    return <AuthLoading />
 }

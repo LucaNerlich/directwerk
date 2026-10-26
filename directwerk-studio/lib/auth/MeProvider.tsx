@@ -10,7 +10,7 @@ export function MeProvider({
     me,
     children,
 }: {
-    me: Me
+    me: Me | null
     children: ReactNode
 }): React.JSX.Element {
     return <MeContext.Provider value={me}>{children}</MeContext.Provider>
@@ -19,7 +19,7 @@ export function MeProvider({
 export function useMe(): Me {
     const me = useContext(MeContext)
     if (me === null) {
-        throw new Error('useMe must be used within MeProvider')
+        throw new Error('useMe must be used within MeProvider with a resolved account')
     }
 
     return me
