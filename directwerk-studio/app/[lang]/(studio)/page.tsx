@@ -1,4 +1,4 @@
-import Link from 'next/link'
+'use client'
 
 import {Button} from '@directwerk/ui/components/button'
 import EmptyState from '@directwerk/ui/components/empty-state'
@@ -6,20 +6,16 @@ import FeatureCard from '@directwerk/ui/components/feature-card'
 import PageHeader from '@directwerk/ui/components/page-header'
 import PageStack from '@directwerk/ui/components/page-stack'
 
+import LocaleLink from '@/components/i18n/LocaleLink'
+import {useDictionary} from '@/components/i18n/LocaleProvider'
 import OverviewOpsWidgets from '@/components/studio/OverviewOpsWidgets'
 import OverviewQueue from '@/components/studio/OverviewQueue'
-import {assertLocale, getDictionary, localizedPath, t} from '@/lib/i18n'
-import {requireStudioSiteConfig} from '@/lib/site/requireSiteConfig'
+import {t} from '@/lib/i18n/dictionary'
+import {useSiteConfig} from '@/lib/site/SiteConfigProvider'
 
-export default async function OverviewPage({
-    params,
-}: {
-    params: Promise<{lang: string}>
-}) {
-    const {lang: langParam} = await params
-    const lang = assertLocale(langParam)
-    const dict = await getDictionary(lang)
-    const {config} = await requireStudioSiteConfig(lang)
+export default function OverviewPage() {
+    const dict = useDictionary()
+    const config = useSiteConfig()
     const desks = new Set(config.studioDesks)
     const hasDesks = desks.has('WRITE') || desks.has('PODCAST')
     const home = dict.shell.home
@@ -51,13 +47,13 @@ export default async function OverviewPage({
                             <div className="flex flex-wrap gap-2">
                                 <Button
                                     nativeButton={false}
-                                    render={<Link href={localizedPath(lang, '/write/articles/new')} />}
+                                    render={<LocaleLink href="/write/articles/new" />}
                                 >
                                     {home.newArticle}
                                 </Button>
                                 <Button
                                     nativeButton={false}
-                                    render={<Link href={localizedPath(lang, '/write')} />}
+                                    render={<LocaleLink href="/write" />}
                                     variant="outline"
                                 >
                                     {home.writeOverview}
@@ -74,15 +70,13 @@ export default async function OverviewPage({
                             <div className="flex flex-wrap gap-2">
                                 <Button
                                     nativeButton={false}
-                                    render={
-                                        <Link href={localizedPath(lang, '/podcast/episodes/new')} />
-                                    }
+                                    render={<LocaleLink href="/podcast/episodes/new" />}
                                 >
                                     {home.newEpisode}
                                 </Button>
                                 <Button
                                     nativeButton={false}
-                                    render={<Link href={localizedPath(lang, '/podcast')} />}
+                                    render={<LocaleLink href="/podcast" />}
                                     variant="outline"
                                 >
                                     {home.podcastOverview}
