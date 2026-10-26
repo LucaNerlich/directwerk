@@ -69,7 +69,7 @@ export default function UmamiAnalytics({
                 data-sample-rate={sampleRate}
                 data-website-id={websiteId}
                 src={`${scriptBase}/recorder.js`}
-                strategy="afterInteractive"
+                strategy="lazyOnload"
             />
         </>
     )
