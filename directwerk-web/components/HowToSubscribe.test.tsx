@@ -13,10 +13,23 @@ describe('HowToSubscribe', () => {
         expect(
             screen.getByRole('heading', {name: 'So hörst du in der Podcast-App'}),
         ).toBeInTheDocument()
+        expect(screen.getByText(/Apple Podcasts, Spotify, AntennaPod/)).toBeInTheDocument()
         expect(
             screen.queryByRole('heading', {name: 'So liest du im Feed-Reader'}),
         ).not.toBeInTheDocument()
         expect(screen.queryByText(/Öffentlicher Standard-Feed/)).not.toBeInTheDocument()
+    })
+
+    it('can render without the framed card', () => {
+        const {container} = render(
+            <TestLocale>
+                <HowToSubscribe framed={false} podcast />
+            </TestLocale>,
+        )
+        expect(container.querySelector('.shadow-sm')).toBeNull()
+        expect(
+            screen.getByRole('heading', {name: 'So hörst du in der Podcast-App'}),
+        ).toBeInTheDocument()
     })
 
     it('renders article instructions without URLs', () => {

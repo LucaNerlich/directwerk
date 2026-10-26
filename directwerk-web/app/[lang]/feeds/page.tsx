@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import {useState} from 'react'
+import {Suspense, useEffect, useRef, useState} from 'react'
 import useSWR from 'swr'
 
 import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
@@ -18,6 +18,7 @@ import CustomFeedsPanel, {
     articleCustomFeedsConfig,
     podcastCustomFeedsConfig,
 } from '@/components/CustomFeedsPanel'
+import FeedSetupBanner from '@/components/FeedSetupBanner'
 import FeedUrlDisplay from '@/components/FeedUrlDisplay'
 import HowToSubscribe from '@/components/HowToSubscribe'
 import {ListPanelSkeleton} from '@/components/ContentLoadingSkeleton'
@@ -176,6 +177,7 @@ export default function FeedsPage() {
         feeds: podcastPrivateFeeds,
         error: podcastPrivateError,
         isLoading: isPodcastPrivateLoading,
+        reload: reloadPodcastPrivateFeeds,
         setFeeds: setPodcastPrivateFeeds,
     } = useSubscriberFeeds(isAuthenticated && showPodcastFeeds)
 
@@ -183,6 +185,7 @@ export default function FeedsPage() {
         feeds: articlePrivateFeeds,
         error: articlePrivateError,
         isLoading: isArticlePrivateLoading,
+        reload: reloadArticlePrivateFeeds,
         setFeeds: setArticlePrivateFeeds,
     } = useArticleFeeds(isAuthenticated && showArticleFeeds)
 
@@ -210,6 +213,10 @@ export default function FeedsPage() {
     const [articleToggleError, setArticleToggleError] = useState<string | null>(null)
     const [articleRotateError, setArticleRotateError] = useState<string | null>(null)
     const [articleCustomError, setArticleCustomError] = useState<string | null>(null)
+    const [podcastEmptyPreparing, setPodcastEmptyPreparing] = useState(false)
+    const [articleEmptyPreparing, setArticleEmptyPreparing] = useState(false)
+    const podcastEmptyRetried = useRef(false)
+    const articleEmptyRetried = useRef(false)
 
     const podcastFeedUrl =
         siteConfig === undefined
@@ -223,6 +230,36 @@ export default function FeedsPage() {
     const defaultPodcastPrivate =
         podcastPrivateFeeds.find((feed) => feed.isDefault) ?? null
     const customPodcastFeeds = podcastPrivateFeeds.filter((feed) => !feed.isDefault)
+
+    useEffect(() => {
+        if (
+            !isAuthenticated ||
+            !showPodcastFeeds ||
+            isPodcastPrivateLoading ||
+            podcastPrivateError !== null ||
+            defaultPodcastPrivate !== null ||
+            podcastEmptyRetried.current
+        ) {
+            return
+        }
+        podcastEmptyRetried.current = true
+        setPodcastEmptyPreparing(true)
+        const timer = window.setTimeout(() => {
+            reloadPodcastPrivateFeeds()
+            setPodcastEmptyPreparing(false)
+        }, 1500)
+        return () => {
+            window.clearTimeout(timer)
+            setPodcastEmptyPreparing(false)
+        }
+    }, [
+        defaultPodcastPrivate,
+        isAuthenticated,
+        isPodcastPrivateLoading,
+        podcastPrivateError,
+        reloadPodcastPrivateFeeds,
+        showPodcastFeeds,
+    ])
     const showPodcastFeedBuilder =
         showPodcastFeeds &&
         isAuthenticated &&
@@ -236,6 +273,36 @@ export default function FeedsPage() {
     const defaultArticlePrivate =
         articlePrivateFeeds.find((feed) => feed.isDefault) ?? null
     const customArticleFeeds = articlePrivateFeeds.filter((feed) => !feed.isDefault)
+
+    useEffect(() => {
+        if (
+            !isAuthenticated ||
+            !showArticleFeeds ||
+            isArticlePrivateLoading ||
+            articlePrivateError !== null ||
+            defaultArticlePrivate !== null ||
+            articleEmptyRetried.current
+        ) {
+            return
+        }
+        articleEmptyRetried.current = true
+        setArticleEmptyPreparing(true)
+        const timer = window.setTimeout(() => {
+            reloadArticlePrivateFeeds()
+            setArticleEmptyPreparing(false)
+        }, 1500)
+        return () => {
+            window.clearTimeout(timer)
+            setArticleEmptyPreparing(false)
+        }
+    }, [
+        articlePrivateError,
+        defaultArticlePrivate,
+        isArticlePrivateLoading,
+        isAuthenticated,
+        reloadArticlePrivateFeeds,
+        showArticleFeeds,
+    ])
     const showArticleFeedBuilder =
         showArticleFeeds &&
         isAuthenticated &&
@@ -396,7 +463,13 @@ export default function FeedsPage() {
                         {!isPodcastPrivateLoading &&
                             podcastPrivateError === null &&
                             (defaultPodcastPrivate === null ? (
-                                <PrivateFeedEmptyState kind="podcast" />
+                                podcastEmptyPreparing ? (
+                                    <p className="text-sm text-muted-foreground" role="status">
+                                        {feeds.onboardingPreparing}
+                                    </p>
+                                ) : (
+                                    <PrivateFeedEmptyState kind="podcast" />
+                                )
                             ) : (
                                 <ListPanel>
                                     {renderDefaultFeedRow({
@@ -576,7 +649,13 @@ export default function FeedsPage() {
                         {!isArticlePrivateLoading &&
                             articlePrivateError === null &&
                             (defaultArticlePrivate === null ? (
-                                <PrivateFeedEmptyState kind="articles" />
+                                articleEmptyPreparing ? (
+                                    <p className="text-sm text-muted-foreground" role="status">
+                                        {feeds.onboardingPreparing}
+                                    </p>
+                                ) : (
+                                    <PrivateFeedEmptyState kind="articles" />
+                                )
                             ) : (
                                 <ListPanel>
                                     {renderDefaultFeedRow({
@@ -679,6 +758,10 @@ export default function FeedsPage() {
             <PageHeader title={pageCopy.title} description={pageCopy.description} />
 
             <SubscriberContextBanner showWhenAuthenticated={false} />
+
+            <Suspense fallback={null}>
+                <FeedSetupBanner />
+            </Suspense>
 
             {showPodcastFeeds || showArticleFeeds ? (
                 <HowToSubscribe
