@@ -214,6 +214,31 @@ class ArticlePublicationWorkflowServiceTest {
     }
 
     @Test
+    void publishWithNotifySubscribersSkipsWhenNoNewsletterLists() {
+        Article article = draftArticle();
+        when(articleService.requireArticle(10L, 7L)).thenReturn(article);
+
+        articlePublicationWorkflowService.publish(10L, 7L, true);
+
+        verify(contentPublishedNotifier, org.mockito.Mockito.never()).notifyContentPublished(any());
+        verify(articleRepository, never()).claimEmailNotification(anyLong(), anyLong(), any());
+    }
+
+    @Test
+    void publishWithNotifySubscribersSkipsWhenOnlyArchivedLists() {
+        Article article = draftArticle();
+        NewsletterList archived = newsletterList(1L);
+        archived.setStatus(NewsletterListStatus.ARCHIVED);
+        article.getNewsletterLists().add(archived);
+        when(articleService.requireArticle(10L, 7L)).thenReturn(article);
+
+        articlePublicationWorkflowService.publish(10L, 7L, true);
+
+        verify(contentPublishedNotifier, org.mockito.Mockito.never()).notifyContentPublished(any());
+        verify(articleRepository, never()).claimEmailNotification(anyLong(), anyLong(), any());
+    }
+
+    @Test
     void unpublishRequiresPublishedState() {
         Article article = draftArticle();
         when(articleService.requireArticle(10L, 7L)).thenReturn(article);

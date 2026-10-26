@@ -14,6 +14,11 @@ import org.springframework.util.StringUtils;
 
 /**
  * Resolves absolute public content page URLs using verified tenant host policy.
+ *
+ * <p>Paths are locale-prefixed ({@link PublicContentPaths}) so publish-notification emails deep-link
+ * into {@code directwerk-web}'s {@code /de|en/...} routes without relying on the proxy redirect.
+ * Prefer a verified primary host; without one, fall back to {@code email.studio-base-url}
+ * (ops should point that at the public web origin when content notify is used without a custom domain).
  */
 @Component
 @RequiredArgsConstructor
@@ -45,7 +50,7 @@ public class PublicContentUrlResolver {
 
     public String buildAbsoluteUrl(Long tenantId, String path) {
         return tenantPublicHostResolver.findPrimaryVerifiedHost(tenantId)
-                .map(host -> "https://" + host + path)
+                .map(host -> PublicUrlBuilder.publicOrigin(host) + path)
                 .orElseGet(() -> {
                     Tenant tenant = tenantRepository.findById(tenantId).orElse(null);
                     String studioBase = trimTrailingSlash(directwerkConfig.email().studioBaseUrl());

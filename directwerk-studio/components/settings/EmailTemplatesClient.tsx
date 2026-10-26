@@ -183,7 +183,21 @@ export default function EmailTemplatesClient(): React.JSX.Element {
                             rows={12}
                         />
                         <p className="text-xs text-muted-foreground" id="bodyHtml-help">
-                            HTML für den E-Mail-Text. Platzhalter wie {'{{title}}'} werden beim Versand mit den Inhalten der Folge bzw. des Beitrags gefüllt.
+                            {contentType === 'EPISODE' ? (
+                                <>
+                                    HTML für den E-Mail-Text. Erforderliche Platzhalter:{' '}
+                                    {'{{title}}'}, {'{{excerpt}}'}, {'{{contentUrl}}'},{' '}
+                                    {'{{preferencesUrl}}'}, {'{{recipientName}}'}, {'{{siteTitle}}'},{' '}
+                                    {'{{tenantName}}'}, {'{{primaryColor}}'}.
+                                </>
+                            ) : (
+                                <>
+                                    HTML für den E-Mail-Text. Erforderliche Platzhalter:{' '}
+                                    {'{{title}}'}, {'{{excerpt}}'}, {'{{contentUrl}}'},{' '}
+                                    {'{{unsubscribeUrl}}'}, {'{{recipientName}}'}, {'{{siteTitle}}'},{' '}
+                                    {'{{tenantName}}'}, {'{{primaryColor}}'}.
+                                </>
+                            )}
                         </p>
                     </div>
                     {state.error ? (

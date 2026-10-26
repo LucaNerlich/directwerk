@@ -29,4 +29,16 @@ class PublicUrlBuilderTest {
         assertThat(PublicUrlBuilder.baseUrl("https", "example.com", 8443))
                 .isEqualTo("https://example.com:8443");
     }
+
+    @Test
+    void publicOriginUsesHttpOnLoopback() {
+        assertThat(PublicUrlBuilder.publicOrigin("localhost:3004")).isEqualTo("http://localhost:3004");
+        assertThat(PublicUrlBuilder.publicOrigin("tenant.localhost")).isEqualTo("http://tenant.localhost");
+        assertThat(PublicUrlBuilder.publicOrigin("127.0.0.1")).isEqualTo("http://127.0.0.1");
+    }
+
+    @Test
+    void publicOriginUsesHttpsElsewhere() {
+        assertThat(PublicUrlBuilder.publicOrigin("demo.example")).isEqualTo("https://demo.example");
+    }
 }

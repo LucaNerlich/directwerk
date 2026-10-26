@@ -67,7 +67,7 @@ public class RssXmlBuilder {
         Episode episode = rssEpisode.episode();
         return new RssXmlWriter.Item(
                 episode.getTitle(),
-                originBaseUrl + PublicContentPaths.episodePage(episode.getSlug()),
+                originBaseUrl + PublicContentPaths.episodePath(episode.getSlug()),
                 episode.getDescription(),
                 "urn:directwerk:episode:" + tenant.getSlug() + ":" + episode.getId(),
                 episode.getPublishedAt(),

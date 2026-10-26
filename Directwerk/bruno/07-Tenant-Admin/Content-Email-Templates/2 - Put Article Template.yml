@@ -14,7 +14,7 @@ http:
     data: |-
       {
         "subjectTemplate": "New post: {{title}}",
-        "bodyHtml": "<p>Hi {{recipientName}},</p><p>{{siteTitle}} published <strong>{{title}}</strong>.</p><p>{{excerpt}}</p><p><a href=\"{{contentUrl}}\">Read now</a></p><p><a href=\"{{preferencesUrl}}\">Manage preferences</a></p>"
+        "bodyHtml": "<p>Hi {{recipientName}},</p><p>{{siteTitle}} published <strong>{{title}}</strong>.</p><p>{{excerpt}}</p><p><a href=\"{{contentUrl}}\">Read now</a></p><p><a href=\"{{unsubscribeUrl}}\">Unsubscribe</a></p>"
       }
   auth: inherit
 

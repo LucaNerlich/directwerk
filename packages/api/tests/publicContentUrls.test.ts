@@ -1,6 +1,7 @@
 import {describe, expect, it} from 'vitest'
 
 import {
+    DEFAULT_PUBLIC_LOCALE,
     publicArticlePageUrl,
     publicEpisodePageUrl,
     publicNewsletterSubscribeUrl,
@@ -12,21 +13,21 @@ describe('publicContentUrls', () => {
         expect(publicSiteOrigin('https://demo.example')).toBe('https://demo.example')
     })
 
-    it('builds episode URL', () => {
+    it('builds locale-prefixed episode URL', () => {
         expect(publicEpisodePageUrl('https://demo.example', 'folge-1')).toBe(
-            'https://demo.example/episodes/folge-1',
+            `https://demo.example/${DEFAULT_PUBLIC_LOCALE}/episodes/folge-1`,
         )
     })
 
-    it('builds article URL', () => {
+    it('builds locale-prefixed article URL', () => {
         expect(publicArticlePageUrl('https://podcast.example', 'mein-beitrag')).toBe(
-            'https://podcast.example/articles/mein-beitrag',
+            `https://podcast.example/${DEFAULT_PUBLIC_LOCALE}/articles/mein-beitrag`,
         )
     })
 
-    it('builds newsletter subscribe URL', () => {
+    it('builds locale-prefixed newsletter subscribe URL', () => {
         expect(publicNewsletterSubscribeUrl('https://demo.example', 'weekly')).toBe(
-            'https://demo.example/newsletter/weekly',
+            `https://demo.example/${DEFAULT_PUBLIC_LOCALE}/newsletter/weekly`,
         )
     })
 

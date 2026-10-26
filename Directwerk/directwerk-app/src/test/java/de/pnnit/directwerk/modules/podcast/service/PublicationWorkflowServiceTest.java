@@ -16,7 +16,9 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import de.pnnit.directwerk.modules.content.ContentPublishedEvent;
 import de.pnnit.directwerk.modules.content.ContentPublishedNotifier;
+import de.pnnit.directwerk.modules.content.ContentType;
 import de.pnnit.directwerk.modules.core.entity.Tenant;
 import de.pnnit.directwerk.modules.core.service.ModuleGateService;
 import de.pnnit.directwerk.modules.core.service.ScheduledPublicationExecutor;
@@ -135,6 +137,32 @@ class PublicationWorkflowServiceTest {
     @AfterEach
     void clearAuthentication() {
         SecurityContextHolder.clearContext();
+    }
+
+    @Test
+    void publishWithNotifySubscribersEnqueuesContentPublishedEvent() {
+        Episode episode = draftEpisode();
+        episode.getFormats().add(activeFormat());
+        MediaAsset privateAudio = audio(99L, AssetVisibility.PRIVATE, AssetScope.CONTENT, "alpha/private/audio/ep.mp3");
+        MediaAsset publicAudio = audio(99L, AssetVisibility.PUBLIC, AssetScope.TENANT_PUBLIC, "alpha/public/audio/ep.mp3");
+
+        when(episodeService.requireEpisode(10L, 55L)).thenReturn(episode);
+        when(formatService.hasActiveFormats(10L)).thenReturn(true);
+        when(episodeMediaApi.requireReadyAudio(99L)).thenReturn(privateAudio);
+        when(episodeMediaApi.promoteToPublic(99L)).thenReturn(publicAudio);
+        when(episodeRepository.claimEmailNotification(eq(10L), eq(55L), any())).thenReturn(1);
+
+        publicationWorkflowService.publish(10L, 55L, true);
+
+        verify(contentPublishedNotifier).notifyContentPublished(new ContentPublishedEvent(
+                10L,
+                ContentType.EPISODE,
+                55L,
+                "Episode 1",
+                "Show notes",
+                "episode-1",
+                "FREE"
+        ));
     }
 
     @Test
