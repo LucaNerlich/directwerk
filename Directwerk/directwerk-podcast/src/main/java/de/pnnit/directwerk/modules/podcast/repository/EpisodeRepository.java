@@ -132,4 +132,16 @@ public interface EpisodeRepository extends JpaRepository<Episode, Long> {
             @Param("episodeId") Long episodeId,
             @Param("notifiedAt") Instant notifiedAt
     );
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("""
+            update Episode e
+            set e.emailNotifiedAt = null
+            where e.id = :episodeId
+              and e.tenant.id = :tenantId
+            """)
+    int clearEmailNotification(
+            @Param("tenantId") Long tenantId,
+            @Param("episodeId") Long episodeId
+    );
 }

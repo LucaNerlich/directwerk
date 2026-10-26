@@ -1,5 +1,6 @@
 package de.pnnit.directwerk.controller.newsletter;
 
+import de.pnnit.directwerk.api.dto.ContentNotifyPreviewView;
 import de.pnnit.directwerk.api.dto.ContentTextLimits;
 import de.pnnit.directwerk.api.dto.CategoryView;
 import de.pnnit.directwerk.api.dto.BulkDeleteView;
@@ -13,6 +14,7 @@ import de.pnnit.directwerk.controller.support.ContentEndpointSupport;
 import de.pnnit.directwerk.modules.core.RequiresModule;
 import de.pnnit.directwerk.modules.digital.DigitalContentModule;
 import de.pnnit.directwerk.modules.digital.entity.AccessPolicy;
+import de.pnnit.directwerk.modules.email.content.ContentNotifyStudioService;
 import de.pnnit.directwerk.modules.newsletter.entity.Article;
 import de.pnnit.directwerk.modules.newsletter.entity.NewsletterList;
 import de.pnnit.directwerk.modules.digital.entity.Category;
@@ -55,13 +57,16 @@ public class ArticleController {
 
     private final ArticleService articleService;
     private final ArticlePublicationWorkflowService articlePublicationWorkflowService;
+    private final ContentNotifyStudioService contentNotifyStudioService;
 
     public ArticleController(
             ArticleService articleService,
-            ArticlePublicationWorkflowService articlePublicationWorkflowService
+            ArticlePublicationWorkflowService articlePublicationWorkflowService,
+            ContentNotifyStudioService contentNotifyStudioService
     ) {
         this.articleService = articleService;
         this.articlePublicationWorkflowService = articlePublicationWorkflowService;
+        this.contentNotifyStudioService = contentNotifyStudioService;
     }
 
     @GetMapping
@@ -155,6 +160,26 @@ public class ArticleController {
                 request,
                 (notifySubscribers, publishedAt) -> articlePublicationWorkflowService.publish(
                         tenantId, articleId, notifySubscribers, publishedAt),
+                ArticleController::toView
+        );
+    }
+
+    @Operation(summary = "Notify preview for an article",
+            description = "Deduped ACTIVE-list recipient estimate, last email_notified_at, and content-notify job status.")
+    @GetMapping("/{articleId}/notify-preview")
+    ResponseEntity<Response<ContentNotifyPreviewView>> notifyPreview(@PathVariable Long articleId) {
+        Long tenantId = TenantContext.requireTenantId();
+        return ResponseEntity.ok(Response.ok(contentNotifyStudioService.previewArticle(tenantId, articleId)));
+    }
+
+    @Operation(summary = "Send or retry subscriber notification for a published article",
+            description = "Clears the one-shot claim when needed and enqueues content-notify. "
+                    + "Requires at least one ACTIVE attached list.")
+    @PostMapping("/{articleId}/notify")
+    ResponseEntity<Response<ArticleView>> notifySubscribers(@PathVariable Long articleId) {
+        Long tenantId = TenantContext.requireTenantId();
+        return ContentEndpointSupport.ok(
+                contentNotifyStudioService.retryArticle(tenantId, articleId),
                 ArticleController::toView
         );
     }
@@ -310,6 +335,7 @@ public class ArticleController {
                 article.getStatus().name(),
                 article.getPublishedAt(),
                 article.getScheduledAt(),
+                article.getEmailNotifiedAt(),
                 article.getCategories().stream()
                         .sorted(CategoryView.DISPLAY_ORDER)
                         .map(CategoryView::of)
@@ -373,6 +399,7 @@ public class ArticleController {
             String status,
             Instant publishedAt,
             Instant scheduledAt,
+            Instant emailNotifiedAt,
             List<CategoryView> categories,
             List<NewsletterListTag> newsletterLists,
             Long createdBy,

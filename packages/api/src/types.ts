@@ -132,6 +132,8 @@ export interface EpisodeDetail extends EpisodeSummary {
     enclosureEnabled: boolean
     requiredLevelSortOrder: number | null
     scheduledAt: string | null
+    /** When subscriber email notify was claimed for this episode (ISO), if any. */
+    emailNotifiedAt: string | null
     /** Creator user id; null for legacy rows. */
     createdBy: number | null
     formats: FormatTag[]
@@ -145,10 +147,23 @@ export interface ArticleDetail extends ArticleSummary {
     heroAssetId: number | null
     requiredLevelSortOrder: number | null
     scheduledAt: string | null
+    /** When subscriber email notify was claimed for this article (ISO), if any. */
+    emailNotifiedAt: string | null
     /** Creator user id; null for legacy rows. */
     createdBy: number | null
     categories: CategoryTag[]
     newsletterLists: NewsletterListTag[]
+}
+
+/** Studio EMAIL_NOTIFY preview for publish checkbox / failure recovery. */
+export interface ContentNotifyPreview {
+    estimatedRecipients: number
+    emailNotifiedAt: string | null
+    jobId: string | null
+    jobStatus: JobStatus | string | null
+    lastError: string | null
+    notifyAvailable: boolean
+    canRetry: boolean
 }
 
 export interface NewsletterListSummary {

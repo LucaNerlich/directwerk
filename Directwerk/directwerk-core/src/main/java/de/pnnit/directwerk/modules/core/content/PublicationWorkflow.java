@@ -2,6 +2,7 @@ package de.pnnit.directwerk.modules.core.content;
 
 import de.pnnit.directwerk.modules.content.ContentPublishedNotifier;
 import de.pnnit.directwerk.modules.content.ContentType;
+import de.pnnit.directwerk.modules.content.InvalidPublicationTransitionException;
 import de.pnnit.directwerk.modules.content.PublicationLifecycleSupport;
 import de.pnnit.directwerk.modules.content.PublicationTransitions;
 import de.pnnit.directwerk.modules.content.ScheduledPublishing;
@@ -302,6 +303,32 @@ public abstract class PublicationWorkflow<ENTITY extends PublicationEntity<STATU
         );
     }
 
+    /**
+     * Re-enqueues subscriber notification for an already-published item (studio failure recovery
+     * or first send when publish skipped notify). Clears the one-shot claim so fan-out can run;
+     * per-recipient markers still suppress duplicate addresses.
+     */
+    protected ENTITY notifyContentNow(Long tenantId, Long contentId) {
+        ENTITY entity = requireEntity(tenantId, contentId);
+        requirePermission(ContentOperation.PUBLISH, entity);
+        if (phaseOf(entity.getStatus()) != Phase.PUBLISHED) {
+            throw new InvalidPublicationTransitionException(
+                    "Only PUBLISHED " + pluralLabel() + " can send subscriber notifications");
+        }
+        if (!notificationGate.enabled(tenantId, contentType(), contentId)) {
+            throw new InvalidPublicationTransitionException(
+                    "Subscriber notifications are not available for this tenant");
+        }
+        if (!shouldNotify(entity, true)) {
+            throw new InvalidPublicationTransitionException(
+                    "No notification audience for this " + singularLabel());
+        }
+        clearEmailNotification(tenantId, contentId);
+        entity.setEmailNotifiedAt(null);
+        maybeNotifySubscribers(tenantId, entity, true);
+        return save(entity);
+    }
+
     /** Loads the entity or throws the module's not-found exception. */
     protected abstract ENTITY requireEntity(Long tenantId, Long contentId);
 
@@ -348,11 +375,14 @@ public abstract class PublicationWorkflow<ENTITY extends PublicationEntity<STATU
     protected abstract String accessPolicyName(ENTITY entity);
 
     /**
-     * Claims the per-recipient notification marker for this entity.
+     * Claims the one-shot notification marker for this entity.
      *
      * @return the number of rows claimed
      */
     protected abstract int claimEmailNotification(Long tenantId, Long contentId, Instant notifiedAt);
+
+    /** Clears {@code email_notified_at} so {@link #notifyContentNow} can reclaim. */
+    protected abstract void clearEmailNotification(Long tenantId, Long contentId);
 
     /** Requests one feed refresh after commit. */
     protected abstract void requestFeedRefresh(Long tenantId);

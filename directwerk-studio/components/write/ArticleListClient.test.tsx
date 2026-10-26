@@ -75,8 +75,7 @@ const mockArticles: ArticleDetail[] = [
         seoDescription: null,
         heroAssetId: null,
         requiredLevelSortOrder: null,
-        scheduledAt: null,
-        createdBy: null,
+        scheduledAt: null, emailNotifiedAt: null, createdBy: null,
         categories: [{id: 11, slug: 'interview', name: 'Interview'}],
         newsletterLists: [],
     },
@@ -92,8 +91,7 @@ const mockArticles: ArticleDetail[] = [
         seoDescription: null,
         heroAssetId: null,
         requiredLevelSortOrder: null,
-        scheduledAt: null,
-        createdBy: null,
+        scheduledAt: null, emailNotifiedAt: null, createdBy: null,
         categories: [{id: 12, slug: 'news', name: 'News'}],
         newsletterLists: [],
     },
@@ -110,7 +108,7 @@ const mockArticles: ArticleDetail[] = [
         heroAssetId: null,
         requiredLevelSortOrder: null,
         scheduledAt: '2026-09-01T12:00:00Z',
-        createdBy: null,
+        emailNotifiedAt: null, createdBy: null,
         categories: [],
         newsletterLists: [],
     },
@@ -126,8 +124,7 @@ const mockArticles: ArticleDetail[] = [
         seoDescription: null,
         heroAssetId: null,
         requiredLevelSortOrder: null,
-        scheduledAt: null,
-        createdBy: null,
+        scheduledAt: null, emailNotifiedAt: null, createdBy: null,
         categories: [],
         newsletterLists: [],
     },
@@ -229,8 +226,7 @@ describe('ArticleListClient', () => {
         vi.mocked(cancelScheduleArticle).mockResolvedValue({
             ...mockArticles[2],
             status: 'DRAFT',
-            scheduledAt: null,
-        })
+            scheduledAt: null, emailNotifiedAt: null, })
 
         renderWithLocale(<ArticleListClient />)
 

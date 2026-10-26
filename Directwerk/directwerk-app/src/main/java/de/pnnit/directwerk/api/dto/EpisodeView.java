@@ -21,6 +21,7 @@ public record EpisodeView(
         boolean enclosureEnabled,
         Instant publishedAt,
         Instant scheduledAt,
+        Instant emailNotifiedAt,
         List<FormatView> formats,
         List<CategoryView> categories,
         Long createdBy,

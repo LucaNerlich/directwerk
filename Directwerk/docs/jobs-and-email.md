@@ -94,6 +94,23 @@ Local verification: Mailpit (`http://127.0.0.1:8025`) — do not send real Mailg
 `11-Articles/6b` / `09-Podcast-Content/.../8b` plus `http/24-articles.http` cover the publish body;
 attach an ACTIVE newsletter list before article notify.
 
+### Studio notify preview & recovery
+
+Creators see audience size and last-send status before checking notify-on-publish:
+
+| Endpoint | Purpose |
+|----------|---------|
+| `GET /api/v1/episodes/{id}/notify-preview` | Opted-in member count, `emailNotifiedAt`, latest `content-notify` job |
+| `GET /api/v1/articles/{id}/notify-preview` | Deduped ACTIVE-list recipients + same job fields |
+| `POST /api/v1/episodes/{id}/notify` | Send/retry for a **PUBLISHED** episode (clears one-shot claim; markers keep addresses unique) |
+| `POST /api/v1/articles/{id}/notify` | Same for articles (requires ≥1 ACTIVE list) |
+
+`canRetry` is true when EMAIL_NOTIFY is available, the item is published, audience exists, and the
+latest content-notify job is not in flight — and either never sent or job `FAILED`.
+(`email_notified_at` set with no job row is the normal post-retention shape for a successful send —
+not retryable.) Studio surfaces this under the publish checkbox (draft) and as status + retry when
+published. Bruno `8c`/`8d` and `6c`/`6d`; http names `notifyPreview*` / `notify*Subscribers`.
+
 ## Platform admin enqueue API
 
 `POST /api/v1/platform/queue/jobs` is for operational recovery only. It bypasses typed producer validation and token encryption — use typed producers in application code.

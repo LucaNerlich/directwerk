@@ -3,6 +3,7 @@ import type {ReactNode} from 'react'
 import type {DeskAccess} from '@/lib/rbac/access'
 import type {
     AccessPolicy,
+    ContentNotifyPreview,
     PublicationStatus,
     PublishOptions,
     RbacEntityType,
@@ -119,6 +120,9 @@ export interface ContentEditorModel<
     publishBlockedReason: string | null
     showNotify: boolean
     notifyAudienceHint: string | null
+    notifyPreview: ContentNotifyPreview | null
+    onRetryNotify: () => void
+    isRetryingNotify: boolean
 
     previewImageUrl: string | null
     previewExcerpt?: string

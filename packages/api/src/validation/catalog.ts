@@ -11,6 +11,7 @@ import type {
     CategorySummary,
     ContentEmailTemplate,
     ContentEmailTemplateType,
+    ContentNotifyPreview,
     DigitalPublication,
     DigitalPublicationStatus,
     DomainVerificationChallenge,
@@ -263,6 +264,9 @@ function parseArticleDetail(value: unknown): ArticleDetail | null {
                   ? value.requiredLevelSortOrder
                   : null,
         scheduledAt: isNullableString(value.scheduledAt, 64) ? value.scheduledAt : null,
+        emailNotifiedAt: isNullableString(value.emailNotifiedAt, 64)
+            ? value.emailNotifiedAt
+            : null,
         createdBy: parseNullableUserId(value.createdBy),
     }
 }
@@ -279,6 +283,35 @@ export function parseArticleEnvelope(
     value: unknown,
 ): ApiEnvelope<ArticleDetail> | null {
     return parseEnvelope(value, parseArticleDetail)
+}
+
+function parseContentNotifyPreview(value: unknown): ContentNotifyPreview | null {
+    if (
+        !isRecord(value) ||
+        !isSafeInteger(value.estimatedRecipients) ||
+        value.estimatedRecipients < 0 ||
+        typeof value.notifyAvailable !== 'boolean' ||
+        typeof value.canRetry !== 'boolean'
+    ) {
+        return null
+    }
+    return {
+        estimatedRecipients: value.estimatedRecipients,
+        emailNotifiedAt: isNullableString(value.emailNotifiedAt, 64)
+            ? value.emailNotifiedAt
+            : null,
+        jobId: isNullableString(value.jobId, 64) ? value.jobId : null,
+        jobStatus: isNullableString(value.jobStatus, 32) ? value.jobStatus : null,
+        lastError: isNullableString(value.lastError, 2000) ? value.lastError : null,
+        notifyAvailable: value.notifyAvailable,
+        canRetry: value.canRetry,
+    }
+}
+
+export function parseContentNotifyPreviewEnvelope(
+    value: unknown,
+): ApiEnvelope<ContentNotifyPreview> | null {
+    return parseEnvelope(value, parseContentNotifyPreview)
 }
 
 // ---------------------------------------------------------------------------
@@ -362,6 +395,9 @@ function parseEpisodeDetail(value: unknown): EpisodeDetail | null {
                   ? value.requiredLevelSortOrder
                   : null,
         scheduledAt: isNullableString(value.scheduledAt, 64) ? value.scheduledAt : null,
+        emailNotifiedAt: isNullableString(value.emailNotifiedAt, 64)
+            ? value.emailNotifiedAt
+            : null,
         createdBy: parseNullableUserId(value.createdBy),
     }
 }

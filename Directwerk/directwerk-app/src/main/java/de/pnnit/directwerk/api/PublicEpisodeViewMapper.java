@@ -110,6 +110,7 @@ public class PublicEpisodeViewMapper {
                 episode.isEnclosureEnabled(),
                 episode.getPublishedAt(),
                 episode.getScheduledAt(),
+                episode.getEmailNotifiedAt(),
                 episode.getFormats().stream()
                         .sorted(FormatView.DISPLAY_ORDER)
                         .map(FormatView::of)

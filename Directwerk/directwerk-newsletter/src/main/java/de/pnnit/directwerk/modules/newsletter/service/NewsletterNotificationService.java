@@ -52,6 +52,27 @@ public class NewsletterNotificationService implements NewsletterNotificationApi 
     private final ContentNotificationMarkerRepository contentNotificationMarkerRepository;
 
     @Override
+    @Transactional(readOnly = true)
+    public long countArticleRecipients(Long tenantId, Long articleId) {
+        // Preview only needs a deduped count — do not decrypt unsubscribe tokens.
+        return articleRepository.findByIdAndTenantId(articleId, tenantId)
+                .map(article -> {
+                    Set<Long> listIds = article.getNewsletterLists().stream()
+                            .filter(list -> list.getStatus() == NewsletterListStatus.ACTIVE)
+                            .map(NewsletterList::getId)
+                            .collect(Collectors.toCollection(LinkedHashSet::new));
+                    if (listIds.isEmpty()) {
+                        return 0L;
+                    }
+                    return subscriptionRepository.findActiveByTenantIdAndListIdIn(tenantId, listIds).stream()
+                            .map(NewsletterSubscription::getEmail)
+                            .distinct()
+                            .count();
+                })
+                .orElse(0L);
+    }
+
+    @Override
     @Transactional
     public void notifyArticlePublished(ContentPublishedEvent event) {
         Long tenantId = event.tenantId();

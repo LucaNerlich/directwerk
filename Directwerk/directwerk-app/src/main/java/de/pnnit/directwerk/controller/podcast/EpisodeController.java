@@ -1,5 +1,6 @@
 package de.pnnit.directwerk.controller.podcast;
 
+import de.pnnit.directwerk.api.dto.ContentNotifyPreviewView;
 import de.pnnit.directwerk.api.dto.ContentTextLimits;
 import de.pnnit.directwerk.api.dto.EpisodeView;
 import de.pnnit.directwerk.api.PublicEpisodeViewMapper;
@@ -11,6 +12,7 @@ import de.pnnit.directwerk.api.dto.ReplaceCategoriesRequest;
 import de.pnnit.directwerk.api.response.Response;
 import de.pnnit.directwerk.controller.support.ContentEndpointSupport;
 import de.pnnit.directwerk.modules.core.RequiresModule;
+import de.pnnit.directwerk.modules.email.content.ContentNotifyStudioService;
 import de.pnnit.directwerk.modules.podcast.PodcastModule;
 import de.pnnit.directwerk.modules.digital.entity.AccessPolicy;
 import de.pnnit.directwerk.modules.podcast.entity.Episode;
@@ -51,15 +53,18 @@ public class EpisodeController {
     private final EpisodeService episodeService;
     private final PublicationWorkflowService publicationWorkflowService;
     private final PublicEpisodeViewMapper publicEpisodeViewMapper;
+    private final ContentNotifyStudioService contentNotifyStudioService;
 
     public EpisodeController(
             EpisodeService episodeService,
             PublicationWorkflowService publicationWorkflowService,
-            PublicEpisodeViewMapper publicEpisodeViewMapper
+            PublicEpisodeViewMapper publicEpisodeViewMapper,
+            ContentNotifyStudioService contentNotifyStudioService
     ) {
         this.episodeService = episodeService;
         this.publicationWorkflowService = publicationWorkflowService;
         this.publicEpisodeViewMapper = publicEpisodeViewMapper;
+        this.contentNotifyStudioService = contentNotifyStudioService;
     }
 
     @GetMapping
@@ -167,6 +172,27 @@ public class EpisodeController {
         Long tenantId = TenantContext.requireTenantId();
         return ContentEndpointSupport.ok(
                 episodeService.setEnclosureEnabled(tenantId, episodeId, request.enabled()),
+                publicEpisodeViewMapper::toStudioView
+        );
+    }
+
+    @Operation(summary = "Notify preview for an episode",
+            description = "Estimated opted-in recipients, last email_notified_at, and content-notify job status. "
+                    + "EMAIL_NOTIFY gated via notifyAvailable; used by studio publish checkbox.")
+    @GetMapping("/{episodeId}/notify-preview")
+    ResponseEntity<Response<ContentNotifyPreviewView>> notifyPreview(@PathVariable Long episodeId) {
+        Long tenantId = TenantContext.requireTenantId();
+        return ResponseEntity.ok(Response.ok(contentNotifyStudioService.previewEpisode(tenantId, episodeId)));
+    }
+
+    @Operation(summary = "Send or retry subscriber notification for a published episode",
+            description = "Clears the one-shot claim when needed and enqueues content-notify. "
+                    + "Per-recipient markers still suppress duplicate addresses. Rejects in-flight jobs.")
+    @PostMapping("/{episodeId}/notify")
+    ResponseEntity<Response<EpisodeView>> notifySubscribers(@PathVariable Long episodeId) {
+        Long tenantId = TenantContext.requireTenantId();
+        return ContentEndpointSupport.ok(
+                contentNotifyStudioService.retryEpisode(tenantId, episodeId),
                 publicEpisodeViewMapper::toStudioView
         );
     }

@@ -118,6 +118,15 @@ public class QueueService {
         return repository.find(id).orElseThrow(() -> new JobNotFoundException(id));
     }
 
+    /**
+     * Latest job for a tenant correlation id (any status). Used by studio content-notify preview.
+     */
+    @Transactional(readOnly = true)
+    public Optional<QueueJob> findLatestByCorrelation(String queue, Long tenantId, String correlationId) {
+        validateQueueName(queue);
+        return repository.findCoalescedJob(queue, tenantId, correlationId);
+    }
+
     @Transactional(readOnly = true)
     public JobListPage list(JobListQuery query) {
         if (query.offset() < 0) {

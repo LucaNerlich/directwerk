@@ -78,6 +78,7 @@ const importedEpisode = {
     enclosureEnabled: true,
     requiredLevelSortOrder: null,
     scheduledAt: null,
+    emailNotifiedAt: null,
     formats: [],
     categories: [],
 }

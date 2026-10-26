@@ -200,8 +200,7 @@ beforeEach(() => {
             coverAssetId: 22,
             enclosureEnabled: true,
             requiredLevelSortOrder: null,
-            scheduledAt: null,
-            formats: [],
+            scheduledAt: null, emailNotifiedAt: null, formats: [],
             categories: [],
         },
     })

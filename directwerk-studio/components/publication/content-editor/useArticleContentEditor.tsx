@@ -7,6 +7,7 @@ import {useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState} from
 import ArticleEditorSidebar from '@/components/publication/content-editor/ArticleEditorSidebar'
 import {articleContentEditorDescriptor} from '@/components/publication/content-editor/articleDescriptor'
 import type {ContentEditorModel} from '@/components/publication/content-editor/types'
+import {useDictionary} from '@/components/i18n/LocaleProvider'
 import {useLocalizedPath} from '@/components/i18n/useLocalizedPath'
 import {
     listCategories,
@@ -27,6 +28,7 @@ import {useCoverImageUpload} from '@/lib/media/useCoverImageUpload'
 import {usePublicationEditorFields} from '@/lib/publication/usePublicationEditorFields'
 import {usePublicationEditorWorkflow} from '@/lib/publication/usePublicationEditorWorkflow'
 import {isSlugTaken} from '@/lib/publication/slugAvailability'
+import {useContentNotifyPreview} from '@/lib/publication/useContentNotifyPreview'
 import {useDefaultNotifySubscribers} from '@/lib/publication/useDefaultNotifySubscribers'
 import {useSiteConfig} from '@/lib/site/SiteConfigProvider'
 import {articlePublishBlockReason} from '@/lib/write/articlePreflight'
@@ -41,6 +43,7 @@ export function useArticleContentEditor(
     articleId?: number,
 ): ContentEditorModel<ArticleDetail> {
     const descriptor = articleContentEditorDescriptor
+    const dict = useDictionary()
     const router = useRouter()
     const localize = useLocalizedPath()
     const authRedirect = useAuthRequired()
@@ -101,7 +104,25 @@ export function useArticleContentEditor(
         new Set(),
     )
 
+    const {
+        preview: notifyPreview,
+        refresh: refreshNotifyPreview,
+        retry: retryNotify,
+        isRetrying: isRetryingNotify,
+    } = useContentNotifyPreview(
+        'article',
+        article?.id ?? articleId ?? null,
+        showNotify,
+        `${article?.status ?? ''}:${article?.emailNotifiedAt ?? ''}:${Array.from(selectedNewsletterListIds).sort().join(',')}`,
+    )
+
     const notifyAudienceHint = useMemo(() => {
+        if (notifyPreview !== null) {
+            return dict.publication.notifyAudienceCount.replace(
+                '${count}',
+                String(notifyPreview.estimatedRecipients),
+            )
+        }
         if (!showNotify || selectedNewsletterListIds.size === 0) {
             return null
         }
@@ -112,8 +133,17 @@ export function useArticleContentEditor(
             selectedNewsletterListIds.size === 1
                 ? '1 Liste'
                 : `${selectedNewsletterListIds.size} Listen`
-        return `${listLabel} · ca. ${recipients} Empfänger`
-    }, [availableNewsletterLists, selectedNewsletterListIds, showNotify])
+        return dict.write.approxRecipients
+            .replace('${listLabel}', listLabel)
+            .replace('${recipients}', String(recipients))
+    }, [
+        availableNewsletterLists,
+        dict.publication.notifyAudienceCount,
+        dict.write.approxRecipients,
+        notifyPreview,
+        selectedNewsletterListIds,
+        showNotify,
+    ])
 
     const persistTags = useCallback(
         async (current: ArticleDetail): Promise<ArticleDetail> => {
@@ -436,6 +466,13 @@ export function useArticleContentEditor(
         publishBlockedReason,
         showNotify,
         notifyAudienceHint,
+        notifyPreview,
+        onRetryNotify: () => {
+            void retryNotify()
+                .then(() => refreshNotifyPreview())
+                .catch(() => undefined)
+        },
+        isRetryingNotify,
         previewImageUrl: heroPreviewUrl,
         previewExcerpt: excerpt,
         previewUrl:

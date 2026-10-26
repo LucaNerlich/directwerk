@@ -99,6 +99,19 @@ public interface TenantMembershipRepository extends JpaRepository<TenantMembersh
     );
 
     @Query("""
+            select count(membership) from TenantMembership membership
+            join membership.user user
+            where membership.tenant.id = :tenantId
+              and membership.status = :status
+              and membership.emailNotificationsEnabled = true
+              and user.status = de.pnnit.directwerk.modules.core.entity.UserStatus.ACTIVE
+            """)
+    long countNotificationOptedInMembers(
+            @Param("tenantId") Long tenantId,
+            @Param("status") MembershipStatus status
+    );
+
+    @Query("""
             select membership.user.id from TenantMembership membership
             where membership.tenant.id = :tenantId
               and membership.status = :status
