@@ -11,7 +11,7 @@ import {useCallback, useEffect, useState} from 'react'
 import {useRouter} from 'next/navigation'
 
 import {listCategories, listFormats} from '@/lib/api/catalogApi'
-import {listMedia} from '@/lib/api/mediaApi'
+import {listAllMedia} from '@/lib/api/listAllMedia'
 import {listSeries} from '@/lib/api/podcastApi'
 import {listProductRules, replaceProductRules} from '@/lib/api/subscriptionApi'
 import {productScopeLabel} from '@/lib/subscription/displayLabels'
@@ -75,7 +75,7 @@ export default function ProductRulesEditor({
             listSeries(),
             listFormats(),
             listCategories(),
-            listMedia(),
+            listAllMedia({assetType: 'DOCUMENT', status: 'READY'}),
         ])
             .then(([rules, seriesList, formatList, categoryList, mediaList]) => {
                 if (!active) {
@@ -90,12 +90,7 @@ export default function ProductRulesEditor({
                 setSeries(seriesList)
                 setFormats(formatList.filter((item) => item.active))
                 setCategories(categoryList.filter((item) => item.active))
-                setDocuments(
-                    mediaList.filter(
-                        (item) =>
-                            item.assetType === 'DOCUMENT' && item.status === 'READY',
-                    ),
-                )
+                setDocuments(mediaList)
                 setIsLoading(false)
             })
             .catch((error: unknown) => {

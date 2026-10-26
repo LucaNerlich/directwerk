@@ -20,7 +20,8 @@ import LocaleLink from '@/components/i18n/LocaleLink'
 
 import {AUTH_REQUIRED} from '@directwerk/api/constants'
 import {isPubliclyRenderable} from '@directwerk/api/media/readiness'
-import {listMedia, listMediaFolders} from '@/lib/api/mediaApi'
+import {listAllMedia} from '@/lib/api/listAllMedia'
+import {listMediaFolders} from '@/lib/api/mediaApi'
 import type {MediaAsset, MediaFolder} from '@directwerk/api/types'
 import {filterAssetsByQuery} from '@/lib/media/assetSearch'
 import {buildFolderTree, flattenFolderTree} from '@/lib/media/folders'
@@ -91,7 +92,7 @@ export default function MediaInlinePickerDialog({
         async function load(): Promise<void> {
             try {
                 const loadedFoldersPromise = listMediaFolders().catch(() => [])
-                const loadedAssets = await listMedia()
+                const loadedAssets = await listAllMedia()
                 const loadedFolders = await loadedFoldersPromise
                 if (active) {
                     setAssets(loadedAssets)

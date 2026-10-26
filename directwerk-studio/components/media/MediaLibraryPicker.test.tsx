@@ -5,11 +5,14 @@ import {afterEach, describe, expect, it, vi} from 'vitest'
 import {renderWithLocale} from '@/lib/i18n/testUtils'
 import type {MediaAsset, MediaFolder} from '@directwerk/api/types'
 
-const listMediaMock = vi.fn()
+const listAllMediaMock = vi.fn()
 const listMediaFoldersMock = vi.fn()
 
+vi.mock('@/lib/api/listAllMedia', () => ({
+    listAllMedia: (...args: unknown[]) => listAllMediaMock(...args),
+}))
+
 vi.mock('@/lib/api/mediaApi', () => ({
-    listMedia: (...args: unknown[]) => listMediaMock(...args),
     listMediaFolders: (...args: unknown[]) => listMediaFoldersMock(...args),
 }))
 
@@ -41,7 +44,7 @@ function folder(overrides: Partial<MediaFolder> & {id: number; name: string}): M
 async function openPicker(label: string): Promise<HTMLElement> {
     const trigger = await screen.findByRole('button', {name: new RegExp(label)})
     await userEvent.click(trigger)
-    return screen.getByRole('listbox')
+    return screen.findByRole('listbox')
 }
 
 function offeredIds(listbox: HTMLElement): string[] {
@@ -52,13 +55,13 @@ function offeredIds(listbox: HTMLElement): string[] {
 
 afterEach(() => {
     cleanup()
-    listMediaMock.mockReset()
+    listAllMediaMock.mockReset()
     listMediaFoldersMock.mockReset()
 })
 
 describe('media library picker visibility (#553)', () => {
     it('cannot offer a PRIVATE image to a public cover field', async () => {
-        listMediaMock.mockResolvedValue([
+        listAllMediaMock.mockResolvedValue([
             asset({id: 1, title: 'Public cover', originalFilename: 'public-cover.jpg'}),
             asset({
                 id: 2,
@@ -87,7 +90,7 @@ describe('media library picker visibility (#553)', () => {
     })
 
     it('still lists private files for non-public fields', async () => {
-        listMediaMock.mockResolvedValue([
+        listAllMediaMock.mockResolvedValue([
             asset({
                 id: 2,
                 title: 'Private audio',
@@ -113,9 +116,62 @@ describe('media library picker visibility (#553)', () => {
     })
 })
 
+describe('media library picker open-gated load (#889)', () => {
+    it('does not fetch until the dropdown opens', async () => {
+        listAllMediaMock.mockResolvedValue([
+            asset({id: 1, originalFilename: 'cover.jpg', folderId: null}),
+        ])
+        listMediaFoldersMock.mockResolvedValue([])
+
+        renderWithLocale(
+            <MediaLibraryPicker
+                assetType="IMAGE"
+                label="Titelbild aus Mediathek"
+                onAuthRequired={() => {}}
+                onSelect={() => {}}
+                requirePublic
+                selectedId={null}
+            />,
+        )
+
+        expect(await screen.findByRole('button', {name: 'Titelbild aus Mediathek'})).toBeEnabled()
+        expect(listAllMediaMock).not.toHaveBeenCalled()
+
+        const listbox = await openPicker('Titelbild aus Mediathek')
+        expect(listAllMediaMock).toHaveBeenCalledTimes(1)
+        expect(listAllMediaMock).toHaveBeenCalledWith({assetType: 'IMAGE'})
+        expect(offeredIds(listbox)).toEqual(['cover.jpg'])
+    })
+})
+
+describe('media library picker paging (#885)', () => {
+    it('offers assets returned across the shared page walk', async () => {
+        listAllMediaMock.mockResolvedValue([
+            asset({id: 1, originalFilename: 'page1-cover.jpg', folderId: null}),
+            asset({id: 101, originalFilename: 'page2-cover.jpg', folderId: null}),
+        ])
+        listMediaFoldersMock.mockResolvedValue([])
+
+        renderWithLocale(
+            <MediaLibraryPicker
+                assetType="IMAGE"
+                label="Titelbild aus Mediathek"
+                onAuthRequired={() => {}}
+                onSelect={() => {}}
+                requirePublic
+                selectedId={null}
+            />,
+        )
+
+        const listbox = await openPicker('Titelbild aus Mediathek')
+        expect(offeredIds(listbox)).toEqual(['page1-cover.jpg', 'page2-cover.jpg'])
+        expect(listAllMediaMock).toHaveBeenCalledWith({assetType: 'IMAGE'})
+    })
+})
+
 describe('media library picker groups + search (#825)', () => {
     it('groups READY assets by folder and shows the current selection on the trigger', async () => {
-        listMediaMock.mockResolvedValue([
+        listAllMediaMock.mockResolvedValue([
             asset({id: 1, originalFilename: 'root-cover.jpg', folderId: null}),
             asset({id: 2, originalFilename: 'interview-cover.jpg', folderId: 11}),
             asset({id: 3, originalFilename: 'pending.jpg', status: 'PENDING', folderId: 11}),
@@ -134,17 +190,19 @@ describe('media library picker groups + search (#825)', () => {
         )
 
         const trigger = await screen.findByRole('button', {name: 'Titelbild aus Mediathek'})
-        expect(trigger).toHaveTextContent('interview-cover.jpg')
+        // Selected filename resolves after open-gated catalog load (#889).
+        expect(trigger).toHaveTextContent('Asset 2')
 
         const listbox = await openPicker('Titelbild aus Mediathek')
         expect(within(listbox).getByText('Bibliothek (oberste Ebene)')).toBeInTheDocument()
         expect(within(listbox).getByText('Interviews')).toBeInTheDocument()
         expect(offeredIds(listbox)).toEqual(['root-cover.jpg', 'interview-cover.jpg'])
         expect(within(listbox).queryByText('pending.jpg')).not.toBeInTheDocument()
+        expect(trigger).toHaveTextContent('interview-cover.jpg')
     })
 
     it('filters options by filename substring', async () => {
-        listMediaMock.mockResolvedValue([
+        listAllMediaMock.mockResolvedValue([
             asset({id: 1, originalFilename: 'cover-a.jpg', folderId: null}),
             asset({id: 2, originalFilename: 'jingle.mp3', assetType: 'AUDIO', folderId: null}),
             asset({id: 3, originalFilename: 'cover-b.png', folderId: 11}),
@@ -176,7 +234,7 @@ describe('media library picker groups + search (#825)', () => {
 
     it('selects an asset and closes the panel', async () => {
         const onSelect = vi.fn()
-        listMediaMock.mockResolvedValue([
+        listAllMediaMock.mockResolvedValue([
             asset({id: 9, originalFilename: 'pick-me.jpg', folderId: null}),
         ])
         listMediaFoldersMock.mockResolvedValue([])
@@ -200,7 +258,7 @@ describe('media library picker groups + search (#825)', () => {
     })
 
     it('portals the open panel outside a clipping Card ancestor', async () => {
-        listMediaMock.mockResolvedValue([
+        listAllMediaMock.mockResolvedValue([
             asset({id: 1, originalFilename: 'cover.jpg', folderId: null}),
         ])
         listMediaFoldersMock.mockResolvedValue([])
