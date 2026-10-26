@@ -108,6 +108,7 @@ export default function TeamClient(): React.JSX.Element {
     const [searchInput, setSearchInput] = useState('')
     const [searchQuery, setSearchQuery] = useState('')
     const [editors, setEditors] = useState<TenantUser[]>([])
+    const [editorsReady, setEditorsReady] = useState(false)
     const [loadError, setLoadError] = useState<string | null>(null)
     const [isLoading, setIsLoading] = useState(true)
     const [actionError, setActionError] = useState<string | null>(null)
@@ -124,27 +125,31 @@ export default function TeamClient(): React.JSX.Element {
         return () => window.clearTimeout(handle)
     }, [searchInput])
 
-    const reload = useCallback(async (): Promise<void> => {
-        const [directory, editorList] = await Promise.all([
-            listTenantUsers({
-                page,
-                size: PAGE_SIZE,
-                ...(searchQuery.length > 0 ? {q: searchQuery} : {}),
-            }),
-            listAllTenantEditors(),
-        ])
+    const reloadDirectory = useCallback(async (): Promise<void> => {
+        const directory = await listTenantUsers({
+            page,
+            size: PAGE_SIZE,
+            ...(searchQuery.length > 0 ? {q: searchQuery} : {}),
+        })
         setUsers(directory.content)
         setTotalMembers(directory.totalElements)
         setPageSize(directory.size)
-        setEditors(editorList)
     }, [page, searchQuery])
+
+    const reloadEditors = useCallback(async (): Promise<void> => {
+        setEditors(await listAllTenantEditors())
+    }, [])
+
+    const reload = useCallback(async (): Promise<void> => {
+        await Promise.all([reloadDirectory(), reloadEditors()])
+    }, [reloadDirectory, reloadEditors])
 
     useEffect(() => {
         let active = true
 
         setIsLoading(true)
         setLoadError(null)
-        reload()
+        reloadDirectory()
             .then(() => {
                 if (!active) {
                     return
@@ -167,7 +172,36 @@ export default function TeamClient(): React.JSX.Element {
         return () => {
             active = false
         }
-    }, [reload, reloadToken, router])
+    }, [reloadDirectory, reloadToken, router])
+
+    useEffect(() => {
+        let active = true
+
+        setEditorsReady(false)
+        reloadEditors()
+            .then(() => {
+                if (!active) {
+                    return
+                }
+                setEditorsReady(true)
+            })
+            .catch((error: unknown) => {
+                if (!active) {
+                    return
+                }
+                if (authRedirect(error)) return
+                setLoadError(
+                    error instanceof Error
+                        ? error.message
+                        : 'Team konnte nicht geladen werden.',
+                )
+                setEditorsReady(true)
+            })
+
+        return () => {
+            active = false
+        }
+    }, [reloadEditors, reloadToken])
 
     async function inviteAction(
         _previous: InviteState,
@@ -398,7 +432,9 @@ export default function TeamClient(): React.JSX.Element {
                     title={team.accessRights}
                     description={team.redakteureStandardmaessigVollenZugriffInhalt}
                 />
-                {editors.length === 0 ? (
+                {!editorsReady ? (
+                    <Skeleton className="h-24 w-full max-w-2xl" />
+                ) : editors.length === 0 ? (
                     <p className="text-sm text-muted-foreground">
                         Keine aktiven Redakteure vorhanden — lade unten jemanden als Redakteur ein,
                         um Rechte zu vergeben.
