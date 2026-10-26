@@ -30,6 +30,7 @@ const publicParsers = createWebPublicParsers()
 const parsePublicArticleListEnvelope = publicParsers.parsePublicArticleListEnvelope
 const parsePublicSeriesListEnvelope = publicParsers.parsePublicSeriesListEnvelope
 const parsePublicEpisodeListEnvelope = publicParsers.parsePublicEpisodeListEnvelope
+const parsePublicEpisodeEnvelope = publicParsers.parsePublicEpisodeEnvelope
 
 export async function getSiteConfig(
 ): Promise<ApiEnvelope<PublicSiteConfig>> {
@@ -65,6 +66,23 @@ export async function listPublicEpisodes(
         await jsonRequest('/api/proxy/public/episodes'),
         'The server returned an invalid episode list.',
     ).data
+}
+
+export async function getPublicEpisode(
+    slug: string,
+): Promise<PublicEpisode | null> {
+    try {
+        return envelopeResult(
+            parsePublicEpisodeEnvelope,
+            await jsonRequest(`/api/proxy/public/episodes/${encodeURIComponent(slug)}`),
+            'The server returned an invalid episode.',
+        ).data
+    } catch (error: unknown) {
+        if (apiErrorCode(error) === 'EPISODE_NOT_FOUND') {
+            return null
+        }
+        throw error
+    }
 }
 
 export async function listPublicLevels(

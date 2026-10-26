@@ -2504,6 +2504,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/public/episodes/{slug}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getEpisode_1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/public/episodes/{slug}/download": {
         parameters: {
             query?: never;
@@ -5265,6 +5281,16 @@ export interface components {
             statusCode?: number;
             statusMessage?: string;
             data?: components["schemas"]["PublicEpisodeView"][];
+            errors?: components["schemas"]["ErrorDetail"][];
+            metadata?: {
+                [key: string]: unknown;
+            };
+        };
+        ResponsePublicEpisodeView: {
+            /** Format: int32 */
+            statusCode?: number;
+            statusMessage?: string;
+            data?: components["schemas"]["PublicEpisodeView"];
             errors?: components["schemas"]["ErrorDetail"][];
             metadata?: {
                 [key: string]: unknown;
@@ -10494,6 +10520,28 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["ResponseListPublicEpisodeView"];
+                };
+            };
+        };
+    };
+    getEpisode_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ResponsePublicEpisodeView"];
                 };
             };
         };

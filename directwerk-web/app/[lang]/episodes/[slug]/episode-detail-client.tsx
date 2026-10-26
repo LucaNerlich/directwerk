@@ -10,13 +10,14 @@ import AccessPolicyBadge from '@/components/AccessPolicyBadge'
 import CatalogMediaThumb from '@/components/CatalogMediaThumb'
 import ContentMetaLine from '@/components/ContentMetaLine'
 import DetailShell, {DetailLockedPanel} from '@/components/DetailShell'
-import {listMyEpisodes, listPublicEpisodes} from '@/lib/api/client'
+import {listMyEpisodes} from '@/lib/api/client'
 import {trackEpisodePlay} from '@/lib/analytics/umamiTrack'
 import {sanitizeContentHtml} from '@/lib/sanitizeContentHtml'
 import {
     getAccessToken,
     subscribeToTokenStore,
 } from '@/lib/auth/tokenStore'
+import {fetchPublicEpisodeBySlug} from '@/lib/catalog/episodeDetail'
 import {useEntitledDetail} from '@/lib/catalog/useEntitledDetail'
 import {findUnlockProduct, unlockHref} from '@/lib/catalog/unlock'
 import {usePublicProducts} from '@/lib/catalog/usePublicProducts'
@@ -40,7 +41,7 @@ export default function EpisodeDetailClient({
     initialPublicEpisode = null,
 }: {
     slug: string
-    /** Preloaded public catalog entry rendered server-side; skips the public fetch. */
+    /** Preloaded public episode from SSR by-slug fetch; skips the public client fetch. */
     initialPublicEpisode?: PublicEpisode | null
 }): React.JSX.Element {
     const lang = useLocale()
@@ -64,11 +65,9 @@ export default function EpisodeDetailClient({
         initial: initialPublicEpisode,
         isAuthenticated,
         tenantHost,
-        // No single-episode metadata endpoint exists (only list + stream /
-        // download), so episodes keep the catalog scan.
-        loadPublic: async () =>
-            (await listPublicEpisodes()).find((item) => item.slug === slug) ??
-            null,
+        loadPublic: () => fetchPublicEpisodeBySlug(slug),
+        // Entitled metadata is still list-only (`GET /me/episodes`); stream is
+        // by-slug. Prefer list find until a me-by-slug metadata endpoint lands.
         loadEntitled: async () =>
             (await listMyEpisodes()).find((item) => item.slug === slug) ?? null,
         messages,

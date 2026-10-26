@@ -135,7 +135,7 @@ Effect is only `GRANT` (no deny rules). Rules are **PACKAGE-only**; replace is f
 
 | Surface | FREE published | PAID entitled | PAID not entitled |
 |---------|----------------|---------------|-------------------|
-| Anonymous `GET /api/v1/public/episodes` | Listed; playable CDN URL if eligible | Listed; **`audioCdnUrl = null`** | Same |
+| Anonymous `GET /api/v1/public/episodes` (and `…/episodes/{slug}`) | Listed / returned; playable CDN URL if eligible | Listed / returned; **`audioCdnUrl = null`** | Same |
 | Signed-in `GET /api/v1/me/episodes` | Included + playable | Included + playable | **Omitted** (editors/admins see all published) |
 | `GET /api/v1/me/episodes/{slug}/stream` | 302 if READY | 302 if entitled | Denied |
 | Public RSS `/feeds/{slug}/podcast.xml` (and series `.xml`) | Item if enclosure on + READY | **Omitted** | Omitted |

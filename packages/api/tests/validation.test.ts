@@ -452,6 +452,30 @@ describe('createPublicContentParsers', () => {
         expect(parsed?.data[0]?.audioCdnUrl).toBeNull()
     })
 
+    it('parses a single public episode envelope', () => {
+        const parsed = parsers.parsePublicEpisodeEnvelope({
+            statusCode: 200,
+            data: {
+                id: 2,
+                seriesId: 1,
+                seriesSlug: 's',
+                slug: 'e',
+                title: 'E',
+                description: null,
+                durationSeconds: 120,
+                accessPolicy: 'FREE',
+                requiredLevelSortOrder: null,
+                publishedAt: '2026-01-15T10:00:00Z',
+                audioCdnUrl: 'https://cdn.example.com/a.mp3',
+                coverImageUrl: null,
+                formats: [],
+                categories: [],
+            },
+        })
+        expect(parsed?.data.slug).toBe('e')
+        expect(parsed?.data.audioCdnUrl).toBe('https://cdn.example.com/a.mp3')
+    })
+
     it('keeps safe cover and hero image URLs', () => {
         const articles = parsers.parsePublicArticleListEnvelope({
             statusCode: 200,

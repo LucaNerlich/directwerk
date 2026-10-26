@@ -9,6 +9,7 @@ import de.pnnit.directwerk.modules.core.RequiresModule;
 import de.pnnit.directwerk.modules.core.util.FeedUrlResolver;
 import de.pnnit.directwerk.modules.podcast.PodcastModule;
 import de.pnnit.directwerk.modules.digital.entity.Category;
+import de.pnnit.directwerk.modules.podcast.entity.Episode;
 import de.pnnit.directwerk.modules.podcast.entity.Format;
 import de.pnnit.directwerk.modules.podcast.entity.PodcastSeries;
 import de.pnnit.directwerk.modules.podcast.service.PublicPodcastQueryService;
@@ -18,6 +19,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import java.util.List;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -67,6 +69,14 @@ public class PublicPodcastController {
                 .map(publicEpisodeViewMapper::toPublicView)
                 .toList();
         return ResponseEntity.ok(Response.ok(episodes));
+    }
+
+    @GetMapping("/episodes/{slug}")
+    ResponseEntity<Response<PublicEpisodeView>> getEpisode(@PathVariable String slug) {
+        // Issue #379: fail closed on an unmatched Host instead of running tenant-less queries.
+        Long tenantId = TenantContext.requireTenantId();
+        Episode episode = publicPodcastQueryService.requirePublishedEpisode(tenantId, slug);
+        return ResponseEntity.ok(Response.ok(publicEpisodeViewMapper.toPublicView(episode)));
     }
 
     @GetMapping("/formats")
