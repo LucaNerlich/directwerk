@@ -22,6 +22,7 @@ export {
     parseStudioSiteConfigEnvelope,
     parseArticleEnvelope,
     parseArticleListEnvelope,
+    parseContentNotifyPreviewEnvelope,
     parseEpisodeEnvelope,
     parseEpisodeListEnvelope,
     parseImportedEpisodeEnvelope,

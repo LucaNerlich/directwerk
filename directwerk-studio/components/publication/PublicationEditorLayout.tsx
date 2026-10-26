@@ -4,7 +4,6 @@ import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
 import {Badge} from '@directwerk/ui/components/badge'
 import {Button} from '@directwerk/ui/components/button'
 import {Card, CardContent} from '@directwerk/ui/components/card'
-import {Checkbox} from '@directwerk/ui/components/checkbox'
 import {Input} from '@directwerk/ui/components/input'
 import PageStack from '@directwerk/ui/components/page-stack'
 import SectionHeader from '@directwerk/ui/components/section-header'
@@ -15,6 +14,7 @@ import type {KeyboardEvent, ReactNode} from 'react'
 import {useId, useState} from 'react'
 
 import AccessPolicySelect from '@/components/publication/AccessPolicySelect'
+import NotifySubscribersControls from '@/components/publication/NotifySubscribersControls'
 import PublishConfirmDialog from '@/components/publication/PublishConfirmDialog'
 import PublicationStatusBadge from '@/components/publication/PublicationStatusBadge'
 import SlugField from '@/components/publication/SlugField'
@@ -22,7 +22,7 @@ import LevelSelect from '@/components/studio/LevelSelect'
 import {ShowNotesEditor} from '@/lib/dynamic/ShowNotesEditor'
 import {rbacErrorMessage} from '@/lib/rbac/access'
 import {safeLinkHref} from '@/lib/url/safeUrl'
-import type {AccessPolicy, PublicationStatus} from '@directwerk/api/types'
+import type {AccessPolicy, ContentNotifyPreview, PublicationStatus} from '@directwerk/api/types'
 import {sanitizeContentHtml} from '@directwerk/api/content/sanitizeContentHtml'
 import {useDictionary} from '@/components/i18n/LocaleProvider'
 
@@ -56,6 +56,9 @@ interface PublicationEditorLayoutProps {
     notifySubscribers: boolean
     onNotifyChange: (value: boolean) => void
     notifyAudienceHint?: string | null
+    notifyPreview?: ContentNotifyPreview | null
+    onRetryNotify?: () => void
+    isRetryingNotify?: boolean
     scheduledAt: string
     onScheduledAtChange: (value: string) => void
     publishedAt: string
@@ -125,6 +128,9 @@ export default function PublicationEditorLayout({
     notifySubscribers,
     onNotifyChange,
     notifyAudienceHint = null,
+    notifyPreview = null,
+    onRetryNotify,
+    isRetryingNotify = false,
     scheduledAt,
     onScheduledAtChange,
     publishedAt,
@@ -248,6 +254,7 @@ export default function PublicationEditorLayout({
             <PublishConfirmDialog
                 isSaving={isSaving}
                 notifyAudienceHint={notifyAudienceHint}
+                notifyPreview={notifyPreview}
                 notifySubscribers={notifySubscribers}
                 onConfirm={() => {
                     setPublishDialogOpen(false)
@@ -561,15 +568,28 @@ export default function PublicationEditorLayout({
                                     </div>
                                 )}
 
-                                {showNotify && (isDraft || isScheduled) && (
-                                    <label className="flex cursor-pointer items-center gap-2 text-sm font-normal">
-                                        <Checkbox
-                                            checked={notifySubscribers}
-                                            onCheckedChange={(checked) => onNotifyChange(checked === true)}
-                                        />
-                                        <span>Abonnenten benachrichtigen (beim Veröffentlichen)</span>
-                                    </label>
-                                )}
+                                {showNotify && (isDraft || isScheduled) ? (
+                                    <NotifySubscribersControls
+                                        audienceHint={notifyAudienceHint}
+                                        disabled={readOnly}
+                                        mode="draft"
+                                        notifySubscribers={notifySubscribers}
+                                        onNotifyChange={onNotifyChange}
+                                        preview={notifyPreview}
+                                    />
+                                ) : null}
+                                {showNotify && isPublished ? (
+                                    <NotifySubscribersControls
+                                        audienceHint={notifyAudienceHint}
+                                        disabled={readOnly || isSaving}
+                                        isRetrying={isRetryingNotify}
+                                        mode="published"
+                                        notifySubscribers={false}
+                                        onNotifyChange={onNotifyChange}
+                                        onRetry={onRetryNotify}
+                                        preview={notifyPreview}
+                                    />
+                                ) : null}
                                 {publishValidationError !== null && (isDraft || isScheduled) ? (
                                     <p className="text-xs text-destructive" role="alert">
                                         {publishValidationError}

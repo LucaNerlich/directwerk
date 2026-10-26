@@ -518,6 +518,45 @@ Accept: application/json
 
 ###
 
+### @name notifyPreviewPodcastEpisode
+GET {{baseUrl}}/api/v1/episodes/{{podcastEpisodeNotifyId}}/notify-preview
+Host: {{tenantAHost}}
+Authorization: Bearer {{tenantAAccessToken}}
+Accept: application/json
+
+> {%
+    client.test("Episode notify preview", function() {
+        client.assert(
+            response.status === 200 || response.status === 403 || response.status === 404,
+            "Expected notify-preview response"
+        );
+        if (response.status === 200) {
+            client.assert(typeof response.body.data.estimatedRecipients === "number", "estimatedRecipients");
+            client.assert(typeof response.body.data.canRetry === "boolean", "canRetry");
+            client.assert(typeof response.body.data.notifyAvailable === "boolean", "notifyAvailable");
+        }
+    });
+%}
+
+###
+
+### @name notifyPodcastEpisodeSubscribers
+POST {{baseUrl}}/api/v1/episodes/{{podcastEpisodeNotifyId}}/notify
+Host: {{tenantAHost}}
+Authorization: Bearer {{tenantAAccessToken}}
+Accept: application/json
+
+> {%
+    client.test("Retry episode subscriber notification", function() {
+        client.assert(
+            response.status === 200 || response.status === 403 || response.status === 404 || response.status === 409,
+            "Expected notify retry response"
+        );
+    });
+%}
+
+###
+
 ### @name listPublicPodcastEpisodes
 GET {{baseUrl}}/api/v1/public/episodes
 Host: {{tenantAHost}}

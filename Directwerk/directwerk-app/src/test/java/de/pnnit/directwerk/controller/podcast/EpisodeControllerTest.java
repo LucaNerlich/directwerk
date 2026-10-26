@@ -252,6 +252,6 @@ class EpisodeControllerTest {
         return new EpisodeView(
                 id, 20L, "main", 1, "episode-" + id, "Episode " + id, null,
                 null, null, null, null, "FREE", null, "PUBLISHED", false,
-                null, null, List.of(), List.of(), null, null, null);
+                null, null, null, List.of(), List.of(), null, null, null);
     }
 }

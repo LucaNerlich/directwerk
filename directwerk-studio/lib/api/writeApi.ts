@@ -1,15 +1,20 @@
 'use client'
 
-import {parseArticleEnvelope, parseArticleListEnvelope} from '@directwerk/api/validation/catalog'
+import {
+    parseArticleEnvelope,
+    parseArticleListEnvelope,
+    parseContentNotifyPreviewEnvelope,
+} from '@directwerk/api/validation/catalog'
 
 import type {
     ArticleDetail,
     BulkPublishInput,
+    ContentNotifyPreview,
     CreateArticleInput,
     UpdateArticleInput,
 } from '@directwerk/api/types'
 import {parseBulkDeleteEnvelope} from '@directwerk/api/validation/catalog'
-import {createPublicationWorkflowApi, jsonInit, studioDelete, studioMutate} from './studioApiCore'
+import {createPublicationWorkflowApi, jsonInit, studioDelete, studioGet, studioMutate} from './studioApiCore'
 
 const articleApi = createPublicationWorkflowApi<
     ArticleDetail,
@@ -36,14 +41,33 @@ export const unpublishArticle = articleApi.unpublish
 export const archiveArticle = articleApi.archive
 export const unarchiveArticle = articleApi.unarchive
 
+const invalidArticleMessage = 'Der Server hat einen ungültigen Beitrag gesendet.'
+const invalidBulkDeleteMessage = 'Der Server hat eine ungültige Löschantwort gesendet.'
+const invalidNotifyPreviewMessage =
+    'Der Server hat eine ungültige Benachrichtigungsvorschau gesendet.'
+
+export async function getArticleNotifyPreview(articleId: number): Promise<ContentNotifyPreview> {
+    return studioGet(
+        `/api/proxy/articles/${articleId}/notify-preview`,
+        parseContentNotifyPreviewEnvelope,
+        invalidNotifyPreviewMessage,
+    )
+}
+
+export async function notifyArticleSubscribers(articleId: number): Promise<ArticleDetail> {
+    return studioMutate(
+        `/api/proxy/articles/${articleId}/notify`,
+        {method: 'POST'},
+        parseArticleEnvelope,
+        invalidArticleMessage,
+    )
+}
+
 export async function deleteArticle(
         articleId: number,
 ): Promise<void> {
     return studioDelete(`/api/proxy/articles/${articleId}`, )
 }
-
-const invalidArticleMessage = 'Der Server hat einen ungültigen Beitrag gesendet.'
-const invalidBulkDeleteMessage = 'Der Server hat eine ungültige Löschantwort gesendet.'
 
 export async function bulkPublishArticles(
         input: BulkPublishInput,

@@ -46,7 +46,7 @@ import {parseOptionalInt as optionalMinInt} from '@/lib/publication/parsePositiv
 import {resolvePersistEpisodeId} from '@/lib/publication/resolvePersistEpisodeId'
 import {usePublicationEditorFields} from '@/lib/publication/usePublicationEditorFields'
 import {usePublicationEditorWorkflow} from '@/lib/publication/usePublicationEditorWorkflow'
-import {useNotifyAudienceHint} from '@/lib/studio/useNotifyAudienceHint'
+import {useContentNotifyPreview} from '@/lib/publication/useContentNotifyPreview'
 import {useDefaultNotifySubscribers} from '@/lib/publication/useDefaultNotifySubscribers'
 import {useSiteConfig} from '@/lib/site/SiteConfigProvider'
 import {getClientTenantHost} from '@directwerk/api/tenant'
@@ -68,8 +68,25 @@ export function useEpisodeContentEditor(
     const authRedirect = useAuthRequired()
     const config = useSiteConfig()
     const showNotify = config.emailNotifyAvailable === true
-    const notifyAudienceHint = useNotifyAudienceHint(showNotify)
     const [episode, setEpisode] = useState<EpisodeDetail | null>(null)
+    const {
+        preview: notifyPreview,
+        refresh: refreshNotifyPreview,
+        retry: retryNotify,
+        isRetrying: isRetryingNotify,
+    } = useContentNotifyPreview(
+        'episode',
+        episode?.id ?? episodeId ?? null,
+        showNotify,
+        `${episode?.status ?? ''}:${episode?.emailNotifiedAt ?? ''}`,
+    )
+    const notifyAudienceHint =
+        notifyPreview !== null
+            ? dict.publication.notifyAudienceCount.replace(
+                  '${count}',
+                  String(notifyPreview.estimatedRecipients),
+              )
+            : null
     // Survives a deferred-create attach failure while the route is still /new (#731 review).
     const deferredCreateIdRef = useRef<number | undefined>(undefined)
     const [allEpisodes, setAllEpisodes] = useState<EpisodeDetail[]>([])
@@ -722,6 +739,13 @@ export function useEpisodeContentEditor(
         publishBlockedReason,
         showNotify,
         notifyAudienceHint,
+        notifyPreview,
+        onRetryNotify: () => {
+            void retryNotify()
+                .then(() => refreshNotifyPreview())
+                .catch(() => undefined)
+        },
+        isRetryingNotify,
         previewImageUrl: coverPreviewUrl,
         previewUrl: episodePageUrl,
         publishedLinks,

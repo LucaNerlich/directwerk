@@ -221,9 +221,20 @@ public class ArticlePublicationWorkflowService extends PublicationWorkflow<Artic
         return article.getAccessPolicy().name();
     }
 
+    @Transactional
+    @RequiresModule(ArticlesModule.KEY)
+    public Article notifySubscribersNow(Long tenantId, Long articleId) {
+        return notifyContentNow(tenantId, articleId);
+    }
+
     @Override
     protected int claimEmailNotification(Long tenantId, Long contentId, Instant notifiedAt) {
         return articleRepository.claimEmailNotification(tenantId, contentId, notifiedAt);
+    }
+
+    @Override
+    protected void clearEmailNotification(Long tenantId, Long contentId) {
+        articleRepository.clearEmailNotification(tenantId, contentId);
     }
 
     @Override

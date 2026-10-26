@@ -51,8 +51,7 @@ const draftEpisode = {
     coverAssetId: null,
     enclosureEnabled: true,
     requiredLevelSortOrder: null,
-    scheduledAt: null,
-    formats: [] as Array<{id: number; slug: string; name: string}>,
+    scheduledAt: null, emailNotifiedAt: null, formats: [] as Array<{id: number; slug: string; name: string}>,
     categories: [] as Array<{id: number; slug: string; name: string}>,
 }
 

@@ -289,9 +289,20 @@ public class PublicationWorkflowService extends PublicationWorkflow<Episode, Epi
         return episode.getAccessPolicy().name();
     }
 
+    @Transactional
+    @RequiresModule(PodcastModule.KEY)
+    public Episode notifySubscribersNow(Long tenantId, Long episodeId) {
+        return notifyContentNow(tenantId, episodeId);
+    }
+
     @Override
     protected int claimEmailNotification(Long tenantId, Long contentId, Instant notifiedAt) {
         return episodeRepository.claimEmailNotification(tenantId, contentId, notifiedAt);
+    }
+
+    @Override
+    protected void clearEmailNotification(Long tenantId, Long contentId) {
+        episodeRepository.clearEmailNotification(tenantId, contentId);
     }
 
     @Override

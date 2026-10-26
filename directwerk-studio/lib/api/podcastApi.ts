@@ -1,9 +1,16 @@
 'use client'
 
-import {parseEpisodeEnvelope, parseEpisodeListEnvelope, parseSeriesEnvelope, parseSeriesListEnvelope} from '@directwerk/api/validation/catalog'
+import {
+    parseContentNotifyPreviewEnvelope,
+    parseEpisodeEnvelope,
+    parseEpisodeListEnvelope,
+    parseSeriesEnvelope,
+    parseSeriesListEnvelope,
+} from '@directwerk/api/validation/catalog'
 
 import type {
     BulkPublishInput,
+    ContentNotifyPreview,
     CreateEpisodeInput,
     CreateSeriesInput,
     EpisodeDetail,
@@ -40,14 +47,33 @@ export const unpublishEpisode = episodeApi.unpublish
 export const archiveEpisode = episodeApi.archive
 export const unarchiveEpisode = episodeApi.unarchive
 
+const invalidEpisodeMessage = 'Der Server hat eine ungültige Folge gesendet.'
+const invalidBulkDeleteMessage = 'Der Server hat eine ungültige Löschantwort gesendet.'
+const invalidNotifyPreviewMessage =
+    'Der Server hat eine ungültige Benachrichtigungsvorschau gesendet.'
+
+export async function getEpisodeNotifyPreview(episodeId: number): Promise<ContentNotifyPreview> {
+    return studioGet(
+        `/api/proxy/episodes/${episodeId}/notify-preview`,
+        parseContentNotifyPreviewEnvelope,
+        invalidNotifyPreviewMessage,
+    )
+}
+
+export async function notifyEpisodeSubscribers(episodeId: number): Promise<EpisodeDetail> {
+    return studioMutate(
+        `/api/proxy/episodes/${episodeId}/notify`,
+        {method: 'POST'},
+        parseEpisodeEnvelope,
+        invalidEpisodeMessage,
+    )
+}
+
 export async function deleteEpisode(
         episodeId: number,
 ): Promise<void> {
     return studioDelete(`/api/proxy/episodes/${episodeId}`, )
 }
-
-const invalidEpisodeMessage = 'Der Server hat eine ungültige Folge gesendet.'
-const invalidBulkDeleteMessage = 'Der Server hat eine ungültige Löschantwort gesendet.'
 
 export async function bulkPublishEpisodes(
         input: BulkPublishInput,

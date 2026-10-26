@@ -15,4 +15,9 @@ public interface NewsletterNotificationApi {
      * No-op when the article has no active lists or no active subscribers.
      */
     void notifyArticlePublished(ContentPublishedEvent event);
+
+    /**
+     * Deduped ACTIVE-list recipient count for studio notify preview (same rules as fan-out).
+     */
+    long countArticleRecipients(Long tenantId, Long articleId);
 }

@@ -52,6 +52,12 @@ public class NewsletterNotificationService implements NewsletterNotificationApi 
     private final ContentNotificationMarkerRepository contentNotificationMarkerRepository;
 
     @Override
+    @Transactional(readOnly = true)
+    public long countArticleRecipients(Long tenantId, Long articleId) {
+        return resolveRecipients(tenantId, articleId).size();
+    }
+
+    @Override
     @Transactional
     public void notifyArticlePublished(ContentPublishedEvent event) {
         Long tenantId = event.tenantId();

@@ -86,6 +86,9 @@ export default function PublicationContentEditor<
             notifySubscribers={model.notifySubscribers}
             onNotifyChange={model.onNotifyChange}
             notifyAudienceHint={model.notifyAudienceHint}
+            notifyPreview={model.notifyPreview}
+            onRetryNotify={model.onRetryNotify}
+            isRetryingNotify={model.isRetryingNotify}
             scheduledAt={model.scheduledAt}
             onScheduledAtChange={model.onScheduledAtChange}
             publishedAt={model.publishedAt}

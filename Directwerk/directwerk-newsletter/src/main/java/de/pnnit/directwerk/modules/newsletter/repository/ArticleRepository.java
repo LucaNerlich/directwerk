@@ -90,6 +90,18 @@ public interface ArticleRepository extends JpaRepository<Article, Long> {
             @Param("notifiedAt") Instant notifiedAt
     );
 
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("""
+            update Article a
+            set a.emailNotifiedAt = null
+            where a.id = :articleId
+              and a.tenant.id = :tenantId
+            """)
+    int clearEmailNotification(
+            @Param("tenantId") Long tenantId,
+            @Param("articleId") Long articleId
+    );
+
     interface ImportIdentityId {
         String getImportIdentity();
 
