@@ -108,8 +108,55 @@ Accept: application/json
 
 ###
 
+### @name getDomainVerificationChallenge
+GET {{baseUrl}}/api/v1/tenant/domains/{{newDomainHost}}/verification
+Host: {{tenantAHost}}
+Authorization: Bearer {{tenantAAccessToken}}
+Accept: application/json
+
+> {%
+    client.test("Domain verification challenge", function() {
+        client.assert(
+            response.status === 200 || response.status === 400 || response.status === 404,
+            "Expected 200 when newDomainHost is unverified, else 400/404"
+        );
+        if (response.status === 200) {
+            client.assert(!!response.body.data.token, "Expected verification token");
+            client.assert(!!response.body.data.dnsTxtValue, "Expected dnsTxtValue");
+            client.assert(
+                String(response.body.data.dnsNameHint).indexOf("_directwerk-challenge.") === 0,
+                "Expected challenge subdomain hint"
+            );
+            client.global.set("domainVerifyToken", response.body.data.token);
+        }
+    });
+%}
+
+###
+
+### @name verifyDomainDns
+# Requires TXT at _directwerk-challenge.{host}; without DNS expect 400 DOMAIN_VERIFICATION_FAILED
+POST {{baseUrl}}/api/v1/tenant/domains/{{newDomainHost}}/verify
+Host: {{tenantAHost}}
+Authorization: Bearer {{tenantAAccessToken}}
+Accept: application/json
+
+> {%
+    client.test("Verify domain via DNS TXT", function() {
+        client.assert(
+            response.status === 200 || response.status === 400 || response.status === 404,
+            "Expected 200 with DNS, 400 without, or 404 if host unset"
+        );
+        if (response.status === 200) {
+            client.assert(response.body.data.verified === true, "Expected verified domain");
+        }
+    });
+%}
+
+###
+
 ### @name forceVerifyTenantDomain
-# Platform override of DNS/token verification — also in Bruno 06-Platform-Admin/Tenants
+# Platform override of DNS verification — also in Bruno 06-Platform-Admin/Tenants
 POST {{baseUrl}}/api/v1/platform/tenants/{{tenantAId}}/domains/{{newDomainHost}}/verify
 Authorization: Bearer {{platformAccessToken}}
 Accept: application/json

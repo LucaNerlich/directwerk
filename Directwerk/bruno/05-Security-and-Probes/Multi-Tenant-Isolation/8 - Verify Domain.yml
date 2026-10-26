@@ -1,12 +1,17 @@
 info:
-  name: 4 - Verify Domain (Token)
+  name: 8 - Verify Domain
   type: http
-  seq: 4
+  seq: 8
 
 http:
   method: POST
-  url: "{{baseUrl}}/api/v1/tenant/domains/{{newDomainHost}}/verify"
-  auth: inherit
+  url: "{{baseUrl}}/api/v1/tenant/domains/{{isolationUnverifiedHost}}/verify"
+  headers:
+    - name: Host
+      value: "{{tenantAHost}}"
+  auth:
+    type: bearer
+    token: "{{tenantAAccessToken}}"
 
 runtime:
   scripts:

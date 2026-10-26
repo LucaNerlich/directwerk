@@ -26,6 +26,9 @@ public class TenantDomainService {
 
     public static final String DNS_TXT_PREFIX = "directwerk-verify=";
 
+    /** DNS label under the registered host that must publish the verification TXT value. */
+    public static final String DNS_CHALLENGE_LABEL = "_directwerk-challenge";
+
     private final TenantDomainRepository tenantDomainRepository;
     private final TenantRepository tenantRepository;
     private final DirectwerkCacheEviction cacheEviction;
@@ -120,26 +123,33 @@ public class TenantDomainService {
             throw new DomainVerificationException("Domain is already verified: " + domain.getHost());
         }
         ensureToken(domain);
+        String dnsNameHint = challengeDnsName(domain.getHost());
         return new DomainVerificationChallenge(
                 domain.getHost(),
                 domain.getVerificationToken(),
                 DNS_TXT_PREFIX + domain.getVerificationToken(),
-                "_directwerk-challenge." + domain.getHost()
+                dnsNameHint
         );
     }
 
-    /** Verifies domain ownership using a DNS TXT record. */
+    /** Verifies domain ownership using a DNS TXT record at {@link #DNS_CHALLENGE_LABEL}. */
     @Transactional
     public TenantDomain verifyDomain(Long tenantId, String host) {
         TenantDomain domain = requireDomainForVerification(tenantId, host);
         if (domain.isVerified()) return domain;
-        boolean dnsMatched = domainDnsLookup.lookupTxt(domain.getHost()).stream()
+        String challengeName = challengeDnsName(domain.getHost());
+        boolean dnsMatched = domainDnsLookup.lookupTxt(challengeName).stream()
                 .anyMatch(value -> matchesVerificationRecord(value, domain.getVerificationToken()));
         if (!dnsMatched) throw new DomainVerificationException(
                 "Domain verification failed for " + domain.getHost()
-                        + ". Publish a TXT record with value "
+                        + ". Publish a TXT record at " + challengeName
+                        + " with value "
                         + DNS_TXT_PREFIX + domain.getVerificationToken());
         return persistVerification(tenantId, host);
+    }
+
+    static String challengeDnsName(String host) {
+        return DNS_CHALLENGE_LABEL + "." + host;
     }
 
     /**
