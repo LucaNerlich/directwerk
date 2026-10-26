@@ -78,14 +78,14 @@ const branding = {
     secondaryColor: null,
     logoUrl: null,
     faviconUrl: null,
-    umamiWebsiteId: null,
-    umamiHostUrl: null,
+    umamiWebsiteId: 'abc12345',
+    umamiHostUrl: 'https://umami.example.com',
 }
 
 describe('BrandingEditor color picker', () => {
     beforeEach(() => {
         vi.clearAllMocks()
-        siteConfig.enabledModules = ['DIGITAL_CONTENT', 'PODCAST']
+        siteConfig.enabledModules = ['DIGITAL_CONTENT', 'PODCAST', 'ANALYTICS']
         getBranding.mockResolvedValue(branding)
         updateBranding.mockImplementation(
             async (_host: unknown, input: Record<string, unknown>) => ({
@@ -175,8 +175,8 @@ describe('BrandingEditor color picker', () => {
                 secondaryColor: null,
                 logoUrl: null,
                 faviconUrl: null,
-                umamiWebsiteId: null,
-                umamiHostUrl: null,
+                umamiWebsiteId: 'abc12345',
+                umamiHostUrl: 'https://umami.example.com',
             }),
         )
         await waitFor(() =>
@@ -184,6 +184,57 @@ describe('BrandingEditor color picker', () => {
                 'Branding gespeichert.',
             ),
         )
+    })
+
+    it('blocks save when Umami website ID is only whitespace', async () => {
+        renderWithLocale(<BrandingEditor />)
+        const websiteField = await screen.findByLabelText(/Umami Website-ID/)
+        fireEvent.change(websiteField, {target: {value: '   '}})
+        fireEvent.submit(websiteField.closest('form') as HTMLFormElement)
+
+        await waitFor(() =>
+            expect(screen.getByRole('alert')).toHaveTextContent(
+                'Umami Website-ID ist erforderlich.',
+            ),
+        )
+        expect(updateBranding).not.toHaveBeenCalled()
+    })
+
+    it('blocks save when Umami server is only whitespace', async () => {
+        renderWithLocale(<BrandingEditor />)
+        const serverField = await screen.findByLabelText(/Umami-Server/)
+        fireEvent.change(serverField, {target: {value: '   '}})
+        fireEvent.submit(serverField.closest('form') as HTMLFormElement)
+
+        await waitFor(() =>
+            expect(screen.getByRole('alert')).toHaveTextContent(
+                'Umami-Server ist erforderlich.',
+            ),
+        )
+        expect(updateBranding).not.toHaveBeenCalled()
+    })
+
+    it('marks Umami fields as required', async () => {
+        getBranding.mockResolvedValue({
+            ...branding,
+            umamiWebsiteId: null,
+            umamiHostUrl: null,
+        })
+        renderWithLocale(<BrandingEditor />)
+        const websiteField = await screen.findByLabelText(/Umami Website-ID/)
+        const serverField = screen.getByLabelText(/Umami-Server/)
+
+        expect(websiteField).toBeRequired()
+        expect(serverField).toBeRequired()
+        expect(
+            screen.getByText(
+                'Website-Tracking mit Umami — Website-ID und Server sind erforderlich.',
+            ),
+        ).toBeInTheDocument()
+
+        fireEvent.submit(websiteField.closest('form') as HTMLFormElement)
+        expect(updateBranding).not.toHaveBeenCalled()
+        expect(screen.queryByRole('status')).not.toBeInTheDocument()
     })
 
     it('previews saved primary and draft secondary colors live', async () => {
@@ -203,9 +254,9 @@ describe('BrandingEditor color picker', () => {
     })
 
     it('warns when a website ID is set but the ANALYTICS module is off', async () => {
-        getBranding.mockResolvedValue({...branding, umamiWebsiteId: 'abc12345'})
+        siteConfig.enabledModules = ['DIGITAL_CONTENT', 'PODCAST']
         renderWithLocale(<BrandingEditor />)
-        await screen.findByLabelText('Umami Website-ID')
+        await screen.findByLabelText(/Umami Website-ID/)
 
         expect(screen.getByRole('alert')).toHaveTextContent(
             'ANALYTICS-Modul ist für diesen Workspace nicht aktiv',
@@ -213,17 +264,17 @@ describe('BrandingEditor color picker', () => {
     })
 
     it('stays quiet without a website ID even when the module is off', async () => {
+        siteConfig.enabledModules = ['DIGITAL_CONTENT', 'PODCAST']
+        getBranding.mockResolvedValue({...branding, umamiWebsiteId: null})
         renderWithLocale(<BrandingEditor />)
-        await screen.findByLabelText('Umami Website-ID')
+        await screen.findByLabelText(/Umami Website-ID/)
 
         expect(screen.queryByRole('alert')).not.toBeInTheDocument()
     })
 
     it('stays quiet with a website ID when the ANALYTICS module is active', async () => {
-        siteConfig.enabledModules = ['DIGITAL_CONTENT', 'PODCAST', 'ANALYTICS']
-        getBranding.mockResolvedValue({...branding, umamiWebsiteId: 'abc12345'})
         renderWithLocale(<BrandingEditor />)
-        await screen.findByLabelText('Umami Website-ID')
+        await screen.findByLabelText(/Umami Website-ID/)
 
         expect(screen.queryByRole('alert')).not.toBeInTheDocument()
     })
@@ -250,8 +301,8 @@ describe('BrandingEditor color picker', () => {
                 secondaryColor: null,
                 logoUrl: readyLogo.cdnUrl,
                 faviconUrl: null,
-                umamiWebsiteId: null,
-                umamiHostUrl: null,
+                umamiWebsiteId: 'abc12345',
+                umamiHostUrl: 'https://umami.example.com',
             }),
         )
     })
@@ -272,8 +323,8 @@ describe('BrandingEditor color picker', () => {
                 secondaryColor: null,
                 logoUrl: 'https://cdn.example.test/external-logo.png',
                 faviconUrl: null,
-                umamiWebsiteId: null,
-                umamiHostUrl: null,
+                umamiWebsiteId: 'abc12345',
+                umamiHostUrl: 'https://umami.example.com',
             }),
         )
     })
@@ -302,8 +353,8 @@ describe('BrandingEditor color picker', () => {
                 secondaryColor: null,
                 logoUrl: null,
                 faviconUrl: readyLogo.cdnUrl,
-                umamiWebsiteId: null,
-                umamiHostUrl: null,
+                umamiWebsiteId: 'abc12345',
+                umamiHostUrl: 'https://umami.example.com',
             }),
         )
     })

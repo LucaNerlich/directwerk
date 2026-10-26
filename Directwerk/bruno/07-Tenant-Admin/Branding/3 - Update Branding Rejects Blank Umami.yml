@@ -1,0 +1,40 @@
+info:
+  name: 3 - Update Branding Rejects Blank Umami
+  type: http
+  seq: 3
+
+http:
+  method: PUT
+  url: "{{baseUrl}}/api/v1/tenant/branding"
+  headers:
+    - name: Content-Type
+      value: application/json
+  body:
+    type: json
+    data: |-
+      {
+        "umamiWebsiteId": "",
+        "umamiHostUrl": ""
+      }
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("rejects blank Umami fields", function() {
+          expect(res.getStatus() === 400).to.equal(true);
+          expect(res.body.errors[0].code).to.equal("VALIDATION_ERROR");
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+docs: |-
+  Empty umamiWebsiteId / umamiHostUrl must not clear analytics config.
+  Bean Validation @Pattern rejects blank strings with 400 VALIDATION_ERROR.
+  Omit the fields (null/absent) to leave stored values untouched.

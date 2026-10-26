@@ -69,6 +69,9 @@ public class TenantBrandingService {
         }
         if (umamiWebsiteId != null) {
             String normalizedWebsiteId = normalizeUmamiWebsiteId(umamiWebsiteId);
+            if (normalizedWebsiteId == null) {
+                throw new IllegalArgumentException("Umami website id is required");
+            }
             requireWebsiteIdNotClaimedByAnotherTenant(tenantId, normalizedWebsiteId);
             branding.setUmamiWebsiteId(normalizedWebsiteId);
         }
@@ -182,7 +185,7 @@ public class TenantBrandingService {
     private static String normalizeUmamiHostUrl(String umamiHostUrl) {
         String normalized = UmamiHostUrlValidator.normalize(umamiHostUrl);
         if (normalized == null) {
-            return null;
+            throw new IllegalArgumentException("Umami host URL is required");
         }
         if (!UmamiHostUrlValidator.isValid(normalized)) {
             throw new IllegalArgumentException("Umami host URL must be an absolute HTTPS URL");

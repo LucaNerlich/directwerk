@@ -222,6 +222,22 @@ class TenantBrandingServiceTest {
     }
 
     @Test
+    void rejectsBlankUmamiWebsiteId() {
+        assertThatThrownBy(() -> service.updateBranding(
+                10L, null, null, null, null, null, "   ", null))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Umami website id is required");
+    }
+
+    @Test
+    void rejectsBlankUmamiHostUrl() {
+        assertThatThrownBy(() -> service.updateBranding(
+                10L, null, null, null, null, null, null, "  "))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Umami host URL is required");
+    }
+
+    @Test
     void rejectsUmamiWebsiteIdClaimedByAnotherTenant() {
         // The read path uses platform-wide Umami credentials, so a tenant must not be able to
         // adopt a website id another tenant already owns (cross-tenant stats exposure).
