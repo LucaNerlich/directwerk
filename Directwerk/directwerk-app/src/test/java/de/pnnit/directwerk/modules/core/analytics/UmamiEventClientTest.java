@@ -32,6 +32,7 @@ import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLParameters;
 import javax.net.ssl.SSLSession;
 import org.junit.jupiter.api.Test;
+import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
 class UmamiEventClientTest {
@@ -111,6 +112,43 @@ class UmamiEventClientTest {
         assertThat(httpClient.body()).contains("\"url\":\"/episodes/episode-1\"");
         assertThat(httpClient.body()).contains("\"name\":\"episode-download\"");
         assertThat(httpClient.body()).contains("\"source\":\"stream\"");
+        assertThat(httpClient.body()).contains("\"episodeSlug\":\"episode-1\"");
+        // Custom props must be nested under payload.data — Zod strips unknown top-level keys.
+        JsonNode root = new ObjectMapper().readTree(httpClient.body());
+        assertThat(root.path("payload").path("data").path("episodeSlug").asString())
+                .isEqualTo("episode-1");
+        assertThat(root.path("payload").path("data").path("source").asString()).isEqualTo("stream");
+        assertThat(root.path("payload").has("title")).isFalse();
+        assertThat(root.path("payload").has("tag")).isFalse();
+    }
+
+    @Test
+    void postsTitleAndTagWhenProvided() throws Exception {
+        CapturingHttpClient httpClient = new CapturingHttpClient(200, null);
+        UmamiEventClient client = new UmamiEventClient(
+                directwerkConfig(true, "https://umami.example.test", UmamiEventClient.COLLECTOR_USER_AGENT),
+                new ObjectMapper(),
+                httpClient,
+                Runnable::run
+        );
+
+        client.trackEvent(
+                "https://umami.example.test",
+                "123e4567-e89b-12d3-a456-426614174000",
+                "alpha.example.test",
+                "/episodes/episode-1",
+                "episode-download",
+                "Episode 1",
+                "episode-1",
+                Map.of("episodeSlug", "episode-1"),
+                null
+        );
+
+        assertThat(httpClient.await()).isTrue();
+        JsonNode payload = new ObjectMapper().readTree(httpClient.body()).path("payload");
+        assertThat(payload.path("title").asString()).isEqualTo("Episode 1");
+        assertThat(payload.path("tag").asString()).isEqualTo("episode-1");
+        assertThat(payload.path("data").path("episodeSlug").asString()).isEqualTo("episode-1");
     }
 
     @Test

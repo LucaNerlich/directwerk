@@ -6,6 +6,7 @@ import de.pnnit.directwerk.modules.core.analytics.UmamiEventClient;
 import de.pnnit.directwerk.modules.core.service.ModuleGateService;
 import de.pnnit.directwerk.modules.core.service.TenantBrandingService;
 import de.pnnit.directwerk.modules.podcast.entity.Episode;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 import lombok.extern.slf4j.Slf4j;
@@ -55,6 +56,7 @@ public class EpisodeDownloadAnalyticsService {
         if (tenantId == null
                 || episode == null
                 || episode.getSlug() == null
+                || episode.getSlug().isBlank()
                 || episode.getAccessPolicy() == null
                 || hostname == null
                 || hostname.isBlank()
@@ -62,21 +64,42 @@ public class EpisodeDownloadAnalyticsService {
             log.debug("Skipping episode-download event: incomplete request context (source={})", source);
             return;
         }
+        String episodeSlug = episode.getSlug().trim();
+        String episodeTitle = episode.getTitle() != null ? episode.getTitle().trim() : "";
         String seriesSlug = episode.getSeries() != null ? episode.getSeries().getSlug() : null;
+        Map<String, String> data = new LinkedHashMap<>();
+        data.put("episodeSlug", episodeSlug);
+        if (episode.getId() != null) {
+            data.put("episodeId", String.valueOf(episode.getId()));
+        }
+        if (!episodeTitle.isEmpty()) {
+            data.put("episodeTitle", truncateProp(episodeTitle));
+        }
+        if (seriesSlug != null && !seriesSlug.isBlank()) {
+            data.put("seriesSlug", seriesSlug.trim());
+        }
+        data.put("accessPolicy", episode.getAccessPolicy().name());
+        data.put("source", source);
+        data.put("isRangeRequest", isRangeRequest ? "true" : "false");
+        // title → Umami page_title; tag → first-class Events filter (Umami tag max 50).
+        // Custom props also stay in data so the Properties tab can break down by episode.
+        String tag = episodeSlug.length() <= 50 ? episodeSlug : episodeSlug.substring(0, 50);
         tenantEventTracker.track(
                 tenantId,
                 EVENT_NAME,
-                "/episodes/" + episode.getSlug(),
+                "/episodes/" + episodeSlug,
                 hostname,
-                Map.of(
-                        "episodeSlug", episode.getSlug(),
-                        "seriesSlug", seriesSlug != null ? seriesSlug : "",
-                        "accessPolicy", episode.getAccessPolicy().name(),
-                        "source", source,
-                        "isRangeRequest", isRangeRequest ? "true" : "false"),
+                data,
                 clientUserAgent,
                 clientIp,
-                "episode '" + episode.getSlug() + "'");
+                "episode '" + episodeSlug + "'",
+                episodeTitle.isEmpty() ? episodeSlug : truncateProp(episodeTitle),
+                tag);
+    }
+
+    /** Umami event-data string values cap at 500; keep titles comfortably under that. */
+    private static String truncateProp(String value) {
+        return value.length() > 200 ? value.substring(0, 200) : value;
     }
 
     public String publicRssEnclosureUrl(

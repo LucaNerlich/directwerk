@@ -55,6 +55,8 @@ class EpisodeDownloadAnalyticsServiceTest {
                 org.mockito.ArgumentMatchers.any(),
                 org.mockito.ArgumentMatchers.any(),
                 org.mockito.ArgumentMatchers.any(),
+                org.mockito.ArgumentMatchers.any(),
+                org.mockito.ArgumentMatchers.any(),
                 org.mockito.ArgumentMatchers.any()
         );
     }
@@ -69,6 +71,8 @@ class EpisodeDownloadAnalyticsServiceTest {
         service.trackEpisodeDownload(10L, episode(), "stream", "alpha.example.test", null, false, null);
 
         verify(umamiEventClient, never()).trackEvent(
+                org.mockito.ArgumentMatchers.any(),
+                org.mockito.ArgumentMatchers.any(),
                 org.mockito.ArgumentMatchers.any(),
                 org.mockito.ArgumentMatchers.any(),
                 org.mockito.ArgumentMatchers.any(),
@@ -96,14 +100,20 @@ class EpisodeDownloadAnalyticsServiceTest {
                 eq("alpha.example.test"),
                 eq("/episodes/episode-1"),
                 eq("episode-download"),
+                eq("Episode 1"),
+                eq("episode-1"),
                 dataCaptor.capture(),
                 org.mockito.ArgumentMatchers.isNull()
         );
         org.assertj.core.api.Assertions.assertThat(dataCaptor.getValue())
                 .containsEntry("episodeSlug", "episode-1")
+                .containsEntry("episodeId", "30")
+                .containsEntry("episodeTitle", "Episode 1")
                 .containsEntry("seriesSlug", "main")
                 .containsEntry("accessPolicy", "FREE")
-                .containsEntry("source", "stream");
+                .containsEntry("source", "stream")
+                .containsEntry("isRangeRequest", "false")
+                .containsEntry("clientUserAgent", "");
     }
 
     @Test
@@ -113,6 +123,8 @@ class EpisodeDownloadAnalyticsServiceTest {
         service.trackEpisodeDownload(10L, episode(), "invalid-source", "alpha.example.test", null, false, null);
 
         verify(umamiEventClient, never()).trackEvent(
+                org.mockito.ArgumentMatchers.any(),
+                org.mockito.ArgumentMatchers.any(),
                 org.mockito.ArgumentMatchers.any(),
                 org.mockito.ArgumentMatchers.any(),
                 org.mockito.ArgumentMatchers.any(),
@@ -132,6 +144,8 @@ class EpisodeDownloadAnalyticsServiceTest {
         service.trackEpisodeDownload(10L, episode, "stream", "alpha.example.test", null, false, null);
 
         verify(umamiEventClient, never()).trackEvent(
+                org.mockito.ArgumentMatchers.any(),
+                org.mockito.ArgumentMatchers.any(),
                 org.mockito.ArgumentMatchers.any(),
                 org.mockito.ArgumentMatchers.any(),
                 org.mockito.ArgumentMatchers.any(),
@@ -159,6 +173,8 @@ class EpisodeDownloadAnalyticsServiceTest {
                 eq("alpha.example.test"),
                 eq("/episodes/episode-1"),
                 eq("episode-download"),
+                eq("Episode 1"),
+                eq("episode-1"),
                 org.mockito.ArgumentMatchers.any(),
                 org.mockito.ArgumentMatchers.isNull()
         );
@@ -171,6 +187,8 @@ class EpisodeDownloadAnalyticsServiceTest {
         service.trackEpisodeDownload(10L, episode(), "stream", "alpha.example.test", null, false, null);
 
         verify(umamiEventClient, never()).trackEvent(
+                org.mockito.ArgumentMatchers.any(),
+                org.mockito.ArgumentMatchers.any(),
                 org.mockito.ArgumentMatchers.any(),
                 org.mockito.ArgumentMatchers.any(),
                 org.mockito.ArgumentMatchers.any(),

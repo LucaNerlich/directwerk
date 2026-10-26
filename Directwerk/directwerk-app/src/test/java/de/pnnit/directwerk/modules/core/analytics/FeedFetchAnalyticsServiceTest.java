@@ -46,6 +46,8 @@ class FeedFetchAnalyticsServiceTest {
                 eq("alpha.example.test"),
                 eq("/feeds/podcast"),
                 eq("feed-fetch"),
+                org.mockito.ArgumentMatchers.isNull(),
+                org.mockito.ArgumentMatchers.isNull(),
                 org.mockito.ArgumentMatchers.any(),
                 org.mockito.ArgumentMatchers.isNull()
         );
@@ -68,6 +70,8 @@ class FeedFetchAnalyticsServiceTest {
                 eq("alpha.example.test"),
                 eq("/feeds/article"),
                 eq("feed-fetch"),
+                org.mockito.ArgumentMatchers.isNull(),
+                org.mockito.ArgumentMatchers.isNull(),
                 org.mockito.ArgumentMatchers.any(),
                 org.mockito.ArgumentMatchers.isNull()
         );
@@ -81,6 +85,8 @@ class FeedFetchAnalyticsServiceTest {
         service.trackFeedFetch(10L, "article", "private", "alpha.example.test");
 
         verify(umamiEventClient, never()).trackEvent(
+                org.mockito.ArgumentMatchers.any(),
+                org.mockito.ArgumentMatchers.any(),
                 org.mockito.ArgumentMatchers.any(),
                 org.mockito.ArgumentMatchers.any(),
                 org.mockito.ArgumentMatchers.any(),
