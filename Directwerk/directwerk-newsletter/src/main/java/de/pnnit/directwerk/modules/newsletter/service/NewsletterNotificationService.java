@@ -54,7 +54,22 @@ public class NewsletterNotificationService implements NewsletterNotificationApi 
     @Override
     @Transactional(readOnly = true)
     public long countArticleRecipients(Long tenantId, Long articleId) {
-        return resolveRecipients(tenantId, articleId).size();
+        // Preview only needs a deduped count — do not decrypt unsubscribe tokens.
+        return articleRepository.findByIdAndTenantId(articleId, tenantId)
+                .map(article -> {
+                    Set<Long> listIds = article.getNewsletterLists().stream()
+                            .filter(list -> list.getStatus() == NewsletterListStatus.ACTIVE)
+                            .map(NewsletterList::getId)
+                            .collect(Collectors.toCollection(LinkedHashSet::new));
+                    if (listIds.isEmpty()) {
+                        return 0L;
+                    }
+                    return subscriptionRepository.findActiveByTenantIdAndListIdIn(tenantId, listIds).stream()
+                            .map(NewsletterSubscription::getEmail)
+                            .distinct()
+                            .count();
+                })
+                .orElse(0L);
     }
 
     @Override
