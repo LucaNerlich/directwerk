@@ -311,8 +311,9 @@ public class TenantAdminController {
             @Pattern(regexp = "^\\s*$|^#[0-9A-Fa-f]{6}$") String secondaryColor,
             String logoUrl,
             String faviconUrl,
-            @Pattern(regexp = "^\\s*$|^[a-zA-Z0-9-]{8,64}$") String umamiWebsiteId,
-            @Pattern(regexp = "^\\s*$|^https://[^/\\s?#@]+/?$") String umamiHostUrl
+            // Null leaves the stored value untouched; blank/empty is rejected (fields are required when set).
+            @Pattern(regexp = "^[a-zA-Z0-9-]{8,64}$") String umamiWebsiteId,
+            @Pattern(regexp = "^https://[^/\\s?#@]+/?$") String umamiHostUrl
     ) {
     }
 

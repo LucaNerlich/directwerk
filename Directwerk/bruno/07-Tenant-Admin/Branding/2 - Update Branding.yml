@@ -52,3 +52,6 @@ docs: |-
   absent (null) leaves it untouched.
   logoUrl and faviconUrl must be absolute http(s) URLs (blank clears, absent
   leaves untouched); faviconUrl feeds the public site's browser-tab icon.
+  umamiWebsiteId and umamiHostUrl are required when present: blank/empty returns
+  400 VALIDATION_ERROR (Bean Validation @Pattern) or 400 from the service for
+  whitespace-only values. Absent (null) leaves the stored value untouched.

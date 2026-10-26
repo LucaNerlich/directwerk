@@ -36,9 +36,9 @@ interface BrandingFormState {
 const INITIAL_STATE: BrandingFormState = {error: null, success: null}
 
 const COLOR_PATTERN = /^#[0-9A-Fa-f]{6}$/
-const UMAMI_PATTERN = /^$|^[a-zA-Z0-9-]{8,64}$/
+const UMAMI_PATTERN = /^[a-zA-Z0-9-]{8,64}$/
 // Aligns with backend UmamiHostUrlValidator + TenantAdminController: HTTPS origin, no path/query/fragment/userinfo.
-const UMAMI_HOST_PATTERN = /^$|^https:\/\/[^/\s?#@]+\/?$/
+const UMAMI_HOST_PATTERN = /^https:\/\/[^/\s?#@]+\/?$/
 
 function normalizeColor(value: FormDataEntryValue | null): string | null | undefined {
     const text = String(value ?? '').trim()
@@ -187,21 +187,21 @@ export default function BrandingEditor(): React.JSX.Element {
         ) {
             return {error: 'Sekundärfarbe muss #RRGGBB sein.', success: null}
         }
+        if (umamiWebsiteId.length === 0) {
+            return {error: dict.settings.umamiWebsiteIdErforderlich, success: null}
+        }
+        if (umamiHostUrl.length === 0) {
+            return {error: dict.settings.umamiServerErforderlich, success: null}
+        }
         if (!UMAMI_PATTERN.test(umamiWebsiteId)) {
             return {
-                error: 'Umami Website-ID muss leer oder 8–64 Zeichen (a-z, 0-9, -) sein.',
+                error: dict.settings.umamiWebsiteIdMuss864,
                 success: null,
             }
         }
         if (!UMAMI_HOST_PATTERN.test(umamiHostUrl)) {
             return {
-                error: 'Umami-Server muss leer oder eine HTTPS-Origin sein (z. B. https://umami.example.com, ohne Pfad).',
-                success: null,
-            }
-        }
-        if (umamiWebsiteId.length === 0 && umamiHostUrl.length > 0) {
-            return {
-                error: 'Umami-Server ist ohne Website-ID wirkungslos — bitte auch die Website-ID setzen oder den Server leer lassen.',
+                error: dict.settings.umamiServerMussHttpsOrigin,
                 success: null,
             }
         }
@@ -225,8 +225,8 @@ export default function BrandingEditor(): React.JSX.Element {
                 secondaryColor: secondaryColor ?? null,
                 logoUrl: logoUrl.length > 0 ? logoUrl : null,
                 faviconUrl: faviconUrl.length > 0 ? faviconUrl : null,
-                umamiWebsiteId: umamiWebsiteId.length > 0 ? umamiWebsiteId : null,
-                umamiHostUrl: umamiHostUrl.length > 0 ? umamiHostUrl : null,
+                umamiWebsiteId,
+                umamiHostUrl,
             })
             setBranding(updated)
             setPrimaryColorDraft(updated.primaryColor ?? '')
@@ -235,13 +235,10 @@ export default function BrandingEditor(): React.JSX.Element {
             setFaviconUrlDraft(updated.faviconUrl ?? '')
             setLogoPickError(null)
             setFaviconPickError(null)
-            if (!updated.umamiWebsiteId) {
-                return {error: null, success: 'Branding gespeichert. Analytics-Tracking ist deaktiviert (keine Website-ID).'}
+            return {
+                error: null,
+                success: dict.settings.brandingGespeichertAnalyticsEigenenUmamiSer,
             }
-            if (updated.umamiHostUrl) {
-                return {error: null, success: 'Branding gespeichert. Analytics für eigenen Umami-Server konfiguriert.'}
-            }
-            return {error: null, success: 'Branding gespeichert. Analytics für den Plattform-Standard konfiguriert.'}
         } catch (error: unknown) {
             if (authRedirect(error)) return INITIAL_STATE
             return {
@@ -536,38 +533,51 @@ export default function BrandingEditor(): React.JSX.Element {
                 <Card>
                     <CardHeader>
                         <CardTitle>Analytics (Umami)</CardTitle>
-                        <CardDescription>Optionales Website-Tracking — ohne Website-ID bleibt es inaktiv.</CardDescription>
+                        <CardDescription>{dict.settings.optionalesWebsiteTrackingOhneWebsite}</CardDescription>
                     </CardHeader>
                     <CardContent className="grid gap-5">
                 <div className="grid gap-2">
-                    <Label htmlFor="umamiWebsiteId">Umami Website-ID</Label>
+                    <Label htmlFor="umamiWebsiteId">
+                        {dict.settings.umamiWebsiteId}{' '}
+                        <span className="font-normal text-muted-foreground">
+                            ({dict.common.required})
+                        </span>
+                    </Label>
                     <Input
                         aria-describedby="umamiWebsiteId-help"
+                        aria-required="true"
                         defaultValue={branding?.umamiWebsiteId ?? ''}
                         id="umamiWebsiteId"
                         maxLength={64}
                         name="umamiWebsiteId"
                         placeholder="z. B. abc12345-def6-…"
+                        required
                         type="text"
                     />
                     <p className="text-xs text-muted-foreground" id="umamiWebsiteId-help">
-                        8–64 Zeichen (a–z, 0–9, Bindestrich). Leer lassen deaktiviert das Tracking.
+                        {dict.settings.umamiWebsiteIdHilfe}
                     </p>
                 </div>
                 <div className="grid gap-2">
-                    <Label htmlFor="umamiHostUrl">Umami-Server</Label>
+                    <Label htmlFor="umamiHostUrl">
+                        {dict.settings.umamiServer}{' '}
+                        <span className="font-normal text-muted-foreground">
+                            ({dict.common.required})
+                        </span>
+                    </Label>
                     <Input
                         aria-describedby="umamiHostUrl-help"
+                        aria-required="true"
                         defaultValue={branding?.umamiHostUrl ?? ''}
                         id="umamiHostUrl"
                         maxLength={512}
                         name="umamiHostUrl"
                         placeholder="https://umami.example.com"
+                        required
                         type="url"
                     />
                     <p className="text-xs text-muted-foreground" id="umamiHostUrl-help">
-                        Leer lassen, um den Plattform-Standard zu verwenden. Nur HTTPS-Origin ohne Pfad.
-                        Tracking braucht ANALYTICS-Modul + Website-ID; ohne ID bleibt es inaktiv.
+                        {dict.settings.umamiServerHilfe}
                     </p>
                 </div>
                 {analyticsModuleActive === false && branding?.umamiWebsiteId ? (

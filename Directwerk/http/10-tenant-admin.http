@@ -68,6 +68,28 @@ Accept: application/json
 
 ###
 
+### @name updateBrandingRejectsBlankUmami
+# umamiWebsiteId and umamiHostUrl cannot be cleared with blank strings (400 VALIDATION_ERROR).
+PUT {{baseUrl}}/api/v1/tenant/branding
+Host: {{tenantAHost}}
+Authorization: Bearer {{tenantAAccessToken}}
+Content-Type: application/json
+Accept: application/json
+
+{
+  "umamiWebsiteId": "",
+  "umamiHostUrl": ""
+}
+
+> {%
+    client.test("Reject blank Umami branding fields", function() {
+        client.assert(response.status === 400, "Expected 400");
+        client.assert(response.body.errors[0].code === "VALIDATION_ERROR", "Expected VALIDATION_ERROR");
+    });
+%}
+
+###
+
 ### @name listDomains
 GET {{baseUrl}}/api/v1/tenant/domains
 Host: {{tenantAHost}}
