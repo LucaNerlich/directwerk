@@ -76,7 +76,7 @@ function Brand({
                     {tagline}
                 </span>
             </span>
-            <span className="glass-chip ml-1 hidden rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground sm:inline-block">
+            <span className="dw-glass-chip ml-1 hidden rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground sm:inline-block">
                 {alphaChip}
             </span>
         </Link>
@@ -192,10 +192,8 @@ export default function MarketingHeader(): React.JSX.Element {
             </div>
             <header
                 className={cn(
-                    'marketing-header sticky top-0 z-40 backdrop-blur-xl',
-                    scrolled
-                        ? 'border-b border-border bg-background/85 shadow-[0_12px_32px_-20px_color-mix(in_srgb,var(--foreground)_35%,transparent)]'
-                        : 'border-b border-transparent bg-background/60',
+                    'marketing-header sticky top-0 z-40 border-b',
+                    scrolled ? 'shadow-[0_12px_32px_-22px_color-mix(in_oklab,var(--primary)_45%,transparent)]' : '',
                 )}
             >
                 <div className="marketing-container flex h-16 items-center gap-3">
@@ -207,7 +205,7 @@ export default function MarketingHeader(): React.JSX.Element {
                     />
                     <nav
                         aria-label={copy.mainNavAria}
-                        className="mx-auto hidden items-center gap-0.5 rounded-full border border-foreground/10 bg-card/60 p-1 backdrop-blur lg:flex"
+                        className="dw-glass-chip mx-auto hidden items-center gap-0.5 rounded-full p-1 lg:flex"
                     >
                         {copy.platformLinks.map((item) => (
                             <Link
@@ -285,7 +283,7 @@ export default function MarketingHeader(): React.JSX.Element {
                 </div>
                 {open ? (
                     <div
-                        className="border-t border-border bg-background/95 backdrop-blur-xl lg:hidden"
+                        className="dw-glass border-t border-border lg:hidden"
                         id="marketing-mobile-nav"
                     >
                         <nav

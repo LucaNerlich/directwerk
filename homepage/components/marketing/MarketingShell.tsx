@@ -1,8 +1,14 @@
 'use client'
 
+import BrandTheme from '@directwerk/ui/components/brand-theme'
+
 import {useLocale} from '@/components/i18n/LocaleProvider'
 import MarketingFooter from '@/components/marketing/MarketingFooter'
 import MarketingHeader from '@/components/marketing/MarketingHeader'
+
+/** Directwerk platform brand — espresso primary + cool slate secondary for atmosphere. */
+const DIRECTWERK_PRIMARY = '#3f352b'
+const DIRECTWERK_SECONDARY = '#3d6b78'
 
 export default function MarketingShell({
     children,
@@ -12,7 +18,11 @@ export default function MarketingShell({
     const {dictionary} = useLocale()
 
     return (
-        <div className="min-h-screen bg-background">
+        <BrandTheme
+            className="dw-brand dw-web-shell"
+            primaryHex={DIRECTWERK_PRIMARY}
+            secondaryHex={DIRECTWERK_SECONDARY}
+        >
             <a
                 className="sr-only z-50 rounded-md bg-primary px-4 py-2 text-primary-foreground focus:not-sr-only focus:fixed focus:left-4 focus:top-4"
                 href="#main-content"
@@ -24,6 +34,6 @@ export default function MarketingShell({
                 {children}
             </main>
             <MarketingFooter />
-        </div>
+        </BrandTheme>
     )
 }

@@ -1,6 +1,5 @@
 import {buttonVariants} from '@directwerk/ui/components/button'
 
-import SectionLabel from '@/components/marketing/SectionLabel'
 import type {Dictionary} from '@/lib/i18n/get-dictionary'
 import {LIVE_EXAMPLE_URL} from '@/lib/marketing/constants'
 
@@ -8,7 +7,7 @@ const WAVEFORM = [38, 62, 45, 78, 55, 90, 64, 42, 70, 52, 84, 60, 74, 48, 66, 80
 
 function PlayerMock({copy}: {copy: Dictionary['hero']}): React.JSX.Element {
     return (
-        <div className="glass-panel relative overflow-hidden rounded-3xl">
+        <div className="dw-glass relative overflow-hidden rounded-3xl">
             <div className="border-b border-foreground/10 bg-primary p-7 text-primary-foreground">
                 <p className="text-xs font-semibold uppercase tracking-[0.2em] opacity-70">
                     {copy.playerShow}
@@ -55,20 +54,21 @@ export default function HeroSection({
     copy: Dictionary['hero']
 }): React.JSX.Element {
     return (
-        <section className="marketing-section relative overflow-hidden">
-            <div className="marketing-container grid items-center gap-12 lg:grid-cols-[1.1fr_0.9fr] lg:py-8">
+        <section className="dw-home-hero">
+            <div className="marketing-container grid items-center gap-12 lg:grid-cols-[1.1fr_0.9fr]">
                 <div>
-                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                    <p className="dw-hero-brand">Directwerk</p>
+                    <p className="mt-4 text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
                         {copy.eyebrow}
                     </p>
-                    <h1 className="mt-6 max-w-4xl text-balance text-5xl font-semibold leading-[0.96] tracking-[-0.055em] sm:text-6xl lg:text-7xl">
+                    <h1 className="mt-5 max-w-3xl text-balance text-3xl font-semibold leading-[1.08] tracking-[-0.04em] sm:text-4xl lg:text-5xl">
                         {copy.titleLine1}
                         <br />
                         {copy.titleLine2}
                         <br />
                         {copy.titleLine3}
                     </h1>
-                    <p className="mt-8 max-w-xl text-pretty text-lg leading-8 text-muted-foreground">
+                    <p className="mt-7 max-w-xl text-pretty text-lg leading-8 text-muted-foreground">
                         {copy.body}
                     </p>
                     <div className="mt-8 flex flex-wrap gap-3">
@@ -89,9 +89,6 @@ export default function HeroSection({
                     </div>
                 </div>
                 <PlayerMock copy={copy} />
-            </div>
-            <div className="marketing-container mt-4">
-                <SectionLabel>{copy.sectionLabel}</SectionLabel>
             </div>
         </section>
     )
