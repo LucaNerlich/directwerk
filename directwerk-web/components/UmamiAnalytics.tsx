@@ -35,6 +35,7 @@ export default function UmamiAnalytics({
                 src={analytics.umamiScriptUrl}
                 strategy="afterInteractive"
             />
+            {/* Replay is optional sampled work — defer past hydration (#858). */}
             <Script
                 async
                 data-do-not-track="true"
@@ -43,7 +44,7 @@ export default function UmamiAnalytics({
                 data-sample-rate={sampleRate}
                 data-website-id={analytics.umamiWebsiteId}
                 src={recorderUrl}
-                strategy="afterInteractive"
+                strategy="lazyOnload"
             />
         </>
     )
