@@ -33,5 +33,8 @@ settings:
   forwardAuthorizationHeader: true
 
 docs: |-
-  Requires EMAIL_NOTIFY module. Run 02-Me/8 (subscriber opt-in) and 06-Platform-Admin/Modules/7 first.
-  Sends only on first publish (email_notified_at guard).
+  Requires EMAIL_NOTIFY module. Run 06-Platform-Admin/Modules/7 (activate EMAIL_NOTIFY),
+  16-Newsletter-Lists/2 (create ACTIVE list), 16-Newsletter-Lists/4 (attach list to article),
+  and 16-Newsletter-Lists/3 (public subscribe) + confirm before publish.
+  Article notify fans out to ACTIVE newsletter list subscribers (not membership opt-in).
+  Sends only on first publish (email_notified_at guard). Deep links use /de|en/... paths.

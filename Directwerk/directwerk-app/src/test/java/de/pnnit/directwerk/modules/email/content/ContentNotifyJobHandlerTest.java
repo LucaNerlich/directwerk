@@ -113,10 +113,12 @@ class ContentNotifyJobHandlerTest {
     }
 
     @Test
-    void notifiesEpisodeMembersWithPreferencesUrl() {
+    void notifiesEpisodeMembersWithLocalePrefixedDeepLinks() {
         when(directwerkConfig.isEmailEnabled()).thenReturn(true);
-        when(publicContentUrlResolver.contentPageUrl(any(), any(), any())).thenReturn("https://tenant.example/x");
-        when(publicContentUrlResolver.notificationPreferencesUrl(any())).thenReturn("https://tenant.example/prefs");
+        when(publicContentUrlResolver.contentPageUrl(TENANT_ID, ContentType.EPISODE, "ep-3"))
+                .thenReturn("https://tenant.example/de/episodes/ep-3");
+        when(publicContentUrlResolver.notificationPreferencesUrl(TENANT_ID))
+                .thenReturn("https://tenant.example/de/account/notifications");
         when(tenantContentBrandingResolver.resolve(TENANT_ID))
                 .thenReturn(new TenantContentBrandingResolver.BrandingContext("Acme", "Acme", "#000000"));
         when(tenantMembershipRepository.findNotificationOptedInMembers(TENANT_ID, MembershipStatus.ACTIVE))
@@ -133,14 +135,18 @@ class ContentNotifyJobHandlerTest {
                 eq(TENANT_ID), eq("grace@example.com"), eq(EmailTemplate.CONTENT_EPISODE_PUBLISHED), variablesCaptor.capture(), any()
         );
         assertThat(variablesCaptor.getValue().get("recipientName")).isEqualTo("there");
-        assertThat(variablesCaptor.getValue().get("preferencesUrl")).isEqualTo("https://tenant.example/prefs");
+        assertThat(variablesCaptor.getValue().get("contentUrl")).isEqualTo("https://tenant.example/de/episodes/ep-3");
+        assertThat(variablesCaptor.getValue().get("preferencesUrl"))
+                .isEqualTo("https://tenant.example/de/account/notifications");
     }
 
     @Test
     void skipsRecipientsAlreadyNotifiedOnRetry() {
         when(directwerkConfig.isEmailEnabled()).thenReturn(true);
-        when(publicContentUrlResolver.contentPageUrl(any(), any(), any())).thenReturn("https://tenant.example/x");
-        when(publicContentUrlResolver.notificationPreferencesUrl(any())).thenReturn("https://tenant.example/prefs");
+        when(publicContentUrlResolver.contentPageUrl(any(), any(), any()))
+                .thenReturn("https://tenant.example/de/episodes/ep-3");
+        when(publicContentUrlResolver.notificationPreferencesUrl(any()))
+                .thenReturn("https://tenant.example/de/account/notifications");
         when(tenantContentBrandingResolver.resolve(TENANT_ID))
                 .thenReturn(new TenantContentBrandingResolver.BrandingContext("Acme", "Acme", "#000000"));
         when(tenantMembershipRepository.findNotificationOptedInMembers(TENANT_ID, MembershipStatus.ACTIVE))

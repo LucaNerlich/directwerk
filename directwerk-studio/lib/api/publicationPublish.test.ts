@@ -65,4 +65,13 @@ describe('publication workflow publish', () => {
 
         expect(publishBody(fetchMock)).toEqual({notifySubscribers: false})
     })
+
+    it('forwards notifySubscribers true for EMAIL_NOTIFY publish', async () => {
+        const fetchMock = vi.fn().mockResolvedValue(jsonResponse(200, envelope({id: 1})))
+        vi.stubGlobal('fetch', fetchMock)
+
+        await api().publish(1, {notifySubscribers: true})
+
+        expect(publishBody(fetchMock)).toEqual({notifySubscribers: true})
+    })
 })

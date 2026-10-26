@@ -57,6 +57,43 @@ Payload shape:
 
 Token-bearing templates encrypt bearer tokens before queue persistence. URLs are built at send time in `EmailJobHandler`.
 
+## Content notify (`EMAIL_NOTIFY`)
+
+Publish with `notifySubscribers: true` (studio checkbox when `emailNotifyAvailable`) goes through:
+
+```text
+PublicationWorkflow → ContentPublishedNotifier → content-notify job
+  → ContentNotifyJobHandler
+      EPISODE → opted-in ACTIVE members → CONTENT_EPISODE_PUBLISHED email jobs
+      ARTICLE → ACTIVE newsletter lists → NEWSLETTER_ARTICLE_PUBLISHED email jobs
+```
+
+Gates (any miss = no send, first-publish claim not burned for article empty/ARCHIVED-only lists):
+
+1. Platform email delivery enabled (`DIRECTWERK_EMAIL_PROVIDER=smtp` and transport configured)
+2. Tenant module `EMAIL_NOTIFY`
+3. Episode: membership `emailNotificationsEnabled`; article: at least one **ACTIVE** attached newsletter list
+4. One-shot `email_notified_at` claim (retries use per-recipient markers)
+
+### Deep links
+
+`PublicContentUrlResolver` builds absolute `contentUrl` / preferences / unsubscribe URLs with the
+default locale prefix (`/de/...`, matching `directwerk-web` `app/[lang]`). RSS item links stay
+unprefixed via `PublicContentPaths.episodePath` / `articlePath`. Prefer a verified primary host;
+without one, content URLs fall back to `DIRECTWERK_EMAIL_STUDIO_BASE_URL` (point that at the
+**public web** origin when testing notify without a custom domain). Loopback hosts use `http://`.
+
+Template variables:
+
+| Template | Deep link | Footer |
+|----------|-----------|--------|
+| `CONTENT_EPISODE_PUBLISHED` | `{{contentUrl}}` | `{{preferencesUrl}}` |
+| `NEWSLETTER_ARTICLE_PUBLISHED` | `{{contentUrl}}` | `{{unsubscribeUrl}}` (token injected at send) |
+
+Local verification: Mailpit (`http://127.0.0.1:8025`) — do not send real Mailgun from agents. Bruno
+`11-Articles/6b` / `09-Podcast-Content/.../8b` plus `http/24-articles.http` cover the publish body;
+attach an ACTIVE newsletter list before article notify.
+
 ## Platform admin enqueue API
 
 `POST /api/v1/platform/queue/jobs` is for operational recovery only. It bypasses typed producer validation and token encryption — use typed producers in application code.

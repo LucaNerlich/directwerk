@@ -159,6 +159,7 @@ Accept: application/json
 ### @name createArticleDraftForNotify
 < {%
   client.global.set("articleNotifySlug", "article-notify-" + Date.now().toString(36));
+  client.global.set("articleNotifyListSlug", "notify-list-" + Date.now().toString(36));
 %}
 POST {{baseUrl}}/api/v1/articles
 Host: {{tenantAHost}}
@@ -186,6 +187,49 @@ Accept: application/json
 
 ###
 
+### @name createNewsletterListForArticleNotify
+POST {{baseUrl}}/api/v1/newsletter-lists
+Host: {{tenantAHost}}
+Authorization: Bearer {{tenantAAccessToken}}
+Content-Type: application/json
+Accept: application/json
+
+{
+  "slug": "{{articleNotifyListSlug}}",
+  "name": "Notify harness list",
+  "description": "ACTIVE list required for article EMAIL_NOTIFY fan-out"
+}
+
+> {%
+    client.test("Create newsletter list for article notify", function() {
+        client.assert(response.status === 201 || response.status === 403, "Expected 201 or 403 when EMAIL_NOTIFY is off");
+        if (response.status === 201) {
+            client.global.set("articleNotifyListId", response.body.data.id);
+        }
+    });
+%}
+
+###
+
+### @name attachNewsletterListForArticleNotify
+PUT {{baseUrl}}/api/v1/articles/{{articleNotifyId}}/newsletter-lists
+Host: {{tenantAHost}}
+Authorization: Bearer {{tenantAAccessToken}}
+Content-Type: application/json
+Accept: application/json
+
+{
+  "newsletterListIds": [{{articleNotifyListId}}]
+}
+
+> {%
+    client.test("Attach ACTIVE newsletter list before notify publish", function() {
+        client.assert(response.status === 200 || response.status === 403, "Expected 200 or 403");
+    });
+%}
+
+###
+
 ### @name publishArticleNotifySubscribers
 POST {{baseUrl}}/api/v1/articles/{{articleNotifyId}}/publish
 Host: {{tenantAHost}}
@@ -199,7 +243,7 @@ Accept: application/json
 
 > {%
     client.test("Publish article with subscriber notification", function() {
-        client.assert(response.status === 200, "Expected 200 after notification draft setup");
+        client.assert(response.status === 200 || response.status === 403, "Expected 200 when draft+list ready, or 403 without modules");
     });
 %}
 

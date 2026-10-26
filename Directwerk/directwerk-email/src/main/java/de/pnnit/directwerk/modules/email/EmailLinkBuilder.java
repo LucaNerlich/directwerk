@@ -6,9 +6,9 @@ import de.pnnit.directwerk.modules.core.entity.Tenant;
 import de.pnnit.directwerk.modules.core.repository.TenantRepository;
 import de.pnnit.directwerk.modules.core.service.TenantPublicHostResolver;
 import de.pnnit.directwerk.modules.core.util.PublicContentUrlResolver;
+import de.pnnit.directwerk.modules.core.util.PublicUrlBuilder;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
-import java.util.Locale;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
@@ -94,7 +94,7 @@ public class EmailLinkBuilder {
     private String resolveTenantAuthBaseUrl(Long tenantId) {
         if (tenantId != null) {
             return tenantPublicHostResolver.findPrimaryVerifiedHost(tenantId)
-                    .map(EmailLinkBuilder::publicOrigin)
+                    .map(PublicUrlBuilder::publicOrigin)
                     .orElseGet(() -> trimTrailingSlash(directwerkConfig.email().studioBaseUrl()));
         }
         return trimTrailingSlash(directwerkConfig.email().studioBaseUrl());
@@ -119,19 +119,5 @@ public class EmailLinkBuilder {
             return "";
         }
         return value.endsWith("/") ? value.substring(0, value.length() - 1) : value;
-    }
-
-    private static String publicOrigin(String host) {
-        if (isLoopbackHost(host.toLowerCase(Locale.ROOT))) {
-            return "http://" + host;
-        }
-        return "https://" + host;
-    }
-
-    private static boolean isLoopbackHost(String host) {
-        return "localhost".equals(host)
-                || host.endsWith(".localhost")
-                || "127.0.0.1".equals(host)
-                || "[::1]".equals(host);
     }
 }

@@ -1,11 +1,22 @@
 import {isAllowedFeedUrl} from '../validation/primitives'
 
+/**
+ * Default public UI locale — keep in sync with Java `PublicContentPaths.DEFAULT_LOCALE`
+ * and `@directwerk/ui` `defaultLocale` (`de`).
+ */
+export const DEFAULT_PUBLIC_LOCALE = 'de' as const
+
 export function publicSiteOrigin(publicSiteUrl: string | null): string | null {
     if (publicSiteUrl != null && publicSiteUrl.trim().length > 0) {
         const candidate = publicSiteUrl.trim().replace(/\/+$/, '')
         return isAllowedFeedUrl(candidate) ? candidate : null
     }
     return null
+}
+
+function localizedPublicPath(path: string): string {
+    const normalized = path.startsWith('/') ? path : `/${path}`
+    return `/${DEFAULT_PUBLIC_LOCALE}${normalized}`
 }
 
 export function publicEpisodePageUrl(
@@ -17,7 +28,7 @@ export function publicEpisodePageUrl(
         return null
     }
 
-    return `${origin}/episodes/${encodeURIComponent(episodeSlug.trim())}`
+    return `${origin}${localizedPublicPath(`/episodes/${encodeURIComponent(episodeSlug.trim())}`)}`
 }
 
 export function publicArticlePageUrl(
@@ -29,7 +40,7 @@ export function publicArticlePageUrl(
         return null
     }
 
-    return `${origin}/articles/${encodeURIComponent(articleSlug.trim())}`
+    return `${origin}${localizedPublicPath(`/articles/${encodeURIComponent(articleSlug.trim())}`)}`
 }
 
 export function publicNewsletterSubscribeUrl(
@@ -41,5 +52,5 @@ export function publicNewsletterSubscribeUrl(
         return null
     }
 
-    return `${origin}/newsletter/${encodeURIComponent(listSlug.trim())}`
+    return `${origin}${localizedPublicPath(`/newsletter/${encodeURIComponent(listSlug.trim())}`)}`
 }

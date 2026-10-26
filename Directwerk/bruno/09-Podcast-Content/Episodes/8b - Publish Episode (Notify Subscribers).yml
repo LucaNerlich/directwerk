@@ -32,4 +32,7 @@ settings:
   maxRedirects: 5
   forwardAuthorizationHeader: true
 
-docs: Requires EMAIL_NOTIFY module. Run 02-Me/8 and 06-Platform-Admin/Modules/7 first.
+docs: |-
+  Requires EMAIL_NOTIFY module. Run 02-Me/8 (subscriber opt-in) and 06-Platform-Admin/Modules/7 first.
+  Episode notify fans out to ACTIVE members with emailNotificationsEnabled.
+  Deep links in the mail use locale-prefixed /de|en/episodes/{slug} paths.

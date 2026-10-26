@@ -105,7 +105,7 @@ class NewsletterNotificationServiceTest {
         when(tenantContentBrandingResolver.resolve(TENANT_ID))
                 .thenReturn(new TenantContentBrandingResolver.BrandingContext("Acme", "Acme Magazine", "#123456"));
         when(publicContentUrlResolver.contentPageUrl(TENANT_ID, ContentType.ARTICLE, "hello-world"))
-                .thenReturn("https://tenant.example/articles/hello-world");
+                .thenReturn("https://tenant.example/de/articles/hello-world");
         service.notifyArticlePublished(event());
 
         ArgumentCaptor<Map<String, String>> variablesCaptor = ArgumentCaptor.forClass(Map.class);
@@ -125,7 +125,7 @@ class NewsletterNotificationServiceTest {
         assertThat(variables.get("title")).isEqualTo("Hello world");
         assertThat(variables.get("tenantName")).isEqualTo("Acme");
         assertThat(variables.get("siteTitle")).isEqualTo("Acme Magazine");
-        assertThat(variables.get("contentUrl")).isEqualTo("https://tenant.example/articles/hello-world");
+        assertThat(variables.get("contentUrl")).isEqualTo("https://tenant.example/de/articles/hello-world");
         assertThat(variables).doesNotContainKey("unsubscribeUrl");
         assertThat(tokenCaptor.getValue()).isEqualTo("raw-enc-ada");
         assertThat(correlationCaptor.getValue()).isEqualTo(
@@ -145,7 +145,7 @@ class NewsletterNotificationServiceTest {
         when(tenantContentBrandingResolver.resolve(TENANT_ID))
                 .thenReturn(new TenantContentBrandingResolver.BrandingContext("Acme", "Acme Magazine", "#123456"));
         when(publicContentUrlResolver.contentPageUrl(TENANT_ID, ContentType.ARTICLE, "hello-world"))
-                .thenReturn("https://tenant.example/articles/hello-world");
+                .thenReturn("https://tenant.example/de/articles/hello-world");
         // The first run already claimed Ada; the retry must skip her and still reach Grace.
         when(contentNotificationMarkerRepository.claimNewsletterRecipient(TENANT_ID, ARTICLE_ID, "ada@example.com"))
                 .thenReturn(false);
