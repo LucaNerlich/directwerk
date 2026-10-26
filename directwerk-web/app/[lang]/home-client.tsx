@@ -191,7 +191,7 @@ export default function HomeClient({
                                 className="max-h-20 max-w-[min(100%,16rem)]"
                                 logoUrl={config.branding.logoUrl}
                                 name={title}
-                                priority
+                                priority={heroImageSrc === null}
                             />
                             <h1 className="text-pretty text-4xl font-semibold tracking-tight text-[color:var(--dw-brand-ink)] sm:text-5xl lg:text-6xl">
                                 {title}
