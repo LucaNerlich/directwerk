@@ -1,6 +1,6 @@
 import {fireEvent, screen, waitFor, within} from '@testing-library/react'
 import {renderWithLocale} from '@/lib/i18n/testUtils'
-import {describe, expect, it, vi} from 'vitest'
+import {afterEach, describe, expect, it, vi} from 'vitest'
 
 import TeamClient from '@/components/team/TeamClient'
 import {listTenantUsers, replaceUserRestrictions} from '@/lib/api/tenantSettingsApi'
@@ -25,6 +25,11 @@ vi.mock('@/lib/api/tenantSettingsApi', () => ({
     reactivateTenantUser: vi.fn(),
     listUserRestrictions: vi.fn().mockResolvedValue([]),
     replaceUserRestrictions: vi.fn(),
+}))
+
+const listAllTenantEditorsMock = vi.fn().mockResolvedValue([])
+vi.mock('@/lib/api/listAllTenantEditors', () => ({
+    listAllTenantEditors: (...args: unknown[]) => listAllTenantEditorsMock(...args),
 }))
 
 const admin: TenantUser = {
@@ -61,9 +66,14 @@ function renderTeam() {
     )
 }
 
+afterEach(() => {
+    vi.clearAllMocks()
+})
+
 describe('TeamClient RBAC', () => {
     it('shows the rights section with a member picker for editors', async () => {
         vi.mocked(listTenantUsers).mockResolvedValue(pageOf(admin, editor))
+        listAllTenantEditorsMock.mockResolvedValue([editor])
         renderTeam()
 
         expect(await screen.findByText('Zugriffsrechte')).toBeInTheDocument()
@@ -74,10 +84,12 @@ describe('TeamClient RBAC', () => {
         expect(listTenantUsers).toHaveBeenCalledWith(
             expect.objectContaining({page: 0, size: 50}),
         )
+        expect(listAllTenantEditorsMock).toHaveBeenCalledTimes(1)
     })
 
     it('saves restriction changes for the selected member', async () => {
         vi.mocked(listTenantUsers).mockResolvedValue(pageOf(admin, editor))
+        listAllTenantEditorsMock.mockResolvedValue([editor])
         vi.mocked(replaceUserRestrictions).mockResolvedValue([
             {entityType: 'EPISODE', operation: 'DELETE', scope: 'DENY'},
         ])
@@ -97,6 +109,7 @@ describe('TeamClient RBAC', () => {
 
     it('hides the rights editor when no editors exist', async () => {
         vi.mocked(listTenantUsers).mockResolvedValue(pageOf(admin))
+        listAllTenantEditorsMock.mockResolvedValue([])
         renderTeam()
 
         expect(await screen.findByText('Zugriffsrechte')).toBeInTheDocument()
@@ -106,10 +119,12 @@ describe('TeamClient RBAC', () => {
         expect(within(document.body).queryByLabelText('Folgen: Löschen')).not.toBeInTheDocument()
     })
 
-    it('sends server-side search to the directory endpoint', async () => {
+    it('sends server-side search to the directory endpoint without re-walking editors', async () => {
         vi.mocked(listTenantUsers).mockResolvedValue(pageOf(admin, editor))
+        listAllTenantEditorsMock.mockResolvedValue([editor])
         renderTeam()
         await screen.findByText('Zugriffsrechte')
+        expect(listAllTenantEditorsMock).toHaveBeenCalledTimes(1)
 
         fireEvent.change(screen.getByLabelText('Suchen'), {target: {value: 'editor'}})
 
@@ -118,5 +133,6 @@ describe('TeamClient RBAC', () => {
                 expect.objectContaining({page: 0, size: 50, q: 'editor'}),
             ),
         )
+        expect(listAllTenantEditorsMock).toHaveBeenCalledTimes(1)
     })
 })

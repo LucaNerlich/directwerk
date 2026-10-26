@@ -124,27 +124,31 @@ export default function TeamClient(): React.JSX.Element {
         return () => window.clearTimeout(handle)
     }, [searchInput])
 
-    const reload = useCallback(async (): Promise<void> => {
-        const [directory, editorList] = await Promise.all([
-            listTenantUsers({
-                page,
-                size: PAGE_SIZE,
-                ...(searchQuery.length > 0 ? {q: searchQuery} : {}),
-            }),
-            listAllTenantEditors(),
-        ])
+    const reloadDirectory = useCallback(async (): Promise<void> => {
+        const directory = await listTenantUsers({
+            page,
+            size: PAGE_SIZE,
+            ...(searchQuery.length > 0 ? {q: searchQuery} : {}),
+        })
         setUsers(directory.content)
         setTotalMembers(directory.totalElements)
         setPageSize(directory.size)
-        setEditors(editorList)
     }, [page, searchQuery])
+
+    const reloadEditors = useCallback(async (): Promise<void> => {
+        setEditors(await listAllTenantEditors())
+    }, [])
+
+    const reload = useCallback(async (): Promise<void> => {
+        await Promise.all([reloadDirectory(), reloadEditors()])
+    }, [reloadDirectory, reloadEditors])
 
     useEffect(() => {
         let active = true
 
         setIsLoading(true)
         setLoadError(null)
-        reload()
+        reloadDirectory()
             .then(() => {
                 if (!active) {
                     return
@@ -167,7 +171,27 @@ export default function TeamClient(): React.JSX.Element {
         return () => {
             active = false
         }
-    }, [reload, reloadToken, router])
+    }, [reloadDirectory, reloadToken, router])
+
+    useEffect(() => {
+        let active = true
+
+        reloadEditors().catch((error: unknown) => {
+            if (!active) {
+                return
+            }
+            if (authRedirect(error)) return
+            setLoadError(
+                error instanceof Error
+                    ? error.message
+                    : 'Team konnte nicht geladen werden.',
+            )
+        })
+
+        return () => {
+            active = false
+        }
+    }, [reloadEditors, reloadToken])
 
     async function inviteAction(
         _previous: InviteState,
