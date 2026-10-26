@@ -111,13 +111,7 @@
     pointer-events: none;
 }
 
-.dw-home-hero-panel {
-    animation: dw-glass-in 700ms ease-out both;
-}
-
-.dw-home-hero-media {
-    animation: dw-glass-in 900ms ease-out 120ms both;
-}
+/* Hero panel/media: no entrance animation — opacity-0 + both delayed LCP (#862). */
 
 .dw-waveform {
     color: color-mix(in oklab, var(--primary) 55%, var(--foreground));
@@ -144,23 +138,8 @@
     }
 }
 
-@keyframes dw-glass-in {
-    from {
-        opacity: 0;
-        transform: translateY(12px);
-        filter: blur(6px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-        filter: blur(0);
-    }
-}
-
 @media (prefers-reduced-motion: reduce) {
-    .dw-home-hero::before,
-    .dw-home-hero-panel,
-    .dw-home-hero-media {
+    .dw-home-hero::before {
         animation: none !important;
     }
 }
