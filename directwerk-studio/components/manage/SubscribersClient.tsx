@@ -2,6 +2,7 @@
 
 import LocaleLink from '@/components/i18n/LocaleLink'
 import {useDictionary} from '@/components/i18n/LocaleProvider'
+import EntitlementDebuggerDialog from '@/components/manage/EntitlementDebuggerDialog'
 import {t} from '@/lib/i18n/dictionary'
 import {useCallback, useEffect, useState} from 'react'
 
@@ -64,6 +65,7 @@ export default function SubscribersClient(): React.JSX.Element {
     const [reloadToken, setReloadToken] = useState(0)
     const {pending: pendingRevokeId, arm: armRevoke, reset: resetRevoke} = useTwoStepConfirm<number>()
     const {viewMode, setViewMode} = useListViewMode()
+    const [debugSubscriber, setDebugSubscriber] = useState<TenantSubscriber | null>(null)
 
     useEffect(() => {
         const handle = window.setTimeout(() => {
@@ -188,6 +190,18 @@ export default function SubscribersClient(): React.JSX.Element {
             <Badge variant={subscriber.status === 'ACTIVE' ? 'secondary' : 'outline'}>
                 {subscriptionStatusLabel(subscriber.status)}
             </Badge>
+        ),
+        actions: (
+            <Button
+                onClick={() => {
+                    setDebugSubscriber(subscriber)
+                }}
+                size="sm"
+                type="button"
+                variant="outline"
+            >
+                {m.entitlementCheckCta}
+            </Button>
         ),
         extra:
             subscriber.subscriptions.length === 0 ? (
@@ -379,6 +393,16 @@ export default function SubscribersClient(): React.JSX.Element {
                     )}
                 </section>
             ) : null}
+
+            <EntitlementDebuggerDialog
+                onOpenChange={(next) => {
+                    if (!next) {
+                        setDebugSubscriber(null)
+                    }
+                }}
+                open={debugSubscriber !== null}
+                subscriber={debugSubscriber}
+            />
         </PageStack>
     )
 }

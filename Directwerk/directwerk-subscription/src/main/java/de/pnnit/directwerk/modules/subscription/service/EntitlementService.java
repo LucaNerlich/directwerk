@@ -138,6 +138,59 @@ public class EntitlementService {
         return filterAccessible(tenantId, userId, Map.of(0L, subject)).contains(0L);
     }
 
+    /**
+     * Structured access decision for support/debugging (studio entitlement debugger).
+     * Uses the same LEVEL + PACKAGE evaluation as {@link #hasAccess}; does not change gate semantics.
+     */
+    public AccessExplanation explainAccess(Long tenantId, Long userId, ContentSubject subject) {
+        if (subject.free()) {
+            return new AccessExplanation(true, AccessReason.FREE, List.of());
+        }
+
+        List<Subscription> subscriptions = activeSubscriptions(tenantId, userId);
+        OptionalInt maxLevelSortOrder = subscriptions.stream()
+                .map(Subscription::getProduct)
+                .filter(product -> product.getOfferingType() == OfferingType.LEVEL)
+                .mapToInt(SubscriptionProduct::getSortOrder)
+                .max();
+        List<Long> packageProductIds = subscriptions.stream()
+                .map(Subscription::getProduct)
+                .filter(product -> product.getOfferingType() == OfferingType.PACKAGE)
+                .map(SubscriptionProduct::getId)
+                .toList();
+        List<ProductAccessRule> rules = packageProductIds.isEmpty()
+                ? List.of()
+                : productAccessRuleRepository.findByTenantIdAndProductIdInOrderByProductIdAscIdAsc(
+                        tenantId, packageProductIds);
+
+        if (levelGrants(maxLevelSortOrder, subject)) {
+            return new AccessExplanation(true, AccessReason.LEVEL, List.of());
+        }
+
+        List<MatchedPackageRule> matched = rules.stream()
+                .filter(rule -> grantedBy(rule, subject))
+                .map(EntitlementService::toMatchedRule)
+                .toList();
+        if (!matched.isEmpty()) {
+            return new AccessExplanation(true, AccessReason.PACKAGE_RULE, matched);
+        }
+
+        AccessReason denied = subject.levelApplies() ? AccessReason.DENIED_LEVEL : AccessReason.DENIED_NO_MATCH;
+        return new AccessExplanation(false, denied, List.of());
+    }
+
+    private static MatchedPackageRule toMatchedRule(ProductAccessRule rule) {
+        SubscriptionProduct product = rule.getProduct();
+        return new MatchedPackageRule(
+                rule.getId(),
+                product.getId(),
+                product.getSlug(),
+                product.getTitle(),
+                rule.getScopeType().name(),
+                rule.getScopeId()
+        );
+    }
+
     public Set<Long> filterAccessible(
             Long tenantId, Long userId, Map<Long, ? extends ContentSubject> subjects) {
         if (subjects.isEmpty()) {
@@ -343,6 +396,31 @@ public class EntitlementService {
             List<LevelEntitlement> activeLevels,
             Integer maxLevelSortOrder,
             List<PackageEntitlement> activePackages
+    ) {
+    }
+
+    public enum AccessReason {
+        FREE,
+        LEVEL,
+        PACKAGE_RULE,
+        DENIED_LEVEL,
+        DENIED_NO_MATCH
+    }
+
+    public record MatchedPackageRule(
+            Long ruleId,
+            Long productId,
+            String productSlug,
+            String productTitle,
+            String scopeType,
+            Long scopeId
+    ) {
+    }
+
+    public record AccessExplanation(
+            boolean allowed,
+            AccessReason reason,
+            List<MatchedPackageRule> matchedRules
     ) {
     }
 }

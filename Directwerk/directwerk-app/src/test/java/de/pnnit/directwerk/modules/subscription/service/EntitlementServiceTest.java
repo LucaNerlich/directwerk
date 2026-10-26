@@ -439,4 +439,97 @@ class EntitlementServiceTest {
         assertThat(entitlementService.hasAccess(10L, 20L, otherArticle)).isFalse();
         assertThat(entitlementService.hasAccess(10L, 20L, matchingEpisode)).isTrue();
     }
+
+    // --- explainAccess (studio entitlement debugger) --------------------------------------
+
+    @Test
+    void explainAccessReportsFreeWithoutSubscriptions() {
+        EntitlementService.EpisodeAccessSubject free =
+                new EntitlementService.EpisodeAccessSubject(true, 3, 30L, Set.of(), Set.of(), null);
+
+        EntitlementService.AccessExplanation explanation =
+                entitlementService.explainAccess(10L, 20L, free);
+
+        assertThat(explanation.allowed()).isTrue();
+        assertThat(explanation.reason()).isEqualTo(EntitlementService.AccessReason.FREE);
+        assertThat(explanation.matchedRules()).isEmpty();
+        org.mockito.Mockito.verifyNoInteractions(subscriptionRepository);
+    }
+
+    @Test
+    void explainAccessReportsLevelGrant() {
+        SubscriptionProduct supporter = product(1L, "supporter", 2);
+        when(subscriptionRepository.findActiveWithProducts(10L, 20L, SubscriptionStatus.ACTIVE))
+                .thenReturn(List.of(activeSubscription(supporter)));
+
+        EntitlementService.EpisodeAccessSubject subject =
+                new EntitlementService.EpisodeAccessSubject(false, 1, 30L, Set.of(), Set.of(), null);
+
+        EntitlementService.AccessExplanation explanation =
+                entitlementService.explainAccess(10L, 20L, subject);
+
+        assertThat(explanation.allowed()).isTrue();
+        assertThat(explanation.reason()).isEqualTo(EntitlementService.AccessReason.LEVEL);
+        assertThat(explanation.matchedRules()).isEmpty();
+    }
+
+    @Test
+    void explainAccessReportsPackageRuleAndMatchedProduct() {
+        SubscriptionProduct bundle = product(9L, "format-package", 0);
+        bundle.setOfferingType(OfferingType.PACKAGE);
+        bundle.setTitle("Format Package");
+        ProductAccessRule matching = rule(bundle, ProductAccessScopeType.FORMAT, 40L);
+        matching.setId(77L);
+
+        when(subscriptionRepository.findActiveWithProducts(10L, 20L, SubscriptionStatus.ACTIVE))
+                .thenReturn(List.of(activeSubscription(bundle)));
+        when(productAccessRuleRepository.findByTenantIdAndProductIdInOrderByProductIdAscIdAsc(10L, List.of(9L)))
+                .thenReturn(List.of(matching));
+
+        EntitlementService.EpisodeAccessSubject subject =
+                new EntitlementService.EpisodeAccessSubject(false, 10, 30L, Set.of(40L), Set.of(), null);
+
+        EntitlementService.AccessExplanation explanation =
+                entitlementService.explainAccess(10L, 20L, subject);
+
+        assertThat(explanation.allowed()).isTrue();
+        assertThat(explanation.reason()).isEqualTo(EntitlementService.AccessReason.PACKAGE_RULE);
+        assertThat(explanation.matchedRules()).hasSize(1);
+        assertThat(explanation.matchedRules().getFirst().ruleId()).isEqualTo(77L);
+        assertThat(explanation.matchedRules().getFirst().productSlug()).isEqualTo("format-package");
+        assertThat(explanation.matchedRules().getFirst().scopeType()).isEqualTo("FORMAT");
+        assertThat(explanation.matchedRules().getFirst().scopeId()).isEqualTo(40L);
+    }
+
+    @Test
+    void explainAccessReportsDeniedLevelWhenSortOrderTooLow() {
+        SubscriptionProduct supporter = product(1L, "supporter", 1);
+        when(subscriptionRepository.findActiveWithProducts(10L, 20L, SubscriptionStatus.ACTIVE))
+                .thenReturn(List.of(activeSubscription(supporter)));
+
+        EntitlementService.EpisodeAccessSubject subject =
+                new EntitlementService.EpisodeAccessSubject(false, 3, 30L, Set.of(), Set.of(), null);
+
+        EntitlementService.AccessExplanation explanation =
+                entitlementService.explainAccess(10L, 20L, subject);
+
+        assertThat(explanation.allowed()).isFalse();
+        assertThat(explanation.reason()).isEqualTo(EntitlementService.AccessReason.DENIED_LEVEL);
+        assertThat(entitlementService.hasAccess(10L, 20L, subject)).isFalse();
+    }
+
+    @Test
+    void explainAccessReportsDeniedNoMatchForPackageOnlySubjects() {
+        SubscriptionProduct supporter = product(1L, "supporter", 9);
+        when(subscriptionRepository.findActiveWithProducts(10L, 20L, SubscriptionStatus.ACTIVE))
+                .thenReturn(List.of(activeSubscription(supporter)));
+
+        EntitlementService.DigitalAssetSubject subject = new EntitlementService.DigitalAssetSubject(501L);
+
+        EntitlementService.AccessExplanation explanation =
+                entitlementService.explainAccess(10L, 20L, subject);
+
+        assertThat(explanation.allowed()).isFalse();
+        assertThat(explanation.reason()).isEqualTo(EntitlementService.AccessReason.DENIED_NO_MATCH);
+    }
 }

@@ -1209,6 +1209,58 @@ export interface TenantSubscriberSubscription {
     externalSubscriptionId: string | null
 }
 
+/** Tenant-admin entitlement debugger (`GET /tenant/subscribers/{id}/access`). */
+export type SubscriberAccessCheckReason =
+    | 'FREE'
+    | 'LEVEL'
+    | 'PACKAGE_RULE'
+    | 'DENIED_LEVEL'
+    | 'DENIED_NO_MATCH'
+    | 'NOT_PUBLISHED'
+    | 'CONTENT_NOT_FOUND'
+
+export interface SubscriberAccessMatchedRule {
+    ruleId: number | null
+    productId: number
+    productSlug: string
+    productTitle: string
+    scopeType: string
+    scopeId: number | null
+}
+
+export interface SubscriberAccessSubject {
+    free: boolean
+    requiredLevelSortOrder: number
+    maxFormatRequiredLevel: number | null
+    seriesId: number | null
+    formatIds: number[]
+    categoryIds: number[]
+}
+
+export interface SubscriberAccessCheck {
+    kind: 'EPISODE' | 'ARTICLE'
+    id: number
+    title: string | null
+    slug: string | null
+    allowed: boolean
+    reason: string
+    subject: SubscriberAccessSubject | null
+    matchedRules: SubscriberAccessMatchedRule[]
+}
+
+export interface SubscriberAccess {
+    userId: number
+    activeLevels: LevelSummary[]
+    maxLevelSortOrder: number | null
+    activePackages: PackageSummary[]
+    check: SubscriberAccessCheck | null
+}
+
+export interface SubscriberAccessQuery {
+    episodeId?: number
+    articleId?: number
+}
+
 export type ContentEmailTemplateType = 'EPISODE' | 'ARTICLE'
 
 export interface ContentEmailTemplate {

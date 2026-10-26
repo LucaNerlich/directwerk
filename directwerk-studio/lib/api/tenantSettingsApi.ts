@@ -1,6 +1,6 @@
 'use client'
 
-import {parseBrandingEnvelope, parseContentEmailTemplateEnvelope, parseDomainEnvelope, parseDomainListEnvelope, parseDomainVerificationEnvelope, parseEffectiveRightsEnvelope, parseInviteTenantUserEnvelope, parsePermissionRestrictionListEnvelope, parseSubscriberDirectoryPage, parseTenantUserDirectoryPage, parseTenantUserEnvelope} from '@directwerk/api/validation/catalog'
+import {parseBrandingEnvelope, parseContentEmailTemplateEnvelope, parseDomainEnvelope, parseDomainListEnvelope, parseDomainVerificationEnvelope, parseEffectiveRightsEnvelope, parseInviteTenantUserEnvelope, parsePermissionRestrictionListEnvelope, parseSubscriberAccessEnvelope, parseSubscriberDirectoryPage, parseTenantUserDirectoryPage, parseTenantUserEnvelope} from '@directwerk/api/validation/catalog'
 
 import type {
     ContentEmailTemplate,
@@ -11,6 +11,8 @@ import type {
     InviteTenantUserInput,
     InviteTenantUserResponse,
     PermissionRestriction,
+    SubscriberAccess,
+    SubscriberAccessQuery,
     TenantBranding,
     TenantDomain,
     TenantSubscriber,
@@ -211,6 +213,26 @@ export async function listSubscribers(
         throw new Error('Der Server hat eine ungültige Abonnentenliste gesendet.')
     }
     return parsed
+}
+
+/** Entitlement summary + optional episode/article access explanation for a subscriber. */
+export async function getSubscriberAccess(
+    userId: number,
+    query?: SubscriberAccessQuery,
+): Promise<SubscriberAccess> {
+    const params = new URLSearchParams()
+    if (query?.episodeId !== undefined) {
+        params.set('episodeId', String(query.episodeId))
+    }
+    if (query?.articleId !== undefined) {
+        params.set('articleId', String(query.articleId))
+    }
+    const suffix = params.size > 0 ? `?${params.toString()}` : ''
+    return studioGet(
+        `/api/proxy/tenant/subscribers/${userId}/access${suffix}`,
+        parseSubscriberAccessEnvelope,
+        'Der Server hat ungültige Zugangsdaten gesendet.',
+    )
 }
 
 /** Pages through the subscriber directory until every matching row is collected. */

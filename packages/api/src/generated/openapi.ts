@@ -2168,6 +2168,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/tenant/subscribers/{userId}/access": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["subscriberAccess"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/tenant/subscriber-feeds": {
         parameters: {
             query?: never;
@@ -4895,6 +4911,72 @@ export interface components {
             endsAt?: string;
             externalSubscriptionId?: string;
         };
+        ContentCheckApiView: {
+            kind?: string;
+            /** Format: int64 */
+            id?: number;
+            title?: string;
+            slug?: string;
+            allowed?: boolean;
+            reason?: string;
+            subject?: components["schemas"]["SubjectSnapshotApiView"];
+            matchedRules?: components["schemas"]["MatchedRuleApiView"][];
+        };
+        LevelView: {
+            /** Format: int64 */
+            id?: number;
+            slug?: string;
+            title?: string;
+            /** Format: int32 */
+            sortOrder?: number;
+        };
+        MatchedRuleApiView: {
+            /** Format: int64 */
+            ruleId?: number;
+            /** Format: int64 */
+            productId?: number;
+            productSlug?: string;
+            productTitle?: string;
+            scopeType?: string;
+            /** Format: int64 */
+            scopeId?: number;
+        };
+        PackageView: {
+            /** Format: int64 */
+            id?: number;
+            slug?: string;
+            title?: string;
+        };
+        ResponseSubscriberAccessView: {
+            /** Format: int32 */
+            statusCode?: number;
+            statusMessage?: string;
+            data?: components["schemas"]["SubscriberAccessView"];
+            errors?: components["schemas"]["ErrorDetail"][];
+            metadata?: {
+                [key: string]: unknown;
+            };
+        };
+        SubjectSnapshotApiView: {
+            free?: boolean;
+            /** Format: int32 */
+            requiredLevelSortOrder?: number;
+            /** Format: int32 */
+            maxFormatRequiredLevel?: number;
+            /** Format: int64 */
+            seriesId?: number;
+            formatIds?: number[];
+            categoryIds?: number[];
+        };
+        SubscriberAccessView: {
+            /** Format: int64 */
+            userId?: number;
+            activeLevels?: components["schemas"]["LevelView"][];
+            /** Format: int32 */
+            maxLevelSortOrder?: number;
+            activePackages?: components["schemas"]["PackageView"][];
+            check?: components["schemas"]["ContentCheckApiView"];
+        };
         ResponseListSubscriberFeedAdminView: {
             /** Format: int32 */
             statusCode?: number;
@@ -5213,14 +5295,6 @@ export interface components {
             metadata?: {
                 [key: string]: unknown;
             };
-        };
-        LevelView: {
-            /** Format: int64 */
-            id?: number;
-            slug?: string;
-            title?: string;
-            /** Format: int32 */
-            sortOrder?: number;
         };
         ResponseListLevelView: {
             /** Format: int32 */
@@ -5827,12 +5901,6 @@ export interface components {
             roles?: string[];
             /** Format: int64 */
             tenantId?: number;
-        };
-        PackageView: {
-            /** Format: int64 */
-            id?: number;
-            slug?: string;
-            title?: string;
         };
         ResponseAccessResponse: {
             /** Format: int32 */
@@ -10074,6 +10142,31 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["ResponseListSubscriberView"];
+                };
+            };
+        };
+    };
+    subscriberAccess: {
+        parameters: {
+            query?: {
+                episodeId?: number;
+                articleId?: number;
+            };
+            header?: never;
+            path: {
+                userId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ResponseSubscriberAccessView"];
                 };
             };
         };

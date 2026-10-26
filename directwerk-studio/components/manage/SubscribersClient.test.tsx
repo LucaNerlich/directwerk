@@ -4,7 +4,7 @@ import {afterEach, describe, expect, it, vi} from 'vitest'
 
 import SubscribersClient from '@/components/manage/SubscribersClient'
 import {revokeSubscription} from '@/lib/api/subscriptionApi'
-import {listSubscribers} from '@/lib/api/tenantSettingsApi'
+import {getSubscriberAccess, listSubscribers} from '@/lib/api/tenantSettingsApi'
 import type {TenantSubscriber} from '@directwerk/api/types'
 
 vi.mock('next/link', () => ({
@@ -21,6 +21,7 @@ vi.mock('@directwerk/api/auth/useAuthRequired', () => ({
 vi.mock('@directwerk/api/tenant', () => ({getClientTenantHost: () => 'tenant.test'}))
 vi.mock('@/lib/api/tenantSettingsApi', () => ({
     listSubscribers: vi.fn(),
+    getSubscriberAccess: vi.fn(),
 }))
 vi.mock('@/lib/api/subscriptionApi', () => ({
     revokeSubscription: vi.fn(),
@@ -53,6 +54,7 @@ const member: TenantSubscriber = {
 afterEach(() => {
     cleanup()
     vi.mocked(listSubscribers).mockReset()
+    vi.mocked(getSubscriberAccess).mockReset()
     vi.mocked(revokeSubscription).mockReset()
 })
 
@@ -118,5 +120,28 @@ describe('SubscribersClient', () => {
                 expect.objectContaining({page: 0, size: 50, q: 'member'}),
             ),
         )
+    })
+
+    it('opens the entitlement debugger with level summary', async () => {
+        vi.mocked(listSubscribers).mockResolvedValue(pageOf(member))
+        vi.mocked(getSubscriberAccess).mockResolvedValue({
+            userId: 4,
+            activeLevels: [
+                {id: 2, slug: 'supporter', title: 'Supporter', sortOrder: 1},
+            ],
+            maxLevelSortOrder: 1,
+            activePackages: [],
+            check: null,
+        })
+
+        renderWithLocale(<SubscribersClient />)
+        await screen.findByText('member@example.com')
+        fireEvent.click(screen.getByRole('button', {name: 'Zugang prüfen'}))
+
+        expect(
+            await screen.findByText('Zugang prüfen: member@example.com'),
+        ).toBeInTheDocument()
+        expect(screen.getByText('Höchste aktive Stufe: 1')).toBeInTheDocument()
+        expect(getSubscriberAccess).toHaveBeenCalledWith(4)
     })
 })

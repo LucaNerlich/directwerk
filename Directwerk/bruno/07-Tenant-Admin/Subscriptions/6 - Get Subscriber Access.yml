@@ -1,0 +1,54 @@
+info:
+  name: 6 - Get Subscriber Access
+  type: http
+  seq: 11
+
+http:
+  method: GET
+  url: "{{baseUrl}}/api/v1/tenant/subscribers/{{subscriberUserId}}/access"
+  params:
+    - name: episodeId
+      value: "{{episodeId}}"
+      type: query
+      description: Optional published episode id to explain locked/unlocked.
+      disabled: true
+    - name: articleId
+      value: "{{articleId}}"
+      type: query
+      description: Optional published article id to explain locked/unlocked. Mutually exclusive with episodeId.
+      disabled: true
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("returns expected status", function() {
+          expect([200, 404]).to.include(res.getStatus());
+        });
+        test("summary shape when found", function() {
+          if (res.getStatus() !== 200) {
+            return;
+          }
+          expect(res.body.data).to.be.an("object");
+          expect(res.body.data).to.have.property("userId");
+          expect(res.body.data.activeLevels).to.be.an("array");
+          expect(res.body.data.activePackages).to.be.an("array");
+          expect(res.body.data).to.have.property("maxLevelSortOrder");
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+docs: |-
+  Tenant-admin entitlement debugger for a subscriber (#77).
+  Returns active LEVEL products, derived maxLevelSortOrder, and active PACKAGE products.
+  Optional episodeId or articleId (not both) adds a check with allowed, reason, subject
+  snapshot, and matching PACKAGE rules (FREE | LEVEL | PACKAGE_RULE | DENIED_LEVEL |
+  DENIED_NO_MATCH | NOT_PUBLISHED | CONTENT_NOT_FOUND).
+  404 USER_NOT_FOUND when the user is not a tenant member.
+  400 INVALID_CONTENT_CHECK when both episodeId and articleId are set.
