@@ -78,7 +78,7 @@ class TenantDomainServiceTest {
         domain.setVerificationToken("abc123");
         when(tenantDomainRepository.findByTenantIdAndHostIgnoreCase(1L, "pending.example.com"))
                 .thenReturn(Optional.of(domain));
-        when(domainDnsLookup.lookupTxt("pending.example.com"))
+        when(domainDnsLookup.lookupTxt("_directwerk-challenge.pending.example.com"))
                 .thenReturn(List.of(TenantDomainService.DNS_TXT_PREFIX + "abc123"));
         when(tenantDomainRepository.saveAndFlush(domain)).thenReturn(domain);
 
@@ -91,6 +91,22 @@ class TenantDomainServiceTest {
     }
 
     @Test
+    void getVerificationChallengeUsesChallengeSubdomainHint() {
+        TenantDomain domain = new TenantDomain();
+        domain.setHost("pending.example.com");
+        domain.setVerified(false);
+        domain.setVerificationToken("abc123");
+        when(tenantDomainRepository.findByTenantIdAndHostIgnoreCase(1L, "pending.example.com"))
+                .thenReturn(Optional.of(domain));
+
+        TenantDomainService.DomainVerificationChallenge challenge =
+                service.getVerificationChallenge(1L, "pending.example.com");
+
+        assertThat(challenge.dnsNameHint()).isEqualTo("_directwerk-challenge.pending.example.com");
+        assertThat(challenge.dnsTxtValue()).isEqualTo("directwerk-verify=abc123");
+    }
+
+    @Test
     void verifyDomainRejectsMissingDnsRecord() {
         TenantDomain domain = new TenantDomain();
         domain.setHost("pending.example.com");
@@ -98,7 +114,7 @@ class TenantDomainServiceTest {
         domain.setVerificationToken("abc123");
         when(tenantDomainRepository.findByTenantIdAndHostIgnoreCase(1L, "pending.example.com"))
                 .thenReturn(Optional.of(domain));
-        when(domainDnsLookup.lookupTxt("pending.example.com")).thenReturn(List.of());
+        when(domainDnsLookup.lookupTxt("_directwerk-challenge.pending.example.com")).thenReturn(List.of());
 
         assertThatThrownBy(() -> service.verifyDomain(1L, "pending.example.com"))
                 .isInstanceOf(DomainVerificationException.class);

@@ -3,63 +3,35 @@
 import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
 import {Badge} from '@directwerk/ui/components/badge'
 import {Button} from '@directwerk/ui/components/button'
-import {Card, CardContent, CardDescription, CardHeader, CardTitle} from '@directwerk/ui/components/card'
-import {Checkbox} from '@directwerk/ui/components/checkbox'
 import EmptyState from '@directwerk/ui/components/empty-state'
 import {EntityListSection} from '@directwerk/ui/components/entity-list-section'
 import type {EntityListViewItem} from '@directwerk/ui/components/entity-list-view'
-import {Input} from '@directwerk/ui/components/input'
-import {Label} from '@directwerk/ui/components/label'
 import PageHeader from '@directwerk/ui/components/page-header'
 import PageStack from '@directwerk/ui/components/page-stack'
 import SectionHeader from '@directwerk/ui/components/section-header'
 import {Skeleton} from '@directwerk/ui/components/skeleton'
 import {useListViewMode} from '@directwerk/ui/hooks/use-list-view-mode'
-
-import Form from 'next/form'
+import type {TenantDomain} from '@directwerk/api/types'
 import {useRouter} from 'next/navigation'
-import {useActionState, useCallback, useEffect, useState} from 'react'
+import {useCallback, useEffect, useState} from 'react'
 
-import {addDomain, getDomainVerification, listDomains, verifyDomain} from '@/lib/api/tenantSettingsApi'
-import type {DomainVerificationChallenge, TenantDomain} from '@directwerk/api/types'
-
-import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
+import DomainVerificationWizard from '@/components/settings/DomainVerificationWizard'
 import {useDictionary} from '@/components/i18n/LocaleProvider'
-
-interface AddDomainState {
-    error: string | null
-    success: string | null
-}
-
-const INITIAL_ADD_STATE: AddDomainState = {error: null, success: null}
-
-/**
- * Issue #419: the previous `[a-z0-9.-]*` allowed malformed hosts such as `a..b` or `a.-b` that the
- * API rejects, so the user only learned after submitting. Validate each DNS label.
- */
-const HOST_LABEL_PATTERN = /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/i
-
-function isValidHostname(value: string): boolean {
-    if (value.length === 0 || value.length > 253) {
-        return false
-    }
-    const labels = value.split('.')
-    return labels.length >= 2 && labels.every(label => HOST_LABEL_PATTERN.test(label))
-}
+import {t} from '@/lib/i18n/dictionary'
+import {listDomains} from '@/lib/api/tenantSettingsApi'
+import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
 
 export default function DomainsClient(): React.JSX.Element {
     const dict = useDictionary()
+    const s = dict.settings
     const router = useRouter()
     const authRedirect = useAuthRequired()
     const [domains, setDomains] = useState<TenantDomain[]>([])
     const [loadError, setLoadError] = useState<string | null>(null)
     const [isLoading, setIsLoading] = useState(true)
-    const [challenge, setChallenge] = useState<DomainVerificationChallenge | null>(
-        null,
-    )
-    const [actionError, setActionError] = useState<string | null>(null)
-    const [actionStatus, setActionStatus] = useState<string | null>(null)
-    const [busyHost, setBusyHost] = useState<string | null>(null)
+    const [wizardOpen, setWizardOpen] = useState(false)
+    const [wizardHost, setWizardHost] = useState<string | null>(null)
+    const [statusMessage, setStatusMessage] = useState<string | null>(null)
     const {viewMode, setViewMode} = useListViewMode()
 
     const reload = useCallback(async (): Promise<void> => {
@@ -83,9 +55,7 @@ export default function DomainsClient(): React.JSX.Element {
                 }
                 if (authRedirect(error)) return
                 setLoadError(
-                    error instanceof Error
-                        ? error.message
-                        : 'Domains konnten nicht geladen werden.',
+                    error instanceof Error ? error.message : s.domainsKonntenGeladen,
                 )
                 setIsLoading(false)
             })
@@ -93,79 +63,31 @@ export default function DomainsClient(): React.JSX.Element {
         return () => {
             active = false
         }
-    }, [reload, router])
+    }, [reload, router, authRedirect, s.domainsKonntenGeladen])
 
-    async function addAction(
-        _previous: AddDomainState,
-        formData: FormData,
-    ): Promise<AddDomainState> {
-        const host = String(formData.get('host') ?? '')
-            .trim()
-            .toLowerCase()
-        const isPrimary = formData.get('isPrimary') === 'on'
-
-        if (!isValidHostname(host)) {
-            return {error: 'Bitte eine gültige Domain eingeben.', success: null}
-        }
-
-        try {
-            await addDomain( {host, isPrimary})
-            await reload()
-            return {error: null, success: `Domain ${host} hinzugefügt.`}
-        } catch (error: unknown) {
-            if (authRedirect(error)) return INITIAL_ADD_STATE
-            return {
-                error:
-                    error instanceof Error
-                        ? error.message
-                        : 'Domain konnte nicht hinzugefügt werden.',
-                success: null,
-            }
-        }
+    function openAddWizard(): void {
+        setStatusMessage(null)
+        setWizardHost(null)
+        setWizardOpen(true)
     }
 
-    const [addState, addFormAction, addPending] = useActionState(
-        addAction,
-        INITIAL_ADD_STATE,
-    )
-
-    async function showVerification(host: string): Promise<void> {
-        setBusyHost(host)
-        setActionError(null)
-        setActionStatus(null)
-        try {
-            const result = await getDomainVerification(host)
-            setChallenge(result)
-        } catch (error: unknown) {
-            if (authRedirect(error)) return
-            setActionError(
-                error instanceof Error
-                    ? error.message
-                    : 'Verifizierung konnte nicht geladen werden.',
-            )
-        } finally {
-            setBusyHost(null)
-        }
+    function openVerifyWizard(host: string): void {
+        setStatusMessage(null)
+        setWizardHost(host)
+        setWizardOpen(true)
     }
 
-    async function runVerify(host: string): Promise<void> {
-        setBusyHost(host)
-        setActionError(null)
-        setActionStatus(null)
+    async function handleWizardComplete(host: string): Promise<void> {
+        setWizardOpen(false)
+        setWizardHost(null)
+        setStatusMessage(t(s.wizardVerified, {host}))
         try {
-            await verifyDomain(host)
             await reload()
-            setChallenge(null)
-            setActionStatus(`${host} ist verifiziert.`)
         } catch (error: unknown) {
             if (authRedirect(error)) return
-            setActionError(
-                error instanceof Error
-                    ? error.message
-                    : 'Verifizierung fehlgeschlagen.',
+            setLoadError(
+                error instanceof Error ? error.message : s.domainsKonntenGeladen,
             )
-        } finally {
-            setBusyHost(null)
         }
     }
 
@@ -175,9 +97,11 @@ export default function DomainsClient(): React.JSX.Element {
                 <PageHeader
                     eyebrow={dict.nav.verwaltung.settings}
                     title={dict.nav.verwaltung.domains}
-                    description={dict.settings.eigeneDomainsOeffentlicheWebsiteErstPruefen}
+                    description={s.eigeneDomainsOeffentlicheWebsiteErstPruefen}
                 />
-                <p className="text-sm text-muted-foreground" role="status">Wird geladen…</p>
+                <p className="text-sm text-muted-foreground" role="status">
+                    {dict.common.loading}
+                </p>
                 <Skeleton className="h-20 w-full" />
             </PageStack>
         )
@@ -189,7 +113,7 @@ export default function DomainsClient(): React.JSX.Element {
                 <PageHeader
                     eyebrow={dict.nav.verwaltung.settings}
                     title={dict.nav.verwaltung.domains}
-                    description={dict.settings.eigeneDomainsOeffentlicheWebsiteErstPruefen}
+                    description={s.eigeneDomainsOeffentlicheWebsiteErstPruefen}
                 />
                 <Alert variant="destructive">
                     <AlertDescription>{loadError}</AlertDescription>
@@ -201,36 +125,24 @@ export default function DomainsClient(): React.JSX.Element {
     const domainItems: EntityListViewItem[] = domains.map((domain) => ({
         id: domain.host,
         title: domain.host,
-        description: domain.primary ? 'Primäre Domain — Standardadresse deiner Website' : 'Sekundäre Domain — leitet auf die primäre',
+        description: domain.primary
+            ? s.primaereDomainStandardadresseDeinerWebsite
+            : s.sekundaereDomainLeitetPrimaere,
         trailing: (
             <Badge variant={domain.verified ? 'default' : 'outline'}>
-                {domain.verified ? 'Verifiziert' : 'Offen'}
+                {domain.verified ? s.wizardBadgeVerified : s.wizardBadgeOpen}
             </Badge>
         ),
         actions: !domain.verified ? (
-            <div className="flex flex-wrap gap-2">
-                <Button
-                    disabled={busyHost === domain.host}
-                    onClick={() => {
-                        void showVerification(domain.host)
-                    }}
-                    size="sm"
-                    type="button"
-                    variant="outline"
-                >
-                    DNS-Hinweis
-                </Button>
-                <Button
-                    disabled={busyHost === domain.host}
-                    onClick={() => {
-                        void runVerify(domain.host)
-                    }}
-                    size="sm"
-                    type="button"
-                >
-                    {busyHost === domain.host ? 'Prüfen…' : 'Verifizieren'}
-                </Button>
-            </div>
+            <Button
+                onClick={() => {
+                    openVerifyWizard(domain.host)
+                }}
+                size="sm"
+                type="button"
+            >
+                {s.wizardVerifyAction}
+            </Button>
         ) : undefined,
     }))
 
@@ -239,110 +151,61 @@ export default function DomainsClient(): React.JSX.Element {
             <PageHeader
                 eyebrow={dict.nav.verwaltung.settings}
                 title={dict.nav.verwaltung.domains}
-                description={dict.settings.eigeneDomainsOeffentlicheWebsiteLegeZuerst}
+                description={s.eigeneDomainsOeffentlicheWebsiteLegeZuerst}
             />
 
-            {domains.length === 0 ? (
-                <EmptyState
-                    title={dict.settings.keineDomains}
-                    description={dict.settings.fuegeUntenErsteDomainHinzu}
+            {statusMessage ? (
+                <Alert role="status">
+                    <AlertDescription>{statusMessage}</AlertDescription>
+                </Alert>
+            ) : null}
+
+            {wizardOpen ? (
+                <DomainVerificationWizard
+                    initialHost={wizardHost}
+                    onAuthError={authRedirect}
+                    onCancel={() => {
+                        setWizardOpen(false)
+                        setWizardHost(null)
+                    }}
+                    onComplete={(host) => {
+                        void handleWizardComplete(host)
+                    }}
                 />
             ) : (
-                <section aria-labelledby="domains-list-heading" className="flex flex-col gap-4">
-                    <SectionHeader
-                        id="domains-list-heading"
-                        title={`Domains (${domains.length})`}
-                        description={dict.settings.verifizierteDomainsLiveOffeneBrauchenDns}
-                    />
-                <EntityListSection
-                    items={domainItems}
-                    onViewModeChange={setViewMode}
-                    showSelection={false}
-                    viewMode={viewMode}
-                />
-                </section>
+                <>
+                    {domains.length === 0 ? (
+                        <EmptyState
+                            title={s.keineDomains}
+                            description={s.fuegeUntenErsteDomainHinzu}
+                            action={
+                                <Button onClick={openAddWizard} type="button">
+                                    {s.domainHinzufuegen}
+                                </Button>
+                            }
+                        />
+                    ) : (
+                        <section aria-labelledby="domains-list-heading" className="flex flex-col gap-4">
+                            <div className="flex flex-wrap items-end justify-between gap-3">
+                                <SectionHeader
+                                    id="domains-list-heading"
+                                    title={t(s.domains, {'domains.length': domains.length})}
+                                    description={s.verifizierteDomainsLiveOffeneBrauchenDns}
+                                />
+                                <Button onClick={openAddWizard} type="button">
+                                    {s.domainHinzufuegen}
+                                </Button>
+                            </div>
+                            <EntityListSection
+                                items={domainItems}
+                                onViewModeChange={setViewMode}
+                                showSelection={false}
+                                viewMode={viewMode}
+                            />
+                        </section>
+                    )}
+                </>
             )}
-
-            {challenge !== null ? (
-                <Card aria-labelledby="domain-challenge-heading">
-                    <CardHeader>
-                        <CardTitle id="domain-challenge-heading">DNS-Verifizierung</CardTitle>
-                        <CardDescription>
-                            Lege diesen TXT-Eintrag bei deinem Domain-Anbieter an und klicke danach auf „Verifizieren“.
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent className="grid gap-3 text-sm">
-                    <p>
-                        Host: <code className="rounded bg-muted px-1.5 py-0.5">{challenge.host}</code>
-                    </p>
-                    <p>
-                        TXT-Name: <code className="rounded bg-muted px-1.5 py-0.5 break-all">{challenge.dnsNameHint}</code>
-                    </p>
-                    <p>
-                        TXT-Wert: <code className="rounded bg-muted px-1.5 py-0.5 break-all">{challenge.dnsTxtValue}</code>
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                        Die DNS-Ausbreitung kann einige Minuten dauern. Bei Fehlschlag warte kurz und versuche es erneut.
-                    </p>
-                    </CardContent>
-                </Card>
-            ) : null}
-
-            {actionError ? (
-                <Alert variant="destructive">
-                    <AlertDescription>{actionError}</AlertDescription>
-                </Alert>
-            ) : null}
-            {actionStatus ? (
-                <Alert role="status">
-                    <AlertDescription>{actionStatus}</AlertDescription>
-                </Alert>
-            ) : null}
-
-            <Card className="max-w-xl">
-                <CardHeader>
-                    <CardTitle>Domain hinzufügen</CardTitle>
-                    <CardDescription>Nur der Hostname — ohne https:// und ohne Pfad.</CardDescription>
-                </CardHeader>
-                <CardContent>
-            <Form action={addFormAction} className="grid w-full gap-5">
-                <div className="grid gap-2">
-                    <Label htmlFor="host">Host</Label>
-                    <Input
-                        aria-describedby="host-help"
-                        id="host"
-                        maxLength={253}
-                        name="host"
-                        placeholder="podcast.beispiel.de"
-                        required
-                        type="text"
-                    />
-                    <p className="text-xs text-muted-foreground" id="host-help">
-                        z. B. podcast.beispiel.de — Kleinbuchstaben, Zahlen, Punkte und Bindestriche.
-                    </p>
-                </div>
-                <Label className="flex items-center gap-2 font-normal">
-                    <Checkbox id="isPrimary" name="isPrimary" />
-                    <span>Primäre Domain <span className="text-muted-foreground">(Standardadresse deiner Website)</span></span>
-                </Label>
-                {addState.error ? (
-                    <Alert variant="destructive">
-                        <AlertDescription>{addState.error}</AlertDescription>
-                    </Alert>
-                ) : null}
-                {addState.success ? (
-                    <Alert role="status">
-                        <AlertDescription>{addState.success}</AlertDescription>
-                    </Alert>
-                ) : null}
-                <div>
-                <Button disabled={addPending} type="submit">
-                    {addPending ? 'Hinzufügen…' : 'Hinzufügen'}
-                </Button>
-                </div>
-            </Form>
-                </CardContent>
-            </Card>
         </PageStack>
     )
 }

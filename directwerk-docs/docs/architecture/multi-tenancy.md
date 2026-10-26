@@ -58,9 +58,9 @@ A user may hold ACTIVE memberships in tenant A and tenant B.
 
 | Bootstrap primary domain | `verified=true` at tenant create |
 | Added domains | `verified=false` + `verification_token` |
-| Challenge | `GET /api/v1/tenant/domains/{host}/verification` |
-| Verify | DNS TXT value `directwerk-verify=<token>`, or token body when `directwerk.security.allow-token-domain-verification=true` (local) |
-| Platform override | `POST /api/v1/platform/tenants/{id}/domains/{host}/verify` |
+| Challenge | `GET /api/v1/tenant/domains/{host}/verification` → TXT name `_directwerk-challenge.{host}`, value `directwerk-verify=<token>` |
+| Verify | DNS TXT lookup at `_directwerk-challenge.{host}` matching the challenge value |
+| Platform override | `POST /api/v1/platform/tenants/{id}/domains/{host}/verify` (no DNS; local/dev escape hatch) |
 
 Unverified hosts do **not** resolve for login, public API, or tenant context.
 
