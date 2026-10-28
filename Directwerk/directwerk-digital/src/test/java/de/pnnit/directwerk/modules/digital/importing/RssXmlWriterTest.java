@@ -96,4 +96,71 @@ class RssXmlWriterTest {
     void escapeTextStripsXmlInvalidControlCharacters() {
         assertThat(RssXmlWriter.escapeText("AB\u0001C\u000BD\u000CE\u001FF")).isEqualTo("ABCDEF");
     }
+
+    @Test
+    void omitsOwnerTagsWhenContactEmailIsMissing() {
+        RssXmlWriter.Channel channel = new RssXmlWriter.Channel(
+                "Podcast", "https://example.com", "Tenant", "de", true, null, false, null, null);
+        RssXmlWriter.Item item = new RssXmlWriter.Item(
+                "Entry", "https://example.com/e", "body", "guid", null, null, null, null, null);
+
+        String xml = RssXmlWriter.build(channel, List.of(item), entry -> item, value -> value);
+
+        assertThat(xml).doesNotContain("managingEditor");
+        assertThat(xml).doesNotContain("webMaster");
+        assertThat(xml).doesNotContain("itunes:owner");
+        assertThat(xml).doesNotContain("itunes:email");
+    }
+
+    @Test
+    void rendersRssAndItunesOwnerTagsFromTenantContact() {
+        RssXmlWriter.Channel channel = new RssXmlWriter.Channel(
+                "Podcast",
+                "https://example.com",
+                "Tenant",
+                "de",
+                true,
+                null,
+                false,
+                null,
+                null,
+                "owner@example.com",
+                "Alpha & Co"
+        );
+        RssXmlWriter.Item item = new RssXmlWriter.Item(
+                "Entry", "https://example.com/e", "body", "guid", null, null, null, null, null);
+
+        String xml = RssXmlWriter.build(channel, List.of(item), entry -> item, value -> value);
+
+        assertThat(xml).contains("<managingEditor>owner@example.com (Alpha &amp; Co)</managingEditor>");
+        assertThat(xml).contains("<webMaster>owner@example.com (Alpha &amp; Co)</webMaster>");
+        assertThat(xml).contains("<itunes:owner>");
+        assertThat(xml).contains("<itunes:name>Alpha &amp; Co</itunes:name>");
+        assertThat(xml).contains("<itunes:email>owner@example.com</itunes:email>");
+        assertThat(xml).contains("</itunes:owner>");
+    }
+
+    @Test
+    void nonItunesFeedsStillEmitManagingEditorWhenEmailIsSet() {
+        RssXmlWriter.Channel channel = new RssXmlWriter.Channel(
+                "Articles",
+                "https://example.com",
+                "Tenant",
+                "de",
+                false,
+                null,
+                false,
+                null,
+                null,
+                "editor@example.com",
+                "Tenant"
+        );
+        RssXmlWriter.Item item = new RssXmlWriter.Item(
+                "Entry", "https://example.com/e", "body", "guid", null, null, null, null, null);
+
+        String xml = RssXmlWriter.build(channel, List.of(item), entry -> item, value -> value);
+
+        assertThat(xml).contains("<managingEditor>editor@example.com (Tenant)</managingEditor>");
+        assertThat(xml).doesNotContain("itunes:owner");
+    }
 }

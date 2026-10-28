@@ -97,6 +97,7 @@ Accept: application/json
         client.assert(typeof response.body.data.tenant.createdAt === "string", "Expected createdAt");
         client.assert(typeof response.body.data.episodeCount === "number", "Expected episodeCount");
         client.assert(typeof response.body.data.subscriberCount === "number", "Expected subscriberCount");
+        client.assert(response.body.data.tenant.hasOwnProperty("contactEmail"), "Expected contactEmail");
     });
 %}
 
@@ -109,7 +110,8 @@ Content-Type: application/json
 Accept: application/json
 
 {
-  "name": "Alpha Show C Renamed"
+  "name": "Alpha Show C Renamed",
+  "contactEmail": "podcast@alpha-show-c.local"
 }
 
 > {%
@@ -118,6 +120,8 @@ Accept: application/json
             "Expected 200 when tenantCId set");
         if (response.status === 200) {
             client.assert(response.body.data.name === "Alpha Show C Renamed", "Expected renamed name");
+            client.assert(response.body.data.contactEmail === "podcast@alpha-show-c.local",
+                "Expected contactEmail");
             client.assert(response.body.data.slug === "alpha-show-c", "Expected unchanged slug");
         }
     });

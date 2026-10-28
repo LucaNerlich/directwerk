@@ -258,6 +258,40 @@ class TenantManagementServiceTest {
     }
 
     @Test
+    void updateContactEmailMarksRssSnapshotsStale() {
+        Tenant tenant = new Tenant();
+        tenant.setId(7L);
+        tenant.setSlug("acme");
+        tenant.setName("Acme");
+        tenant.setStatus(TenantStatus.ACTIVE);
+        when(tenantRepository.requireById(7L)).thenReturn(tenant);
+        when(tenantRepository.save(tenant)).thenReturn(tenant);
+
+        TenantManagementService.TenantDetailView updated =
+                service.updateContactEmail(7L, " Podcast@Acme.example ");
+
+        assertThat(updated.contactEmail()).isEqualTo("podcast@acme.example");
+        verify(eventPublisher).publishEvent(new TenantRssSnapshotStaleEvent(7L));
+    }
+
+    @Test
+    void updateContactEmailClearsBlankAndMarksStale() {
+        Tenant tenant = new Tenant();
+        tenant.setId(7L);
+        tenant.setSlug("acme");
+        tenant.setName("Acme");
+        tenant.setContactEmail("old@acme.example");
+        tenant.setStatus(TenantStatus.ACTIVE);
+        when(tenantRepository.requireById(7L)).thenReturn(tenant);
+        when(tenantRepository.save(tenant)).thenReturn(tenant);
+
+        TenantManagementService.TenantDetailView updated = service.updateContactEmail(7L, "  ");
+
+        assertThat(updated.contactEmail()).isNull();
+        verify(eventPublisher).publishEvent(new TenantRssSnapshotStaleEvent(7L));
+    }
+
+    @Test
     void updateUploadLimitsPersistsOverridesAndResetsOthersToDefault() {
         Tenant tenant = new Tenant();
         tenant.setId(7L);

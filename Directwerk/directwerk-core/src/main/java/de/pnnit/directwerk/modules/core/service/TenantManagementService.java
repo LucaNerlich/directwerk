@@ -14,6 +14,7 @@ import de.pnnit.directwerk.modules.core.repository.TenantBrandingRepository;
 import de.pnnit.directwerk.modules.core.repository.TenantDomainRepository;
 import de.pnnit.directwerk.modules.core.repository.TenantRepository;
 import de.pnnit.directwerk.modules.content.TenantRssSnapshotStaleEvent;
+import de.pnnit.directwerk.modules.core.util.EmailNormalizer;
 import de.pnnit.directwerk.modules.core.util.SlugNormalizer;
 import de.pnnit.directwerk.modules.core.util.TenantHostname;
 import java.time.Instant;
@@ -249,9 +250,27 @@ public class TenantManagementService {
      */
     @Transactional
     public TenantDetailView updateTenant(Long tenantId, String name, String slug) {
+        return updateTenant(tenantId, name, slug, null, false);
+    }
+
+    /**
+     * Updates name/slug and optionally the podcast contact email.
+     *
+     * @param contactEmail        new contact email when {@code updateContactEmail} is true
+     * @param updateContactEmail  whether to apply {@code contactEmail} (blank clears)
+     */
+    @Transactional
+    public TenantDetailView updateTenant(
+            Long tenantId,
+            String name,
+            String slug,
+            String contactEmail,
+            boolean updateContactEmail
+    ) {
         Tenant tenant = tenantRepository.requireById(tenantId);
         String previousName = tenant.getName();
         String previousSlug = tenant.getSlug();
+        String previousContactEmail = tenant.getContactEmail();
 
         if (StringUtils.hasText(name)) {
             tenant.setName(name.trim());
@@ -266,6 +285,10 @@ public class TenantManagementService {
             tenant.setSlug(normalizedSlug);
         }
 
+        if (updateContactEmail) {
+            tenant.setContactEmail(EmailNormalizer.normalizeOptional(contactEmail));
+        }
+
         Tenant saved;
         try {
             saved = tenantRepository.save(tenant);
@@ -275,7 +298,8 @@ public class TenantManagementService {
             throw asSlugConflict(ex, tenant.getSlug());
         }
         boolean slugChanged = !Objects.equals(previousSlug, saved.getSlug());
-        if (!Objects.equals(previousName, saved.getName()) || slugChanged) {
+        boolean contactChanged = !Objects.equals(previousContactEmail, saved.getContactEmail());
+        if (!Objects.equals(previousName, saved.getName()) || slugChanged || contactChanged) {
             eventPublisher.publishEvent(new TenantRssSnapshotStaleEvent(
                     tenantId,
                     slugChanged ? previousSlug : null
@@ -285,9 +309,25 @@ public class TenantManagementService {
         platformAuditService.record(
                 PlatformAuditActions.TENANT_UPDATED,
                 tenantId,
-                Map.of("name", saved.getName(), "slug", saved.getSlug())
+                Map.of(
+                        "name", saved.getName(),
+                        "slug", saved.getSlug(),
+                        "contactEmail", saved.getContactEmail() == null ? "" : saved.getContactEmail()
+                )
         );
         return toView(saved);
+    }
+
+    /**
+     * Sets or clears the tenant podcast contact email used in generated RSS owner tags.
+     *
+     * @param tenantId     the tenant
+     * @param contactEmail new address, or blank/null to clear
+     * @return updated tenant details
+     */
+    @Transactional
+    public TenantDetailView updateContactEmail(Long tenantId, String contactEmail) {
+        return updateTenant(tenantId, null, null, contactEmail, true);
     }
 
     /**
@@ -349,7 +389,8 @@ public class TenantManagementService {
                         tenant.getMaxImageBytes(),
                         tenant.getMaxVideoBytes(),
                         tenant.getMaxDocumentBytes()
-                )
+                ),
+                tenant.getContactEmail()
         );
     }
 
@@ -396,7 +437,8 @@ public class TenantManagementService {
             Instant createdAt,
             String primaryDomain,
             List<TenantDomainView> domains,
-            TenantUploadLimits uploadLimits
+            TenantUploadLimits uploadLimits,
+            String contactEmail
     ) {
     }
 

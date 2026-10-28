@@ -1,0 +1,38 @@
+info:
+  name: 2 - Update Contact Email
+  type: http
+  seq: 2
+
+http:
+  method: PUT
+  url: "{{baseUrl}}/api/v1/tenant/contact-email"
+  headers:
+    - name: Content-Type
+      value: application/json
+  body:
+    type: json
+    data: |-
+      {
+        "contactEmail": "podcast@alpha-show.local"
+      }
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("returns expected status", function() {
+          expect(res.getStatus() === 200).to.equal(true);
+          expect(res.body.data.contactEmail).to.equal("podcast@alpha-show.local");
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+docs: |-
+  Sets the tenant podcast contact email. Blank/null clears it (owner tags omitted).
+  Changing the value marks podcast RSS snapshots stale for refresh.

@@ -14,6 +14,8 @@ import de.pnnit.directwerk.modules.core.service.MembershipPermissionService;
 import de.pnnit.directwerk.modules.core.service.TenantBrandingService;
 import de.pnnit.directwerk.modules.core.service.TenantDomainService;
 import de.pnnit.directwerk.modules.core.service.TenantInvitationService;
+import de.pnnit.directwerk.modules.core.service.TenantManagementService;
+import de.pnnit.directwerk.modules.core.service.TenantManagementService.TenantDetailView;
 import de.pnnit.directwerk.modules.core.service.TenantMembershipManagementService;
 import de.pnnit.directwerk.modules.core.service.TenantUserQueryService;
 import de.pnnit.directwerk.modules.core.service.TenantUserQueryService.TenantUserPage;
@@ -51,6 +53,7 @@ public class TenantAdminController {
     private final TenantBrandingService tenantBrandingService;
     private final TenantDomainService tenantDomainService;
     private final TenantInvitationService tenantInvitationService;
+    private final TenantManagementService tenantManagementService;
     private final TenantUserQueryService tenantUserQueryService;
     private final TenantMembershipManagementService tenantMembershipManagementService;
     private final MembershipPermissionService membershipPermissionService;
@@ -60,6 +63,7 @@ public class TenantAdminController {
             TenantBrandingService tenantBrandingService,
             TenantDomainService tenantDomainService,
             TenantInvitationService tenantInvitationService,
+            TenantManagementService tenantManagementService,
             TenantUserQueryService tenantUserQueryService,
             TenantMembershipManagementService tenantMembershipManagementService,
             MembershipPermissionService membershipPermissionService,
@@ -68,10 +72,35 @@ public class TenantAdminController {
         this.tenantBrandingService = tenantBrandingService;
         this.tenantDomainService = tenantDomainService;
         this.tenantInvitationService = tenantInvitationService;
+        this.tenantManagementService = tenantManagementService;
         this.tenantUserQueryService = tenantUserQueryService;
         this.tenantMembershipManagementService = tenantMembershipManagementService;
         this.membershipPermissionService = membershipPermissionService;
         this.invitationResponseMapper = invitationResponseMapper;
+    }
+
+    /**
+     * Podcast-directory contact email used in generated RSS/iTunes owner tags.
+     */
+    @GetMapping("/contact-email")
+    ResponseEntity<Response<ContactEmailView>> getContactEmail() {
+        TenantDetailView tenant = tenantManagementService.getTenant(TenantContext.requireTenantId());
+        return ResponseEntity.ok(Response.ok(new ContactEmailView(tenant.contactEmail())));
+    }
+
+    /**
+     * Sets or clears the podcast contact email. Blank/null clears the field (tags omitted
+     * from feeds). Changing the value marks podcast RSS snapshots stale.
+     */
+    @PutMapping("/contact-email")
+    ResponseEntity<Response<ContactEmailView>> updateContactEmail(
+            @Valid @RequestBody ContactEmailUpdateRequest request
+    ) {
+        TenantDetailView tenant = tenantManagementService.updateContactEmail(
+                TenantContext.requireTenantId(),
+                request.contactEmail()
+        );
+        return ResponseEntity.ok(Response.ok(new ContactEmailView(tenant.contactEmail())));
     }
 
     /**
@@ -303,6 +332,14 @@ public class TenantAdminController {
                 branding.getUmamiWebsiteId(),
                 branding.getUmamiHostUrl()
         );
+    }
+
+    public record ContactEmailUpdateRequest(
+            @Email @Size(max = 255) String contactEmail
+    ) {
+    }
+
+    public record ContactEmailView(String contactEmail) {
     }
 
     public record BrandingUpdateRequest(

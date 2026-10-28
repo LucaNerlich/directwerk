@@ -1399,6 +1399,8 @@ export interface TenantDetail {
     domains: TenantDomainSummary[]
     /** Per-type upload overrides; absent on older backends. */
     uploadLimits?: TenantUploadLimits | null
+    /** Podcast RSS/iTunes owner email; null omits owner tags from feeds. */
+    contactEmail?: string | null
 }
 
 export interface TenantDetailResponse {

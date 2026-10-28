@@ -53,7 +53,9 @@ public class RssXmlBuilder {
                 channelItunesCategory(seriesOrNull, episodes),
                 channelExplicit(seriesOrNull, episodes),
                 channelCoverImageUrl,
-                MAX_DESCRIPTION_CHARS
+                MAX_DESCRIPTION_CHARS,
+                tenant.getContactEmail(),
+                tenant.getName()
         );
         return RssXmlWriter.build(
                 channel,

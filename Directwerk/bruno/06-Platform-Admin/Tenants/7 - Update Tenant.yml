@@ -13,7 +13,8 @@ http:
     type: json
     data: |-
       {
-        "name": "Alpha Show C Renamed"
+        "name": "Alpha Show C Renamed",
+        "contactEmail": "podcast@alpha-show-c.local"
       }
   auth: inherit
 
@@ -23,6 +24,9 @@ runtime:
       code: |-
         test("returns expected status", function() {
           expect(res.getStatus() === 200 || res.getStatus() === 404 || res.getStatus() === 409).to.equal(true);
+          if (res.getStatus() === 200) {
+            expect(res.body.data.contactEmail).to.equal("podcast@alpha-show-c.local");
+          }
         });
 
 settings:
@@ -33,5 +37,6 @@ settings:
   forwardAuthorizationHeader: true
 
 docs: |-
-  Renames tenant C (captured as tenantCId by 2 - Create Tenant). Both name and slug are optional --
-  omitting slug leaves it unchanged. 409 TENANT_SLUG_EXISTS if slug collides with another tenant.
+  Renames tenant C (captured as tenantCId by 2 - Create Tenant). Name, slug, and contactEmail are
+  optional -- omitting a field leaves it unchanged. Blank contactEmail clears the podcast RSS owner
+  address. 409 TENANT_SLUG_EXISTS if slug collides with another tenant.

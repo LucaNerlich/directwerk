@@ -137,6 +137,56 @@ class RssFeedServiceTest {
     }
 
     @Test
+    void publicFeedIncludesTenantContactEmailInOwnerTags() {
+        Tenant tenant = tenant();
+        tenant.setContactEmail("podcast@alpha.example");
+        PodcastSeries series = series(tenant);
+        Episode free = episode(tenant, series, 1L, "Free Episode", AccessPolicy.FREE, publicAudio(10L));
+
+        when(publicPodcastQueryService.listPublishedEpisodes(10L, series.getId())).thenReturn(List.of(free));
+        when(episodeDownloadAnalyticsService.publicRssEnclosureUrl(
+                10L,
+                "http",
+                "alpha.example.test",
+                8080,
+                "alpha",
+                "episode-1"
+        )).thenReturn("https://alpha.example.test/feeds/alpha/e/episode-1.mp3");
+
+        String xml = rssFeedService.buildPublicFeed(tenant, series, "http", "alpha.example.test", 8080);
+
+        assertThat(xml).contains("<managingEditor>podcast@alpha.example (Alpha &amp; Co)</managingEditor>");
+        assertThat(xml).contains("<webMaster>podcast@alpha.example (Alpha &amp; Co)</webMaster>");
+        assertThat(xml).contains("<itunes:email>podcast@alpha.example</itunes:email>");
+        assertThat(xml).contains("<itunes:name>Alpha &amp; Co</itunes:name>");
+    }
+
+    @Test
+    void privateFeedIncludesTenantContactEmailInOwnerTags() {
+        Tenant tenant = tenant();
+        tenant.setContactEmail("private@alpha.example");
+        SubscriberFeed feed = feed(tenant);
+        PodcastSeries series = series(tenant);
+        Episode paid = episode(tenant, series, 2L, "Paid Episode", AccessPolicy.PAID, privateAudio(11L));
+
+        when(subscriberFeedAccess.listEntitledEpisodes(10L, 99L, feed)).thenReturn(List.of(paid));
+        when(episodeDownloadAnalyticsService.privateRssEnclosureUrl(
+                10L,
+                "http",
+                "alpha.example.test",
+                8080,
+                "alpha",
+                "tok",
+                "episode-2"
+        )).thenReturn("https://alpha.example.test/feeds/alpha/u/tok/e/episode-2.mp3");
+
+        String xml = rssFeedService.buildPrivateFeed(tenant, feed, "http", "alpha.example.test", 8080);
+
+        assertThat(xml).contains("<itunes:email>private@alpha.example</itunes:email>");
+        assertThat(xml).contains("<managingEditor>private@alpha.example (Alpha &amp; Co)</managingEditor>");
+    }
+
+    @Test
     void feedDefaultsToCleanExplicitAndOmitsMissingCategory() {
         Tenant tenant = tenant();
         PodcastSeries series = series(tenant);
