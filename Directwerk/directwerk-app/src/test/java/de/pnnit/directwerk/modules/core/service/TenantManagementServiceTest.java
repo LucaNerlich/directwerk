@@ -275,20 +275,13 @@ class TenantManagementServiceTest {
     }
 
     @Test
-    void updateContactEmailClearsBlankAndMarksStale() {
-        Tenant tenant = new Tenant();
-        tenant.setId(7L);
-        tenant.setSlug("acme");
-        tenant.setName("Acme");
-        tenant.setContactEmail("old@acme.example");
-        tenant.setStatus(TenantStatus.ACTIVE);
-        when(tenantRepository.requireById(7L)).thenReturn(tenant);
-        when(tenantRepository.save(tenant)).thenReturn(tenant);
-
-        TenantManagementService.TenantDetailView updated = service.updateContactEmail(7L, "  ");
-
-        assertThat(updated.contactEmail()).isNull();
-        verify(eventPublisher).publishEvent(new TenantRssSnapshotStaleEvent(7L));
+    void updateContactEmailRejectsBlank() {
+        assertThatThrownBy(() -> service.updateContactEmail(7L, "  "))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Contact email is required");
+        assertThatThrownBy(() -> service.updateContactEmail(7L, null))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Contact email is required");
     }
 
     @Test

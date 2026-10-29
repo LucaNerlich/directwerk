@@ -3557,7 +3557,8 @@ export interface components {
             updatedAt?: string;
         };
         ContactEmailUpdateRequest: {
-            contactEmail?: string;
+            /** Format: email */
+            contactEmail: string;
         };
         ContactEmailView: {
             contactEmail?: string;

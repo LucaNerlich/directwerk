@@ -18,7 +18,7 @@ http:
         "secondaryColor": "#445566",
         "logoUrl": "https://cdn.example.com/alpha-a/logo.png",
         "faviconUrl": "https://cdn.example.com/alpha-a/favicon.ico",
-        "umamiWebsiteId": "12345678-abcd-abcd-abcd-abcdefabcdef",
+        "umamiWebsiteId": "16515bf8-1283-4a9a-9747-1b6ed4ab5b8a",
         "umamiHostUrl": "https://umami.example.com"
       }
   auth: inherit
@@ -33,7 +33,7 @@ runtime:
           expect(res.body.data.primaryColor).to.equal("#112233");
           expect(res.body.data.secondaryColor).to.equal("#445566");
           expect(res.body.data.faviconUrl).to.equal("https://cdn.example.com/alpha-a/favicon.ico");
-          expect(res.body.data.umamiWebsiteId).to.equal("12345678-abcd-abcd-abcd-abcdefabcdef");
+          expect(res.body.data.umamiWebsiteId).to.equal("16515bf8-1283-4a9a-9747-1b6ed4ab5b8a");
           expect(res.body.data.umamiHostUrl).to.equal("https://umami.example.com");
         });
 
@@ -52,6 +52,7 @@ docs: |-
   absent (null) leaves it untouched.
   logoUrl and faviconUrl must be absolute http(s) URLs (blank clears, absent
   leaves untouched); faviconUrl feeds the public site's browser-tab icon.
-  umamiWebsiteId and umamiHostUrl are required when present: blank/empty returns
-  400 VALIDATION_ERROR (Bean Validation @Pattern) or 400 from the service for
-  whitespace-only values. Absent (null) leaves the stored value untouched.
+  umamiWebsiteId / umamiHostUrl are optional: blank clears both when sent together;
+  absent (null) leaves stored values untouched. Non-blank website ids accept
+  8–64 [a-zA-Z0-9-] chars including real Umami UUIDs. Partial Umami updates
+  (only one of id/host set after apply) return 400 VALIDATION_ERROR.

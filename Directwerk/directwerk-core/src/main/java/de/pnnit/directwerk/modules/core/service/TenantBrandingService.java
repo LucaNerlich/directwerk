@@ -67,16 +67,24 @@ public class TenantBrandingService {
         if (faviconUrl != null) {
             branding.setFaviconUrl(normalizeBrandAssetUrl(faviconUrl, "Favicon URL"));
         }
+        boolean umamiTouched = false;
         if (umamiWebsiteId != null) {
+            umamiTouched = true;
             String normalizedWebsiteId = normalizeUmamiWebsiteId(umamiWebsiteId);
-            if (normalizedWebsiteId == null) {
-                throw new IllegalArgumentException("Umami website id is required");
+            if (normalizedWebsiteId != null && !UmamiWebsiteIdValidator.isValid(normalizedWebsiteId)) {
+                throw new IllegalArgumentException(
+                        "Umami website id must be 8–64 characters (letters, digits, hyphen; UUIDs allowed)"
+                );
             }
             requireWebsiteIdNotClaimedByAnotherTenant(tenantId, normalizedWebsiteId);
             branding.setUmamiWebsiteId(normalizedWebsiteId);
         }
         if (umamiHostUrl != null) {
+            umamiTouched = true;
             branding.setUmamiHostUrl(normalizeUmamiHostUrl(umamiHostUrl));
+        }
+        if (umamiTouched) {
+            requireUmamiFieldsPaired(branding);
         }
         TenantBranding saved;
         try {
@@ -95,6 +103,20 @@ public class TenantBrandingService {
 
     private static String normalizeUmamiWebsiteId(String umamiWebsiteId) {
         return UmamiWebsiteIdValidator.normalize(umamiWebsiteId);
+    }
+
+    /**
+     * Analytics needs both a website id and a host origin (or neither). Partial config after
+     * an update is rejected so a clear of one field cannot leave a dangling partner value.
+     */
+    private static void requireUmamiFieldsPaired(TenantBranding branding) {
+        boolean hasWebsiteId = branding.getUmamiWebsiteId() != null;
+        boolean hasHostUrl = branding.getUmamiHostUrl() != null;
+        if (hasWebsiteId != hasHostUrl) {
+            throw new IllegalArgumentException(
+                    "Umami website id and host URL must both be set or both cleared"
+            );
+        }
     }
 
     /**
@@ -185,7 +207,7 @@ public class TenantBrandingService {
     private static String normalizeUmamiHostUrl(String umamiHostUrl) {
         String normalized = UmamiHostUrlValidator.normalize(umamiHostUrl);
         if (normalized == null) {
-            throw new IllegalArgumentException("Umami host URL is required");
+            return null;
         }
         if (!UmamiHostUrlValidator.isValid(normalized)) {
             throw new IllegalArgumentException("Umami host URL must be an absolute HTTPS URL");

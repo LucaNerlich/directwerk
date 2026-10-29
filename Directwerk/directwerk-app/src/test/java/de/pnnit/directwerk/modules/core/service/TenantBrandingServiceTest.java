@@ -222,19 +222,72 @@ class TenantBrandingServiceTest {
     }
 
     @Test
-    void rejectsBlankUmamiWebsiteId() {
-        assertThatThrownBy(() -> service.updateBranding(
-                10L, null, null, null, null, null, "   ", null))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("Umami website id is required");
+    void blankUmamiFieldsClearWhenBothCleared() {
+        Tenant tenant = new Tenant();
+        tenant.setId(10L);
+        TenantBranding existing = new TenantBranding();
+        existing.setTenant(tenant);
+        existing.setUmamiWebsiteId("abcdefgh");
+        existing.setUmamiHostUrl("https://umami.example.com");
+        when(tenantBrandingRepository.findByTenantId(10L)).thenReturn(Optional.of(existing));
+
+        TenantBranding saved = service.updateBranding(
+                10L, null, null, null, null, null, "   ", "  ");
+
+        assertThat(saved.getUmamiWebsiteId()).isNull();
+        assertThat(saved.getUmamiHostUrl()).isNull();
     }
 
     @Test
-    void rejectsBlankUmamiHostUrl() {
+    void rejectsClearingOnlyUmamiWebsiteId() {
+        Tenant tenant = new Tenant();
+        tenant.setId(10L);
+        TenantBranding existing = new TenantBranding();
+        existing.setTenant(tenant);
+        existing.setUmamiWebsiteId("abcdefgh");
+        existing.setUmamiHostUrl("https://umami.example.com");
+        when(tenantBrandingRepository.findByTenantId(10L)).thenReturn(Optional.of(existing));
+
+        assertThatThrownBy(() -> service.updateBranding(
+                10L, null, null, null, null, null, "   ", null))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("both be set or both cleared");
+    }
+
+    @Test
+    void rejectsClearingOnlyUmamiHostUrl() {
+        Tenant tenant = new Tenant();
+        tenant.setId(10L);
+        TenantBranding existing = new TenantBranding();
+        existing.setTenant(tenant);
+        existing.setUmamiWebsiteId("abcdefgh");
+        existing.setUmamiHostUrl("https://umami.example.com");
+        when(tenantBrandingRepository.findByTenantId(10L)).thenReturn(Optional.of(existing));
+
         assertThatThrownBy(() -> service.updateBranding(
                 10L, null, null, null, null, null, null, "  "))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("Umami host URL is required");
+                .hasMessageContaining("both be set or both cleared");
+    }
+
+    @Test
+    void acceptsRealUmamiWebsiteUuid() {
+        when(tenantBrandingRepository.countOtherTenantsWithWebsiteId(
+                "16515bf8-1283-4a9a-9747-1b6ed4ab5b8a", 10L)).thenReturn(0L);
+
+        TenantBranding saved = service.updateBranding(
+                10L,
+                null,
+                null,
+                null,
+                null,
+                null,
+                "16515bf8-1283-4a9a-9747-1b6ed4ab5b8a",
+                "https://umami.example.com"
+        );
+
+        assertThat(saved.getUmamiWebsiteId()).isEqualTo("16515bf8-1283-4a9a-9747-1b6ed4ab5b8a");
+        assertThat(saved.getUmamiHostUrl()).isEqualTo("https://umami.example.com");
     }
 
     @Test
@@ -244,7 +297,7 @@ class TenantBrandingServiceTest {
         when(tenantBrandingRepository.countOtherTenantsWithWebsiteId("abcdefgh", 10L)).thenReturn(1L);
 
         assertThatThrownBy(() -> service.updateBranding(
-                10L, null, null, null, null, null, "abcdefgh", null))
+                10L, null, null, null, null, null, "abcdefgh", "https://umami.example.com"))
                 .isInstanceOf(IllegalArgumentException.class);
     }
 
@@ -253,9 +306,10 @@ class TenantBrandingServiceTest {
         when(tenantBrandingRepository.countOtherTenantsWithWebsiteId("abcdefgh", 10L)).thenReturn(0L);
 
         TenantBranding saved = service.updateBranding(
-                10L, null, null, null, null, null, "abcdefgh", null);
+                10L, null, null, null, null, null, "abcdefgh", "https://umami.example.com");
 
         assertThat(saved.getUmamiWebsiteId()).isEqualTo("abcdefgh");
+        assertThat(saved.getUmamiHostUrl()).isEqualTo("https://umami.example.com");
     }
 
     @Test
@@ -267,7 +321,7 @@ class TenantBrandingServiceTest {
                 ));
 
         assertThatThrownBy(() -> service.updateBranding(
-                10L, null, null, null, null, null, "abcdefgh", null))
+                10L, null, null, null, null, null, "abcdefgh", "https://umami.example.com"))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("Umami website id is already configured for another tenant");
     }

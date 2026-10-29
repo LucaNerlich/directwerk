@@ -91,7 +91,7 @@ describe('BrandingEditor color picker', () => {
         vi.clearAllMocks()
         siteConfig.enabledModules = ['DIGITAL_CONTENT', 'PODCAST', 'ANALYTICS']
         getBranding.mockResolvedValue(branding)
-        getContactEmail.mockResolvedValue({contactEmail: null})
+        getContactEmail.mockResolvedValue({contactEmail: 'podcast@show.example'})
         updateBranding.mockImplementation(
             async (input: Record<string, unknown>) => ({
                 ...branding,
@@ -99,7 +99,7 @@ describe('BrandingEditor color picker', () => {
             }),
         )
         updateContactEmail.mockImplementation(
-            async (input: {contactEmail: string | null}) => ({
+            async (input: {contactEmail: string}) => ({
                 contactEmail: input.contactEmail,
             }),
         )
@@ -189,7 +189,9 @@ describe('BrandingEditor color picker', () => {
                 umamiHostUrl: 'https://umami.example.com',
             }),
         )
-        expect(updateContactEmail).toHaveBeenCalledWith({contactEmail: null})
+        expect(updateContactEmail).toHaveBeenCalledWith({
+            contactEmail: 'podcast@show.example',
+        })
         await waitFor(() =>
             expect(screen.getByRole('status')).toHaveTextContent(
                 'Branding gespeichert.',
@@ -201,8 +203,9 @@ describe('BrandingEditor color picker', () => {
         getContactEmail.mockResolvedValue({contactEmail: 'owner@show.example'})
         renderWithLocale(<BrandingEditor />)
 
-        const contactField = await screen.findByLabelText('Kontakt-E-Mail')
+        const contactField = await screen.findByLabelText(/Kontakt-E-Mail/)
         expect(contactField).toHaveValue('owner@show.example')
+        expect(contactField).toBeRequired()
         expect(
             screen.getByText(/Erscheint im Podcast-Feed als Owner-E-Mail/),
         ).toBeInTheDocument()
@@ -218,86 +221,112 @@ describe('BrandingEditor color picker', () => {
         expect(updateBranding).toHaveBeenCalled()
     })
 
-    it('allows clearing the podcast contact email', async () => {
+    it('rejects clearing the podcast contact email', async () => {
         getContactEmail.mockResolvedValue({contactEmail: 'owner@show.example'})
         renderWithLocale(<BrandingEditor />)
 
-        const contactField = await screen.findByLabelText('Kontakt-E-Mail')
+        const contactField = await screen.findByLabelText(/Kontakt-E-Mail/)
         fireEvent.change(contactField, {target: {value: '   '}})
         fireEvent.submit(contactField.closest('form') as HTMLFormElement)
 
         await waitFor(() =>
-            expect(updateContactEmail).toHaveBeenCalledWith({contactEmail: null}),
+            expect(screen.getByRole('alert')).toHaveTextContent(
+                'Kontakt-E-Mail ist erforderlich.',
+            ),
         )
+        expect(updateBranding).not.toHaveBeenCalled()
+        expect(updateContactEmail).not.toHaveBeenCalled()
     })
 
     it('rejects an invalid podcast contact email without saving', async () => {
         renderWithLocale(<BrandingEditor />)
-        const contactField = await screen.findByLabelText('Kontakt-E-Mail')
+        const contactField = await screen.findByLabelText(/Kontakt-E-Mail/)
 
         fireEvent.change(contactField, {target: {value: 'not-an-email'}})
         fireEvent.submit(contactField.closest('form') as HTMLFormElement)
 
         await waitFor(() =>
             expect(screen.getByRole('alert')).toHaveTextContent(
-                'Bitte eine gültige Kontakt-E-Mail eingeben oder das Feld leeren.',
+                'Bitte eine gültige Kontakt-E-Mail eingeben.',
             ),
         )
         expect(updateBranding).not.toHaveBeenCalled()
         expect(updateContactEmail).not.toHaveBeenCalled()
     })
 
-    it('blocks save when Umami website ID is only whitespace', async () => {
+    it('blocks save when only Umami website ID is cleared', async () => {
         renderWithLocale(<BrandingEditor />)
-        const websiteField = await screen.findByLabelText(/Umami Website-ID/)
+        const websiteField = await screen.findByLabelText('Umami Website-ID')
         fireEvent.change(websiteField, {target: {value: '   '}})
         fireEvent.submit(websiteField.closest('form') as HTMLFormElement)
 
         await waitFor(() =>
             expect(screen.getByRole('alert')).toHaveTextContent(
-                'Umami Website-ID ist erforderlich.',
+                'Umami Website-ID und Server müssen zusammen gesetzt werden.',
             ),
         )
         expect(updateBranding).not.toHaveBeenCalled()
         expect(updateContactEmail).not.toHaveBeenCalled()
     })
 
-    it('blocks save when Umami server is only whitespace', async () => {
+    it('blocks save when only Umami server is cleared', async () => {
         renderWithLocale(<BrandingEditor />)
-        const serverField = await screen.findByLabelText(/Umami-Server/)
+        const serverField = await screen.findByLabelText('Umami-Server')
         fireEvent.change(serverField, {target: {value: '   '}})
         fireEvent.submit(serverField.closest('form') as HTMLFormElement)
 
         await waitFor(() =>
             expect(screen.getByRole('alert')).toHaveTextContent(
-                'Umami-Server ist erforderlich.',
+                'Umami Website-ID und Server müssen zusammen gesetzt werden.',
             ),
         )
         expect(updateBranding).not.toHaveBeenCalled()
         expect(updateContactEmail).not.toHaveBeenCalled()
     })
 
-    it('marks Umami fields as required', async () => {
-        getBranding.mockResolvedValue({
-            ...branding,
-            umamiWebsiteId: null,
-            umamiHostUrl: null,
-        })
+    it('allows clearing both Umami fields', async () => {
         renderWithLocale(<BrandingEditor />)
-        const websiteField = await screen.findByLabelText(/Umami Website-ID/)
-        const serverField = screen.getByLabelText(/Umami-Server/)
+        const websiteField = await screen.findByLabelText('Umami Website-ID')
+        const serverField = screen.getByLabelText('Umami-Server')
 
-        expect(websiteField).toBeRequired()
-        expect(serverField).toBeRequired()
+        expect(websiteField).not.toBeRequired()
+        expect(serverField).not.toBeRequired()
         expect(
             screen.getByText(
-                'Website-Tracking mit Umami — Website-ID und Server sind erforderlich.',
+                /Optionales Website-Tracking mit Umami/,
             ),
         ).toBeInTheDocument()
 
+        fireEvent.change(websiteField, {target: {value: ''}})
+        fireEvent.change(serverField, {target: {value: ''}})
         fireEvent.submit(websiteField.closest('form') as HTMLFormElement)
-        expect(updateBranding).not.toHaveBeenCalled()
-        expect(screen.queryByRole('status')).not.toBeInTheDocument()
+
+        await waitFor(() =>
+            expect(updateBranding).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    umamiWebsiteId: '',
+                    umamiHostUrl: '',
+                }),
+            ),
+        )
+    })
+
+    it('accepts a real Umami website UUID', async () => {
+        renderWithLocale(<BrandingEditor />)
+        const websiteField = await screen.findByLabelText('Umami Website-ID')
+        fireEvent.change(websiteField, {
+            target: {value: '16515bf8-1283-4a9a-9747-1b6ed4ab5b8a'},
+        })
+        fireEvent.submit(websiteField.closest('form') as HTMLFormElement)
+
+        await waitFor(() =>
+            expect(updateBranding).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    umamiWebsiteId: '16515bf8-1283-4a9a-9747-1b6ed4ab5b8a',
+                    umamiHostUrl: 'https://umami.example.com',
+                }),
+            ),
+        )
     })
 
     it('previews saved primary and draft secondary colors live', async () => {

@@ -191,19 +191,23 @@ export default function BrandingEditor(): React.JSX.Element {
         ) {
             return {error: 'Sekundärfarbe muss #RRGGBB sein.', success: null}
         }
-        if (umamiWebsiteId.length === 0) {
-            return {error: dict.settings.umamiWebsiteIdErforderlich, success: null}
+        const umamiIdSet = umamiWebsiteId.length > 0
+        const umamiHostSet = umamiHostUrl.length > 0
+        if (umamiIdSet !== umamiHostSet) {
+            return {
+                error: umamiIdSet
+                    ? dict.settings.umamiServerErforderlich
+                    : dict.settings.umamiWebsiteIdErforderlich,
+                success: null,
+            }
         }
-        if (umamiHostUrl.length === 0) {
-            return {error: dict.settings.umamiServerErforderlich, success: null}
-        }
-        if (!UMAMI_PATTERN.test(umamiWebsiteId)) {
+        if (umamiIdSet && !UMAMI_PATTERN.test(umamiWebsiteId)) {
             return {
                 error: dict.settings.umamiWebsiteIdMuss864,
                 success: null,
             }
         }
-        if (!UMAMI_HOST_PATTERN.test(umamiHostUrl)) {
+        if (umamiHostSet && !UMAMI_HOST_PATTERN.test(umamiHostUrl)) {
             return {
                 error: dict.settings.umamiServerMussHttpsOrigin,
                 success: null,
@@ -221,7 +225,13 @@ export default function BrandingEditor(): React.JSX.Element {
                 success: null,
             }
         }
-        if (contactEmailValue.length > 0 && !isValidEmail(contactEmailValue)) {
+        if (contactEmailValue.length === 0) {
+            return {
+                error: dict.settings.kontaktEMailErforderlich,
+                success: null,
+            }
+        }
+        if (!isValidEmail(contactEmailValue)) {
             return {
                 error: dict.settings.kontaktEMailUngueltig,
                 success: null,
@@ -236,11 +246,12 @@ export default function BrandingEditor(): React.JSX.Element {
                     secondaryColor: secondaryColor ?? null,
                     logoUrl: logoUrl.length > 0 ? logoUrl : null,
                     faviconUrl: faviconUrl.length > 0 ? faviconUrl : null,
+                    // Empty string clears; both empty is allowed (optional analytics).
                     umamiWebsiteId,
                     umamiHostUrl,
                 }),
                 updateContactEmail({
-                    contactEmail: contactEmailValue.length > 0 ? contactEmailValue : null,
+                    contactEmail: contactEmailValue,
                 }),
             ])
             setBranding(updated)
@@ -553,15 +564,22 @@ export default function BrandingEditor(): React.JSX.Element {
                     </CardHeader>
                     <CardContent className="grid gap-5">
                         <div className="grid gap-2">
-                            <Label htmlFor="contactEmail">{dict.settings.kontaktEMail}</Label>
+                            <Label htmlFor="contactEmail">
+                                {dict.settings.kontaktEMail}{' '}
+                                <span className="font-normal text-muted-foreground">
+                                    ({dict.common.required})
+                                </span>
+                            </Label>
                             <Input
                                 aria-describedby="contactEmail-help"
+                                aria-required="true"
                                 defaultValue={contactEmail ?? ''}
                                 id="contactEmail"
                                 key={contactEmail ?? ''}
                                 maxLength={255}
                                 name="contactEmail"
                                 placeholder="podcast@example.com"
+                                required
                                 type="email"
                             />
                             <p className="text-xs text-muted-foreground" id="contactEmail-help">
@@ -577,21 +595,14 @@ export default function BrandingEditor(): React.JSX.Element {
                     </CardHeader>
                     <CardContent className="grid gap-5">
                 <div className="grid gap-2">
-                    <Label htmlFor="umamiWebsiteId">
-                        {dict.settings.umamiWebsiteId}{' '}
-                        <span className="font-normal text-muted-foreground">
-                            ({dict.common.required})
-                        </span>
-                    </Label>
+                    <Label htmlFor="umamiWebsiteId">{dict.settings.umamiWebsiteId}</Label>
                     <Input
                         aria-describedby="umamiWebsiteId-help"
-                        aria-required="true"
                         defaultValue={branding?.umamiWebsiteId ?? ''}
                         id="umamiWebsiteId"
                         maxLength={64}
                         name="umamiWebsiteId"
-                        placeholder="z. B. abc12345-def6-…"
-                        required
+                        placeholder="z. B. 16515bf8-1283-4a9a-9747-1b6ed4ab5b8a"
                         type="text"
                     />
                     <p className="text-xs text-muted-foreground" id="umamiWebsiteId-help">
@@ -599,21 +610,14 @@ export default function BrandingEditor(): React.JSX.Element {
                     </p>
                 </div>
                 <div className="grid gap-2">
-                    <Label htmlFor="umamiHostUrl">
-                        {dict.settings.umamiServer}{' '}
-                        <span className="font-normal text-muted-foreground">
-                            ({dict.common.required})
-                        </span>
-                    </Label>
+                    <Label htmlFor="umamiHostUrl">{dict.settings.umamiServer}</Label>
                     <Input
                         aria-describedby="umamiHostUrl-help"
-                        aria-required="true"
                         defaultValue={branding?.umamiHostUrl ?? ''}
                         id="umamiHostUrl"
                         maxLength={512}
                         name="umamiHostUrl"
                         placeholder="https://umami.example.com"
-                        required
                         type="url"
                     />
                     <p className="text-xs text-muted-foreground" id="umamiHostUrl-help">

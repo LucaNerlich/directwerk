@@ -319,14 +319,18 @@ public class TenantManagementService {
     }
 
     /**
-     * Sets or clears the tenant podcast contact email used in generated RSS owner tags.
+     * Sets the tenant podcast contact email used in generated RSS owner tags.
+     * Blank/null is rejected — tenant admins cannot clear the mailbox via this path.
      *
      * @param tenantId     the tenant
-     * @param contactEmail new address, or blank/null to clear
+     * @param contactEmail new address (required, non-blank)
      * @return updated tenant details
      */
     @Transactional
     public TenantDetailView updateContactEmail(Long tenantId, String contactEmail) {
+        if (!StringUtils.hasText(contactEmail)) {
+            throw new IllegalArgumentException("Contact email is required");
+        }
         return updateTenant(tenantId, null, null, contactEmail, true);
     }
 

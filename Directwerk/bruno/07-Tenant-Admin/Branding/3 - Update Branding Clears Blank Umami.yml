@@ -1,0 +1,42 @@
+info:
+  name: 3 - Update Branding Clears Blank Umami
+  type: http
+  seq: 3
+
+http:
+  method: PUT
+  url: "{{baseUrl}}/api/v1/tenant/branding"
+  headers:
+    - name: Content-Type
+      value: application/json
+  body:
+    type: json
+    data: |-
+      {
+        "umamiWebsiteId": "",
+        "umamiHostUrl": ""
+      }
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("clears blank Umami fields", function() {
+          expect(res.getStatus() === 200).to.equal(true);
+          expect(res.body.data.umamiWebsiteId === null).to.equal(true);
+          expect(res.body.data.umamiHostUrl === null).to.equal(true);
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+docs: |-
+  Empty umamiWebsiteId / umamiHostUrl clear analytics config (both null).
+  Omit the fields (null/absent) to leave stored values untouched.
+  Setting only one of the two is rejected (must both be set or both cleared).
+  Non-blank website ids may be numeric (8+ chars) or Umami UUIDs.
