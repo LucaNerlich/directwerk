@@ -89,8 +89,9 @@ public class TenantAdminController {
     }
 
     /**
-     * Sets or clears the podcast contact email. Blank/null clears the field (tags omitted
-     * from feeds). Changing the value marks podcast RSS snapshots stale.
+     * Sets the podcast contact email (required). Changing the value marks podcast RSS
+     * snapshots stale. Blank/null is rejected — owner tags always have an address once set
+     * via this tenant-admin endpoint.
      */
     @PutMapping("/contact-email")
     ResponseEntity<Response<ContactEmailView>> updateContactEmail(
@@ -335,7 +336,7 @@ public class TenantAdminController {
     }
 
     public record ContactEmailUpdateRequest(
-            @Email @Size(max = 255) String contactEmail
+            @NotBlank @Email @Size(max = 255) String contactEmail
     ) {
     }
 
@@ -348,9 +349,10 @@ public class TenantAdminController {
             @Pattern(regexp = "^\\s*$|^#[0-9A-Fa-f]{6}$") String secondaryColor,
             String logoUrl,
             String faviconUrl,
-            // Null leaves the stored value untouched; blank/empty is rejected (fields are required when set).
-            @Pattern(regexp = "^[a-zA-Z0-9-]{8,64}$") String umamiWebsiteId,
-            @Pattern(regexp = "^https://[^/\\s?#@]+/?$") String umamiHostUrl
+            // Null leaves the stored value untouched; blank/whitespace clears. Non-blank must be
+            // 8–64 chars of [a-zA-Z0-9-] (covers numeric ids and real Umami website UUIDs).
+            @Pattern(regexp = "^\\s*$|^[a-zA-Z0-9-]{8,64}$") String umamiWebsiteId,
+            @Pattern(regexp = "^\\s*$|^https://[^/\\s?#@]+/?$") String umamiHostUrl
     ) {
     }
 

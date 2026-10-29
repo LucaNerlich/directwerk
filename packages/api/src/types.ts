@@ -1210,8 +1210,8 @@ export interface TenantContactEmail {
 }
 
 export interface UpdateTenantContactEmailInput {
-    /** Blank/null clears the field (owner tags omitted from feeds). */
-    contactEmail: string | null
+    /** Required non-blank mailbox for podcast RSS/iTunes owner tags. */
+    contactEmail: string
 }
 
 export interface TenantSubscriber {

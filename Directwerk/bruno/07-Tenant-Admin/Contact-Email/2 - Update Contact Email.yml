@@ -34,5 +34,6 @@ settings:
   forwardAuthorizationHeader: true
 
 docs: |-
-  Sets the tenant podcast contact email. Blank/null clears it (owner tags omitted).
-  Changing the value marks podcast RSS snapshots stale for refresh.
+  Sets the tenant podcast contact email (required). Blank/null returns 400
+  VALIDATION_ERROR — tenant admins cannot clear the mailbox. Changing the value
+  marks podcast RSS snapshots stale for refresh.

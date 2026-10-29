@@ -1,11 +1,11 @@
 info:
-  name: 3 - Update Branding Rejects Blank Umami
+  name: 3 - Update Contact Email Rejects Blank
   type: http
   seq: 3
 
 http:
   method: PUT
-  url: "{{baseUrl}}/api/v1/tenant/branding"
+  url: "{{baseUrl}}/api/v1/tenant/contact-email"
   headers:
     - name: Content-Type
       value: application/json
@@ -13,8 +13,7 @@ http:
     type: json
     data: |-
       {
-        "umamiWebsiteId": "",
-        "umamiHostUrl": ""
+        "contactEmail": ""
       }
   auth: inherit
 
@@ -22,7 +21,7 @@ runtime:
   scripts:
     - type: tests
       code: |-
-        test("rejects blank Umami fields", function() {
+        test("rejects blank contact email", function() {
           expect(res.getStatus() === 400).to.equal(true);
           expect(res.body.errors[0].code).to.equal("VALIDATION_ERROR");
         });
@@ -35,6 +34,5 @@ settings:
   forwardAuthorizationHeader: true
 
 docs: |-
-  Empty umamiWebsiteId / umamiHostUrl must not clear analytics config.
-  Bean Validation @Pattern rejects blank strings with 400 VALIDATION_ERROR.
-  Omit the fields (null/absent) to leave stored values untouched.
+  Blank/null contactEmail is rejected with 400 VALIDATION_ERROR.
+  Podcast contact email is required for tenant-admin updates.
