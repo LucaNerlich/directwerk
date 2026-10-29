@@ -12,11 +12,14 @@ import {mockHtmlMedia} from '@/lib/player/mockHtmlMedia'
 import {TestLocale} from '@/lib/i18n/testWrapper'
 
 const TRACK: PlayerTrack = {
+    id: 11,
     slug: 'demo-folge',
     title: 'Demo Folge',
+    episodeTitle: 'Demo Folge',
     audioUrl: 'https://cdn.example.com/demo.mp3',
     coverImageUrl: null,
     href: '/de/episodes/demo-folge',
+    seriesSlug: 'demo-serie',
 }
 
 function Harness({

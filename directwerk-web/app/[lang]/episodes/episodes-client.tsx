@@ -16,6 +16,7 @@ import AccessPolicyBadge from '@/components/AccessPolicyBadge'
 import CatalogMediaThumb from '@/components/CatalogMediaThumb'
 import CatalogRow, {LockedCatalogAction} from '@/components/CatalogRow'
 import ContentMetaLine from '@/components/ContentMetaLine'
+import EpisodeListenButton from '@/components/EpisodeListenButton'
 import {ListPanelSkeleton} from '@/components/ContentLoadingSkeleton'
 import {PublicFeedStrip} from '@/components/PublicFeedFooter'
 import SubscriberContextBanner from '@/components/SubscriberContextBanner'
@@ -203,16 +204,7 @@ export default function EpisodesClient({
                                             />
                                             <div className="flex flex-wrap gap-2">
                                                 {featured.audioCdnUrl !== null ? (
-                                                    <Button
-                                                        nativeButton={false}
-                                                        render={
-                                                            <Link
-                                                                href={localizedPath(lang, `/episodes/${encodeURIComponent(featured.slug)}`)}
-                                                            />
-                                                        }
-                                                    >
-                                                        {common.listen}
-                                                    </Button>
+                                                    <EpisodeListenButton episode={featured} />
                                                 ) : featured.accessPolicy === 'PAID' ? (
                                                     <LockedCatalogAction
                                                         isAuthenticated={isAuthenticated}
@@ -266,14 +258,11 @@ export default function EpisodesClient({
                                                     ]}
                                                     action={
                                                         episode.audioCdnUrl !== null ? (
-                                                            <Button
-                                                                nativeButton={false}
-                                                                render={<Link href={href} />}
+                                                            <EpisodeListenButton
+                                                                episode={episode}
                                                                 size="sm"
                                                                 variant="outline"
-                                                            >
-                                                                {common.listen}
-                                                            </Button>
+                                                            />
                                                         ) : isLocked ? (
                                                             <LockedCatalogAction
                                                                 isAuthenticated={isAuthenticated}

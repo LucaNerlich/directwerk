@@ -92,7 +92,13 @@ describe('EpisodeDetailClient content rendering', () => {
             await waitFor(() =>
                 expect(track).toHaveBeenCalledWith('episode-play', {
                     url: '/episodes/sichere-folge',
+                    slug: 'sichere-folge',
                     episodeSlug: 'sichere-folge',
+                    episodeId: '7',
+                    seriesSlug: 'sichere-serie',
+                    title: 'Sichere Folge',
+                    episodeTitle: 'Sichere Folge',
+                    source: 'web-player',
                 }),
             )
 
