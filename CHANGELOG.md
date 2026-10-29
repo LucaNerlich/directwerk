@@ -4,6 +4,42 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-10-29
+
+### Added
+
+- Tenant contact email on the tenant admin API, surfaced in podcast RSS / iTunes owner tags.
+- Studio notify-subscribers preview, delivery status and retry for publish fan-out.
+- Studio subscriber entitlement debugger for diagnosing product access.
+- Persistent mini-player across public site routes.
+- Guided domain verification wizard in studio.
+- Private-feed onboarding for new subscribers on the public site.
+- Public `GET` episode-by-slug endpoint so web detail pages skip a full catalog scan.
+- Brand-driven startpage with an unstretched hero, and matching brand atmosphere on the homepage and studio.
+- Mailgun send-test that delivers to all tenant admins via the email job pipeline.
+- Shared Fuse.js fuzzy search for studio and admin list UIs.
+- Filename search in the studio media library.
+- Rename a media asset from its first content reference.
+
+### Changed
+
+- Pinned the workspace to Node 24 and pnpm 10.x, and removed the legacy `.npmrc`.
+- Studio Schreiben desk labels renamed to Artikel.
+- Email notify publish flow uses locale-aware deep links.
+
+### Fixed
+
+- Public site LCP and SSR: seed catalog pages like home, cache anonymous BFF reads, preload only the true LCP image, drop the hero opacity entrance delay, wrap long brand titles, and keep SSR detail visible while entitled fetches run.
+- Studio media library: truthful folder counts, orphan filter, content references, inline audio player, grouped Mediathek search, rename-from-reference UX, move-dialog target stability, and page/search for directories.
+- Studio uploads no longer 502 under Coolify: spool before S3 PUT and raise the idle timeout / Traefik labels.
+- Episode create keeps selected audio across redirect; article/episode editors, lists and RSS import share parameterised clients with BFF pagination allowlists.
+- Stripe live status resolves outside the webhook transaction; canceled rows can rebind; currencies that `priceCents` cannot express are rejected.
+- Cross-origin studio logout and tenant-select are rejected.
+- Feed and asset safety: cap private snapshot URL lifetime, durable feed-presence invalidation, refuse deleting media still used by published content, and map status-carrying exceptions correctly.
+- Analytics: episode identity on download events; Umami branding requires website ID and server; session-replay recorder deferred past hydration / with `lazyOnload`.
+- Queue and email: one failing queue no longer starves `pollAll`; after-commit failures no longer fail the request; email transport config validated at startup; Mailgun test uses the email job + template path.
+- Misc API: paged episode/article lists, media offset paging, 404 for known-missing slugs, bodyless DELETE through the tenant BFF, robots/sitemap kept out of the locale proxy, and batch rights IDs through the platform proxy.
+
 ## [0.1.1] - 2026-10-22
 
 ### Changed
