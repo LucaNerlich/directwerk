@@ -38,5 +38,6 @@ settings:
 docs: |-
   Empty umamiWebsiteId / umamiHostUrl clear analytics config (both null).
   Omit the fields (null/absent) to leave stored values untouched.
-  Setting only one of the two is rejected (must both be set or both cleared).
-  Non-blank website ids may be numeric (8+ chars) or Umami UUIDs.
+  Website id without host is allowed (platform default origin). Host without
+  website id is rejected. Non-blank website ids may be numeric (8+ chars) or
+  Umami UUIDs.

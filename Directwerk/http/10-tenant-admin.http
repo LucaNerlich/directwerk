@@ -127,6 +127,34 @@ Accept: application/json
 
 ###
 
+### @name updateBrandingUuidWithoutHost
+# Studio payload shape: UUID website id with blank host (platform default origin).
+PUT {{baseUrl}}/api/v1/tenant/branding
+Host: {{tenantAHost}}
+Authorization: Bearer {{tenantAAccessToken}}
+Content-Type: application/json
+Accept: application/json
+
+{
+  "siteTitle": "Meine Sendung",
+  "primaryColor": "#112233",
+  "secondaryColor": null,
+  "logoUrl": null,
+  "faviconUrl": null,
+  "umamiWebsiteId": "16515bf8-1283-4a9a-9747-1b6ed4ab5b8a",
+  "umamiHostUrl": ""
+}
+
+> {%
+    client.test("Accept Umami UUID without host override", function() {
+        client.assert(response.status === 200, "Expected 200");
+        client.assert(response.body.data.umamiWebsiteId === "16515bf8-1283-4a9a-9747-1b6ed4ab5b8a", "Expected umamiWebsiteId");
+        client.assert(response.body.data.umamiHostUrl === null, "Expected umamiHostUrl cleared to platform default");
+    });
+%}
+
+###
+
 ### @name updateContactEmailRejectsBlank
 # Podcast contact email is required — blank/null returns 400 VALIDATION_ERROR.
 PUT {{baseUrl}}/api/v1/tenant/contact-email

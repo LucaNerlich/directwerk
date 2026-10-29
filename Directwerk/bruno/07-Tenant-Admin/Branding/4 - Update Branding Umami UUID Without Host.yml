@@ -1,0 +1,47 @@
+info:
+  name: 4 - Update Branding Umami UUID Without Host
+  type: http
+  seq: 4
+
+http:
+  method: PUT
+  url: "{{baseUrl}}/api/v1/tenant/branding"
+  headers:
+    - name: Content-Type
+      value: application/json
+  body:
+    type: json
+    data: |-
+      {
+        "siteTitle": "Meine Sendung",
+        "primaryColor": "#112233",
+        "secondaryColor": null,
+        "logoUrl": null,
+        "faviconUrl": null,
+        "umamiWebsiteId": "16515bf8-1283-4a9a-9747-1b6ed4ab5b8a",
+        "umamiHostUrl": ""
+      }
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("accepts Studio UUID payload with blank host", function() {
+          expect(res.getStatus()).to.equal(200);
+          expect(res.body.data.umamiWebsiteId).to.equal("16515bf8-1283-4a9a-9747-1b6ed4ab5b8a");
+          expect(res.body.data.umamiHostUrl).to.equal(null);
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+docs: |-
+  Mirrors the Studio BrandingEditor save body when a creator pastes a real Umami
+  website UUID and leaves the server field empty (platform UMAMI_HOST_URL).
+  Regression for opaque 400 VALIDATION_ERROR (field null) from the old
+  require-both-or-neither pairing rule.

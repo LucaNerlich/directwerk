@@ -52,7 +52,8 @@ docs: |-
   absent (null) leaves it untouched.
   logoUrl and faviconUrl must be absolute http(s) URLs (blank clears, absent
   leaves untouched); faviconUrl feeds the public site's browser-tab icon.
-  umamiWebsiteId / umamiHostUrl are optional: blank clears both when sent together;
-  absent (null) leaves stored values untouched. Non-blank website ids accept
-  8–64 [a-zA-Z0-9-] chars including real Umami UUIDs. Partial Umami updates
-  (only one of id/host set after apply) return 400 VALIDATION_ERROR.
+  umamiWebsiteId / umamiHostUrl are optional. Blank website id clears tracking;
+  blank host clears the tenant override (platform UMAMI_HOST_URL is used).
+  Absent (null) leaves stored values untouched. Non-blank website ids accept
+  8–64 [a-zA-Z0-9-] chars including real Umami UUIDs. A host override without
+  a website id returns 400 VALIDATION_ERROR.

@@ -84,7 +84,7 @@ public class TenantBrandingService {
             branding.setUmamiHostUrl(normalizeUmamiHostUrl(umamiHostUrl));
         }
         if (umamiTouched) {
-            requireUmamiFieldsPaired(branding);
+            requireUmamiHostNotOrphaned(branding);
         }
         TenantBranding saved;
         try {
@@ -106,15 +106,14 @@ public class TenantBrandingService {
     }
 
     /**
-     * Analytics needs both a website id and a host origin (or neither). Partial config after
-     * an update is rejected so a clear of one field cannot leave a dangling partner value.
+     * A host override without a website id cannot track anything, so reject that orphan.
+     * Website id alone is valid: {@link de.pnnit.directwerk.modules.core.analytics.UmamiAnalyticsResolver}
+     * falls back to the platform {@code UMAMI_HOST_URL} when the tenant host is blank.
      */
-    private static void requireUmamiFieldsPaired(TenantBranding branding) {
-        boolean hasWebsiteId = branding.getUmamiWebsiteId() != null;
-        boolean hasHostUrl = branding.getUmamiHostUrl() != null;
-        if (hasWebsiteId != hasHostUrl) {
+    private static void requireUmamiHostNotOrphaned(TenantBranding branding) {
+        if (branding.getUmamiWebsiteId() == null && branding.getUmamiHostUrl() != null) {
             throw new IllegalArgumentException(
-                    "Umami website id and host URL must both be set or both cleared"
+                    "Umami host URL requires a website id (or clear both)"
             );
         }
     }
