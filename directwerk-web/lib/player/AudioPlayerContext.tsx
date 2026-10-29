@@ -19,12 +19,18 @@ import {trackEpisodePlay} from '@/lib/analytics/umamiTrack'
  * stay in memory for the session only.
  */
 export interface PlayerTrack {
+    /** Catalog episode id when known (Umami `episodeId`). */
+    id?: number | null
     slug: string
+    /** UI label (may include `#N` prefix). */
     title: string
+    /** Raw catalog title for analytics (matches download event props). */
+    episodeTitle?: string | null
     audioUrl: string
     coverImageUrl: string | null
     /** Locale-prefixed href to the episode detail page. */
     href: string
+    seriesSlug?: string | null
 }
 
 interface AudioPlayerValue {
@@ -53,8 +59,12 @@ export function AudioPlayerProvider({
     const [isPlaying, setIsPlaying] = useState(false)
     const [currentTime, setCurrentTime] = useState(0)
     const [duration, setDuration] = useState(0)
-    /** Slug awaiting the next successful `play` event for Umami. */
-    const pendingPlayTrackSlugRef = useRef<string | null>(null)
+    /**
+     * Track awaiting the next successful `play` for Umami.
+     * Cleared after the first `play` of a loaded source so pause/resume/seek
+     * do not double-count (once per play session / src load).
+     */
+    const pendingPlayTrackRef = useRef<PlayerTrack | null>(null)
     /** Slug currently loaded into the `<audio>` element. */
     const loadedSlugRef = useRef<string | null>(null)
     /** `audioUrl` currently assigned to `<audio src>` (presigns can rotate). */
@@ -74,12 +84,16 @@ export function AudioPlayerProvider({
         }
         const onPlay = (): void => {
             setIsPlaying(true)
-            const slug = pendingPlayTrackSlugRef.current
-            if (slug !== null) {
-                trackEpisodePlay(slug)
-                // Once per load; dismiss clears the ref so a later replay of
-                // the same slug after dismiss still reports.
-                pendingPlayTrackSlugRef.current = null
+            const pending = pendingPlayTrackRef.current
+            if (pending !== null) {
+                trackEpisodePlay({
+                    slug: pending.slug,
+                    episodeId: pending.id,
+                    seriesSlug: pending.seriesSlug,
+                    title: pending.episodeTitle ?? pending.title,
+                })
+                // Once per src load; dismiss (or a new src) re-arms the ref.
+                pendingPlayTrackRef.current = null
             }
         }
         const onPause = (): void => {
@@ -121,7 +135,7 @@ export function AudioPlayerProvider({
             loadedUrlRef.current === next.audioUrl
         setTrack(next)
         if (!sameSource) {
-            pendingPlayTrackSlugRef.current = next.slug
+            pendingPlayTrackRef.current = next
             loadedSlugRef.current = next.slug
             loadedUrlRef.current = next.audioUrl
             // Assigning `src` runs the media load algorithm; avoid an extra
@@ -187,7 +201,7 @@ export function AudioPlayerProvider({
                 // Same as pause — clearing src is enough for real browsers.
             }
         }
-        pendingPlayTrackSlugRef.current = null
+        pendingPlayTrackRef.current = null
         loadedSlugRef.current = null
         loadedUrlRef.current = null
         setTrack(null)

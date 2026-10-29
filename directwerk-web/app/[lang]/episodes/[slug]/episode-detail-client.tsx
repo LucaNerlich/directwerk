@@ -12,6 +12,7 @@ import ContentMetaLine from '@/components/ContentMetaLine'
 import DetailShell, {DetailLockedPanel} from '@/components/DetailShell'
 import EpisodeAudioPlayer from '@/components/EpisodeAudioPlayer'
 import {listMyEpisodes} from '@/lib/api/client'
+import {playerTrackFromEpisode} from '@/lib/player/playerTrack'
 import {sanitizeContentHtml} from '@/lib/sanitizeContentHtml'
 import {
     getAccessToken,
@@ -77,6 +78,16 @@ export default function EpisodeDetailClient({
         episode !== null
             ? `${episode.episodeNumber !== null ? `#${episode.episodeNumber} ` : ''}${episode.title}`
             : ''
+    const playerTrack =
+        episode !== null
+            ? playerTrackFromEpisode(
+                  episode,
+                  localizedPath(
+                      lang,
+                      `/episodes/${encodeURIComponent(episode.slug)}`,
+                  ),
+              )
+            : null
     const isLocked = episode !== null && episode.audioCdnUrl === null
     const hasEmptySlug = slug.length === 0
 
@@ -148,19 +159,8 @@ export default function EpisodeDetailClient({
                     </div>
                     <section className="flex flex-col gap-3 rounded-xl border bg-card p-5">
                         <SectionHeader title={common.player} />
-                        {episode.audioCdnUrl !== null ? (
-                            <EpisodeAudioPlayer
-                                track={{
-                                    slug: episode.slug,
-                                    title,
-                                    audioUrl: episode.audioCdnUrl,
-                                    coverImageUrl: episode.coverImageUrl,
-                                    href: localizedPath(
-                                        lang,
-                                        `/episodes/${episode.slug}`,
-                                    ),
-                                }}
-                            />
+                        {playerTrack !== null ? (
+                            <EpisodeAudioPlayer track={playerTrack} />
                         ) : episode.accessPolicy === 'PAID' ? (
                             <DetailLockedPanel
                                 title={catalog.lockedEpisodeTitle}

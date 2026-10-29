@@ -24,8 +24,13 @@ export default function EpisodeAudioPlayer({
     const showingPlaying = isThisTrack && isPlaying
 
     function handlePrimary(): void {
-        // Same slug with a rotated entitled URL must reload src, not toggle.
-        if (isThisTrack && active?.audioUrl === track.audioUrl) {
+        // Pause while playing even if this page's entitled URL rotated
+        // (fresh presign vs the loaded src) — do not re-arm Umami mid-play.
+        // Same slug paused + rotated URL still reloads via playTrack below.
+        if (
+            isThisTrack &&
+            (isPlaying || active?.audioUrl === track.audioUrl)
+        ) {
             togglePlay()
             return
         }
