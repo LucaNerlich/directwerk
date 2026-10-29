@@ -64,7 +64,13 @@ function EpisodeListenButtonReady({
                 showingPlaying ? catalog.playerPause : catalog.playerPlay
             }
             onClick={() => {
-                if (isThisTrack && active?.audioUrl === track.audioUrl) {
+                // Pause while playing even if the catalog row's entitled URL
+                // rotated (fresh presign) — swapping src mid-play would re-arm
+                // Umami and fire a second episode-play.
+                if (
+                    isThisTrack &&
+                    (isPlaying || active?.audioUrl === track.audioUrl)
+                ) {
                     togglePlay()
                     return
                 }

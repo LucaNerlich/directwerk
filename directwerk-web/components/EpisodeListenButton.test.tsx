@@ -103,4 +103,57 @@ describe('EpisodeListenButton', () => {
         )
         expect(screen.queryByRole('button')).toBeNull()
     })
+
+    it('pauses without a second episode-play when the entitled URL rotated', async () => {
+        const track = vi.fn()
+        ;(window as unknown as {umami: unknown}).umami = {track}
+        const media = mockHtmlMedia()
+        try {
+            // Two surfaces (list vs detail) with independent fresh presigns.
+            render(
+                <TestLocale>
+                    <AudioPlayerProvider>
+                        <EpisodeListenButton
+                            episode={buildEpisode({
+                                audioCdnUrl:
+                                    'https://cdn.example.com/folge-1-a.mp3',
+                            })}
+                        />
+                        <EpisodeListenButton
+                            episode={buildEpisode({
+                                audioCdnUrl:
+                                    'https://cdn.example.com/folge-1-b.mp3',
+                            })}
+                            variant="outline"
+                        />
+                        <MiniPlayer />
+                    </AudioPlayerProvider>
+                </TestLocale>,
+            )
+
+            const listenButtons = screen.getAllByRole('button', {
+                name: 'Abspielen',
+            })
+            fireEvent.click(listenButtons[0]!)
+            await waitFor(() => expect(track).toHaveBeenCalledTimes(1))
+
+            const pauseButtons = screen.getAllByRole('button', {
+                name: 'Pause',
+            })
+            // Click the other surface's Pause (different audioUrl, same slug).
+            fireEvent.click(pauseButtons[pauseButtons.length - 1]!)
+            await waitFor(() =>
+                expect(
+                    screen.getAllByRole('button', {name: 'Abspielen'}).length,
+                ).toBeGreaterThan(0),
+            )
+            expect(track).toHaveBeenCalledTimes(1)
+        } finally {
+            media.restore()
+            Reflect.deleteProperty(
+                window as unknown as Record<string, unknown>,
+                'umami',
+            )
+        }
+    })
 })
