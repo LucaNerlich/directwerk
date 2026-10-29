@@ -2,6 +2,42 @@
 ### Prerequisites: 02-oauth2.http (tenantAAccessToken)
 ### Accept invite via 03-auth.http using inviteToken
 
+### @name getContactEmail
+GET {{baseUrl}}/api/v1/tenant/contact-email
+Host: {{tenantAHost}}
+Authorization: Bearer {{tenantAAccessToken}}
+Accept: application/json
+
+> {%
+    client.test("Get contact email", function() {
+        client.assert(response.status === 200, "Expected 200");
+        client.assert(response.body.data.hasOwnProperty("contactEmail"), "Expected contactEmail");
+    });
+%}
+
+###
+
+### @name updateContactEmail
+PUT {{baseUrl}}/api/v1/tenant/contact-email
+Host: {{tenantAHost}}
+Authorization: Bearer {{tenantAAccessToken}}
+Content-Type: application/json
+Accept: application/json
+
+{
+  "contactEmail": "podcast@alpha-show.local"
+}
+
+> {%
+    client.test("Update contact email", function() {
+        client.assert(response.status === 200, "Expected 200");
+        client.assert(response.body.data.contactEmail === "podcast@alpha-show.local",
+            "Expected normalized contact email");
+    });
+%}
+
+###
+
 ### @name getBranding
 GET {{baseUrl}}/api/v1/tenant/branding
 Host: {{tenantAHost}}

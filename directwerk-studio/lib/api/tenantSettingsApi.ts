@@ -1,6 +1,6 @@
 'use client'
 
-import {parseBrandingEnvelope, parseContentEmailTemplateEnvelope, parseDomainEnvelope, parseDomainListEnvelope, parseDomainVerificationEnvelope, parseEffectiveRightsEnvelope, parseInviteTenantUserEnvelope, parsePermissionRestrictionListEnvelope, parseSubscriberAccessEnvelope, parseSubscriberDirectoryPage, parseTenantUserDirectoryPage, parseTenantUserEnvelope} from '@directwerk/api/validation/catalog'
+import {parseBrandingEnvelope, parseContactEmailEnvelope, parseContentEmailTemplateEnvelope, parseDomainEnvelope, parseDomainListEnvelope, parseDomainVerificationEnvelope, parseEffectiveRightsEnvelope, parseInviteTenantUserEnvelope, parsePermissionRestrictionListEnvelope, parseSubscriberAccessEnvelope, parseSubscriberDirectoryPage, parseTenantUserDirectoryPage, parseTenantUserEnvelope} from '@directwerk/api/validation/catalog'
 
 import type {
     ContentEmailTemplate,
@@ -14,12 +14,14 @@ import type {
     SubscriberAccess,
     SubscriberAccessQuery,
     TenantBranding,
+    TenantContactEmail,
     TenantDomain,
     TenantSubscriber,
     TenantSubscriberListQuery,
     TenantUser,
     TenantUserListQuery,
     UpdateTenantBrandingInput,
+    UpdateTenantContactEmailInput,
     UpsertContentEmailTemplateInput,
     AddTenantDomainInput,
 } from '@directwerk/api/types'
@@ -46,6 +48,7 @@ function directoryQueryString(query?: TenantUserListQuery | TenantSubscriberList
 }
 
 const invalidBrandingMessage = 'Der Server hat ungültige Branding-Daten gesendet.'
+const invalidContactEmailMessage = 'Der Server hat ungültige Kontakt-E-Mail-Daten gesendet.'
 const invalidDomainMessage = 'Der Server hat eine ungültige Domain gesendet.'
 const invalidUserMessage = 'Der Server hat ungültige Benutzerdaten gesendet.'
 const invalidTemplateMessage = 'Der Server hat ungültige E-Mail-Vorlagen gesendet.'
@@ -68,6 +71,25 @@ export async function updateBranding(
         jsonInit('PUT', input),
         parseBrandingEnvelope,
         invalidBrandingMessage,
+    )
+}
+
+export async function getContactEmail(): Promise<TenantContactEmail> {
+    return studioGet(
+        '/api/proxy/tenant/contact-email',
+        parseContactEmailEnvelope,
+        invalidContactEmailMessage,
+    )
+}
+
+export async function updateContactEmail(
+        input: UpdateTenantContactEmailInput,
+): Promise<TenantContactEmail> {
+    return studioMutate(
+        '/api/proxy/tenant/contact-email',
+        jsonInit('PUT', input),
+        parseContactEmailEnvelope,
+        invalidContactEmailMessage,
     )
 }
 

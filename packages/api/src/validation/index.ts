@@ -59,6 +59,7 @@ export {
     parseCategoryEnvelope,
     parseCategoryListEnvelope,
     parseBrandingEnvelope,
+    parseContactEmailEnvelope,
     parseDomainEnvelope,
     parseDomainListEnvelope,
     parseDomainVerificationEnvelope,

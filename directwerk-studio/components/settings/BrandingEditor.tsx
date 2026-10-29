@@ -18,13 +18,14 @@ import {useActionState, useCallback, useEffect, useRef, useState} from 'react'
 
 import MediaLibraryPicker from '@/components/media/MediaLibraryPicker'
 import UploadProgress from '@/components/media/UploadProgress'
-import {getBranding, updateBranding} from '@/lib/api/tenantSettingsApi'
+import {getBranding, getContactEmail, updateBranding, updateContactEmail} from '@/lib/api/tenantSettingsApi'
 import {hasModule} from '@/lib/api/client'
 import {uploadMediaFile} from '@/lib/media/upload'
 import {useSiteConfig} from '@/lib/site/SiteConfigProvider'
 import type {TenantBranding} from '@directwerk/api/types'
 import {getClientTenantHost} from '@directwerk/api/tenant'
 import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
+import {isValidEmail} from '@directwerk/api/validation/input'
 import {safeImageSrc} from '@/lib/url/safeUrl'
 import {useDictionary} from '@/components/i18n/LocaleProvider'
 
@@ -65,6 +66,7 @@ export default function BrandingEditor(): React.JSX.Element {
     const siteConfig = useSiteConfig()
     const analyticsModuleActive = hasModule(siteConfig, 'ANALYTICS')
     const [branding, setBranding] = useState<TenantBranding | null>(null)
+    const [contactEmail, setContactEmail] = useState<string | null>(null)
     const [primaryColorDraft, setPrimaryColorDraft] = useState('')
     const [secondaryColorDraft, setSecondaryColorDraft] = useState('')
     const [logoUrlDraft, setLogoUrlDraft] = useState('')
@@ -91,16 +93,17 @@ export default function BrandingEditor(): React.JSX.Element {
     useEffect(() => {
         let active = true
 
-        getBranding()
-            .then((result) => {
+        Promise.all([getBranding(), getContactEmail()])
+            .then(([brandingResult, contactResult]) => {
                 if (!active) {
                     return
                 }
-                setBranding(result)
-                setPrimaryColorDraft(result.primaryColor ?? '')
-                setSecondaryColorDraft(result.secondaryColor ?? '')
-                setLogoUrlDraft(result.logoUrl ?? '')
-                setFaviconUrlDraft(result.faviconUrl ?? '')
+                setBranding(brandingResult)
+                setContactEmail(contactResult.contactEmail)
+                setPrimaryColorDraft(brandingResult.primaryColor ?? '')
+                setSecondaryColorDraft(brandingResult.secondaryColor ?? '')
+                setLogoUrlDraft(brandingResult.logoUrl ?? '')
+                setFaviconUrlDraft(brandingResult.faviconUrl ?? '')
                 setIsLoading(false)
             })
             .catch((error: unknown) => {
@@ -176,6 +179,7 @@ export default function BrandingEditor(): React.JSX.Element {
         const faviconUrl = faviconUrlDraft.trim()
         const umamiWebsiteId = String(formData.get('umamiWebsiteId') ?? '').trim()
         const umamiHostUrl = String(formData.get('umamiHostUrl') ?? '').trim()
+        const contactEmailValue = String(formData.get('contactEmail') ?? '').trim()
 
         if (primaryColor !== null && primaryColor !== undefined && !COLOR_PATTERN.test(primaryColor)) {
             return {error: 'Primärfarbe muss #RRGGBB sein.', success: null}
@@ -217,18 +221,30 @@ export default function BrandingEditor(): React.JSX.Element {
                 success: null,
             }
         }
+        if (contactEmailValue.length > 0 && !isValidEmail(contactEmailValue)) {
+            return {
+                error: dict.settings.kontaktEMailUngueltig,
+                success: null,
+            }
+        }
 
         try {
-            const updated = await updateBranding( {
-                siteTitle: siteTitle.length > 0 ? siteTitle : '',
-                primaryColor: primaryColor ?? null,
-                secondaryColor: secondaryColor ?? null,
-                logoUrl: logoUrl.length > 0 ? logoUrl : null,
-                faviconUrl: faviconUrl.length > 0 ? faviconUrl : null,
-                umamiWebsiteId,
-                umamiHostUrl,
-            })
+            const [updated, contactUpdated] = await Promise.all([
+                updateBranding({
+                    siteTitle: siteTitle.length > 0 ? siteTitle : '',
+                    primaryColor: primaryColor ?? null,
+                    secondaryColor: secondaryColor ?? null,
+                    logoUrl: logoUrl.length > 0 ? logoUrl : null,
+                    faviconUrl: faviconUrl.length > 0 ? faviconUrl : null,
+                    umamiWebsiteId,
+                    umamiHostUrl,
+                }),
+                updateContactEmail({
+                    contactEmail: contactEmailValue.length > 0 ? contactEmailValue : null,
+                }),
+            ])
             setBranding(updated)
+            setContactEmail(contactUpdated.contactEmail)
             setPrimaryColorDraft(updated.primaryColor ?? '')
             setSecondaryColorDraft(updated.secondaryColor ?? '')
             setLogoUrlDraft(updated.logoUrl ?? '')
@@ -245,7 +261,7 @@ export default function BrandingEditor(): React.JSX.Element {
                 error:
                     error instanceof Error
                         ? error.message
-                        : 'Branding konnte nicht gespeichert werden.',
+                        : dict.settings.brandingKonnteGespeichert,
                 success: null,
             }
         }
@@ -528,6 +544,30 @@ export default function BrandingEditor(): React.JSX.Element {
                         ) : null}
                     </div>
                 </div>
+                    </CardContent>
+                </Card>
+                <Card>
+                    <CardHeader>
+                        <CardTitle>{dict.settings.podcastKontakt}</CardTitle>
+                        <CardDescription>{dict.settings.podcastKontaktBeschreibung}</CardDescription>
+                    </CardHeader>
+                    <CardContent className="grid gap-5">
+                        <div className="grid gap-2">
+                            <Label htmlFor="contactEmail">{dict.settings.kontaktEMail}</Label>
+                            <Input
+                                aria-describedby="contactEmail-help"
+                                defaultValue={contactEmail ?? ''}
+                                id="contactEmail"
+                                key={contactEmail ?? ''}
+                                maxLength={255}
+                                name="contactEmail"
+                                placeholder="podcast@example.com"
+                                type="email"
+                            />
+                            <p className="text-xs text-muted-foreground" id="contactEmail-help">
+                                {dict.settings.kontaktEMailHilfe}
+                            </p>
+                        </div>
                     </CardContent>
                 </Card>
                 <Card>

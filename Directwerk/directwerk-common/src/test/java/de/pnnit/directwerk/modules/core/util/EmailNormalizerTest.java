@@ -30,4 +30,18 @@ class EmailNormalizerTest {
         assertThatThrownBy(() -> EmailNormalizer.normalize(local + "@example.com"))
                 .isInstanceOf(IllegalArgumentException.class);
     }
+
+    @Test
+    void normalizeOptionalClearsBlank() {
+        assertThat(EmailNormalizer.normalizeOptional(null)).isNull();
+        assertThat(EmailNormalizer.normalizeOptional("  ")).isNull();
+    }
+
+    @Test
+    void normalizeOptionalValidatesShape() {
+        assertThat(EmailNormalizer.normalizeOptional(" Owner@Example.com "))
+                .isEqualTo("owner@example.com");
+        assertThatThrownBy(() -> EmailNormalizer.normalizeOptional("not-an-email"))
+                .isInstanceOf(IllegalArgumentException.class);
+    }
 }

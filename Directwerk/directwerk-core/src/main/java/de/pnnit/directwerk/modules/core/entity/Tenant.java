@@ -20,6 +20,14 @@ public class Tenant extends BaseEntity {
     @Column(nullable = false)
     private String name;
 
+    /**
+     * Public contact address for podcast RSS/iTunes owner tags ({@code itunes:email},
+     * {@code managingEditor}, {@code webMaster}). Null means those tags are omitted —
+     * never invent a platform mailbox.
+     */
+    @Column(name = "contact_email", length = 255)
+    private String contactEmail;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 32)
     private TenantStatus status = TenantStatus.ACTIVE;

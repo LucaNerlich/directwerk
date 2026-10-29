@@ -62,6 +62,7 @@ import type {
     SubscriptionProduct,
     Tag,
     TenantBranding,
+    TenantContactEmail,
     TenantDomain,
     TenantSubscriber,
     TenantSubscriberSubscription,
@@ -1590,6 +1591,20 @@ export function parseBrandingEnvelope(
     value: unknown,
 ): ApiEnvelope<TenantBranding> | null {
     return parseEnvelope(value, parseTenantBranding)
+}
+
+function parseTenantContactEmail(value: unknown): TenantContactEmail | null {
+    if (!isRecord(value) || !isNullableString(value.contactEmail, 255)) {
+        return null
+    }
+
+    return {contactEmail: value.contactEmail}
+}
+
+export function parseContactEmailEnvelope(
+    value: unknown,
+): ApiEnvelope<TenantContactEmail> | null {
+    return parseEnvelope(value, parseTenantContactEmail)
 }
 
 function parseTenantDomain(value: unknown): TenantDomain | null {

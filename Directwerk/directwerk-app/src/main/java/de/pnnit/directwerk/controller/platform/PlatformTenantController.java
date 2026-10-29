@@ -134,8 +134,15 @@ public class PlatformTenantController {
             @PathVariable Long tenantId,
             @Valid @RequestBody UpdateTenantRequest request
     ) {
-                return ResponseEntity.ok(Response.ok(
-                tenantManagementService.updateTenant(tenantId, request.name(), request.slug())
+        boolean updateContactEmail = request.contactEmail() != null;
+        return ResponseEntity.ok(Response.ok(
+                tenantManagementService.updateTenant(
+                        tenantId,
+                        request.name(),
+                        request.slug(),
+                        request.contactEmail(),
+                        updateContactEmail
+                )
         ));
     }
 
@@ -220,7 +227,9 @@ public class PlatformTenantController {
     public record UpdateTenantRequest(
             @Size(max = 255) String name,
             @Pattern(regexp = "^$|^[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,62}[a-zA-Z0-9])?$")
-            String slug
+            String slug,
+            /** Absent leaves unchanged; blank string clears. */
+            @Email @Size(max = 255) String contactEmail
     ) {
     }
 

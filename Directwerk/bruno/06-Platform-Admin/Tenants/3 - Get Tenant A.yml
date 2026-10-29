@@ -21,6 +21,7 @@ runtime:
           expect(res.body.data.tenant.slug).to.equal("alpha-show-a");
           expect(res.body.data.tenant.domains).to.be.an("array");
           expect(res.body.data.tenant.createdAt).to.be.a("string");
+          expect(res.body.data.tenant).to.have.property("contactEmail");
           expect(res.body.data.episodeCount).to.be.a("number");
           expect(res.body.data.subscriberCount).to.be.a("number");
         });

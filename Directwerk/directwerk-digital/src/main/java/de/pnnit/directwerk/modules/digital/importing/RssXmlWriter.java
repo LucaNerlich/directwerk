@@ -57,6 +57,7 @@ public final class RssXmlWriter {
         appendElement(xml, "link", channel.link(), 4);
         appendDescriptionElement(xml, channel.descriptionHtml(), 4, sanitizer, channel.maxDescriptionChars());
         appendElement(xml, "language", channel.language(), 4);
+        appendOwnerContact(xml, channel, 4);
         if (channel.itunes()) {
             appendItunesCategory(xml, channel.itunesCategory(), 4);
             xml.append("    <itunes:explicit>")
@@ -65,6 +66,7 @@ public final class RssXmlWriter {
             if (channel.imageUrl() != null && !channel.imageUrl().isBlank()) {
                 appendItunesImage(xml, channel.imageUrl(), 4);
             }
+            appendItunesOwner(xml, channel, 4);
         }
         for (T entry : entries) {
             appendItem(xml, projection.apply(entry), channel.itunes(), sanitizer, channel.maxDescriptionChars());
@@ -121,6 +123,38 @@ public final class RssXmlWriter {
                 .append("<itunes:category text=\"")
                 .append(escapeText(category))
                 .append("\"/>\n");
+    }
+
+    /**
+     * RSS 2.0 {@code managingEditor} / {@code webMaster} when a tenant contact email is set.
+     * Format matches common podcast feeds: {@code email (Name)}.
+     */
+    private static void appendOwnerContact(StringBuilder xml, Channel channel, int spaces) {
+        String email = channel.ownerEmail();
+        if (email == null || email.isBlank()) {
+            return;
+        }
+        String name = channel.ownerName() == null || channel.ownerName().isBlank()
+                ? email
+                : channel.ownerName();
+        String withName = email + " (" + name + ")";
+        appendElement(xml, "managingEditor", withName, spaces);
+        appendElement(xml, "webMaster", withName, spaces);
+    }
+
+    private static void appendItunesOwner(StringBuilder xml, Channel channel, int spaces) {
+        String email = channel.ownerEmail();
+        if (email == null || email.isBlank()) {
+            return;
+        }
+        String name = channel.ownerName() == null || channel.ownerName().isBlank()
+                ? email
+                : channel.ownerName();
+        String indent = " ".repeat(spaces);
+        xml.append(indent).append("<itunes:owner>\n");
+        appendElement(xml, "itunes:name", name, spaces + 2);
+        appendElement(xml, "itunes:email", email, spaces + 2);
+        xml.append(indent).append("</itunes:owner>\n");
     }
 
     /**
@@ -227,8 +261,36 @@ public final class RssXmlWriter {
             String itunesCategory,
             boolean itunesExplicit,
             String imageUrl,
-            Integer maxDescriptionChars
+            Integer maxDescriptionChars,
+            String ownerEmail,
+            String ownerName
     ) {
+        /** Convenience for feeds with no podcast owner contact. */
+        public Channel(
+                String title,
+                String link,
+                String descriptionHtml,
+                String language,
+                boolean itunes,
+                String itunesCategory,
+                boolean itunesExplicit,
+                String imageUrl,
+                Integer maxDescriptionChars
+        ) {
+            this(
+                    title,
+                    link,
+                    descriptionHtml,
+                    language,
+                    itunes,
+                    itunesCategory,
+                    itunesExplicit,
+                    imageUrl,
+                    maxDescriptionChars,
+                    null,
+                    null
+            );
+        }
     }
 
     public record Item(

@@ -100,6 +100,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/tenant/contact-email": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getContactEmail"];
+        put: operations["updateContactEmail"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/tenant/branding": {
         parameters: {
             query?: never;
@@ -1392,6 +1408,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/episodes/{episodeId}/notify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Send or retry subscriber notification for a published episode
+         * @description Clears the one-shot claim when needed and enqueues content-notify. Per-recipient markers still suppress duplicate addresses. Rejects in-flight jobs.
+         */
+        post: operations["notifySubscribers"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/episodes/{episodeId}/cancel-schedule": {
         parameters: {
             query?: never;
@@ -1766,6 +1802,26 @@ export interface paths {
         get?: never;
         put?: never;
         post: operations["publish_2"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/articles/{articleId}/notify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Send or retry subscriber notification for a published article
+         * @description Clears the one-shot claim when needed and enqueues content-notify. Requires at least one ACTIVE attached list.
+         */
+        post: operations["notifySubscribers_1"];
         delete?: never;
         options?: never;
         head?: never;
@@ -3164,6 +3220,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/episodes/{episodeId}/notify-preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Notify preview for an episode
+         * @description Estimated opted-in recipients, last email_notified_at, and content-notify job status. EMAIL_NOTIFY gated via notifyAvailable; used by studio publish checkbox.
+         */
+        get: operations["notifyPreview"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/articles/{articleId}/notify-preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Notify preview for an article
+         * @description Deduped ACTIVE-list recipient estimate, last email_notified_at, and content-notify job status.
+         */
+        get: operations["notifyPreview_1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/articles/import/assets/{assetId}": {
         parameters: {
             query?: never;
@@ -3459,6 +3555,22 @@ export interface components {
             bodyHtml?: string;
             /** Format: date-time */
             updatedAt?: string;
+        };
+        ContactEmailUpdateRequest: {
+            contactEmail?: string;
+        };
+        ContactEmailView: {
+            contactEmail?: string;
+        };
+        ResponseContactEmailView: {
+            /** Format: int32 */
+            statusCode?: number;
+            statusMessage?: string;
+            data?: components["schemas"]["ContactEmailView"];
+            errors?: components["schemas"]["ErrorDetail"][];
+            metadata?: {
+                [key: string]: unknown;
+            };
         };
         BrandingUpdateRequest: {
             siteTitle?: string;
@@ -3825,6 +3937,8 @@ export interface components {
             publishedAt?: string;
             /** Format: date-time */
             scheduledAt?: string;
+            /** Format: date-time */
+            emailNotifiedAt?: string;
             formats?: components["schemas"]["FormatView"][];
             categories?: components["schemas"]["CategoryView"][];
             /** Format: int64 */
@@ -3949,6 +4063,8 @@ export interface components {
             publishedAt?: string;
             /** Format: date-time */
             scheduledAt?: string;
+            /** Format: date-time */
+            emailNotifiedAt?: string;
             categories?: components["schemas"]["CategoryView"][];
             newsletterLists?: components["schemas"]["NewsletterListTag"][];
             /** Format: int64 */
@@ -4350,6 +4466,7 @@ export interface components {
             primaryDomain?: string;
             domains?: components["schemas"]["TenantDomainView"][];
             uploadLimits?: components["schemas"]["TenantUploadLimits"];
+            contactEmail?: string;
         };
         TenantDomainView: {
             host?: string;
@@ -4826,6 +4943,7 @@ export interface components {
         UpdateTenantRequest: {
             name?: string;
             slug?: string;
+            contactEmail?: string;
         };
         UpdateTenantUserRoleRequest: {
             role: string;
@@ -5922,6 +6040,28 @@ export interface components {
                 [key: string]: unknown;
             };
         };
+        ContentNotifyPreviewView: {
+            /** Format: int64 */
+            estimatedRecipients?: number;
+            /** Format: date-time */
+            emailNotifiedAt?: string;
+            /** Format: uuid */
+            jobId?: string;
+            jobStatus?: string;
+            lastError?: string;
+            notifyAvailable?: boolean;
+            canRetry?: boolean;
+        };
+        ResponseContentNotifyPreviewView: {
+            /** Format: int32 */
+            statusCode?: number;
+            statusMessage?: string;
+            data?: components["schemas"]["ContentNotifyPreviewView"];
+            errors?: components["schemas"]["ErrorDetail"][];
+            metadata?: {
+                [key: string]: unknown;
+            };
+        };
         ResponseListDigitalPublicationView: {
             /** Format: int32 */
             statusCode?: number;
@@ -6199,6 +6339,50 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["ResponseTemplateView"];
+                };
+            };
+        };
+    };
+    getContactEmail: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ResponseContactEmailView"];
+                };
+            };
+        };
+    };
+    updateContactEmail: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ContactEmailUpdateRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ResponseContactEmailView"];
                 };
             };
         };
@@ -8779,6 +8963,28 @@ export interface operations {
             };
         };
     };
+    notifySubscribers: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                episodeId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ResponseEpisodeView"];
+                };
+            };
+        };
+    };
     cancelSchedule: {
         parameters: {
             query?: never;
@@ -9444,6 +9650,28 @@ export interface operations {
                 "application/json": components["schemas"]["PublishOptionsRequest"];
             };
         };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ResponseArticleView"];
+                };
+            };
+        };
+    };
+    notifySubscribers_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                articleId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
         responses: {
             /** @description OK */
             200: {
@@ -11492,6 +11720,50 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["ResponseAccessResponse"];
+                };
+            };
+        };
+    };
+    notifyPreview: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                episodeId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ResponseContentNotifyPreviewView"];
+                };
+            };
+        };
+    };
+    notifyPreview_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                articleId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ResponseContentNotifyPreviewView"];
                 };
             };
         };

@@ -1204,6 +1204,16 @@ export interface UpdateTenantBrandingInput {
     umamiHostUrl?: string | null
 }
 
+/** Podcast RSS/iTunes owner mailbox (`GET/PUT /api/v1/tenant/contact-email`). */
+export interface TenantContactEmail {
+    contactEmail: string | null
+}
+
+export interface UpdateTenantContactEmailInput {
+    /** Blank/null clears the field (owner tags omitted from feeds). */
+    contactEmail: string | null
+}
+
 export interface TenantSubscriber {
     userId: number
     email: string
@@ -1399,6 +1409,8 @@ export interface TenantDetail {
     domains: TenantDomainSummary[]
     /** Per-type upload overrides; absent on older backends. */
     uploadLimits?: TenantUploadLimits | null
+    /** Podcast RSS/iTunes owner email; null omits owner tags from feeds. */
+    contactEmail?: string | null
 }
 
 export interface TenantDetailResponse {
