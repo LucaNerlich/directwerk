@@ -239,7 +239,7 @@ class TenantBrandingServiceTest {
     }
 
     @Test
-    void rejectsClearingOnlyUmamiWebsiteId() {
+    void rejectsHostUrlWithoutWebsiteId() {
         Tenant tenant = new Tenant();
         tenant.setId(10L);
         TenantBranding existing = new TenantBranding();
@@ -251,11 +251,11 @@ class TenantBrandingServiceTest {
         assertThatThrownBy(() -> service.updateBranding(
                 10L, null, null, null, null, null, "   ", null))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("both be set or both cleared");
+                .hasMessageContaining("requires a website id");
     }
 
     @Test
-    void rejectsClearingOnlyUmamiHostUrl() {
+    void allowsClearingHostUrlWhileKeepingWebsiteId() {
         Tenant tenant = new Tenant();
         tenant.setId(10L);
         TenantBranding existing = new TenantBranding();
@@ -264,10 +264,11 @@ class TenantBrandingServiceTest {
         existing.setUmamiHostUrl("https://umami.example.com");
         when(tenantBrandingRepository.findByTenantId(10L)).thenReturn(Optional.of(existing));
 
-        assertThatThrownBy(() -> service.updateBranding(
-                10L, null, null, null, null, null, null, "  "))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("both be set or both cleared");
+        TenantBranding saved = service.updateBranding(
+                10L, null, null, null, null, null, null, "  ");
+
+        assertThat(saved.getUmamiWebsiteId()).isEqualTo("abcdefgh");
+        assertThat(saved.getUmamiHostUrl()).isNull();
     }
 
     @Test
@@ -288,6 +289,50 @@ class TenantBrandingServiceTest {
 
         assertThat(saved.getUmamiWebsiteId()).isEqualTo("16515bf8-1283-4a9a-9747-1b6ed4ab5b8a");
         assertThat(saved.getUmamiHostUrl()).isEqualTo("https://umami.example.com");
+    }
+
+    @Test
+    void acceptsStudioPayloadWithUuidAndEmptyHostForPlatformDefault() {
+        // Mirrors BrandingEditor updateBranding body: full field set, UUID website id,
+        // blank host (tenant uses platform UMAMI_HOST_URL via UmamiAnalyticsResolver).
+        when(tenantBrandingRepository.countOtherTenantsWithWebsiteId(
+                "16515bf8-1283-4a9a-9747-1b6ed4ab5b8a", 10L)).thenReturn(0L);
+
+        TenantBranding saved = service.updateBranding(
+                10L,
+                "Meine Sendung",
+                "#112233",
+                null,
+                null,
+                null,
+                "16515bf8-1283-4a9a-9747-1b6ed4ab5b8a",
+                ""
+        );
+
+        assertThat(saved.getSiteTitle()).isEqualTo("Meine Sendung");
+        assertThat(saved.getPrimaryColor()).isEqualTo("#112233");
+        assertThat(saved.getUmamiWebsiteId()).isEqualTo("16515bf8-1283-4a9a-9747-1b6ed4ab5b8a");
+        assertThat(saved.getUmamiHostUrl()).isNull();
+    }
+
+    @Test
+    void acceptsStudioPayloadWithUuidAndUmamiCloudHost() {
+        when(tenantBrandingRepository.countOtherTenantsWithWebsiteId(
+                "16515bf8-1283-4a9a-9747-1b6ed4ab5b8a", 10L)).thenReturn(0L);
+
+        TenantBranding saved = service.updateBranding(
+                10L,
+                "",
+                null,
+                null,
+                null,
+                null,
+                "16515bf8-1283-4a9a-9747-1b6ed4ab5b8a",
+                "https://cloud.umami.is"
+        );
+
+        assertThat(saved.getUmamiWebsiteId()).isEqualTo("16515bf8-1283-4a9a-9747-1b6ed4ab5b8a");
+        assertThat(saved.getUmamiHostUrl()).isEqualTo("https://cloud.umami.is");
     }
 
     @Test

@@ -254,34 +254,53 @@ describe('BrandingEditor color picker', () => {
         expect(updateContactEmail).not.toHaveBeenCalled()
     })
 
-    it('blocks save when only Umami website ID is cleared', async () => {
+    it('clears host override when website ID is cleared', async () => {
         renderWithLocale(<BrandingEditor />)
         const websiteField = await screen.findByLabelText('Umami Website-ID')
         fireEvent.change(websiteField, {target: {value: '   '}})
         fireEvent.submit(websiteField.closest('form') as HTMLFormElement)
 
         await waitFor(() =>
-            expect(screen.getByRole('alert')).toHaveTextContent(
-                'Umami Website-ID und Server müssen zusammen gesetzt werden.',
+            expect(updateBranding).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    umamiWebsiteId: '',
+                    umamiHostUrl: '',
+                }),
             ),
         )
-        expect(updateBranding).not.toHaveBeenCalled()
-        expect(updateContactEmail).not.toHaveBeenCalled()
     })
 
-    it('blocks save when only Umami server is cleared', async () => {
+    it('allows clearing only the Umami server (platform default host)', async () => {
         renderWithLocale(<BrandingEditor />)
         const serverField = await screen.findByLabelText('Umami-Server')
         fireEvent.change(serverField, {target: {value: '   '}})
         fireEvent.submit(serverField.closest('form') as HTMLFormElement)
 
         await waitFor(() =>
-            expect(screen.getByRole('alert')).toHaveTextContent(
-                'Umami Website-ID und Server müssen zusammen gesetzt werden.',
+            expect(updateBranding).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    umamiWebsiteId: 'abc12345',
+                    umamiHostUrl: '',
+                }),
             ),
         )
-        expect(updateBranding).not.toHaveBeenCalled()
-        expect(updateContactEmail).not.toHaveBeenCalled()
+    })
+
+    it('ignores a host-only fill by clearing both Umami fields', async () => {
+        getBranding.mockResolvedValue({...branding, umamiWebsiteId: null, umamiHostUrl: null})
+        renderWithLocale(<BrandingEditor />)
+        const serverField = await screen.findByLabelText('Umami-Server')
+        fireEvent.change(serverField, {target: {value: 'https://cloud.umami.is'}})
+        fireEvent.submit(serverField.closest('form') as HTMLFormElement)
+
+        await waitFor(() =>
+            expect(updateBranding).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    umamiWebsiteId: '',
+                    umamiHostUrl: '',
+                }),
+            ),
+        )
     })
 
     it('allows clearing both Umami fields', async () => {
@@ -324,6 +343,60 @@ describe('BrandingEditor color picker', () => {
                 expect.objectContaining({
                     umamiWebsiteId: '16515bf8-1283-4a9a-9747-1b6ed4ab5b8a',
                     umamiHostUrl: 'https://umami.example.com',
+                }),
+            ),
+        )
+    })
+
+    it('accepts a Umami UUID with empty host (platform default)', async () => {
+        getBranding.mockResolvedValue({
+            ...branding,
+            umamiWebsiteId: '12345678',
+            umamiHostUrl: null,
+        })
+        renderWithLocale(<BrandingEditor />)
+        const websiteField = await screen.findByLabelText('Umami Website-ID')
+        fireEvent.change(websiteField, {
+            target: {value: '16515bf8-1283-4a9a-9747-1b6ed4ab5b8a'},
+        })
+        fireEvent.submit(websiteField.closest('form') as HTMLFormElement)
+
+        await waitFor(() =>
+            expect(updateBranding).toHaveBeenCalledWith({
+                siteTitle: 'Meine Sendung',
+                primaryColor: '#112233',
+                secondaryColor: null,
+                logoUrl: null,
+                faviconUrl: null,
+                umamiWebsiteId: '16515bf8-1283-4a9a-9747-1b6ed4ab5b8a',
+                umamiHostUrl: '',
+            }),
+        )
+        expect(updateContactEmail).toHaveBeenCalledWith({
+            contactEmail: 'podcast@show.example',
+        })
+    })
+
+    it('accepts a Umami UUID with Umami Cloud host', async () => {
+        getBranding.mockResolvedValue({
+            ...branding,
+            umamiWebsiteId: '12345678',
+            umamiHostUrl: null,
+        })
+        renderWithLocale(<BrandingEditor />)
+        const websiteField = await screen.findByLabelText('Umami Website-ID')
+        const serverField = screen.getByLabelText('Umami-Server')
+        fireEvent.change(websiteField, {
+            target: {value: '16515bf8-1283-4a9a-9747-1b6ed4ab5b8a'},
+        })
+        fireEvent.change(serverField, {target: {value: 'https://cloud.umami.is'}})
+        fireEvent.submit(websiteField.closest('form') as HTMLFormElement)
+
+        await waitFor(() =>
+            expect(updateBranding).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    umamiWebsiteId: '16515bf8-1283-4a9a-9747-1b6ed4ab5b8a',
+                    umamiHostUrl: 'https://cloud.umami.is',
                 }),
             ),
         )

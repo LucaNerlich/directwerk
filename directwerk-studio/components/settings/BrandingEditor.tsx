@@ -178,7 +178,12 @@ export default function BrandingEditor(): React.JSX.Element {
         const logoUrl = logoUrlDraft.trim()
         const faviconUrl = faviconUrlDraft.trim()
         const umamiWebsiteId = String(formData.get('umamiWebsiteId') ?? '').trim()
-        const umamiHostUrl = String(formData.get('umamiHostUrl') ?? '').trim()
+        // Website id alone is fine (platform Umami origin). Clearing the id also
+        // drops any host override so we never send an orphaned host to the API.
+        const umamiHostUrl =
+            umamiWebsiteId.length > 0
+                ? String(formData.get('umamiHostUrl') ?? '').trim()
+                : ''
         const contactEmailValue = String(formData.get('contactEmail') ?? '').trim()
 
         if (primaryColor !== null && primaryColor !== undefined && !COLOR_PATTERN.test(primaryColor)) {
@@ -193,14 +198,6 @@ export default function BrandingEditor(): React.JSX.Element {
         }
         const umamiIdSet = umamiWebsiteId.length > 0
         const umamiHostSet = umamiHostUrl.length > 0
-        if (umamiIdSet !== umamiHostSet) {
-            return {
-                error: umamiIdSet
-                    ? dict.settings.umamiServerErforderlich
-                    : dict.settings.umamiWebsiteIdErforderlich,
-                success: null,
-            }
-        }
         if (umamiIdSet && !UMAMI_PATTERN.test(umamiWebsiteId)) {
             return {
                 error: dict.settings.umamiWebsiteIdMuss864,
@@ -246,7 +243,8 @@ export default function BrandingEditor(): React.JSX.Element {
                     secondaryColor: secondaryColor ?? null,
                     logoUrl: logoUrl.length > 0 ? logoUrl : null,
                     faviconUrl: faviconUrl.length > 0 ? faviconUrl : null,
-                    // Empty string clears; both empty is allowed (optional analytics).
+                    // Empty website id clears tracking (host already forced empty above).
+                    // Website id alone is fine — blank host uses the platform Umami origin.
                     umamiWebsiteId,
                     umamiHostUrl,
                 }),

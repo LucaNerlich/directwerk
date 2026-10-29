@@ -351,6 +351,7 @@ public class TenantAdminController {
             String faviconUrl,
             // Null leaves the stored value untouched; blank/whitespace clears. Non-blank must be
             // 8–64 chars of [a-zA-Z0-9-] (covers numeric ids and real Umami website UUIDs).
+            // Website id alone is valid (platform Umami host fallback); host without id is rejected.
             @Pattern(regexp = "^\\s*$|^[a-zA-Z0-9-]{8,64}$") String umamiWebsiteId,
             @Pattern(regexp = "^\\s*$|^https://[^/\\s?#@]+/?$") String umamiHostUrl
     ) {
