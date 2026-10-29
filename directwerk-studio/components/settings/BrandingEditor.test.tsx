@@ -20,6 +20,8 @@ vi.mock('@directwerk/api/tenant', () => ({getClientTenantHost: () => 'tenant.tes
 
 const getBranding = vi.fn()
 const updateBranding = vi.fn()
+const getContactEmail = vi.fn()
+const updateContactEmail = vi.fn()
 const siteConfig = {enabledModules: ['DIGITAL_CONTENT', 'PODCAST']}
 
 const {readyLogo, uploadMediaFile} = vi.hoisted(() => {
@@ -47,6 +49,8 @@ const {readyLogo, uploadMediaFile} = vi.hoisted(() => {
 vi.mock('@/lib/api/tenantSettingsApi', () => ({
     getBranding: (...args: unknown[]) => getBranding(...args),
     updateBranding: (...args: unknown[]) => updateBranding(...args),
+    getContactEmail: (...args: unknown[]) => getContactEmail(...args),
+    updateContactEmail: (...args: unknown[]) => updateContactEmail(...args),
 }))
 vi.mock('@/lib/site/SiteConfigProvider', () => ({
     useSiteConfig: () => siteConfig,
@@ -87,10 +91,16 @@ describe('BrandingEditor color picker', () => {
         vi.clearAllMocks()
         siteConfig.enabledModules = ['DIGITAL_CONTENT', 'PODCAST', 'ANALYTICS']
         getBranding.mockResolvedValue(branding)
+        getContactEmail.mockResolvedValue({contactEmail: null})
         updateBranding.mockImplementation(
-            async (_host: unknown, input: Record<string, unknown>) => ({
+            async (input: Record<string, unknown>) => ({
                 ...branding,
                 ...input,
+            }),
+        )
+        updateContactEmail.mockImplementation(
+            async (input: {contactEmail: string | null}) => ({
+                contactEmail: input.contactEmail,
             }),
         )
     })
@@ -179,11 +189,62 @@ describe('BrandingEditor color picker', () => {
                 umamiHostUrl: 'https://umami.example.com',
             }),
         )
+        expect(updateContactEmail).toHaveBeenCalledWith({contactEmail: null})
         await waitFor(() =>
             expect(screen.getByRole('status')).toHaveTextContent(
                 'Branding gespeichert.',
             ),
         )
+    })
+
+    it('loads and saves the podcast contact email', async () => {
+        getContactEmail.mockResolvedValue({contactEmail: 'owner@show.example'})
+        renderWithLocale(<BrandingEditor />)
+
+        const contactField = await screen.findByLabelText('Kontakt-E-Mail')
+        expect(contactField).toHaveValue('owner@show.example')
+        expect(
+            screen.getByText(/Erscheint im Podcast-Feed als Owner-E-Mail/),
+        ).toBeInTheDocument()
+
+        fireEvent.change(contactField, {target: {value: 'new@show.example'}})
+        fireEvent.submit(contactField.closest('form') as HTMLFormElement)
+
+        await waitFor(() =>
+            expect(updateContactEmail).toHaveBeenCalledWith({
+                contactEmail: 'new@show.example',
+            }),
+        )
+        expect(updateBranding).toHaveBeenCalled()
+    })
+
+    it('allows clearing the podcast contact email', async () => {
+        getContactEmail.mockResolvedValue({contactEmail: 'owner@show.example'})
+        renderWithLocale(<BrandingEditor />)
+
+        const contactField = await screen.findByLabelText('Kontakt-E-Mail')
+        fireEvent.change(contactField, {target: {value: '   '}})
+        fireEvent.submit(contactField.closest('form') as HTMLFormElement)
+
+        await waitFor(() =>
+            expect(updateContactEmail).toHaveBeenCalledWith({contactEmail: null}),
+        )
+    })
+
+    it('rejects an invalid podcast contact email without saving', async () => {
+        renderWithLocale(<BrandingEditor />)
+        const contactField = await screen.findByLabelText('Kontakt-E-Mail')
+
+        fireEvent.change(contactField, {target: {value: 'not-an-email'}})
+        fireEvent.submit(contactField.closest('form') as HTMLFormElement)
+
+        await waitFor(() =>
+            expect(screen.getByRole('alert')).toHaveTextContent(
+                'Bitte eine gültige Kontakt-E-Mail eingeben oder das Feld leeren.',
+            ),
+        )
+        expect(updateBranding).not.toHaveBeenCalled()
+        expect(updateContactEmail).not.toHaveBeenCalled()
     })
 
     it('blocks save when Umami website ID is only whitespace', async () => {
@@ -198,6 +259,7 @@ describe('BrandingEditor color picker', () => {
             ),
         )
         expect(updateBranding).not.toHaveBeenCalled()
+        expect(updateContactEmail).not.toHaveBeenCalled()
     })
 
     it('blocks save when Umami server is only whitespace', async () => {
@@ -212,6 +274,7 @@ describe('BrandingEditor color picker', () => {
             ),
         )
         expect(updateBranding).not.toHaveBeenCalled()
+        expect(updateContactEmail).not.toHaveBeenCalled()
     })
 
     it('marks Umami fields as required', async () => {
