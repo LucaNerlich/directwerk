@@ -1,6 +1,6 @@
 'use client'
 
-import type {ReactNode} from 'react'
+import {useState, type ReactNode} from 'react'
 
 import BrandTheme from '@directwerk/ui/components/brand-theme'
 import {Button} from '@directwerk/ui/components/button'
@@ -15,11 +15,57 @@ import SideNav from '@/components/studio/SideNav'
 import {resolveMobileShell} from '@/lib/studio/mobileShell'
 import {useActiveDesk} from '@/lib/studio/useActiveDesk'
 import {SiteConfigProvider} from '@/lib/site/SiteConfigProvider'
+import {safeImageSrc} from '@/lib/url/safeUrl'
 import type {SiteConfig} from '@directwerk/api/types'
 
 function tenantHomeInitial(name: string): string {
     const trimmed = name.trim()
     return trimmed.length > 0 ? trimmed.charAt(0).toUpperCase() : '?'
+}
+
+/** Prefer favicon, then logo; both must pass HTTPS image URL checks. */
+function tenantBrandSrc(branding: SiteConfig['branding']): string | null {
+    return safeImageSrc(branding.faviconUrl) ?? safeImageSrc(branding.logoUrl)
+}
+
+function TenantBrandMark({
+    branding,
+    name,
+}: {
+    branding: SiteConfig['branding']
+    name: string
+}): React.JSX.Element {
+    const [imageFailed, setImageFailed] = useState(false)
+    const src = imageFailed ? null : tenantBrandSrc(branding)
+    // Expanded: 20px next to the name; collapsed icon rail: fill the 32px home hit target.
+    const box =
+        'size-5 group-data-[collapsible=icon]:size-8'
+    const text =
+        'text-[10px] group-data-[collapsible=icon]:text-sm'
+
+    if (src !== null) {
+        return (
+            <img
+                alt=""
+                className={`${box} shrink-0 rounded-md object-cover`}
+                height={32}
+                onError={() => {
+                    setImageFailed(true)
+                }}
+                src={src}
+                width={32}
+            />
+        )
+    }
+
+    return (
+        <span
+            aria-hidden="true"
+            className={`flex ${box} shrink-0 items-center justify-center rounded-md bg-primary/10 ${text} font-semibold text-primary`}
+        >
+            {tenantHomeInitial(name)}
+        </span>
+    )
 }
 
 export default function StudioShell({
@@ -46,10 +92,14 @@ export default function StudioShell({
                         <div className="flex min-w-0 flex-col gap-3 group-data-[collapsible=icon]:items-center group-data-[collapsible=icon]:gap-2">
                             <LocaleLink
                                 aria-label={config.tenant.name}
-                                className="block min-w-0 rounded-md outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring group-data-[collapsible=icon]:flex group-data-[collapsible=icon]:size-8 group-data-[collapsible=icon]:items-center group-data-[collapsible=icon]:justify-center"
+                                className="flex min-w-0 items-center gap-2 rounded-md outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring group-data-[collapsible=icon]:size-8 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:gap-0"
                                 href="/"
                                 title={config.tenant.name}
                             >
+                                <TenantBrandMark
+                                    branding={config.branding}
+                                    name={config.tenant.name}
+                                />
                                 <span className="min-w-0 group-data-[collapsible=icon]:hidden">
                                     <p className="truncate text-sm font-semibold">
                                         {config.tenant.name}
@@ -57,12 +107,6 @@ export default function StudioShell({
                                     <p className="text-xs text-muted-foreground">
                                         {dict.meta.productName}
                                     </p>
-                                </span>
-                                <span
-                                    aria-hidden="true"
-                                    className="hidden text-sm font-semibold group-data-[collapsible=icon]:inline"
-                                >
-                                    {tenantHomeInitial(config.tenant.name)}
                                 </span>
                             </LocaleLink>
                             <div className="group-data-[collapsible=icon]:hidden">
