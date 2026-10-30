@@ -4,6 +4,22 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-10-30
+
+### Added
+
+- Studio API keys page: MCP setup section with copyable configuration for OpenCode and Claude Desktop/Cursor, with the workspace host prefilled.
+- Directwerk MCP server for Studio content management, plus tenant API keys with content scopes.
+- Bulk podcast import through the MCP server, including a manifest builder for channel2mp3 output and OpenCode setup docs.
+- Studio remembers the last open desk, and shows the tenant favicon in the sidebar and the login workspace picker.
+- Short `/e/` and `/a/` content detail aliases on the public website.
+
+### Fixed
+
+- Studio sticky editor action bar now uses the standard card surface (rounded, ring, elevation) and sits below the mobile shell header.
+- Studio tenant-name home navigation and language switching in settings.
+- Mailgun API key handling hardened against accidental disclosure.
+
 ## [0.3.0] - 2026-10-30
 
 ### Added
