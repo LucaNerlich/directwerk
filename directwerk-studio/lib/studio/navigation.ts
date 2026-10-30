@@ -90,8 +90,9 @@ export function buildPodcastDeskItems(config: SiteConfig, dict: Dictionary): Nav
 }
 
 /**
- * Collapsed Verwaltung: up to four primary hubs (Mediathek, Abos, Team, Einstellungen)
- * plus Statistik when analytics qualifies. Nested pages live behind those hubs.
+ * Collapsed Verwaltung: Abos, Team, Einstellungen (+ Statistik when analytics qualifies).
+ * Mediathek lives in desk primary nav; only falls back here when no Write/Podcast desk
+ * would surface the shortcut (hub-only tenants). Nested media pages use MediaHubNav.
  */
 export function buildVerwaltungSections(
     config: SiteConfig,
@@ -101,11 +102,14 @@ export function buildVerwaltungSections(
     const items: NavigationItem[] = []
     const showMedia =
         hasModule(config, 'DIGITAL_CONTENT') || hasModule(config, 'PODCAST')
+    const deskSurfacesMedia =
+        showMedia && (hasDesk(config, 'WRITE') || hasDesk(config, 'PODCAST'))
     const showSubscription = hasModule(config, 'SUBSCRIPTION')
     const showAdmin = me !== null && isTenantAdminRole(me.roles)
     const v = dict.nav.verwaltung
 
-    if (showMedia) {
+    // Desk primary already lists Mediathek — keep Verwaltung free of the duplicate.
+    if (showMedia && !deskSurfacesMedia) {
         items.push({href: '/media', label: v.mediaHub})
     }
 
