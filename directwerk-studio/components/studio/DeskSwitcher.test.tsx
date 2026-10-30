@@ -1,4 +1,4 @@
-import {cleanup, fireEvent, screen} from '@testing-library/react'
+import {cleanup, fireEvent, screen, waitFor} from '@testing-library/react'
 import type {ComponentProps, ReactNode} from 'react'
 import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest'
 
@@ -41,6 +41,7 @@ vi.mock('next/link', () => ({
 
 beforeEach(() => {
     currentPathname = '/'
+    window.localStorage.clear()
     window.sessionStorage.clear()
 })
 
@@ -95,15 +96,17 @@ describe('DeskSwitcher', () => {
         expect(screen.getByRole('link', {name: 'Artikel'})).not.toHaveAttribute('aria-current')
     })
 
-    it('restores last active desk on shared routes when remembered', () => {
-        window.sessionStorage.setItem('directwerk-studio:last-desk', 'PODCAST')
+    it('restores last active desk on shared routes when remembered', async () => {
+        window.localStorage.setItem('dw.studio.lastDesk:slug:tenant', 'PODCAST')
         currentPathname = '/media'
         renderWithLocale(<DeskSwitcher config={config()} />)
 
-        expect(screen.getByRole('link', {name: 'Podcast'})).toHaveAttribute(
-            'aria-current',
-            'page',
-        )
+        await waitFor(() => {
+            expect(screen.getByRole('link', {name: 'Podcast'})).toHaveAttribute(
+                'aria-current',
+                'page',
+            )
+        })
         expect(screen.getByRole('link', {name: 'Artikel'})).not.toHaveAttribute('aria-current')
     })
 
@@ -112,7 +115,7 @@ describe('DeskSwitcher', () => {
         renderWithLocale(<DeskSwitcher config={config()} />)
 
         fireEvent.click(screen.getByRole('link', {name: 'Podcast'}))
-        expect(window.sessionStorage.getItem('directwerk-studio:last-desk')).toBe('PODCAST')
+        expect(window.localStorage.getItem('dw.studio.lastDesk:slug:tenant')).toBe('PODCAST')
     })
 
     it('does not render for single-desk WRITE tenants', () => {
