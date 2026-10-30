@@ -21,6 +21,7 @@ vi.mock('next/link', () => ({
 
 beforeEach(() => {
     currentPathname = '/'
+    window.localStorage.clear()
     window.sessionStorage.clear()
 })
 
@@ -313,7 +314,7 @@ describe('SideNav', () => {
         })
 
         it('restores the last active desk on shared routes for hybrid tenants', () => {
-            window.sessionStorage.setItem('directwerk-studio:last-desk', 'WRITE')
+            window.localStorage.setItem('dw.studio.lastDesk:slug:tenant', 'WRITE')
             currentPathname = '/media'
             renderNavigation(<SideNav config={hybridConfig} />)
 
@@ -341,6 +342,22 @@ describe('SideNav', () => {
             expect(screen.queryByRole('link', {name: 'Folgen'})).not.toBeInTheDocument()
             expect(screen.queryByRole('link', {name: 'Sendungen'})).not.toBeInTheDocument()
             expect(screen.queryByRole('link', {name: 'Formate'})).not.toBeInTheDocument()
+        })
+
+        it('restores the remembered Podcast desk on Studio home for hybrid tenants', () => {
+            window.localStorage.setItem('dw.studio.lastDesk:slug:tenant', 'PODCAST')
+            currentPathname = '/'
+            renderNavigation(<SideNav config={hybridConfig} />)
+
+            expect(screen.getByRole('link', {name: 'Start'})).toHaveAttribute(
+                'href',
+                '/de/podcast',
+            )
+            expect(screen.getByRole('link', {name: 'Folgen'})).toHaveAttribute(
+                'href',
+                '/de/podcast/episodes',
+            )
+            expect(screen.queryByRole('link', {name: 'Beiträge'})).not.toBeInTheDocument()
         })
 
         it('keeps the Write desk groups for a single-desk tenant on a shared route', () => {

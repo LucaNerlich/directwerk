@@ -5,6 +5,7 @@ import {usePathname} from 'next/navigation'
 import LocaleLink from '@/components/i18n/LocaleLink'
 import {useDictionary} from '@/components/i18n/LocaleProvider'
 import {deskHome, hasDesk} from '@/lib/api/client'
+import {useOptionalMe} from '@/lib/auth/MeProvider'
 import {setLastActiveDesk} from '@/lib/studio/activeDeskStorage'
 import {useActiveDesk} from '@/lib/studio/useActiveDesk'
 import type {SiteConfig, StudioDesk} from '@directwerk/api/types'
@@ -21,22 +22,21 @@ function tabClassName(active: boolean): string {
     }`
 }
 
-/**
- * Persists the selected desk as the last active desk.
- *
- * @param desk - The desk to store as active
- */
-function handleDeskSelect(desk: StudioDesk): void {
-    setLastActiveDesk(desk)
-}
-
 export default function DeskSwitcher({config}: {config: SiteConfig}): React.JSX.Element | null {
     const activeDesk = useActiveDesk(config)
+    const me = useOptionalMe()
     const dict = useDictionary()
     usePathname() // keep desk highlighting reactive to navigations
 
     if (!hasDesk(config, 'WRITE') || !hasDesk(config, 'PODCAST')) {
         return null
+    }
+
+    const persistDesk = (desk: StudioDesk): void => {
+        setLastActiveDesk(desk, {
+            tenantId: me?.tenantId ?? null,
+            tenantSlug: config.tenant.slug,
+        })
     }
 
     return (
@@ -48,7 +48,7 @@ export default function DeskSwitcher({config}: {config: SiteConfig}): React.JSX.
                 aria-current={activeDesk === 'WRITE' ? 'page' : undefined}
                 className={tabClassName(activeDesk === 'WRITE')}
                 href={deskHome('WRITE')}
-                onClick={() => handleDeskSelect('WRITE')}
+                onClick={() => persistDesk('WRITE')}
             >
                 {dict.desks.write}
             </LocaleLink>
@@ -56,7 +56,7 @@ export default function DeskSwitcher({config}: {config: SiteConfig}): React.JSX.
                 aria-current={activeDesk === 'PODCAST' ? 'page' : undefined}
                 className={tabClassName(activeDesk === 'PODCAST')}
                 href={deskHome('PODCAST')}
-                onClick={() => handleDeskSelect('PODCAST')}
+                onClick={() => persistDesk('PODCAST')}
             >
                 {dict.desks.podcast}
             </LocaleLink>

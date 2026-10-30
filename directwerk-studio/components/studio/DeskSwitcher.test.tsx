@@ -41,6 +41,7 @@ vi.mock('next/link', () => ({
 
 beforeEach(() => {
     currentPathname = '/'
+    window.localStorage.clear()
     window.sessionStorage.clear()
 })
 
@@ -96,7 +97,7 @@ describe('DeskSwitcher', () => {
     })
 
     it('restores last active desk on shared routes when remembered', () => {
-        window.sessionStorage.setItem('directwerk-studio:last-desk', 'PODCAST')
+        window.localStorage.setItem('dw.studio.lastDesk:slug:tenant', 'PODCAST')
         currentPathname = '/media'
         renderWithLocale(<DeskSwitcher config={config()} />)
 
@@ -112,7 +113,7 @@ describe('DeskSwitcher', () => {
         renderWithLocale(<DeskSwitcher config={config()} />)
 
         fireEvent.click(screen.getByRole('link', {name: 'Podcast'}))
-        expect(window.sessionStorage.getItem('directwerk-studio:last-desk')).toBe('PODCAST')
+        expect(window.localStorage.getItem('dw.studio.lastDesk:slug:tenant')).toBe('PODCAST')
     })
 
     it('does not render for single-desk WRITE tenants', () => {
