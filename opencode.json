@@ -1,0 +1,23 @@
+{
+    "$schema": "https://opencode.ai/config.json",
+    "mcp": {
+        "servers": {
+            "directwerk-studio": {
+                "type": "local",
+                "command": [
+                    "bash",
+                    "-ic",
+                    "exec node /mnt/workspace/luca/directwerk/packages/mcp-studio/dist/index.js"
+                ],
+                "environment": {
+                    "DIRECTWERK_API_BASE_URL": "https://api.directwerk.org",
+                    "DIRECTWERK_API_KEY": "{env:DIRECTWERK_API_KEY}",
+                    "DIRECTWERK_TENANT_HOST": "lucanerlich.directwerk.org"
+                },
+                "timeout": {
+                    "startup": 60000
+                }
+            }
+        }
+    }
+}

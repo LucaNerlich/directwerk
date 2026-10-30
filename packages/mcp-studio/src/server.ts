@@ -1,3 +1,4 @@
+import * as fs from 'node:fs/promises'
 import {McpServer} from '@modelcontextprotocol/sdk/server/mcp.js'
 import {z} from 'zod'
 import {DirectwerkApiError, DirectwerkClient} from './client.js'
@@ -264,12 +265,17 @@ export function createMcpServer(client: DirectwerkClient): McpServer {
         }
     })
 
-    server.tool('publish_episode', 'Publish an episode', {
+    server.tool('publish_episode', 'Publish an episode (optionally with an explicit publish date for imports)', {
         episodeId: idSchema,
-        notify: z.boolean().optional(),
-    }, async ({episodeId, notify}) => {
+        notifySubscribers: z.boolean().optional(),
+        // Accept an explicit publishedAt (ISO instant) for back-dated imports.
+        publishedAt: z.string().optional(),
+    }, async ({episodeId, notifySubscribers, publishedAt}) => {
         try {
-            return toolResult(await api('POST', `api/v1/episodes/${episodeId}/publish`, notify === undefined ? {} : {notify}))
+            const body: Record<string, unknown> = {}
+            if (notifySubscribers !== undefined) {body.notifySubscribers = notifySubscribers}
+            if (publishedAt !== undefined) {body.publishedAt = publishedAt}
+            return toolResult(await api('POST', `api/v1/episodes/${episodeId}/publish`, body))
         } catch (error) {
             return toolError(error)
         }
@@ -285,12 +291,14 @@ export function createMcpServer(client: DirectwerkClient): McpServer {
         }
     })
 
-    server.tool('schedule_episode', 'Schedule an episode publish time', {
+    server.tool('schedule_episode', 'Schedule an episode publish time (field matches backend: scheduledAt)', {
         episodeId: idSchema,
-        publishAt: z.string().min(1),
-        notify: z.boolean().optional(),
-    }, async ({episodeId, ...body}) => {
+        scheduledAt: z.string().min(1),
+        notifySubscribers: z.boolean().optional(),
+    }, async ({episodeId, scheduledAt, notifySubscribers}) => {
         try {
+            const body: Record<string, unknown> = {scheduledAt}
+            if (notifySubscribers !== undefined) {body.notifySubscribers = notifySubscribers}
             return toolResult(await api('POST', `api/v1/episodes/${episodeId}/schedule`, body))
         } catch (error) {
             return toolError(error)
@@ -560,6 +568,230 @@ export function createMcpServer(client: DirectwerkClient): McpServer {
     }, async ({folderId}) => {
         try {
             return toolResult(await api('DELETE', `api/v1/media/folders/${folderId}`))
+        } catch (error) {
+            return toolError(error)
+        }
+    })
+
+    // --- Bulk import (Karo-type podcast episode manifests) ---
+    // Reads a seller-provided JSON manifest; uploads local audio/cover files through
+    // the usual upload-url -> PUT -> confirm flow, then creates/publishes episodes.
+    // Idempotent: reuses READY assets by originalFilename and DRAFT episodes by slug.
+    const slugPattern = /^[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,62}[a-zA-Z0-9])?$/
+
+    const unwrap = (value: unknown): any =>
+        value && typeof value === 'object' && 'data' in (value as Record<string, unknown>)
+            ? (value as {data: unknown}).data
+            : value
+
+    async function collectList(path: string): Promise<any[]> {
+        const items: any[] = []
+        for (let offset = 0; ; offset += 100) {
+            const page = unwrap(await api('GET', path, undefined, {limit: 100, offset})) as any[]
+            if (!Array.isArray(page) || page.length === 0) {break}
+            items.push(...page)
+            if (page.length < 100) {break}
+        }
+        return items
+    }
+
+    interface ManifestFile {
+        path?: string
+        filename?: string
+        mimeType?: string
+        sizeBytes?: number
+    }
+
+    async function uploadAsset(file: ManifestFile, assetType: 'AUDIO' | 'IMAGE'): Promise<number> {
+        if (!file?.path || !file?.filename || !file?.mimeType || !file?.sizeBytes) {
+            throw new Error(`manifest item missing file descriptor: ${JSON.stringify(file)}`)
+        }
+        const upload = unwrap(await api('POST', 'api/v1/media/upload-url', {
+            filename: file.filename,
+            mimeType: file.mimeType,
+            sizeBytes: file.sizeBytes,
+            assetType,
+            intendedVisibility: 'PUBLIC',
+        })) as {assetId: number, uploadUrl: string, headers?: Record<string, string>}
+        const buffer = await fs.readFile(file.path)
+        if (buffer.length !== file.sizeBytes) {
+            throw new Error(`${file.filename}: size ${buffer.length} != manifest ${file.sizeBytes}`)
+        }
+        const put = await fetch(upload.uploadUrl, {
+            method: 'PUT',
+            headers: {'Content-Type': upload.headers?.['Content-Type'] ?? file.mimeType},
+            body: buffer,
+        })
+        if (!put.ok) {
+            throw new Error(`${file.filename}: S3 PUT failed (${put.status})`)
+        }
+        await api('POST', `api/v1/media/${upload.assetId}/confirm`, {})
+        return upload.assetId
+    }
+
+    server.tool('import_podcast_manifest', 'Bulk-import podcast episodes from a local manifest JSON file', {
+        manifestPath: z.string().min(1),
+        limit: z.coerce.number().int().min(1).max(60).optional(),
+        offset: z.coerce.number().int().min(0).optional(),
+        onlyNumbers: z.array(z.coerce.number().int()).optional(),
+        formatIds: z.array(idSchema).optional(),
+    }, async (args) => {
+        try {
+            const manifest = JSON.parse(await fs.readFile(args.manifestPath, 'utf8')) as {
+                series: {slug: string},
+                items: Array<{
+                    n: number
+                    slug: string
+                    title: string
+                    description?: string
+                    publishedAt?: string
+                    accessPolicy?: string
+                    mp3?: ManifestFile
+                    cover?: ManifestFile
+                }>,
+            }
+            if (!manifest?.series?.slug || !Array.isArray(manifest.items)) {
+                throw new Error('manifest must contain series.slug and items[]')
+            }
+            const seriesList = unwrap(await api('GET', 'api/v1/series')) as any[]
+            const series = (seriesList ?? []).find(s => s.slug === manifest.series.slug)
+            if (!series) {
+                throw new Error(`series ${manifest.series.slug} not found`)
+            }
+
+            const existingEpisodes = (await collectList('api/v1/episodes'))
+                .filter(e => e.seriesSlug === series.slug || e.seriesId === series.id)
+            const bySlug = new Map(existingEpisodes.map(e => [e.slug, e]))
+
+            const existingMedia = await collectList('api/v1/media')
+            const mediaByFilename = new Map(
+                existingMedia.map(a => [a.originalFilename, a]),
+            )
+
+            let items = [...manifest.items].sort((a, b) => a.n - b.n)
+            if (args.onlyNumbers && args.onlyNumbers.length > 0) {
+                const set = new Set(args.onlyNumbers)
+                items = items.filter(item => set.has(item.n))
+            }
+            if (args.offset !== undefined) {
+                items = items.slice(args.offset)
+            }
+            if (args.limit !== undefined) {
+                items = items.slice(0, args.limit)
+            }
+
+            const summary = {created: 0, updated: 0, skipped: 0, published: 0, failed: 0}
+            const results: any[] = []
+
+            for (const item of items) {
+                results.push(await handleItem(item))
+            }
+
+            async function handleItem(item: any): Promise<any> {
+                const fail = (reason: string): any => {
+                    summary.failed++
+                    return {n: item.n, slug: item.slug, error: reason}
+                }
+                try {
+                    if (!slugPattern.test(item.slug)) {
+                        return fail(`invalid slug: ${item.slug}`)
+                    }
+                    const accessPolicy = item.accessPolicy === 'PAID' ? 'PAID' : 'FREE'
+
+                    // --- media assets (reuse READY assets by filename) ---
+                    let audioAssetId: number | undefined
+                    if (item.mp3?.filename && mediaByFilename.get(item.mp3.filename)?.status === 'READY') {
+                        audioAssetId = mediaByFilename.get(item.mp3.filename).id
+                    } else if (item.mp3) {
+                        audioAssetId = await uploadAsset(item.mp3, 'AUDIO')
+                        mediaByFilename.set(item.mp3.filename, {id: audioAssetId, status: 'READY'})
+                    }
+
+                    let coverAssetId: number | undefined
+                    if (item.cover?.filename && mediaByFilename.get(item.cover.filename)?.status === 'READY') {
+                        coverAssetId = mediaByFilename.get(item.cover.filename).id
+                    } else if (item.cover) {
+                        coverAssetId = await uploadAsset(item.cover, 'IMAGE')
+                        mediaByFilename.set(item.cover.filename, {id: coverAssetId, status: 'READY'})
+                    }
+
+                    // --- episode ---
+                    let episode = bySlug.get(item.slug)
+                    let mode: 'created' | 'updated' | 'skipped'
+                    if (!episode) {
+                        episode = unwrap(await api('POST', 'api/v1/episodes', {
+                            seriesId: series.id,
+                            slug: item.slug,
+                            title: item.title,
+                            description: item.description,
+                            accessPolicy,
+                            episodeNumber: item.n,
+                            coverAssetId,
+                        }))
+                        if (episode && !episode.audioAssetId && audioAssetId) {
+                            await api('POST', `api/v1/episodes/${episode.id}/audio`, {audioAssetId})
+                        }
+                        summary.created++
+                        mode = 'created'
+                    } else {
+                        const missing: string[] = []
+                        if (!episode.description && item.description) {
+                            await api('PUT', `api/v1/episodes/${episode.id}`, {description: item.description})
+                            missing.push('description')
+                        }
+                        if (!episode.audioAssetId && audioAssetId) {
+                            await api('POST', `api/v1/episodes/${episode.id}/audio`, {audioAssetId})
+                            missing.push('audio')
+                        }
+                        if (!episode.coverAssetId && coverAssetId) {
+                            await api('PUT', `api/v1/episodes/${episode.id}`, {coverAssetId})
+                            missing.push('cover')
+                        }
+                        summary.updated++
+                        mode = 'updated'
+                    }
+
+                    // --- formats (required before publishing) ---
+                    const episodeView = unwrap(await api('GET', `api/v1/episodes/${episode.id}`))
+                    const hasFormats = Array.isArray(episodeView?.formats) && episodeView.formats.length > 0
+                    if (!hasFormats && args.formatIds && args.formatIds.length > 0) {
+                        await api('PUT', `api/v1/episodes/${episode.id}/formats`, {formatIds: args.formatIds})
+                    }
+
+                    // --- publication ---
+                    const status = unwrap(await api('GET', `api/v1/episodes/${episode.id}`))?.status
+                    if (status !== 'PUBLISHED') {
+                        const when = item.publishedAt ? new Date(item.publishedAt) : undefined
+                        if (when && !Number.isNaN(when.getTime())) {
+                            if (when.getTime() > Date.now()) {
+                                await api('POST', `api/v1/episodes/${episode.id}/schedule`, {
+                                    scheduledAt: item.publishedAt,
+                                    notifySubscribers: false,
+                                })
+                            } else {
+                                await api('POST', `api/v1/episodes/${episode.id}/publish`, {
+                                    notifySubscribers: false,
+                                    publishedAt: item.publishedAt,
+                                })
+                            }
+                        } else {
+                            await api('POST', `api/v1/episodes/${episode.id}/publish`, {notifySubscribers: false})
+                        }
+                        summary.published++
+                    } else {
+                        summary.skipped++
+                    }
+
+                    return {n: item.n, slug: item.slug, episodeId: episode.id, mode}
+                } catch (error) {
+                    const detail = error instanceof DirectwerkApiError && error.body
+                        ? ` ${JSON.stringify(error.body)}`
+                        : ''
+                    return fail(`${error instanceof Error ? error.message : String(error)}${detail}`)
+                }
+            }
+
+            return toolResult({seriesId: series.id, summary, results})
         } catch (error) {
             return toolError(error)
         }

@@ -73,6 +73,26 @@ docker compose --profile stack up --build
 - Directwerk admin / example FE: `http://localhost:3001` / `http://localhost:3000`
 - Docs site: `http://localhost:5173` (`pnpm --filter directwerk-docs dev`)
 
+## MCP tooling (OpenCode)
+
+[`packages/mcp-studio`](packages/mcp-studio/README.md) is a stdio MCP server that manages Studio
+content (articles, episodes, series, formats, categories, media) through the public REST API. The
+root [`opencode.json`](opencode.json) registers it for every session in the monorepo. It contains
+**no secrets**: the tenant key is substituted from the environment via `{env:DIRECTWERK_API_KEY}`
+(export it in `~/.bashrc`); the `bash -ic` wrapper is required because OpenCode's background service
+keeps its startup environment.
+
+```sh
+pnpm --filter @directwerk/mcp-studio build   # after changing src/
+opencode mcp list                            # must show ✓ directwerk-studio connected
+```
+
+Editing `dist/` does not reload a running server - save the config or reconnect via `/mcps`.
+Bulk import: `import_podcast_manifest` + [`scripts/build-manifest.py`](packages/mcp-studio/scripts/build-manifest.py);
+flow, manifest schema, and backend constraints (64-char slug limit, format required before publish,
+back-dating via publish `publishedAt`, schedule field `scheduledAt`) are documented in the package
+README. Keep MCP tools in lockstep with controller changes, same as Bruno and `http/`.
+
 ## Domain Model (summary)
 
 **Core entities:** Tenant, User, TenantMembership, PodcastSeries, Episode, Format, Category,
