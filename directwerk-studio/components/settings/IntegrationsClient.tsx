@@ -156,8 +156,8 @@ export default function IntegrationsClient(): React.JSX.Element {
             <PageStack>
                 <PageHeader
                     eyebrow={s.eyebrow}
-                    title={s.integrationsTitle}
-                    description={s.eMailZustellungAnalyticsZahlungen}
+                    title={s.deliveryTitle}
+                    description={s.deliveryDescription}
                 />
                 <Skeleton className="h-32 w-full" />
             </PageStack>
@@ -171,8 +171,8 @@ export default function IntegrationsClient(): React.JSX.Element {
         <PageStack>
             <PageHeader
                 eyebrow={s.eyebrow}
-                title={s.integrationsTitle}
-                description={s.verbindeMailgunVersandNutzePlattformZustell}
+                title={s.deliveryTitle}
+                description={s.deliveryDescription}
             />
             {errorMessage !== null ? (
                 <Alert variant="destructive">
@@ -185,69 +185,37 @@ export default function IntegrationsClient(): React.JSX.Element {
                 </Alert>
             ) : null}
 
-            <section className="grid gap-4 lg:grid-cols-2">
-                <Card>
-                    <CardHeader>
-                        <CardTitle>E-Mail / Newsletter</CardTitle>
-                        <CardDescription>
-                            Modul {email?.moduleEnabled === true ? 'aktiv' : 'aus'} · Plattform-Sender{' '}
-                            {email?.platformSenderReady === true ? 'bereit' : 'nicht bereit'} (
-                            {email?.platformProvider ?? '—'})
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent className="flex flex-col gap-3 text-sm">
-                        <p>
-                            Eigene Vorlagen: {email?.customTemplateCount ?? 0}.{' '}
-                            <LocaleLink className="underline" href="/settings/email">
-                                E-Mail-Vorlagen
-                            </LocaleLink>
-                            {' · '}
-                            <LocaleLink className="underline" href="/write/lists">
-                                Listen
-                            </LocaleLink>
-                        </p>
-                        {mailgun !== null ? (
-                            <p>
-                                Mailgun verbunden: {mailgun.domain} ({mailgun.fromEmail}, {mailgun.region})
-                            </p>
-                        ) : (
-                            <p className="text-muted-foreground">
-                                Noch kein Mailgun verbunden — Versand läuft über die Plattform.
-                            </p>
-                        )}
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Analytics</CardTitle>
-                        <CardDescription>
-                            Modul {status?.analytics.moduleEnabled === true ? 'aktiv' : 'aus'}
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent className="text-sm">
-                        <LocaleLink className="underline" href="/analytics">
-                            Zu den Statistiken
+            <Card>
+                <CardHeader>
+                    <CardTitle>E-Mail / Newsletter</CardTitle>
+                    <CardDescription>
+                        Modul {email?.moduleEnabled === true ? 'aktiv' : 'aus'} · Plattform-Sender{' '}
+                        {email?.platformSenderReady === true ? 'bereit' : 'nicht bereit'} (
+                        {email?.platformProvider ?? '—'})
+                    </CardDescription>
+                </CardHeader>
+                <CardContent className="flex flex-col gap-3 text-sm">
+                    <p>
+                        Eigene Vorlagen: {email?.customTemplateCount ?? 0}.{' '}
+                        <LocaleLink className="underline" href="/settings/email">
+                            {dict.nav.verwaltung.emailTemplates}
                         </LocaleLink>
                         {' · '}
-                        <LocaleLink className="underline" href="/settings/branding">
-                            Umami im Branding
+                        <LocaleLink className="underline" href="/write/lists">
+                            {dict.nav.write.lists}
                         </LocaleLink>
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Stripe</CardTitle>
-                        <CardDescription>
-                            {status?.stripe.message ?? 'Status unbekannt'}
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent className="text-sm">
-                        <LocaleLink className="underline" href="/settings/stripe">
-                            Stripe-Einstellungen
-                        </LocaleLink>
-                    </CardContent>
-                </Card>
-            </section>
+                    </p>
+                    {mailgun !== null ? (
+                        <p>
+                            Mailgun verbunden: {mailgun.domain} ({mailgun.fromEmail}, {mailgun.region})
+                        </p>
+                    ) : (
+                        <p className="text-muted-foreground">
+                            Noch kein Mailgun verbunden — Versand läuft über die Plattform.
+                        </p>
+                    )}
+                </CardContent>
+            </Card>
 
             <section className="flex flex-col gap-4">
                 <SectionHeader

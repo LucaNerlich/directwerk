@@ -2,10 +2,12 @@
 
 import LocaleLink from '@/components/i18n/LocaleLink'
 import {useDictionary} from '@/components/i18n/LocaleProvider'
+import SetupChecklist from '@/components/studio/SetupChecklist'
+import type {SetupStep} from '@/lib/studio/setupStep'
 import type {ReactNode} from 'react'
+import {useState} from 'react'
 
 import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
-import {Badge} from '@directwerk/ui/components/badge'
 import {Button} from '@directwerk/ui/components/button'
 import EmptyState from '@directwerk/ui/components/empty-state'
 import {EntityListSection} from '@directwerk/ui/components/entity-list-section'
@@ -15,15 +17,7 @@ import PageStack from '@directwerk/ui/components/page-stack'
 import SectionHeader from '@directwerk/ui/components/section-header'
 import type {ViewMode} from '@directwerk/ui/components/view-mode-toggle'
 
-export interface DeskStep {
-    id: string
-    title: string
-    description: string
-    done: boolean
-    href: string
-    actionLabel: string
-    primary?: boolean
-}
+export type {SetupStep as DeskStep}
 
 /**
  * Shared skeleton of the write and podcast desk landings (issue #691): header with actions,
@@ -54,7 +48,7 @@ export default function DeskLanding({
     flowId: string
     flowTitle: string
     flowDescription: string
-    steps: DeskStep[]
+    steps: SetupStep[]
     /** Whether the step marked `primary` may render as the primary action. */
     activatePrimary: boolean
     emptyState?: {title: string; description: string; actionLabel: string; actionHref: string}
@@ -70,6 +64,8 @@ export default function DeskLanding({
     footer?: ReactNode
 }): React.JSX.Element {
     const dict = useDictionary()
+    const allDone = steps.every((step) => step.done)
+    const [expanded, setExpanded] = useState(false)
 
     return (
         <PageStack>
@@ -86,44 +82,16 @@ export default function DeskLanding({
                 </Alert>
             ) : null}
 
-            <section aria-labelledby={flowId} className="flex flex-col gap-4">
-                <SectionHeader description={flowDescription} id={flowId} title={flowTitle} />
-                <ol className="grid gap-3">
-                    {steps.map((step) => (
-                        <li
-                            key={step.id}
-                            className="flex flex-col gap-3 rounded-xl border bg-card p-4 sm:flex-row sm:items-center sm:justify-between"
-                            data-dw-surface="panel"
-                        >
-                            <div className="min-w-0">
-                                <div className="flex flex-wrap items-center gap-2">
-                                    <p className="font-medium">{step.title}</p>
-                                    <Badge variant={step.done ? 'secondary' : 'outline'}>
-                                        {step.done ? dict.common.done : dict.common.openStep}
-                                    </Badge>
-                                </div>
-                                <p className="mt-1 text-sm text-muted-foreground">
-                                    {step.description}
-                                </p>
-                            </div>
-                            <Button
-                                nativeButton={false}
-                                render={<LocaleLink href={step.href} />}
-                                size="sm"
-                                variant={
-                                    step.primary && activatePrimary
-                                        ? 'default'
-                                        : step.done
-                                          ? 'outline'
-                                          : 'secondary'
-                                }
-                            >
-                                {step.actionLabel}
-                            </Button>
-                        </li>
-                    ))}
-                </ol>
-            </section>
+            <SetupChecklist
+                activatePrimary={activatePrimary}
+                collapsed={allDone && !expanded}
+                collapsedSummary={dict.shell.home.setup.deskCompleteSummary}
+                description={flowDescription}
+                id={flowId}
+                onExpand={() => setExpanded(true)}
+                steps={steps}
+                title={flowTitle}
+            />
 
             {emptyState !== undefined ? (
                 <EmptyState

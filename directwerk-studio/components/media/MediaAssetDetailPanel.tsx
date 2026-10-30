@@ -11,13 +11,13 @@ import type {MediaAsset, MediaAssetReference} from '@directwerk/api/types'
 import {Badge} from '@directwerk/ui/components/badge'
 import {Button} from '@directwerk/ui/components/button'
 import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-} from '@directwerk/ui/components/dialog'
+    Sheet,
+    SheetContent,
+    SheetDescription,
+    SheetFooter,
+    SheetHeader,
+    SheetTitle,
+} from '@directwerk/ui/components/sheet'
 
 function studioHrefForReference(ref: MediaAssetReference): string | null {
     switch (ref.kind) {
@@ -117,94 +117,104 @@ export default function MediaAssetDetailPanel({
             : dict.media.dateidetails
 
     return (
-        <Dialog onOpenChange={onOpenChange} open={open}>
-            <DialogContent className="sm:max-w-lg" closeLabel={dict.media.schliessen}>
-                <DialogHeader>
-                    <DialogTitle>{title}</DialogTitle>
-                    <DialogDescription>{dict.media.dateidetailsBeschreibung}</DialogDescription>
-                </DialogHeader>
+        <Sheet onOpenChange={onOpenChange} open={open}>
+            <SheetContent
+                className="w-full overflow-y-auto sm:max-w-lg"
+                closeLabel={dict.media.schliessen}
+                side="right"
+            >
+                <SheetHeader>
+                    <SheetTitle>{title}</SheetTitle>
+                    <SheetDescription>{dict.media.dateidetailsBeschreibung}</SheetDescription>
+                </SheetHeader>
 
-                {asset !== null ? (
-                    <dl className="grid gap-2 text-sm">
-                        <div className="flex justify-between gap-4">
-                            <dt className="text-muted-foreground">{dict.media.referenzMetaTyp}</dt>
-                            <dd>{assetTypeLabel(asset.assetType)}</dd>
-                        </div>
-                        <div className="flex justify-between gap-4">
-                            <dt className="text-muted-foreground">{dict.media.referenzMetaStatus}</dt>
-                            <dd>{mediaStatusLabel(asset.status)}</dd>
-                        </div>
-                        <div className="flex justify-between gap-4">
-                            <dt className="text-muted-foreground">{dict.media.referenzMetaSichtbarkeit}</dt>
-                            <dd>{visibilityLabel(asset.visibility)}</dd>
-                        </div>
-                        <div className="flex justify-between gap-4">
-                            <dt className="text-muted-foreground">{dict.media.referenzMetaGroesse}</dt>
-                            <dd>{formatBytes(asset.sizeBytes) ?? '—'}</dd>
-                        </div>
-                    </dl>
-                ) : null}
+                <div className="flex flex-col gap-4 px-4">
+                    {asset !== null ? (
+                        <dl className="grid gap-2 text-sm">
+                            <div className="flex justify-between gap-4">
+                                <dt className="text-muted-foreground">{dict.media.referenzMetaTyp}</dt>
+                                <dd>{assetTypeLabel(asset.assetType)}</dd>
+                            </div>
+                            <div className="flex justify-between gap-4">
+                                <dt className="text-muted-foreground">{dict.media.referenzMetaStatus}</dt>
+                                <dd>{mediaStatusLabel(asset.status)}</dd>
+                            </div>
+                            <div className="flex justify-between gap-4">
+                                <dt className="text-muted-foreground">{dict.media.referenzMetaSichtbarkeit}</dt>
+                                <dd>{visibilityLabel(asset.visibility)}</dd>
+                            </div>
+                            <div className="flex justify-between gap-4">
+                                <dt className="text-muted-foreground">{dict.media.referenzMetaGroesse}</dt>
+                                <dd>{formatBytes(asset.sizeBytes) ?? '—'}</dd>
+                            </div>
+                        </dl>
+                    ) : null}
 
-                <section aria-labelledby="media-references-heading" className="space-y-3">
-                    <h3 className="text-sm font-medium" id="media-references-heading">
-                        {dict.media.verwendungen}
-                    </h3>
-                    {isLoading ? (
-                        <p className="text-sm text-muted-foreground" role="status">
-                            {dict.media.referenzenWerdenGeladen}
-                        </p>
-                    ) : null}
-                    {errorMessage !== null ? (
-                        <p className="text-sm text-destructive" role="alert">
-                            {errorMessage}
-                        </p>
-                    ) : null}
-                    {!isLoading && references !== null && references.length === 0 ? (
-                        <div className="rounded-md border border-dashed px-3 py-4 text-sm">
-                            <p className="font-medium">{dict.media.keineVerwendungen}</p>
-                            <p className="mt-1 text-muted-foreground">
-                                {dict.media.keineVerwendungenHinweis}
+                    <section aria-labelledby="media-references-heading" className="space-y-3">
+                        <h3 className="text-sm font-medium" id="media-references-heading">
+                            {dict.media.verwendungen}
+                        </h3>
+                        {isLoading ? (
+                            <p className="text-sm text-muted-foreground" role="status">
+                                {dict.media.referenzenWerdenGeladen}
                             </p>
-                        </div>
-                    ) : null}
-                    {!isLoading && references !== null && references.length > 0 ? (
-                        <ul className="divide-y rounded-md border">
-                            {references.map((ref) => {
-                                const href = studioHrefForReference(ref)
-                                return (
-                                    <li
-                                        className="flex items-start justify-between gap-3 px-3 py-2"
-                                        key={`${ref.kind}-${ref.id}`}
-                                    >
-                                        <div className="min-w-0 space-y-1">
-                                            <Badge variant="outline">{kindLabel(ref.kind, dict.media)}</Badge>
-                                            {href !== null ? (
-                                                <LocaleLink
-                                                    className="block truncate text-sm font-medium underline-offset-2 hover:underline"
-                                                    href={href}
-                                                >
-                                                    {ref.title || `#${ref.id}`}
-                                                </LocaleLink>
-                                            ) : (
-                                                <p className="truncate text-sm font-medium">
-                                                    {ref.title || `#${ref.id}`}
-                                                </p>
-                                            )}
-                                        </div>
-                                    </li>
-                                )
-                            })}
-                        </ul>
-                    ) : null}
-                    <p className="text-xs text-muted-foreground">{dict.media.referenzenHtmlHinweis}</p>
-                </section>
+                        ) : null}
+                        {errorMessage !== null ? (
+                            <p className="text-sm text-destructive" role="alert">
+                                {errorMessage}
+                            </p>
+                        ) : null}
+                        {!isLoading && references !== null && references.length === 0 ? (
+                            <div className="rounded-md border border-dashed px-3 py-4 text-sm">
+                                <p className="font-medium">{dict.media.keineVerwendungen}</p>
+                                <p className="mt-1 text-muted-foreground">
+                                    {dict.media.keineVerwendungenHinweis}
+                                </p>
+                            </div>
+                        ) : null}
+                        {!isLoading && references !== null && references.length > 0 ? (
+                            <ul className="divide-y rounded-md border">
+                                {references.map((ref) => {
+                                    const href = studioHrefForReference(ref)
+                                    return (
+                                        <li
+                                            className="flex items-start justify-between gap-3 px-3 py-2"
+                                            key={`${ref.kind}-${ref.id}`}
+                                        >
+                                            <div className="min-w-0 space-y-1">
+                                                <Badge variant="outline">
+                                                    {kindLabel(ref.kind, dict.media)}
+                                                </Badge>
+                                                {href !== null ? (
+                                                    <LocaleLink
+                                                        className="block truncate text-sm font-medium underline-offset-2 hover:underline"
+                                                        href={href}
+                                                    >
+                                                        {ref.title || `#${ref.id}`}
+                                                    </LocaleLink>
+                                                ) : (
+                                                    <p className="truncate text-sm font-medium">
+                                                        {ref.title || `#${ref.id}`}
+                                                    </p>
+                                                )}
+                                            </div>
+                                        </li>
+                                    )
+                                })}
+                            </ul>
+                        ) : null}
+                        <p className="text-xs text-muted-foreground">
+                            {dict.media.referenzenHtmlHinweis}
+                        </p>
+                    </section>
+                </div>
 
-                <DialogFooter>
+                <SheetFooter>
                     <Button onClick={() => onOpenChange(false)} type="button" variant="outline">
                         {dict.media.schliessen}
                     </Button>
-                </DialogFooter>
-            </DialogContent>
-        </Dialog>
+                </SheetFooter>
+            </SheetContent>
+        </Sheet>
     )
 }

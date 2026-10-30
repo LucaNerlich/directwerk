@@ -1,5 +1,7 @@
 'use client'
 
+import {useCallback, useState} from 'react'
+
 import {Button} from '@directwerk/ui/components/button'
 import EmptyState from '@directwerk/ui/components/empty-state'
 import FeatureCard from '@directwerk/ui/components/feature-card'
@@ -10,6 +12,7 @@ import LocaleLink from '@/components/i18n/LocaleLink'
 import {useDictionary} from '@/components/i18n/LocaleProvider'
 import OverviewOpsWidgets from '@/components/studio/OverviewOpsWidgets'
 import OverviewQueue from '@/components/studio/OverviewQueue'
+import TenantSetupChecklist from '@/components/studio/TenantSetupChecklist'
 import {t} from '@/lib/i18n/dictionary'
 import {useSiteConfig} from '@/lib/site/SiteConfigProvider'
 
@@ -19,21 +22,19 @@ export default function OverviewPage() {
     const desks = new Set(config.studioDesks)
     const hasDesks = desks.has('WRITE') || desks.has('PODCAST')
     const home = dict.shell.home
+    const [showOps, setShowOps] = useState(false)
+    const handleOpsVisibilityChange = useCallback((visible: boolean) => {
+        setShowOps(visible)
+    }, [])
 
     return (
         <PageStack>
-            <nav aria-label={home.breadcrumbs}>
-                <ol className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                    <li aria-current="page" className="font-medium text-foreground">
-                        {home.overview}
-                    </li>
-                </ol>
-            </nav>
             <PageHeader
                 eyebrow={dict.meta.productName}
                 title={home.headline}
                 description={t(home.welcome, {tenantName: config.tenant.name})}
             />
+            <TenantSetupChecklist onOpsVisibilityChange={handleOpsVisibilityChange} />
             {!hasDesks ? (
                 <EmptyState title={home.noDeskTitle} description={home.noDeskDescription} />
             ) : (
@@ -86,7 +87,7 @@ export default function OverviewPage() {
                     ) : null}
                 </section>
             )}
-            <OverviewOpsWidgets />
+            {showOps ? <OverviewOpsWidgets /> : null}
             <OverviewQueue desks={config.studioDesks} />
         </PageStack>
     )
