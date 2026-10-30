@@ -22,6 +22,7 @@ import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
 function stripeLabel(
     status: string,
     home: {
+        opsConnected: string
         statusNotConnected: string
         statusRestricted: string
         statusSetupOpen: string
@@ -29,7 +30,7 @@ function stripeLabel(
 ): string {
     switch (status) {
         case 'CONNECTED':
-            return 'Verbunden'
+            return home.opsConnected
         case 'RESTRICTED':
             return home.statusRestricted
         case 'PENDING':
@@ -120,7 +121,7 @@ export default function OverviewOpsWidgets(): React.JSX.Element {
             <SectionHeader
                 description={home.opsDescription}
                 id="overview-ops-heading"
-                title="Betrieb"
+                title={home.opsTitle}
             />
             {errorMessage !== null ? (
                 <Alert variant="destructive">
@@ -155,9 +156,9 @@ export default function OverviewOpsWidgets(): React.JSX.Element {
                         hint={
                             storage === null
                                 ? home.noData
-                                : `${storage.buckets.length} Gruppen nach Typ/Status`
+                                : t(home.opsStorageHint, {count: storage.buckets.length})
                         }
-                        label="Medienspeicher"
+                        label={home.opsStorageLabel}
                         value={
                             storage === null
                                 ? '—'
@@ -178,15 +179,15 @@ export default function OverviewOpsWidgets(): React.JSX.Element {
                                 ? home.tenantAdminsOnly
                                 : integrations?.emailNotify.moduleEnabled === true
                                   ? home.moduleActive
-                                  : 'Modul aus'
+                                  : home.opsModuleOff
                         }
-                        label="E-Mail-Benachrichtigung"
+                        label={home.opsEmailLabel}
                         value={
                             integrationsForbidden
                                 ? '—'
                                 : integrations?.emailNotify.platformSenderReady === true
-                                  ? 'Bereit'
-                                  : 'Nicht bereit'
+                                  ? home.opsEmailReady
+                                  : home.opsEmailNotReady
                         }
                     />
                     <StatCard
@@ -210,12 +211,12 @@ export default function OverviewOpsWidgets(): React.JSX.Element {
                                       'mailgun.region': mailgun.region,
                                   })
                         }
-                        label="Mailgun"
+                        label={home.opsMailgunLabel}
                         value={
                             integrationsForbidden
                                 ? '—'
                                 : mailgunConnected
-                                  ? 'Verbunden'
+                                  ? home.opsConnected
                                   : home.statusNotConnected
                         }
                     />
@@ -231,7 +232,7 @@ export default function OverviewOpsWidgets(): React.JSX.Element {
                         }
                         hint={
                             integrations?.stripe.moduleEnabled === false
-                                ? 'Modul aus'
+                                ? home.opsModuleOff
                                 : (integrations?.stripe.message ?? undefined)
                         }
                         label={dict.nav.verwaltung.stripe}

@@ -19,9 +19,7 @@ import {useActionState, useCallback, useEffect, useRef, useState} from 'react'
 import MediaLibraryPicker from '@/components/media/MediaLibraryPicker'
 import UploadProgress from '@/components/media/UploadProgress'
 import {getBranding, getContactEmail, updateBranding, updateContactEmail} from '@/lib/api/tenantSettingsApi'
-import {hasModule} from '@/lib/api/client'
 import {uploadMediaFile} from '@/lib/media/upload'
-import {useSiteConfig} from '@/lib/site/SiteConfigProvider'
 import type {TenantBranding} from '@directwerk/api/types'
 import {getClientTenantHost} from '@directwerk/api/tenant'
 import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
@@ -37,9 +35,6 @@ interface BrandingFormState {
 const INITIAL_STATE: BrandingFormState = {error: null, success: null}
 
 const COLOR_PATTERN = /^#[0-9A-Fa-f]{6}$/
-const UMAMI_PATTERN = /^[a-zA-Z0-9-]{8,64}$/
-// Aligns with backend UmamiHostUrlValidator + TenantAdminController: HTTPS origin, no path/query/fragment/userinfo.
-const UMAMI_HOST_PATTERN = /^https:\/\/[^/\s?#@]+\/?$/
 
 function normalizeColor(value: FormDataEntryValue | null): string | null | undefined {
     const text = String(value ?? '').trim()
@@ -63,8 +58,6 @@ export default function BrandingEditor(): React.JSX.Element {
     const router = useRouter()
     const localize = useLocalizedPath()
     const authRedirect = useAuthRequired()
-    const siteConfig = useSiteConfig()
-    const analyticsModuleActive = hasModule(siteConfig, 'ANALYTICS')
     const [branding, setBranding] = useState<TenantBranding | null>(null)
     const [contactEmail, setContactEmail] = useState<string | null>(null)
     const [primaryColorDraft, setPrimaryColorDraft] = useState('')
@@ -78,6 +71,7 @@ export default function BrandingEditor(): React.JSX.Element {
     const [loadError, setLoadError] = useState<string | null>(null)
     const [isLoading, setIsLoading] = useState(true)
     const mountedRef = useRef(true)
+    const brandingRef = useRef<TenantBranding | null>(null)
 
     const handleAuthRequired = useCallback(() => {
         router.replace(localize('/login'))
@@ -99,6 +93,7 @@ export default function BrandingEditor(): React.JSX.Element {
                     return
                 }
                 setBranding(brandingResult)
+                brandingRef.current = brandingResult
                 setContactEmail(contactResult.contactEmail)
                 setPrimaryColorDraft(brandingResult.primaryColor ?? '')
                 setSecondaryColorDraft(brandingResult.secondaryColor ?? '')
@@ -177,13 +172,6 @@ export default function BrandingEditor(): React.JSX.Element {
         const secondaryColor = normalizeColor(formData.get('secondaryColor'))
         const logoUrl = logoUrlDraft.trim()
         const faviconUrl = faviconUrlDraft.trim()
-        const umamiWebsiteId = String(formData.get('umamiWebsiteId') ?? '').trim()
-        // Website id alone is fine (platform Umami origin). Clearing the id also
-        // drops any host override so we never send an orphaned host to the API.
-        const umamiHostUrl =
-            umamiWebsiteId.length > 0
-                ? String(formData.get('umamiHostUrl') ?? '').trim()
-                : ''
         const contactEmailValue = String(formData.get('contactEmail') ?? '').trim()
 
         if (primaryColor !== null && primaryColor !== undefined && !COLOR_PATTERN.test(primaryColor)) {
@@ -195,20 +183,6 @@ export default function BrandingEditor(): React.JSX.Element {
             !COLOR_PATTERN.test(secondaryColor)
         ) {
             return {error: 'Sekundärfarbe muss #RRGGBB sein.', success: null}
-        }
-        const umamiIdSet = umamiWebsiteId.length > 0
-        const umamiHostSet = umamiHostUrl.length > 0
-        if (umamiIdSet && !UMAMI_PATTERN.test(umamiWebsiteId)) {
-            return {
-                error: dict.settings.umamiWebsiteIdMuss864,
-                success: null,
-            }
-        }
-        if (umamiHostSet && !UMAMI_HOST_PATTERN.test(umamiHostUrl)) {
-            return {
-                error: dict.settings.umamiServerMussHttpsOrigin,
-                success: null,
-            }
         }
         if (logoUrl.length > 0 && safeImageSrc(logoUrl) === null) {
             return {
@@ -236,6 +210,7 @@ export default function BrandingEditor(): React.JSX.Element {
         }
 
         try {
+            // Preserve Umami fields — they are edited on the Advanced tab.
             const [updated, contactUpdated] = await Promise.all([
                 updateBranding({
                     siteTitle: siteTitle.length > 0 ? siteTitle : '',
@@ -243,16 +218,15 @@ export default function BrandingEditor(): React.JSX.Element {
                     secondaryColor: secondaryColor ?? null,
                     logoUrl: logoUrl.length > 0 ? logoUrl : null,
                     faviconUrl: faviconUrl.length > 0 ? faviconUrl : null,
-                    // Empty website id clears tracking (host already forced empty above).
-                    // Website id alone is fine — blank host uses the platform Umami origin.
-                    umamiWebsiteId,
-                    umamiHostUrl,
+                    umamiWebsiteId: brandingRef.current?.umamiWebsiteId ?? '',
+                    umamiHostUrl: brandingRef.current?.umamiHostUrl ?? '',
                 }),
                 updateContactEmail({
                     contactEmail: contactEmailValue,
                 }),
             ])
             setBranding(updated)
+            brandingRef.current = updated
             setContactEmail(contactUpdated.contactEmail)
             setPrimaryColorDraft(updated.primaryColor ?? '')
             setSecondaryColorDraft(updated.secondaryColor ?? '')
@@ -262,7 +236,7 @@ export default function BrandingEditor(): React.JSX.Element {
             setFaviconPickError(null)
             return {
                 error: null,
-                success: dict.settings.brandingGespeichertAnalyticsEigenenUmamiSer,
+                success: dict.settings.brandingGespeichert,
             }
         } catch (error: unknown) {
             if (authRedirect(error)) return INITIAL_STATE
@@ -584,53 +558,6 @@ export default function BrandingEditor(): React.JSX.Element {
                                 {dict.settings.kontaktEMailHilfe}
                             </p>
                         </div>
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Analytics (Umami)</CardTitle>
-                        <CardDescription>{dict.settings.optionalesWebsiteTrackingOhneWebsite}</CardDescription>
-                    </CardHeader>
-                    <CardContent className="grid gap-5">
-                <div className="grid gap-2">
-                    <Label htmlFor="umamiWebsiteId">{dict.settings.umamiWebsiteId}</Label>
-                    <Input
-                        aria-describedby="umamiWebsiteId-help"
-                        defaultValue={branding?.umamiWebsiteId ?? ''}
-                        id="umamiWebsiteId"
-                        maxLength={64}
-                        name="umamiWebsiteId"
-                        placeholder="z. B. 16515bf8-1283-4a9a-9747-1b6ed4ab5b8a"
-                        type="text"
-                    />
-                    <p className="text-xs text-muted-foreground" id="umamiWebsiteId-help">
-                        {dict.settings.umamiWebsiteIdHilfe}
-                    </p>
-                </div>
-                <div className="grid gap-2">
-                    <Label htmlFor="umamiHostUrl">{dict.settings.umamiServer}</Label>
-                    <Input
-                        aria-describedby="umamiHostUrl-help"
-                        defaultValue={branding?.umamiHostUrl ?? ''}
-                        id="umamiHostUrl"
-                        maxLength={512}
-                        name="umamiHostUrl"
-                        placeholder="https://umami.example.com"
-                        type="url"
-                    />
-                    <p className="text-xs text-muted-foreground" id="umamiHostUrl-help">
-                        {dict.settings.umamiServerHilfe}
-                    </p>
-                </div>
-                {analyticsModuleActive === false && branding?.umamiWebsiteId ? (
-                    <Alert variant="destructive">
-                        <AlertDescription>
-                            Das ANALYTICS-Modul ist für diesen Workspace nicht aktiv — es werden
-                            keine Events erfasst (weder Website noch Episoden-Downloads). Ein
-                            Plattform-Admin kann es unter Tenants → Module aktivieren.
-                        </AlertDescription>
-                    </Alert>
-                ) : null}
                     </CardContent>
                 </Card>
                 {state.error ? (

@@ -11,79 +11,106 @@ export interface NavigationGroupConfig {
     items: NavigationItem[]
 }
 
-export function buildWriteDeskItems(config: SiteConfig, dict: Dictionary): NavigationItem[] {
-    const items: NavigationItem[] = [
+export interface DeskNavModel {
+    primary: NavigationItem[]
+    secondary: NavigationItem[]
+}
+
+function mediaShortcut(dict: Dictionary): NavigationItem {
+    return {href: '/media', label: dict.nav.mediaLibraryShortcut}
+}
+
+export function buildWriteDeskNav(
+    config: SiteConfig,
+    dict: Dictionary,
+    options: {collapseSecondary: boolean} = {collapseSecondary: true},
+): DeskNavModel {
+    const primary: NavigationItem[] = [
         {href: '/write', label: dict.nav.write.start},
         {href: '/write/articles', label: dict.nav.write.articles},
+    ]
+    if (hasModule(config, 'DIGITAL_CONTENT') || hasModule(config, 'PODCAST')) {
+        primary.push(mediaShortcut(dict))
+    }
+
+    const secondary: NavigationItem[] = [
         {href: '/write/import', label: dict.nav.write.import},
     ]
     if (hasModule(config, 'EMAIL_NOTIFY')) {
-        items.push({href: '/write/lists', label: dict.nav.write.lists})
+        secondary.push({href: '/write/lists', label: dict.nav.write.lists})
     }
     if (hasModule(config, 'ARTICLE_RSS') || config.publicArticleRssUrl !== null) {
-        items.push({href: '/write/feeds', label: dict.nav.write.feeds})
+        secondary.push({href: '/write/feeds', label: dict.nav.write.feeds})
     }
-    return items
+
+    if (!options.collapseSecondary) {
+        return {primary: [...primary, ...secondary], secondary: []}
+    }
+    return {primary, secondary}
 }
 
-export function buildPodcastDeskItems(config: SiteConfig, dict: Dictionary): NavigationItem[] {
-    const items: NavigationItem[] = [
+export function buildPodcastDeskNav(
+    config: SiteConfig,
+    dict: Dictionary,
+    options: {collapseSecondary: boolean} = {collapseSecondary: true},
+): DeskNavModel {
+    const primary: NavigationItem[] = [
         {href: '/podcast', label: dict.nav.podcast.start},
         {href: '/podcast/episodes', label: dict.nav.podcast.episodes},
+    ]
+    if (hasModule(config, 'DIGITAL_CONTENT') || hasModule(config, 'PODCAST')) {
+        primary.push(mediaShortcut(dict))
+    }
+
+    const secondary: NavigationItem[] = [
         {href: '/podcast/import', label: dict.nav.podcast.import},
         {href: '/podcast/series', label: dict.nav.podcast.series},
         {href: '/podcast/formats', label: dict.nav.podcast.formats},
     ]
     if (hasModule(config, 'PODCAST_RSS') || config.publicRssUrl !== null) {
-        items.push({href: '/podcast/feeds', label: dict.nav.podcast.feeds})
+        secondary.push({href: '/podcast/feeds', label: dict.nav.podcast.feeds})
     }
-    return items
+
+    if (!options.collapseSecondary) {
+        return {primary: [...primary, ...secondary], secondary: []}
+    }
+    return {primary, secondary}
 }
 
+/** @deprecated Prefer buildWriteDeskNav — kept for callers that need a flat list. */
+export function buildWriteDeskItems(config: SiteConfig, dict: Dictionary): NavigationItem[] {
+    const nav = buildWriteDeskNav(config, dict, {collapseSecondary: false})
+    return [...nav.primary, ...nav.secondary]
+}
+
+/** @deprecated Prefer buildPodcastDeskNav — kept for callers that need a flat list. */
+export function buildPodcastDeskItems(config: SiteConfig, dict: Dictionary): NavigationItem[] {
+    const nav = buildPodcastDeskNav(config, dict, {collapseSecondary: false})
+    return [...nav.primary, ...nav.secondary]
+}
+
+/**
+ * Collapsed Verwaltung: up to four primary hubs (Mediathek, Abos, Team, Einstellungen)
+ * plus Statistik when analytics qualifies. Nested pages live behind those hubs.
+ */
 export function buildVerwaltungSections(
     config: SiteConfig,
     me: Me | null,
     dict: Dictionary,
 ): NavigationGroupConfig[] {
-    const sections: NavigationGroupConfig[] = []
+    const items: NavigationItem[] = []
     const showMedia =
         hasModule(config, 'DIGITAL_CONTENT') || hasModule(config, 'PODCAST')
-    const showBonusContent = hasModule(config, 'BONUS_CONTENT')
-    const showCategories = hasModule(config, 'DIGITAL_CONTENT')
     const showSubscription = hasModule(config, 'SUBSCRIPTION')
-    const showEmailNotify = hasModule(config, 'EMAIL_NOTIFY')
-    const showStripeBilling = hasModule(config, 'STRIPE_BILLING')
     const showAdmin = me !== null && isTenantAdminRole(me.roles)
     const v = dict.nav.verwaltung
 
     if (showMedia) {
-        const mediaItems: NavigationItem[] = [{href: '/media', label: v.library}]
-        if (showBonusContent) {
-            mediaItems.push({href: '/bonus', label: v.bonus})
-        }
-        sections.push({
-            label: v.media,
-            items: mediaItems,
-        })
-    }
-
-    if (showCategories) {
-        sections.push({
-            label: v.organisation,
-            items: [{href: '/manage/categories', label: v.categories}],
-        })
+        items.push({href: '/media', label: v.mediaHub})
     }
 
     if (showSubscription && showAdmin) {
-        sections.push({
-            label: v.subscriptions,
-            items: [
-                {href: '/manage', label: v.payments},
-                {href: '/manage/products', label: v.products},
-                {href: '/manage/grants', label: v.grants},
-                {href: '/manage/subscribers', label: v.subscribers},
-            ],
-        })
+        items.push({href: '/manage', label: v.subscriptions})
     }
 
     const showAnalytics =
@@ -92,35 +119,89 @@ export function buildVerwaltungSections(
         showMedia ||
         showSubscription
     if (showAnalytics) {
-        sections.push({
-            label: v.analyticsSection,
-            items: [{href: '/analytics', label: v.statistics}],
-        })
+        items.push({href: '/analytics', label: v.statistics})
     }
 
     if (showAdmin) {
-        sections.push({
-            label: v.team,
-            items: [{href: '/team', label: v.members}],
-        })
-
-        const settingsItems: NavigationItem[] = [
-            {href: '/settings/branding', label: v.branding},
-            {href: '/settings/domains', label: v.domains},
-            {href: '/settings/integrations', label: v.integrations},
-        ]
-        if (showEmailNotify) {
-            settingsItems.push({href: '/settings/email', label: v.emailTemplates})
-        }
-        if (showStripeBilling) {
-            settingsItems.push({href: '/settings/stripe', label: v.stripe})
-        }
-
-        sections.push({
-            label: v.settings,
-            items: settingsItems,
-        })
+        items.push({href: '/team', label: v.team})
+        items.push({href: '/settings', label: v.settings})
     }
 
-    return sections
+    if (items.length === 0) {
+        return []
+    }
+
+    return [{label: v.label, items}]
+}
+
+export function buildManageHubItems(dict: Dictionary): NavigationItem[] {
+    const v = dict.nav.verwaltung
+    return [
+        {href: '/manage', label: v.payments},
+        {href: '/manage/products', label: v.products},
+        {href: '/manage/grants', label: v.grants},
+        {href: '/manage/subscribers', label: v.subscribers},
+    ]
+}
+
+export function buildMediaHubItems(
+    config: SiteConfig,
+    dict: Dictionary,
+): NavigationItem[] {
+    const v = dict.nav.verwaltung
+    const items: NavigationItem[] = [{href: '/media', label: v.library}]
+    if (hasModule(config, 'BONUS_CONTENT')) {
+        items.push({href: '/bonus', label: v.bonus})
+    }
+    if (hasModule(config, 'DIGITAL_CONTENT')) {
+        items.push({href: '/manage/categories', label: v.categories})
+    }
+    return items
+}
+
+export interface SettingsTabItem {
+    href: string
+    label: string
+    match: (path: string) => boolean
+}
+
+export function buildSettingsTabs(
+    config: SiteConfig,
+    dict: Dictionary,
+): SettingsTabItem[] {
+    const v = dict.nav.verwaltung
+    const tabs: SettingsTabItem[] = [
+        {
+            href: '/settings/branding',
+            label: v.branding,
+            match: (path) => path === '/settings/branding' || path.startsWith('/settings/branding/'),
+        },
+        {
+            href: '/settings/domains',
+            label: v.domains,
+            match: (path) => path === '/settings/domains' || path.startsWith('/settings/domains/'),
+        },
+        {
+            href: '/settings/integrations',
+            label: v.delivery,
+            match: (path) =>
+                path === '/settings/integrations' ||
+                path.startsWith('/settings/integrations/') ||
+                path === '/settings/email' ||
+                path.startsWith('/settings/email/'),
+        },
+    ]
+    if (hasModule(config, 'STRIPE_BILLING')) {
+        tabs.push({
+            href: '/settings/stripe',
+            label: v.paymentsSettings,
+            match: (path) => path === '/settings/stripe' || path.startsWith('/settings/stripe/'),
+        })
+    }
+    tabs.push({
+        href: '/settings/advanced',
+        label: v.advanced,
+        match: (path) => path === '/settings/advanced' || path.startsWith('/settings/advanced/'),
+    })
+    return tabs
 }

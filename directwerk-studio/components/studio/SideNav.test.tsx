@@ -1,4 +1,4 @@
-import {cleanup, screen} from '@testing-library/react'
+import {cleanup, fireEvent, screen} from '@testing-library/react'
 import type {ReactNode} from 'react'
 import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest'
 
@@ -66,21 +66,26 @@ function editorMe(): Me {
     }
 }
 
+function expandMore(): void {
+    fireEvent.click(screen.getByRole('button', {name: 'Mehr…'}))
+}
+
 describe('SideNav', () => {
-    it('puts Formate under Podcast desk, not Abos', () => {
+    it('tucks Formate under Mehr… for the Podcast desk', () => {
         renderNavigation(<SideNav config={config()} />)
+        const more = screen.getByRole('button', {name: 'Mehr…'})
+        expect(more).toHaveAttribute('title', 'Mehr…')
+        expect(screen.queryByRole('link', {name: 'Formate'})).not.toBeInTheDocument()
+        expandMore()
         expect(screen.getByRole('link', {name: 'Formate'})).toHaveAttribute(
             'href',
             '/de/podcast/formats',
         )
         expect(screen.getByRole('navigation').textContent).toMatch(/Podcast/)
-        expect(screen.getByRole('navigation').textContent).not.toMatch(
-            /Podcast · Einrichtung/,
-        )
         expect(screen.queryByRole('link', {name: 'Kategorien'})).not.toBeInTheDocument()
     })
 
-    it('shows Bonusdateien in the desk-independent Medien section when BONUS_CONTENT is enabled', () => {
+    it('shows Mediathek hub when media modules are enabled', () => {
         renderNavigation(
             <SideNav
                 config={config({
@@ -89,51 +94,20 @@ describe('SideNav', () => {
                 })}
             />,
         )
-        expect(screen.getByRole('link', {name: 'Bonusdateien'})).toHaveAttribute(
-            'href',
-            '/de/bonus',
-        )
+        expect(screen.getAllByRole('link', {name: 'Mediathek'}).length).toBeGreaterThan(0)
+        expect(screen.queryByRole('link', {name: 'Bonusdateien'})).not.toBeInTheDocument()
     })
 
-    it('shows Bonusdateien for a podcast-only tenant, not just the Write desk', () => {
+    it('hides Mediathek when no media modules are enabled', () => {
         renderNavigation(
             <SideNav
                 config={config({
-                    enabledModules: ['DIGITAL_CONTENT', 'PODCAST', 'BONUS_CONTENT'],
-                    studioDesks: ['PODCAST'],
-                })}
-            />,
-        )
-        expect(screen.getByRole('link', {name: 'Bonusdateien'})).toHaveAttribute(
-            'href',
-            '/de/bonus',
-        )
-    })
-
-    it('hides Bonusdateien when BONUS_CONTENT is off', () => {
-        renderNavigation(
-            <SideNav
-                config={config({
-                    enabledModules: ['DIGITAL_CONTENT'],
+                    enabledModules: [],
                     studioDesks: ['WRITE'],
                 })}
             />,
         )
-        expect(screen.queryByRole('link', {name: 'Bonusdateien'})).not.toBeInTheDocument()
-    })
-
-    it('shows Kategorien only when DIGITAL_CONTENT is enabled', () => {
-        renderNavigation(
-            <SideNav
-                config={config({
-                    enabledModules: ['PODCAST', 'DIGITAL_CONTENT'],
-                })}
-            />,
-        )
-        expect(screen.getByRole('link', {name: 'Kategorien'})).toHaveAttribute(
-            'href',
-            '/de/manage/categories',
-        )
+        expect(screen.queryByRole('link', {name: 'Mediathek'})).not.toBeInTheDocument()
     })
 
     it('prioritizes Folgen under podcast create', () => {
@@ -142,13 +116,14 @@ describe('SideNav', () => {
             'href',
             '/de/podcast/episodes',
         )
-        expect(screen.getByRole('link', {name: 'Import'})).toHaveAttribute(
-            'href',
-            '/de/podcast/import',
-        )
         expect(screen.getByRole('link', {name: 'Start'})).toHaveAttribute(
             'href',
             '/de/podcast',
+        )
+        expandMore()
+        expect(screen.getByRole('link', {name: 'Import'})).toHaveAttribute(
+            'href',
+            '/de/podcast/import',
         )
         expect(screen.getByRole('link', {name: 'Sendungen'})).toHaveAttribute(
             'href',
@@ -156,8 +131,9 @@ describe('SideNav', () => {
         )
     })
 
-    it('links to the Feeds page in podcast setup when RSS is enabled', () => {
+    it('links to the Feeds page under Mehr… when RSS is enabled', () => {
         renderNavigation(<SideNav config={config()} />)
+        expandMore()
         expect(screen.getByRole('link', {name: 'Feeds'})).toHaveAttribute(
             'href',
             '/de/podcast/feeds',
@@ -166,15 +142,17 @@ describe('SideNav', () => {
 
     it('does not show the Feeds link when publicRssUrl is null', () => {
         renderNavigation(<SideNav config={config({publicRssUrl: null})} />)
+        expandMore()
         expect(screen.queryByRole('link', {name: 'Feeds'})).not.toBeInTheDocument()
     })
 
     it('does not show Formate link when PODCAST is not in studioDesks', () => {
         renderNavigation(<SideNav config={config({studioDesks: []})} />)
+        expect(screen.queryByRole('button', {name: 'Mehr…'})).not.toBeInTheDocument()
         expect(screen.queryByRole('link', {name: 'Formate'})).not.toBeInTheDocument()
     })
 
-    it('shows Abos links only when SUBSCRIPTION is enabled', () => {
+    it('shows a single Abos hub link when SUBSCRIPTION is enabled', () => {
         renderNavigation(
             <MeProvider me={adminMe()}>
                 <SideNav
@@ -184,25 +162,12 @@ describe('SideNav', () => {
                 />
             </MeProvider>,
         )
-        expect(screen.getByRole('link', {name: 'Zahlungen'})).toHaveAttribute(
-            'href',
-            '/de/manage',
-        )
-        expect(screen.getByRole('link', {name: 'Produkte'})).toHaveAttribute(
-            'href',
-            '/de/manage/products',
-        )
-        expect(screen.getByRole('link', {name: 'Abonnenten'})).toHaveAttribute(
-            'href',
-            '/de/manage/subscribers',
-        )
-        expect(screen.getByRole('link', {name: 'Freischaltungen'})).toHaveAttribute(
-            'href',
-            '/de/manage/grants',
-        )
+        expect(screen.getByRole('link', {name: 'Abos'})).toHaveAttribute('href', '/de/manage')
+        expect(screen.queryByRole('link', {name: 'Zahlungen'})).not.toBeInTheDocument()
+        expect(screen.queryByRole('link', {name: 'Produkte'})).not.toBeInTheDocument()
     })
 
-    it('hides Abos admin links for EDITOR even when SUBSCRIPTION is on', () => {
+    it('hides Abos hub for EDITOR even when SUBSCRIPTION is on', () => {
         renderNavigation(
             <MeProvider me={editorMe()}>
                 <SideNav
@@ -212,20 +177,15 @@ describe('SideNav', () => {
                 />
             </MeProvider>,
         )
-        expect(screen.queryByRole('link', {name: 'Zahlungen'})).not.toBeInTheDocument()
-        expect(screen.queryByRole('link', {name: 'Produkte'})).not.toBeInTheDocument()
-        expect(screen.queryByRole('link', {name: 'Freischaltungen'})).not.toBeInTheDocument()
-        expect(screen.queryByRole('link', {name: 'Abonnenten'})).not.toBeInTheDocument()
-        expect(screen.queryByText('Abos')).not.toBeInTheDocument()
+        expect(screen.queryByRole('link', {name: 'Abos'})).not.toBeInTheDocument()
     })
 
     it('hides Abos group when SUBSCRIPTION is off', () => {
         renderNavigation(<SideNav config={config()} />)
-        expect(screen.queryByRole('link', {name: 'Produkte'})).not.toBeInTheDocument()
-        expect(screen.queryByText('Abos')).not.toBeInTheDocument()
+        expect(screen.queryByRole('link', {name: 'Abos'})).not.toBeInTheDocument()
     })
 
-    it('shows Statistiken in Auswertung for tenants with content', () => {
+    it('shows Statistiken for tenants with content', () => {
         renderNavigation(<SideNav config={config()} />)
         expect(screen.getByRole('link', {name: 'Statistiken'})).toHaveAttribute(
             'href',
@@ -242,7 +202,7 @@ describe('SideNav', () => {
         expect(screen.queryByRole('link', {name: 'Statistiken'})).not.toBeInTheDocument()
     })
 
-    it('shows Settings and Team links for TENANT_ADMIN', () => {
+    it('shows Settings and Team hubs for TENANT_ADMIN', () => {
         renderNavigation(
             <MeProvider me={adminMe()}>
                 <SideNav
@@ -252,60 +212,13 @@ describe('SideNav', () => {
                 />
             </MeProvider>,
         )
-        expect(screen.getByRole('link', {name: 'Branding'})).toHaveAttribute(
+        expect(screen.getByRole('link', {name: 'Einstellungen'})).toHaveAttribute(
             'href',
-            '/de/settings/branding',
+            '/de/settings',
         )
-        expect(screen.getByRole('link', {name: 'Domains'})).toHaveAttribute(
-            'href',
-            '/de/settings/domains',
-        )
-        expect(screen.getByRole('link', {name: 'Integrationen'})).toHaveAttribute(
-            'href',
-            '/de/settings/integrations',
-        )
-        expect(screen.getByRole('link', {name: 'Stripe'})).toHaveAttribute(
-            'href',
-            '/de/settings/stripe',
-        )
-        expect(screen.getByRole('link', {name: 'Mitglieder'})).toHaveAttribute(
-            'href',
-            '/de/team',
-        )
-    })
-
-    it('hides Stripe settings when STRIPE_BILLING is off', () => {
-        renderNavigation(
-            <MeProvider me={adminMe()}>
-                <SideNav config={config()} />
-            </MeProvider>,
-        )
-        expect(screen.getByRole('link', {name: 'Branding'})).toBeInTheDocument()
-        expect(screen.getByRole('link', {name: 'Integrationen'})).toHaveAttribute(
-            'href',
-            '/de/settings/integrations',
-        )
+        expect(screen.getByRole('link', {name: 'Team'})).toHaveAttribute('href', '/de/team')
+        expect(screen.queryByRole('link', {name: 'Branding'})).not.toBeInTheDocument()
         expect(screen.queryByRole('link', {name: 'Stripe'})).not.toBeInTheDocument()
-    })
-
-    it('shows media library and email templates for TENANT_ADMIN with modules', () => {
-        renderNavigation(
-            <MeProvider me={adminMe()}>
-                <SideNav
-                    config={config({
-                        enabledModules: ['PODCAST', 'SUBSCRIPTION', 'EMAIL_NOTIFY'],
-                    })}
-                />
-            </MeProvider>,
-        )
-        expect(screen.getByRole('link', {name: 'Bibliothek'})).toHaveAttribute(
-            'href',
-            '/de/media',
-        )
-        expect(screen.getByRole('link', {name: 'E-Mail-Vorlagen'})).toHaveAttribute(
-            'href',
-            '/de/settings/email',
-        )
     })
 
     it('hides Settings and Team links for EDITOR', () => {
@@ -314,10 +227,8 @@ describe('SideNav', () => {
                 <SideNav config={config()} />
             </MeProvider>,
         )
-        expect(screen.queryByRole('link', {name: 'Branding'})).not.toBeInTheDocument()
-        expect(screen.queryByRole('link', {name: 'Domains'})).not.toBeInTheDocument()
-        expect(screen.queryByRole('link', {name: 'Mitglieder'})).not.toBeInTheDocument()
-        expect(screen.queryByRole('link', {name: 'Abonnenten'})).not.toBeInTheDocument()
+        expect(screen.queryByRole('link', {name: 'Einstellungen'})).not.toBeInTheDocument()
+        expect(screen.queryByRole('link', {name: 'Team'})).not.toBeInTheDocument()
     })
 
     describe('desk-scoped navigation', () => {
@@ -327,7 +238,7 @@ describe('SideNav', () => {
             studioHome: 'OVERVIEW',
         })
 
-        it('shows only Write desk groups and shared items when on /write/*', () => {
+        it('shows only Write desk groups and shared hubs when on /write/*', () => {
             currentPathname = '/write/articles'
             renderNavigation(<SideNav config={hybridConfig} />)
 
@@ -337,19 +248,9 @@ describe('SideNav', () => {
                 'href',
                 '/de/write/articles',
             )
-            expect(screen.getByRole('link', {name: 'Bonusdateien'})).toHaveAttribute(
-                'href',
-                '/de/bonus',
-            )
-            expect(screen.getByRole('link', {name: 'Bibliothek'})).toHaveAttribute(
-                'href',
-                '/de/media',
-            )
-            expect(screen.getByRole('link', {name: 'Kategorien'})).toHaveAttribute(
-                'href',
-                '/de/manage/categories',
-            )
+            expect(screen.getAllByRole('link', {name: 'Mediathek'}).length).toBeGreaterThan(0)
 
+            expandMore()
             expect(screen.getByRole('link', {name: 'Import'})).toHaveAttribute(
                 'href',
                 '/de/write/import',
@@ -357,10 +258,9 @@ describe('SideNav', () => {
             expect(screen.queryByRole('link', {name: 'Folgen'})).not.toBeInTheDocument()
             expect(screen.queryByRole('link', {name: 'Sendungen'})).not.toBeInTheDocument()
             expect(screen.queryByRole('link', {name: 'Formate'})).not.toBeInTheDocument()
-            expect(screen.queryByRole('link', {name: 'Feeds'})).not.toBeInTheDocument()
         })
 
-        it('shows only Podcast desk groups and shared items when on /podcast/*', () => {
+        it('shows only Podcast desk groups and shared hubs when on /podcast/*', () => {
             currentPathname = '/podcast/episodes'
             renderNavigation(<SideNav config={hybridConfig} />)
 
@@ -373,6 +273,7 @@ describe('SideNav', () => {
                 'href',
                 '/de/podcast/episodes',
             )
+            expandMore()
             expect(screen.getByRole('link', {name: 'Import'})).toHaveAttribute(
                 'href',
                 '/de/podcast/import',
@@ -389,17 +290,7 @@ describe('SideNav', () => {
                 'href',
                 '/de/podcast/feeds',
             )
-            expect(screen.getByRole('link', {name: 'Bibliothek'})).toHaveAttribute(
-                'href',
-                '/de/media',
-            )
-            // Bonusdateien lives in the desk-independent Medien section, so it stays visible
-            // even while the Podcast desk is active — it is not gated by which desk is open.
-            expect(screen.getByRole('link', {name: 'Bonusdateien'})).toHaveAttribute(
-                'href',
-                '/de/bonus',
-            )
-
+            expect(screen.getAllByRole('link', {name: 'Mediathek'}).length).toBeGreaterThan(0)
             expect(screen.queryByRole('link', {name: 'Beiträge'})).not.toBeInTheDocument()
         })
 
@@ -426,18 +317,7 @@ describe('SideNav', () => {
                 'href',
                 '/de/write/articles',
             )
-            expect(screen.getByRole('link', {name: 'Bonusdateien'})).toHaveAttribute(
-                'href',
-                '/de/bonus',
-            )
-            expect(screen.getByRole('link', {name: 'Bibliothek'})).toHaveAttribute(
-                'href',
-                '/de/media',
-            )
-            expect(screen.getByRole('link', {name: 'Kategorien'})).toHaveAttribute(
-                'href',
-                '/de/manage/categories',
-            )
+            expect(screen.getAllByRole('link', {name: 'Mediathek'}).length).toBeGreaterThan(0)
             expect(screen.getByText('Verwaltung')).toBeInTheDocument()
 
             expect(screen.queryByRole('link', {name: 'Folgen'})).not.toBeInTheDocument()
@@ -461,10 +341,6 @@ describe('SideNav', () => {
             expect(screen.getByRole('link', {name: 'Beiträge'})).toHaveAttribute(
                 'href',
                 '/de/write/articles',
-            )
-            expect(screen.getByRole('link', {name: 'Bonusdateien'})).toHaveAttribute(
-                'href',
-                '/de/bonus',
             )
             expect(screen.queryByRole('link', {name: 'Folgen'})).not.toBeInTheDocument()
         })
