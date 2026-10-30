@@ -7,6 +7,7 @@ import com.nimbusds.jose.jwk.source.JWKSource;
 import com.nimbusds.jose.proc.SecurityContext;
 import de.pnnit.directwerk.api.exception.FilterExceptionResolver;
 import de.pnnit.directwerk.config.DirectwerkConfig;
+import de.pnnit.directwerk.modules.core.apikey.TenantApiKeyScopes;
 import de.pnnit.directwerk.modules.marketing.ContactFormLimits;
 import de.pnnit.directwerk.modules.stripebilling.StripeWebhookLimits;
 import de.pnnit.directwerk.config.DirectwerkProperties;
@@ -136,6 +137,11 @@ public class SecurityConfig {
                             case PERMIT_ALL -> auth.requestMatchers(patterns).permitAll();
                             case PLATFORM_ADMIN -> auth.requestMatchers(patterns).hasRole("PLATFORM_ADMIN");
                             case TENANT_ADMIN -> auth.requestMatchers(patterns).hasRole("TENANT_ADMIN");
+                            case TENANT_ADMIN_OR_CONTENT_API_KEY -> auth.requestMatchers(patterns).hasAnyAuthority(
+                                    "ROLE_TENANT_ADMIN",
+                                    "ROLE_EDITOR",
+                                    TenantApiKeyScopes.CONTENT_WRITE_AUTHORITY
+                            );
                             case EDITOR_OR_TENANT_ADMIN ->
                                     auth.requestMatchers(patterns).hasAnyRole("EDITOR", "TENANT_ADMIN");
                             case AUTHENTICATED -> auth.requestMatchers(patterns).authenticated();
@@ -181,7 +187,17 @@ public class SecurityConfig {
 
     /** JWT-layer access level for one ordered matcher row. */
     enum ApiAccess {
-        PERMIT_ALL, PLATFORM_ADMIN, TENANT_ADMIN, EDITOR_OR_TENANT_ADMIN, AUTHENTICATED
+        PERMIT_ALL,
+        PLATFORM_ADMIN,
+        TENANT_ADMIN,
+        /**
+         * Categories/formats: human TENANT_ADMIN, or opaque API keys with EDITOR /
+         * {@code API_KEY_CONTENT_WRITE}. Keeps {@code /api/v1/tenant/**} on pure
+         * {@link #TENANT_ADMIN} so content keys cannot satisfy that matcher.
+         */
+        TENANT_ADMIN_OR_CONTENT_API_KEY,
+        EDITOR_OR_TENANT_ADMIN,
+        AUTHENTICATED
     }
 
     /** One ordered row of the API authorization table (first match wins). */
@@ -219,9 +235,13 @@ public class SecurityConfig {
                 "/api/v1/auth/verify-email",
                 "/api/v1/webhooks/stripe")));
         rules.add(new ApiAuthorizationRule(ApiAccess.PLATFORM_ADMIN, List.of("/api/v1/platform/**")));
-        List<String> tenantAdminPatterns = new java.util.ArrayList<>(List.of("/api/v1/tenant/**"));
-        tenantAdminPatterns.addAll(RequestScope.antPatterns(RequestScope.tenantAdminContentBases()));
-        rules.add(new ApiAuthorizationRule(ApiAccess.TENANT_ADMIN, List.copyOf(tenantAdminPatterns)));
+        // Billing/domains/users/api-keys: JWT TENANT_ADMIN only — opaque content keys never match.
+        rules.add(new ApiAuthorizationRule(ApiAccess.TENANT_ADMIN, List.of("/api/v1/tenant/**")));
+        // Taxonomy CRUD for humans (TENANT_ADMIN) + MCP content keys (EDITOR / write authority).
+        rules.add(new ApiAuthorizationRule(
+                ApiAccess.TENANT_ADMIN_OR_CONTENT_API_KEY,
+                RequestScope.antPatterns(RequestScope.tenantAdminContentBases())
+        ));
         List<String> editorPatterns =
                 new java.util.ArrayList<>(RequestScope.antPatterns(RequestScope.editorContentBases()));
         editorPatterns.add("/api/v1/probes/**");

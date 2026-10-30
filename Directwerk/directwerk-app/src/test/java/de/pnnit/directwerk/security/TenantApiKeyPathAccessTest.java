@@ -12,6 +12,7 @@ class TenantApiKeyPathAccessTest {
     void allowsEditorContentAndTaxonomyPaths() {
         assertThat(TenantApiKeyPathAccess.isAllowedPath("/api/v1/articles")).isTrue();
         assertThat(TenantApiKeyPathAccess.isAllowedPath("/api/v1/articles/1")).isTrue();
+        assertThat(TenantApiKeyPathAccess.isAllowedPath("/api/v1/articles/1/categories")).isTrue();
         assertThat(TenantApiKeyPathAccess.isAllowedPath("/api/v1/episodes")).isTrue();
         assertThat(TenantApiKeyPathAccess.isAllowedPath("/api/v1/series/3")).isTrue();
         assertThat(TenantApiKeyPathAccess.isAllowedPath("/api/v1/media/folders")).isTrue();
@@ -26,6 +27,17 @@ class TenantApiKeyPathAccessTest {
         assertThat(TenantApiKeyPathAccess.isAllowedPath("/api/v1/tenant/branding")).isFalse();
         assertThat(TenantApiKeyPathAccess.isAllowedPath("/api/v1/me/access")).isFalse();
         assertThat(TenantApiKeyPathAccess.isAllowedPath("/api/v1/platform/tenants")).isFalse();
+    }
+
+    @Test
+    void rejectsDeferredEditorSurfacesBeyondMcpV1() {
+        assertThat(TenantApiKeyPathAccess.isAllowedPath("/api/v1/articles/import")).isFalse();
+        assertThat(TenantApiKeyPathAccess.isAllowedPath("/api/v1/articles/import/jobs")).isFalse();
+        assertThat(TenantApiKeyPathAccess.isAllowedPath("/api/v1/newsletter-lists")).isFalse();
+        assertThat(TenantApiKeyPathAccess.isAllowedPath("/api/v1/newsletter-lists/1/subscriptions")).isFalse();
+        assertThat(TenantApiKeyPathAccess.isAllowedPath("/api/v1/podcast/import")).isFalse();
+        assertThat(TenantApiKeyPathAccess.isAllowedPath("/api/v1/digital-publications")).isFalse();
+        assertThat(TenantApiKeyPathAccess.isAllowedPath("/api/v1/digital-publications/1")).isFalse();
     }
 
     @Test

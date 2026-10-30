@@ -533,6 +533,34 @@ Accept: application/json
 
 ###
 
+### @name contentGetWithTenantApiKey
+GET {{baseUrl}}/api/v1/articles
+Host: {{tenantAHost}}
+Authorization: Bearer {{tenantApiKeySecret}}
+Accept: application/json
+
+> {%
+    client.test("API key can list articles", function() {
+        client.assert(response.status === 200, "Expected 200");
+    });
+%}
+
+###
+
+### @name denyTenantPathWithTenantApiKey
+GET {{baseUrl}}/api/v1/tenant/users
+Host: {{tenantAHost}}
+Authorization: Bearer {{tenantApiKeySecret}}
+Accept: application/json
+
+> {%
+    client.test("API key cannot hit tenant admin surface", function() {
+        client.assert(response.status === 401 || response.status === 403, "Expected 401 or 403");
+    });
+%}
+
+###
+
 ### @name revokeTenantApiKey
 DELETE {{baseUrl}}/api/v1/tenant/api-keys/{{tenantApiKeyId}}
 Host: {{tenantAHost}}

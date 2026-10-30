@@ -45,20 +45,25 @@ class RequestScopeSecurityConsistencyTest {
     }
 
     @Test
-    void tenantAdminContentBasesDemandTenantAdminInBothTaxonomies() {
+    void tenantAdminContentBasesStayTenantAdminForMembershipButAllowContentApiKeysAtJwt() {
         for (String base : RequestScope.tenantAdminContentBases()) {
             for (String path : List.of(base, base + "/7")) {
                 assertThat(RequestScope.of(path))
                         .as("scope of %s", path)
                         .isEqualTo(RequestScope.TENANT_ADMIN_AREA);
+                // Deliberate: JWT matcher admits EDITOR / API_KEY_CONTENT_WRITE so opaque
+                // content keys can manage taxonomy; membership re-check still TENANT_ADMIN
+                // for human JWTs.
                 assertThat(decisionFor(path))
                         .as("SecurityConfig decision for %s", path)
-                        .isEqualTo(SecurityConfig.ApiAccess.TENANT_ADMIN);
+                        .isEqualTo(SecurityConfig.ApiAccess.TENANT_ADMIN_OR_CONTENT_API_KEY);
             }
         }
         assertThat(RequestScope.of("/api/v1/tenant/subscribers"))
                 .isEqualTo(RequestScope.TENANT_ADMIN_AREA);
         assertThat(decisionFor("/api/v1/tenant/subscribers"))
+                .isEqualTo(SecurityConfig.ApiAccess.TENANT_ADMIN);
+        assertThat(decisionFor("/api/v1/tenant/api-keys"))
                 .isEqualTo(SecurityConfig.ApiAccess.TENANT_ADMIN);
     }
 

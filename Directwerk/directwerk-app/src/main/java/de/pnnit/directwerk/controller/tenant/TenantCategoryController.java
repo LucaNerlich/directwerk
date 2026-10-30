@@ -28,7 +28,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 
 @RestController
 @RequiresModule(DigitalContentModule.KEY)
-@PreAuthorize("hasRole('TENANT_ADMIN')")
+@PreAuthorize("hasRole('TENANT_ADMIN') or hasAuthority('API_KEY_CONTENT_WRITE')")
 @RequestMapping("/api/v1/categories")
 public class TenantCategoryController {
 
@@ -50,7 +50,7 @@ public class TenantCategoryController {
 
     @ApiResponse(responseCode = "201", description = "Created")
     @PostMapping
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasRole('TENANT_ADMIN') or hasAuthority('API_KEY_CONTENT_WRITE')")
     ResponseEntity<Response<CategoryView>> createCategory(@Valid @RequestBody CreateCategoryRequest request) {
         Long tenantId = TenantContext.requireTenantId();
                 Category category = categoryService.createCategory(
@@ -63,7 +63,7 @@ public class TenantCategoryController {
     }
 
     @PutMapping("/{categoryId}")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasRole('TENANT_ADMIN') or hasAuthority('API_KEY_CONTENT_WRITE')")
     ResponseEntity<Response<CategoryView>> updateCategory(
             @PathVariable Long categoryId,
             @Valid @RequestBody UpdateCategoryRequest request
@@ -82,7 +82,7 @@ public class TenantCategoryController {
     }
 
     @DeleteMapping("/{categoryId}")
-    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    @PreAuthorize("hasRole('TENANT_ADMIN') or hasAuthority('API_KEY_CONTENT_WRITE')")
     ResponseEntity<Response<CategoryView>> deactivateCategory(@PathVariable Long categoryId) {
         Long tenantId = TenantContext.requireTenantId();
         return ResponseEntity.ok(Response.ok(toView(categoryService.deactivateCategory(tenantId, categoryId))));

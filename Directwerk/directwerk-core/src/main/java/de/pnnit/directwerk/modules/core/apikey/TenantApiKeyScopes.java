@@ -12,6 +12,12 @@ public final class TenantApiKeyScopes {
     public static final String CONTENT_READ = "content:read";
     public static final String CONTENT_WRITE = "content:write";
 
+    /**
+     * Spring authority granted for {@link #CONTENT_WRITE} so taxonomy mutations
+     * (categories/formats) can succeed without impersonating {@code ROLE_TENANT_ADMIN}.
+     */
+    public static final String CONTENT_WRITE_AUTHORITY = "API_KEY_CONTENT_WRITE";
+
     private static final Set<String> KNOWN = Set.of(CONTENT_READ, CONTENT_WRITE);
 
     private TenantApiKeyScopes() {

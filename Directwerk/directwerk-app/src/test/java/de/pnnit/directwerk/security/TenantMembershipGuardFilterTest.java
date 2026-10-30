@@ -213,6 +213,20 @@ class TenantMembershipGuardFilterTest {
     }
 
     @Test
+    void rejectsApiKeyOnDeferredNewsletterLists() throws Exception {
+        authenticateApiKey(1L, Set.of("content:write"));
+        TenantContext.setTenantId(1L);
+
+        HttpServletRequest request = mock(HttpServletRequest.class);
+        when(request.getRequestURI()).thenReturn("/api/v1/newsletter-lists");
+        when(request.getMethod()).thenReturn("GET");
+        FilterChain chain = mock(FilterChain.class);
+
+        assertThatThrownBy(() -> filter.doFilter(request, new MockHttpServletResponse(), chain))
+                .isInstanceOf(TenantMismatchException.class);
+    }
+
+    @Test
     void rejectsApiKeyReadScopeOnPost() throws Exception {
         authenticateApiKey(1L, Set.of("content:read"));
         TenantContext.setTenantId(1L);
@@ -251,10 +265,8 @@ class TenantMembershipGuardFilterTest {
     }
 
     private static void authenticateApiKey(Long tenantId, Set<String> scopes) {
-        List<SimpleGrantedAuthority> authorities = List.of(
-                new SimpleGrantedAuthority(RoleConstants.EDITOR),
-                new SimpleGrantedAuthority(RoleConstants.TENANT_ADMIN)
-        );
+        List<SimpleGrantedAuthority> authorities =
+                TenantApiKeyAuthenticationFilter.authoritiesFor(scopes);
         DirectwerkUserPrincipal principal = new DirectwerkUserPrincipal(
                 5L,
                 "admin@example.com",

@@ -19,9 +19,10 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 /**
  * Authenticates opaque {@code dwk_…} Bearer secrets before the JWT resource-server filter.
- * Authority mapping: {@code content:*} → EDITOR; {@code content:write} also gets TENANT_ADMIN
- * so formats/categories mutations pass method security — path access still refuses
- * {@code /api/v1/tenant/**} via {@link TenantApiKeyPathAccess}.
+ * Authority mapping: {@code content:*} → EDITOR; {@code content:write} also gets
+ * {@link TenantApiKeyScopes#CONTENT_WRITE_AUTHORITY} so formats/categories mutations pass
+ * method security without impersonating {@code ROLE_TENANT_ADMIN}. Path access still refuses
+ * {@code /api/v1/tenant/**} and deferred editor surfaces via {@link TenantApiKeyPathAccess}.
  */
 @RequiredArgsConstructor
 public class TenantApiKeyAuthenticationFilter extends OncePerRequestFilter {
@@ -78,9 +79,9 @@ public class TenantApiKeyAuthenticationFilter extends OncePerRequestFilter {
             authorities.add(new SimpleGrantedAuthority(RoleConstants.EDITOR));
         }
         if (TenantApiKeyScopes.allowsWrite(scopes)) {
-            // Formats/categories mutations require TENANT_ADMIN at method security; path gate
-            // still blocks /api/v1/tenant/** for API-key principals.
-            authorities.add(new SimpleGrantedAuthority(RoleConstants.TENANT_ADMIN));
+            // Narrow authority for taxonomy mutations — never ROLE_TENANT_ADMIN, so
+            // /api/v1/tenant/** stays denied at the SecurityConfig matcher layer.
+            authorities.add(new SimpleGrantedAuthority(TenantApiKeyScopes.CONTENT_WRITE_AUTHORITY));
         }
         return authorities;
     }
