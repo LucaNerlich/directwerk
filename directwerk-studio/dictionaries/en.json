@@ -912,6 +912,8 @@
     "oeffentlicherTitelWebsite": "Public title on the website",
     "opening": "Opening…",
     "optionalesWebsiteTrackingOhneWebsite": "Optional website tracking with Umami. Set website ID and server together, or leave both empty.",
+    "preferences": "Preferences",
+    "preferencesDescription": "Language of the Studio interface.",
     "podcastKontakt": "Podcast contact",
     "podcastKontaktBeschreibung": "Email address for podcast directories and the RSS feed (required).",
     "primaer": "Primary",

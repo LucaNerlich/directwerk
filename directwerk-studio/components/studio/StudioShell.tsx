@@ -7,7 +7,6 @@ import {Button} from '@directwerk/ui/components/button'
 import AppShell from '@directwerk/ui/components/layout/app-shell'
 import {usePathname} from 'next/navigation'
 
-import LanguageSwitcher from '@/components/i18n/LanguageSwitcher'
 import LocaleLink from '@/components/i18n/LocaleLink'
 import {useDictionary} from '@/components/i18n/LocaleProvider'
 import DeskSwitcher from '@/components/studio/DeskSwitcher'
@@ -41,18 +40,21 @@ export default function StudioShell({
                     brand={
                         <div className="flex min-w-0 flex-col gap-3 group-data-[collapsible=icon]:items-center group-data-[collapsible=icon]:gap-2">
                             <div className="min-w-0 group-data-[collapsible=icon]:hidden">
-                                <p className="truncate text-sm font-semibold">
-                                    {config.tenant.name}
-                                </p>
-                                <p className="text-xs text-muted-foreground">
-                                    {dict.meta.productName}
-                                </p>
+                                <LocaleLink
+                                    className="block min-w-0 rounded-md outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring"
+                                    href="/"
+                                    title={config.tenant.name}
+                                >
+                                    <p className="truncate text-sm font-semibold">
+                                        {config.tenant.name}
+                                    </p>
+                                    <p className="text-xs text-muted-foreground">
+                                        {dict.meta.productName}
+                                    </p>
+                                </LocaleLink>
                             </div>
                             <div className="group-data-[collapsible=icon]:hidden">
                                 <DeskSwitcher config={config} />
-                            </div>
-                            <div className="group-data-[collapsible=icon]:hidden">
-                                <LanguageSwitcher />
                             </div>
                         </div>
                     }

@@ -12,6 +12,7 @@ import {Skeleton} from '@directwerk/ui/components/skeleton'
 import Form from 'next/form'
 import {useActionState, useEffect, useRef, useState} from 'react'
 
+import LanguageSwitcher from '@/components/i18n/LanguageSwitcher'
 import {useDictionary} from '@/components/i18n/LocaleProvider'
 import {hasModule} from '@/lib/api/client'
 import {getBranding, updateBranding} from '@/lib/api/tenantSettingsApi'
@@ -142,6 +143,16 @@ export default function AdvancedSettingsClient(): React.JSX.Element {
                 title={dict.nav.verwaltung.advanced}
                 description={s.optionalesWebsiteTrackingOhneWebsite}
             />
+            <Card className="w-full max-w-xl">
+                <CardHeader>
+                    <CardTitle>{s.preferences}</CardTitle>
+                    <CardDescription>{s.preferencesDescription}</CardDescription>
+                </CardHeader>
+                <CardContent className="grid gap-2">
+                    <Label>{dict.shell.language}</Label>
+                    <LanguageSwitcher />
+                </CardContent>
+            </Card>
             <Form action={formAction} className="grid w-full max-w-xl gap-6">
                 <Card>
                     <CardHeader>
