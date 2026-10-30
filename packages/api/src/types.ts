@@ -55,6 +55,10 @@ export interface StudioWorkspace {
     slug: string
     name: string
     host: string
+    /** Branding favicon CDN/public URL when set; otherwise null. */
+    faviconUrl: string | null
+    /** Branding logo CDN/public URL when set; otherwise null. */
+    logoUrl: string | null
 }
 
 // ---------------------------------------------------------------------------

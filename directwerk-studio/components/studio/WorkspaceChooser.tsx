@@ -2,9 +2,11 @@
 
 import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
 import {Button} from '@directwerk/ui/components/button'
+import {useState} from 'react'
 
 import {useDictionary} from '@/components/i18n/LocaleProvider'
 import {t} from '@/lib/i18n/dictionary'
+import {safeImageSrc} from '@/lib/url/safeUrl'
 import type {StudioWorkspace} from '@directwerk/api/types'
 
 interface WorkspaceChooserProps {
@@ -21,9 +23,43 @@ function workspaceInitial(name: string): string {
     return trimmed.length > 0 ? trimmed.charAt(0).toUpperCase() : '?'
 }
 
+/** Prefer favicon, then logo; both must pass HTTPS image URL checks. */
+function workspaceAvatarSrc(workspace: StudioWorkspace): string | null {
+    return safeImageSrc(workspace.faviconUrl) ?? safeImageSrc(workspace.logoUrl)
+}
+
+function WorkspaceAvatar({workspace}: {workspace: StudioWorkspace}): React.JSX.Element {
+    const [imageFailed, setImageFailed] = useState(false)
+    const src = imageFailed ? null : workspaceAvatarSrc(workspace)
+
+    if (src !== null) {
+        return (
+            <img
+                alt=""
+                className="size-10 shrink-0 rounded-full object-cover"
+                height={40}
+                onError={() => {
+                    setImageFailed(true)
+                }}
+                src={src}
+                width={40}
+            />
+        )
+    }
+
+    return (
+        <span
+            aria-hidden="true"
+            className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-base font-semibold text-primary"
+        >
+            {workspaceInitial(workspace.name)}
+        </span>
+    )
+}
+
 /**
  * Step 2 of studio login: pick which discovered workspace (tenant) to open.
- * Each row shows the tenant at a glance (avatar initial, name, host) and
+ * Each row shows the tenant at a glance (favicon/logo/initial, name, host) and
  * reports its own opening state so the choice stays responsive for multi-
  * workspace accounts.
  */
@@ -57,12 +93,7 @@ export default function WorkspaceChooser({
                                 type="button"
                                 variant="outline"
                             >
-                                <span
-                                    aria-hidden="true"
-                                    className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-base font-semibold text-primary"
-                                >
-                                    {workspaceInitial(workspace.name)}
-                                </span>
+                                <WorkspaceAvatar workspace={workspace} />
                                 <span className="flex min-w-0 flex-1 flex-col items-start gap-0.5">
                                     <span className="w-full truncate font-medium">
                                         {workspace.name}

@@ -51,7 +51,9 @@ public class StudioAuthController {
                         workspace.tenantId(),
                         workspace.slug(),
                         workspace.name(),
-                        workspace.host()
+                        workspace.host(),
+                        workspace.faviconUrl(),
+                        workspace.logoUrl()
                 ))
                 .toList();
         return ResponseEntity.ok(Response.ok(new StudioWorkspacesResponse(items)));
@@ -66,6 +68,13 @@ public class StudioAuthController {
     public record StudioWorkspacesResponse(List<StudioWorkspaceResponse> workspaces) {
     }
 
-    public record StudioWorkspaceResponse(Long tenantId, String slug, String name, String host) {
+    public record StudioWorkspaceResponse(
+            Long tenantId,
+            String slug,
+            String name,
+            String host,
+            String faviconUrl,
+            String logoUrl
+    ) {
     }
 }

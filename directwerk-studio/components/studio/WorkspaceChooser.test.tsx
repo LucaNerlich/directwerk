@@ -6,11 +6,34 @@ import type {StudioWorkspace} from '@directwerk/api/types'
 import {renderWithLocale} from '@/lib/i18n/testUtils'
 
 const workspaces: StudioWorkspace[] = [
-    {tenantId: 1, slug: 'alpha-a', name: 'Alpha Podcast', host: 'alpha-a.localhost'},
-    {tenantId: 2, slug: 'beta-b', name: 'Beta Show', host: 'beta-b.localhost'},
+    {
+        tenantId: 1,
+        slug: 'alpha-a',
+        name: 'Alpha Podcast',
+        host: 'alpha-a.localhost',
+        faviconUrl: 'https://cdn.example.test/alpha-favicon.ico',
+        logoUrl: 'https://cdn.example.test/alpha-logo.png',
+    },
+    {
+        tenantId: 2,
+        slug: 'beta-b',
+        name: 'Beta Show',
+        host: 'beta-b.localhost',
+        faviconUrl: null,
+        logoUrl: 'https://cdn.example.test/beta-logo.png',
+    },
+    {
+        tenantId: 3,
+        slug: 'gamma-c',
+        name: 'Gamma Cast',
+        host: 'gamma-c.localhost',
+        faviconUrl: null,
+        logoUrl: null,
+    },
 ]
 
 function renderChooser(overrides?: {
+    workspaces?: StudioWorkspace[]
     openingHost?: string | null
     error?: string | null
     onSelect?: (workspace: StudioWorkspace) => void
@@ -24,7 +47,7 @@ function renderChooser(overrides?: {
             onBack={onBack}
             onSelect={onSelect}
             openingHost={overrides?.openingHost ?? null}
-            workspaces={workspaces}
+            workspaces={overrides?.workspaces ?? workspaces}
         />,
     )
     return {onSelect, onBack}
@@ -44,6 +67,40 @@ describe('WorkspaceChooser', () => {
         expect(
             screen.getByRole('button', {name: 'Beta Show (beta-b.localhost) öffnen'}),
         ).toBeInTheDocument()
+        expect(
+            screen.getByRole('button', {name: 'Gamma Cast (gamma-c.localhost) öffnen'}),
+        ).toBeInTheDocument()
+    })
+
+    it('prefers favicon over logo for the workspace avatar', () => {
+        renderChooser({workspaces: [workspaces[0]]})
+
+        const avatar = screen.getByRole('button', {
+            name: 'Alpha Podcast (alpha-a.localhost) öffnen',
+        }).querySelector('img')
+
+        expect(avatar).toHaveAttribute('src', 'https://cdn.example.test/alpha-favicon.ico')
+    })
+
+    it('falls back to logo when favicon is missing', () => {
+        renderChooser({workspaces: [workspaces[1]]})
+
+        const avatar = screen.getByRole('button', {
+            name: 'Beta Show (beta-b.localhost) öffnen',
+        }).querySelector('img')
+
+        expect(avatar).toHaveAttribute('src', 'https://cdn.example.test/beta-logo.png')
+    })
+
+    it('falls back to the tenant initial when no branding image is available', () => {
+        renderChooser({workspaces: [workspaces[2]]})
+
+        const button = screen.getByRole('button', {
+            name: 'Gamma Cast (gamma-c.localhost) öffnen',
+        })
+
+        expect(button.querySelector('img')).toBeNull()
+        expect(button).toHaveTextContent('G')
     })
 
     it('selects the clicked workspace', () => {
