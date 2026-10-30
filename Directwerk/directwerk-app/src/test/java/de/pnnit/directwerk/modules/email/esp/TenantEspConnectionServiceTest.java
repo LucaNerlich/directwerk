@@ -9,8 +9,11 @@ import static org.mockito.Mockito.when;
 
 import de.pnnit.directwerk.modules.core.repository.TenantRepository;
 import de.pnnit.directwerk.modules.core.util.EnvelopeTokenProtector;
+import de.pnnit.directwerk.modules.email.entity.EspConnectionStatus;
+import de.pnnit.directwerk.modules.email.entity.EspProvider;
 import de.pnnit.directwerk.modules.email.entity.TenantEspConnection;
 import de.pnnit.directwerk.modules.email.repository.TenantEspConnectionRepository;
+import java.time.Instant;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -84,5 +87,55 @@ class TenantEspConnectionServiceTest {
         assertThat(saved.getFromEmail()).isEqualTo("noreply@tenant.example.com");
         assertThat(saved.getFromName()).isEqualTo("Tenant Sender");
         assertThat(saved.getRegion()).isEqualTo("EU");
+    }
+
+    @Test
+    void hasActiveMailgunDoesNotRevealKey() {
+        TenantEspConnection connection = connectedMailgun("enc:v1:ciphertext");
+        when(tenantEspConnectionRepository.findByTenant_Id(TENANT_ID)).thenReturn(Optional.of(connection));
+
+        assertThat(service.hasActiveMailgun(TENANT_ID)).isTrue();
+        verify(envelopeTokenProtector, never()).reveal(any());
+    }
+
+    @Test
+    void toViewNeverExposesKeyOrCiphertext() {
+        TenantEspConnectionService.EspConnectionView view = TenantEspConnectionService.toView(
+                connectedMailgun("enc:v1:secret-cipher")
+        );
+
+        assertThat(view.apiKeyConfigured()).isTrue();
+        assertThat(view.toString()).doesNotContain("secret-cipher");
+        assertThat(view.toString()).doesNotContain("apiKey=");
+    }
+
+    @Test
+    void resolvedCredentialsToStringRedactsApiKey() {
+        TenantEspConnectionService.ResolvedEspCredentials credentials =
+                new TenantEspConnectionService.ResolvedEspCredentials(
+                        EspProvider.MAILGUN,
+                        "tenant.example.com",
+                        "noreply@tenant.example.com",
+                        "Sender",
+                        "EU",
+                        "key-super-secret-do-not-log"
+                );
+
+        assertThat(credentials.toString()).doesNotContain("key-super-secret-do-not-log");
+        assertThat(credentials.toString()).contains("apiKey=***");
+        assertThat(credentials.apiKey()).isEqualTo("key-super-secret-do-not-log");
+    }
+
+    private static TenantEspConnection connectedMailgun(String ciphertext) {
+        TenantEspConnection connection = new TenantEspConnection();
+        connection.setProvider(EspProvider.MAILGUN);
+        connection.setDomain("tenant.example.com");
+        connection.setFromEmail("noreply@tenant.example.com");
+        connection.setFromName("Sender");
+        connection.setRegion("EU");
+        connection.setApiKeyCiphertext(ciphertext);
+        connection.setStatus(EspConnectionStatus.CONNECTED);
+        connection.setConnectedAt(Instant.parse("2026-01-01T00:00:00Z"));
+        return connection;
     }
 }

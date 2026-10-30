@@ -22,12 +22,10 @@ import de.pnnit.directwerk.modules.core.entity.UserStatus;
 import de.pnnit.directwerk.modules.core.repository.TenantMembershipRepository;
 import de.pnnit.directwerk.modules.email.EmailJobProducer;
 import de.pnnit.directwerk.modules.email.EmailTemplate;
-import de.pnnit.directwerk.modules.email.entity.EspProvider;
 import java.lang.reflect.Method;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -40,16 +38,6 @@ import org.springframework.transaction.annotation.Transactional;
 class MailgunTestEmailServiceTest {
 
     private static final Long TENANT_ID = 10L;
-
-    private static final TenantEspConnectionService.ResolvedEspCredentials CREDENTIALS =
-            new TenantEspConnectionService.ResolvedEspCredentials(
-                    EspProvider.MAILGUN,
-                    "mg.example.com",
-                    "hello@example.com",
-                    "Beispiel",
-                    "EU",
-                    "key-secret"
-            );
 
     @Mock
     private DirectwerkConfig directwerkConfig;
@@ -84,7 +72,7 @@ class MailgunTestEmailServiceTest {
 
     @Test
     void failsWhenMailgunNotConfigured() {
-        when(tenantEspConnectionService.resolveActiveMailgun(TENANT_ID)).thenReturn(Optional.empty());
+        when(tenantEspConnectionService.hasActiveMailgun(TENANT_ID)).thenReturn(false);
 
         assertThatThrownBy(() -> service.sendTestToTenantAdmins(TENANT_ID))
                 .isInstanceOf(MailgunNotConfiguredException.class)
@@ -92,6 +80,7 @@ class MailgunTestEmailServiceTest {
                 .isEqualTo("MAILGUN_NOT_CONFIGURED");
 
         verify(emailJobProducer, never()).enqueueContentNotification(anyLong(), any(), any(), any(), any());
+        verify(tenantEspConnectionService, never()).resolveActiveMailgun(anyLong());
     }
 
     @Test
@@ -108,7 +97,7 @@ class MailgunTestEmailServiceTest {
 
     @Test
     void failsWhenNoActiveTenantAdmins() {
-        when(tenantEspConnectionService.resolveActiveMailgun(TENANT_ID)).thenReturn(Optional.of(CREDENTIALS));
+        when(tenantEspConnectionService.hasActiveMailgun(TENANT_ID)).thenReturn(true);
         when(tenantMembershipRepository.findByTenantId(TENANT_ID)).thenReturn(List.of(
                 membership(1L, "editor@example.com", "Ed", UserStatus.ACTIVE, MembershipStatus.ACTIVE, Role.EDITOR),
                 membership(2L, "inactive-admin@example.com", "Inactive", UserStatus.ACTIVE, MembershipStatus.DISABLED, Role.TENANT_ADMIN),
@@ -125,7 +114,7 @@ class MailgunTestEmailServiceTest {
 
     @Test
     void enqueuesOneJobPerActiveTenantAdmin() {
-        when(tenantEspConnectionService.resolveActiveMailgun(TENANT_ID)).thenReturn(Optional.of(CREDENTIALS));
+        when(tenantEspConnectionService.hasActiveMailgun(TENANT_ID)).thenReturn(true);
         when(tenantMembershipRepository.findByTenantId(TENANT_ID)).thenReturn(List.of(
                 membership(1L, "admin-b@example.com", "B Admin", UserStatus.ACTIVE, MembershipStatus.ACTIVE, Role.TENANT_ADMIN),
                 membership(2L, "admin-a@example.com", "A Admin", UserStatus.ACTIVE, MembershipStatus.ACTIVE, Role.TENANT_ADMIN),
@@ -156,7 +145,7 @@ class MailgunTestEmailServiceTest {
 
     @Test
     void reportsPerRecipientEnqueueFailuresWithoutAbortingOthers() {
-        when(tenantEspConnectionService.resolveActiveMailgun(TENANT_ID)).thenReturn(Optional.of(CREDENTIALS));
+        when(tenantEspConnectionService.hasActiveMailgun(TENANT_ID)).thenReturn(true);
         when(tenantMembershipRepository.findByTenantId(TENANT_ID)).thenReturn(List.of(
                 membership(1L, "ok@example.com", "Ok", UserStatus.ACTIVE, MembershipStatus.ACTIVE, Role.TENANT_ADMIN),
                 membership(2L, "bad@example.com", "Bad", UserStatus.ACTIVE, MembershipStatus.ACTIVE, Role.TENANT_ADMIN)
@@ -191,7 +180,7 @@ class MailgunTestEmailServiceTest {
 
     @Test
     void dedupesDuplicateAdminEmails() {
-        when(tenantEspConnectionService.resolveActiveMailgun(TENANT_ID)).thenReturn(Optional.of(CREDENTIALS));
+        when(tenantEspConnectionService.hasActiveMailgun(TENANT_ID)).thenReturn(true);
         when(tenantMembershipRepository.findByTenantId(TENANT_ID)).thenReturn(List.of(
                 membership(1L, "Admin@Example.com", "One", UserStatus.ACTIVE, MembershipStatus.ACTIVE, Role.TENANT_ADMIN),
                 membership(2L, "admin@example.com", "Two", UserStatus.ACTIVE, MembershipStatus.ACTIVE, Role.TENANT_ADMIN)

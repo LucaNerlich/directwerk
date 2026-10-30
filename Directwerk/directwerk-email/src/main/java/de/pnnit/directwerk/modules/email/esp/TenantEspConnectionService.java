@@ -34,8 +34,7 @@ public class TenantEspConnectionService {
     @Transactional(readOnly = true)
     public Optional<ResolvedEspCredentials> resolveActiveMailgun(Long tenantId) {
         return find(tenantId)
-                .filter(connection -> connection.getStatus() == EspConnectionStatus.CONNECTED)
-                .filter(connection -> connection.getProvider() == EspProvider.MAILGUN)
+                .filter(this::isActiveMailgun)
                 .map(connection -> new ResolvedEspCredentials(
                         connection.getProvider(),
                         connection.getDomain(),
@@ -44,6 +43,20 @@ public class TenantEspConnectionService {
                         connection.getRegion(),
                         envelopeTokenProtector.reveal(connection.getApiKeyCiphertext())
                 ));
+    }
+
+    /**
+     * Presence check without decrypting the API key — use before enqueue / UI gates.
+     * Call {@link #resolveActiveMailgun} only when the cleartext key is needed for a send.
+     */
+    @Transactional(readOnly = true)
+    public boolean hasActiveMailgun(Long tenantId) {
+        return find(tenantId).filter(this::isActiveMailgun).isPresent();
+    }
+
+    private boolean isActiveMailgun(TenantEspConnection connection) {
+        return connection.getStatus() == EspConnectionStatus.CONNECTED
+                && connection.getProvider() == EspProvider.MAILGUN;
     }
 
     @Transactional
@@ -92,6 +105,15 @@ public class TenantEspConnectionService {
             String region,
             String apiKey
     ) {
+        @Override
+        public String toString() {
+            return "ResolvedEspCredentials[provider=" + provider
+                    + ", domain=" + domain
+                    + ", fromEmail=" + fromEmail
+                    + ", fromName=" + fromName
+                    + ", region=" + region
+                    + ", apiKey=***]";
+        }
     }
 
     public record EspConnectionView(
