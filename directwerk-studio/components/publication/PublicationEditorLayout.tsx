@@ -200,8 +200,8 @@ export default function PublicationEditorLayout({
 
     return (
         <PageStack className="gap-0">
-            <div className="sticky top-0 z-20 -mx-4 border-b bg-background/95 px-4 py-2.5 backdrop-blur supports-backdrop-filter:bg-background/80">
-                <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-2">
+            <div className="sticky top-12 z-20 rounded-xl bg-card/90 p-2 shadow-sm ring-1 ring-foreground/10 backdrop-blur supports-backdrop-filter:bg-card/80 md:top-3">
+                <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-2 px-1">
                     <Button nativeButton={false} render={<LocaleLink href={resolvedBackHref} />} size="sm" variant="ghost">
                         ← {resolvedBackLabel}
                     </Button>

@@ -2,6 +2,7 @@
 
 import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
 import {Button} from '@directwerk/ui/components/button'
+import {Card, CardContent, CardDescription, CardHeader, CardTitle} from '@directwerk/ui/components/card'
 import ConfirmDialog from '@directwerk/ui/components/confirm-dialog'
 import {
     Dialog,
@@ -17,8 +18,10 @@ import {Label} from '@directwerk/ui/components/label'
 import PageHeader from '@directwerk/ui/components/page-header'
 import PageStack from '@directwerk/ui/components/page-stack'
 import {Skeleton} from '@directwerk/ui/components/skeleton'
+import {ToggleGroup, ToggleGroupItem} from '@directwerk/ui/components/toggle-group'
 import {useCopyToClipboard} from '@directwerk/ui/hooks/use-copy-to-clipboard'
 import type {CreatedTenantApiKey, TenantApiKey, TenantApiKeyScope} from '@directwerk/api/types'
+import {getClientTenantHost} from '@directwerk/api/tenant'
 import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
 import {useCallback, useEffect, useState} from 'react'
 
@@ -31,6 +34,10 @@ export default function ApiKeysClient(): React.JSX.Element {
     const s = dict.settings
     const authRedirect = useAuthRequired()
     const {state: copyState, copy} = useCopyToClipboard()
+    const {state: mcpCopyState, copy: copyMcpConfig} = useCopyToClipboard()
+    const [mcpClient, setMcpClient] = useState<'claude' | 'opencode'>('claude')
+    const tenantHost = getClientTenantHost()
+    const mcpConfig = mcpClient === 'opencode' ? buildOpenCodeConfig(tenantHost) : buildClaudeConfig(tenantHost)
 
     const [keys, setKeys] = useState<TenantApiKey[]>([])
     const [isLoading, setIsLoading] = useState(true)
@@ -222,6 +229,49 @@ export default function ApiKeysClient(): React.JSX.Element {
                 </ul>
             )}
 
+            <Card>
+                <CardHeader>
+                    <CardTitle>{s.apiKeysMcpTitle}</CardTitle>
+                    <CardDescription>{s.apiKeysMcpDescription}</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                        <ToggleGroup
+                            aria-label={s.apiKeysMcpClientLabel}
+                            className="rounded-lg border bg-muted/40 p-1"
+                            onValueChange={(values) => {
+                                const next = values[0]
+                                if (next === 'claude' || next === 'opencode') {
+                                    setMcpClient(next)
+                                }
+                            }}
+                            size="sm"
+                            spacing={0}
+                            value={[mcpClient]}
+                            variant="outline"
+                        >
+                            <ToggleGroupItem value="claude">{s.apiKeysMcpClaude}</ToggleGroupItem>
+                            <ToggleGroupItem value="opencode">OpenCode</ToggleGroupItem>
+                        </ToggleGroup>
+                        <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                                void copyMcpConfig(mcpConfig)
+                            }}
+                        >
+                            {mcpCopyState === 'copied' ? s.apiKeysCopied : s.apiKeysCopy}
+                        </Button>
+                    </div>
+                    <pre className="max-h-96 overflow-auto rounded-md border bg-muted/40 p-4 font-mono text-xs leading-relaxed">
+                        <code>{mcpConfig}</code>
+                    </pre>
+                    <p className="text-xs text-muted-foreground">{s.apiKeysMcpHint}</p>
+                    <p className="text-xs text-muted-foreground">{s.apiKeysMcpBuildHint}</p>
+                </CardContent>
+            </Card>
+
             <Dialog
                 open={createOpen}
                 onOpenChange={(open) => {
@@ -368,4 +418,47 @@ function formatInstant(value: string): string {
         return value
     }
     return date.toLocaleString()
+}
+
+function buildClaudeConfig(tenantHost: string): string {
+    return JSON.stringify(
+        {
+            mcpServers: {
+                'directwerk-studio': {
+                    command: 'node',
+                    args: ['/absolute/path/to/packages/mcp-studio/dist/index.js'],
+                    env: {
+                        DIRECTWERK_API_BASE_URL: 'https://api.example.com',
+                        DIRECTWERK_API_KEY: 'dwk_…',
+                        DIRECTWERK_TENANT_HOST: tenantHost || 'your-tenant.example.com',
+                    },
+                },
+            },
+        },
+        null,
+        2,
+    )
+}
+
+function buildOpenCodeConfig(tenantHost: string): string {
+    return JSON.stringify(
+        {
+            $schema: 'https://opencode.ai/config.json',
+            mcp: {
+                servers: {
+                    'directwerk-studio': {
+                        type: 'local',
+                        command: ['node', '/absolute/path/to/packages/mcp-studio/dist/index.js'],
+                        environment: {
+                            DIRECTWERK_API_BASE_URL: 'https://api.example.com',
+                            DIRECTWERK_API_KEY: '{env:DIRECTWERK_API_KEY}',
+                            DIRECTWERK_TENANT_HOST: tenantHost || 'your-tenant.example.com',
+                        },
+                    },
+                },
+            },
+        },
+        null,
+        2,
+    )
 }
