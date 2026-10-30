@@ -4,6 +4,19 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-10-30
+
+### Added
+
+- Studio layout / IA restructure: hub subnavs (manage, media, settings), desk landing, and tenant first-run setup checklist.
+- Umami episode-play tracking for podcast plays on the public website.
+
+### Fixed
+
+- Mediathek appears once in the studio sidepanel (duplicate nav removed).
+- Studio branding accepts an Umami website ID without a host override.
+- Umami website IDs validated as UUIDs; podcast contact email required in branding.
+
 ## [0.2.0] - 2026-10-29
 
 ### Added
