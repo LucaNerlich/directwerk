@@ -43,10 +43,9 @@ public class MailgunTestEmailService {
         if (!directwerkConfig.isEmailEnabled()) {
             throw new MailgunNotConfiguredException("Email delivery is disabled");
         }
-        tenantEspConnectionService
-                .resolveActiveMailgun(tenantId)
-                .orElseThrow(() -> new MailgunNotConfiguredException(
-                        "Mailgun is not connected for this tenant"));
+        if (!tenantEspConnectionService.hasActiveMailgun(tenantId)) {
+            throw new MailgunNotConfiguredException("Mailgun is not connected for this tenant");
+        }
 
         List<AdminRecipient> admins = resolveActiveTenantAdmins(tenantId);
         if (admins.isEmpty()) {

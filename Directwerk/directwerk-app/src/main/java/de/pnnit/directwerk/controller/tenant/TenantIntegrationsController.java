@@ -138,6 +138,15 @@ public class TenantIntegrationsController {
             @Pattern(regexp = "EU|US|eu|us") String region,
             @NotBlank @Size(max = 512) String apiKey
     ) {
+        /** Defense-in-depth: never echo the API key if this record is logged. */
+        @Override
+        public String toString() {
+            return "ConnectMailgunRequest[domain=" + domain
+                    + ", fromEmail=" + fromEmail
+                    + ", fromName=" + fromName
+                    + ", region=" + region
+                    + ", apiKey=***]";
+        }
     }
 
     public record IntegrationsStatusView(
