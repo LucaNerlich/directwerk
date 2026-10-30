@@ -73,6 +73,8 @@ export default function StudioShell({
                     }
                     navigationTriggerLabel={dict.shell.openNav}
                     skipLinkLabel={dict.shell.skipToContent}
+                    collapseNavLabel={dict.shell.collapseNav}
+                    expandNavLabel={dict.shell.expandNav}
                 >
                     {children}
                 </AppShell>

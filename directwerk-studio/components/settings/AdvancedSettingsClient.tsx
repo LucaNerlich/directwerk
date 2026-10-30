@@ -89,7 +89,13 @@ export default function AdvancedSettingsClient(): React.JSX.Element {
             })
             setBranding(updated)
             brandingRef.current = updated
-            return {error: null, success: s.brandingGespeichertAnalyticsEigenenUmamiSer}
+            const success =
+                umamiWebsiteId.length === 0
+                    ? s.brandingGespeichertAnalyticsTrackingDeaktivi
+                    : umamiHostUrl.length > 0
+                      ? s.brandingGespeichertAnalyticsEigenenUmamiSer
+                      : s.brandingGespeichertAnalyticsPlattformStandar
+            return {error: null, success}
         } catch (error: unknown) {
             if (authRedirect(error)) return INITIAL_STATE
             return {

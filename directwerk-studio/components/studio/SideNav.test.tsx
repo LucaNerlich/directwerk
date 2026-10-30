@@ -73,6 +73,8 @@ function expandMore(): void {
 describe('SideNav', () => {
     it('tucks Formate under Mehr… for the Podcast desk', () => {
         renderNavigation(<SideNav config={config()} />)
+        const more = screen.getByRole('button', {name: 'Mehr…'})
+        expect(more).toHaveAttribute('title', 'Mehr…')
         expect(screen.queryByRole('link', {name: 'Formate'})).not.toBeInTheDocument()
         expandMore()
         expect(screen.getByRole('link', {name: 'Formate'})).toHaveAttribute(

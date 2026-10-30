@@ -551,8 +551,8 @@ export default function AnalyticsDashboardClient({
                         <CardContent className="flex flex-col gap-2 text-sm text-muted-foreground">
                             <p>
                                 {analyticsModuleEnabled
-                                    ? 'Hinterlege die Umami-Website-ID im Branding, danach erscheint hier der Direktlink zum Dashboard.'
-                                    : 'Aktiviere das ANALYTICS-Modul und hinterlege die Umami-Website-ID im Branding.'}
+                                    ? a.hinterlegeUmamiWebsiteBrandingDanach
+                                    : a.aktiviereAnalyticsModulHinterlegeUmamiWebsi}
                             </p>
                         </CardContent>
                     </Card>

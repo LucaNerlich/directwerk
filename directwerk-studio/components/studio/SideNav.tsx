@@ -164,13 +164,19 @@ export default function SideNav({config}: {config: SiteConfig}) {
                                     <SidebarMenuItem>
                                         <button
                                             aria-expanded={writeMoreOpen}
+                                            aria-label={dict.nav.more}
                                             className={linkClassName(false)}
                                             onClick={() => setWriteMoreOpen((open) => !open)}
+                                            title={dict.nav.more}
                                             type="button"
                                         >
                                             <span className="truncate group-data-[collapsible=icon]:sr-only">
                                                 {dict.nav.more}
                                             </span>
+                                            <span
+                                                aria-hidden="true"
+                                                className="hidden size-2 rounded-full bg-current group-data-[collapsible=icon]:block"
+                                            />
                                         </button>
                                     </SidebarMenuItem>
                                     {writeMoreOpen
@@ -187,6 +193,10 @@ export default function SideNav({config}: {config: SiteConfig}) {
                                                           <span className="truncate group-data-[collapsible=icon]:sr-only">
                                                               {item.label}
                                                           </span>
+                                                          <span
+                                                              aria-hidden="true"
+                                                              className="hidden size-2 rounded-full bg-current group-data-[collapsible=icon]:block"
+                                                          />
                                                       </LocaleLink>
                                                   </SidebarMenuItem>
                                               )
@@ -212,13 +222,19 @@ export default function SideNav({config}: {config: SiteConfig}) {
                                     <SidebarMenuItem>
                                         <button
                                             aria-expanded={podcastMoreOpen}
+                                            aria-label={dict.nav.more}
                                             className={linkClassName(false)}
                                             onClick={() => setPodcastMoreOpen((open) => !open)}
+                                            title={dict.nav.more}
                                             type="button"
                                         >
                                             <span className="truncate group-data-[collapsible=icon]:sr-only">
                                                 {dict.nav.more}
                                             </span>
+                                            <span
+                                                aria-hidden="true"
+                                                className="hidden size-2 rounded-full bg-current group-data-[collapsible=icon]:block"
+                                            />
                                         </button>
                                     </SidebarMenuItem>
                                     {podcastMoreOpen
@@ -235,6 +251,10 @@ export default function SideNav({config}: {config: SiteConfig}) {
                                                           <span className="truncate group-data-[collapsible=icon]:sr-only">
                                                               {item.label}
                                                           </span>
+                                                          <span
+                                                              aria-hidden="true"
+                                                              className="hidden size-2 rounded-full bg-current group-data-[collapsible=icon]:block"
+                                                          />
                                                       </LocaleLink>
                                                   </SidebarMenuItem>
                                               )

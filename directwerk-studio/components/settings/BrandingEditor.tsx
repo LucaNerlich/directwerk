@@ -236,7 +236,7 @@ export default function BrandingEditor(): React.JSX.Element {
             setFaviconPickError(null)
             return {
                 error: null,
-                success: dict.settings.brandingGespeichertAnalyticsEigenenUmamiSer,
+                success: dict.settings.brandingGespeichert,
             }
         } catch (error: unknown) {
             if (authRedirect(error)) return INITIAL_STATE

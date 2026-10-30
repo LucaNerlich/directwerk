@@ -41,6 +41,8 @@ export default function AppShell({
     children,
     navigationTriggerLabel = 'Navigation öffnen',
     skipLinkLabel = 'Zum Inhalt springen',
+    collapseNavLabel = 'Navigation einklappen',
+    expandNavLabel = 'Navigation ausklappen',
     mobileTitle,
     mobilePrimaryAction,
 }: {
@@ -50,6 +52,8 @@ export default function AppShell({
     children: ReactNode
     navigationTriggerLabel?: string
     skipLinkLabel?: string
+    collapseNavLabel?: string
+    expandNavLabel?: string
     /** Current section title shown in the sticky mobile bar. */
     mobileTitle?: string
     /** Optional primary CTA rendered on the right of the mobile bar. */
@@ -60,6 +64,8 @@ export default function AppShell({
     useEffect(() => {
         setOpen(readSidebarOpen())
     }, [])
+
+    const railLabel = open ? collapseNavLabel : expandNavLabel
 
     return (
         <TooltipProvider>
@@ -84,7 +90,7 @@ export default function AppShell({
                     {footer !== undefined ? (
                         <SidebarFooter className="border-t p-3">{footer}</SidebarFooter>
                     ) : null}
-                    <SidebarRail />
+                    <SidebarRail aria-label={railLabel} tabIndex={0} title={railLabel} />
                 </Sidebar>
                 {/* Plain div (not SidebarInset, which renders <main>): the
                     skip-link target below is the single main landmark. */}
