@@ -17,6 +17,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockHttpServletResponse;
@@ -182,6 +183,63 @@ class TenantMembershipGuardFilterTest {
                 .isInstanceOf(TenantMismatchException.class);
     }
 
+    @Test
+    void allowsApiKeyOnContentPathWithoutMembershipLookup() throws Exception {
+        authenticateApiKey(1L, Set.of("content:write"));
+        TenantContext.setTenantId(1L);
+
+        HttpServletRequest request = mock(HttpServletRequest.class);
+        when(request.getRequestURI()).thenReturn("/api/v1/articles");
+        when(request.getMethod()).thenReturn("GET");
+        FilterChain chain = mock(FilterChain.class);
+        MockHttpServletResponse response = new MockHttpServletResponse();
+
+        filter.doFilter(request, response, chain);
+        verify(chain).doFilter(request, response);
+    }
+
+    @Test
+    void rejectsApiKeyOnTenantAdminPath() throws Exception {
+        authenticateApiKey(1L, Set.of("content:write"));
+        TenantContext.setTenantId(1L);
+
+        HttpServletRequest request = mock(HttpServletRequest.class);
+        when(request.getRequestURI()).thenReturn("/api/v1/tenant/users");
+        when(request.getMethod()).thenReturn("GET");
+        FilterChain chain = mock(FilterChain.class);
+
+        assertThatThrownBy(() -> filter.doFilter(request, new MockHttpServletResponse(), chain))
+                .isInstanceOf(TenantMismatchException.class);
+    }
+
+    @Test
+    void rejectsApiKeyOnDeferredNewsletterLists() throws Exception {
+        authenticateApiKey(1L, Set.of("content:write"));
+        TenantContext.setTenantId(1L);
+
+        HttpServletRequest request = mock(HttpServletRequest.class);
+        when(request.getRequestURI()).thenReturn("/api/v1/newsletter-lists");
+        when(request.getMethod()).thenReturn("GET");
+        FilterChain chain = mock(FilterChain.class);
+
+        assertThatThrownBy(() -> filter.doFilter(request, new MockHttpServletResponse(), chain))
+                .isInstanceOf(TenantMismatchException.class);
+    }
+
+    @Test
+    void rejectsApiKeyReadScopeOnPost() throws Exception {
+        authenticateApiKey(1L, Set.of("content:read"));
+        TenantContext.setTenantId(1L);
+
+        HttpServletRequest request = mock(HttpServletRequest.class);
+        when(request.getRequestURI()).thenReturn("/api/v1/articles");
+        when(request.getMethod()).thenReturn("POST");
+        FilterChain chain = mock(FilterChain.class);
+
+        assertThatThrownBy(() -> filter.doFilter(request, new MockHttpServletResponse(), chain))
+                .isInstanceOf(TenantMismatchException.class);
+    }
+
     private static TenantMembership activeMembership(Role role) {
         TenantMembership membership = new TenantMembership();
         membership.setStatus(MembershipStatus.ACTIVE);
@@ -203,6 +261,21 @@ class TenantMembershipGuardFilterTest {
         );
         SecurityContextHolder.getContext().setAuthentication(
                 UsernamePasswordAuthenticationToken.authenticated(principal, null, principal.getAuthorities())
+        );
+    }
+
+    private static void authenticateApiKey(Long tenantId, Set<String> scopes) {
+        List<SimpleGrantedAuthority> authorities =
+                TenantApiKeyAuthenticationFilter.authoritiesFor(scopes);
+        DirectwerkUserPrincipal principal = new DirectwerkUserPrincipal(
+                5L,
+                "admin@example.com",
+                null,
+                tenantId,
+                authorities
+        );
+        SecurityContextHolder.getContext().setAuthentication(
+                new TenantApiKeyAuthenticationToken(principal, 99L, scopes, authorities)
         );
     }
 }

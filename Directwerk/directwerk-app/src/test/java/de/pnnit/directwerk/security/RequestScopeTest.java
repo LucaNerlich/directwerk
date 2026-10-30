@@ -39,8 +39,9 @@ class RequestScopeTest {
 
     @Test
     void tenantAdminContentBasesAreTenantAdminArea() {
-        // Formats/categories are reserved to tenant admins — matches the SecurityConfig
-        // matcher table, which never granted EDITOR here.
+        // Formats/categories stay TENANT_ADMIN for membership re-check. SecurityConfig admits
+        // EDITOR / API_KEY_CONTENT_WRITE at the JWT layer for opaque content keys only —
+        // human editors are still stopped here by RoleRequirement.TENANT_ADMIN.
         for (String base : new String[] {"/api/v1/formats", "/api/v1/categories"}) {
             assertThat(RequestScope.of(base)).isEqualTo(RequestScope.TENANT_ADMIN_AREA);
             assertThat(RequestScope.of(base + "/7")).isEqualTo(RequestScope.TENANT_ADMIN_AREA);

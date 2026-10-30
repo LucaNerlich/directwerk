@@ -492,3 +492,84 @@ Accept: application/json
         client.assert(response.status === 200 || response.status === 403, "Expected 200 or 403");
     });
 %}
+
+###
+
+### @name listTenantApiKeys
+GET {{baseUrl}}/api/v1/tenant/api-keys
+Host: {{tenantAHost}}
+Authorization: Bearer {{tenantAAccessToken}}
+Accept: application/json
+
+> {%
+    client.test("List tenant API keys", function() {
+        client.assert(response.status === 200, "Expected 200");
+        client.assert(Array.isArray(response.body.data), "Expected data array");
+    });
+%}
+
+###
+
+### @name createTenantApiKey
+POST {{baseUrl}}/api/v1/tenant/api-keys
+Host: {{tenantAHost}}
+Authorization: Bearer {{tenantAAccessToken}}
+Content-Type: application/json
+Accept: application/json
+
+{
+  "name": "Cursor MCP",
+  "scopes": ["content:read", "content:write"]
+}
+
+> {%
+    client.test("Create tenant API key", function() {
+        client.assert(response.status === 201, "Expected 201");
+        client.assert(response.body.data.secret && response.body.data.secret.indexOf("dwk_") === 0, "Expected dwk_ secret");
+        client.global.set("tenantApiKeyId", response.body.data.id);
+        client.global.set("tenantApiKeySecret", response.body.data.secret);
+    });
+%}
+
+###
+
+### @name contentGetWithTenantApiKey
+GET {{baseUrl}}/api/v1/articles
+Host: {{tenantAHost}}
+Authorization: Bearer {{tenantApiKeySecret}}
+Accept: application/json
+
+> {%
+    client.test("API key can list articles", function() {
+        client.assert(response.status === 200, "Expected 200");
+    });
+%}
+
+###
+
+### @name denyTenantPathWithTenantApiKey
+GET {{baseUrl}}/api/v1/tenant/users
+Host: {{tenantAHost}}
+Authorization: Bearer {{tenantApiKeySecret}}
+Accept: application/json
+
+> {%
+    client.test("API key cannot hit tenant admin surface", function() {
+        client.assert(response.status === 401 || response.status === 403, "Expected 401 or 403");
+    });
+%}
+
+###
+
+### @name revokeTenantApiKey
+DELETE {{baseUrl}}/api/v1/tenant/api-keys/{{tenantApiKeyId}}
+Host: {{tenantAHost}}
+Authorization: Bearer {{tenantAAccessToken}}
+Accept: application/json
+
+> {%
+    client.test("Revoke tenant API key", function() {
+        client.assert(response.status === 200, "Expected 200");
+        client.assert(response.body.data.revokedAt != null, "Expected revokedAt");
+    });
+%}

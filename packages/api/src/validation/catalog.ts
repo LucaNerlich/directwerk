@@ -63,6 +63,9 @@ import type {
     Tag,
     TenantBranding,
     TenantContactEmail,
+    TenantApiKey,
+    TenantApiKeyScope,
+    CreatedTenantApiKey,
     TenantDomain,
     TenantSubscriber,
     TenantSubscriberSubscription,
@@ -1671,6 +1674,81 @@ export function parseDomainVerificationEnvelope(
     value: unknown,
 ): ApiEnvelope<DomainVerificationChallenge> | null {
     return parseEnvelope(value, parseDomainVerificationChallenge)
+}
+
+function isTenantApiKeyScope(value: unknown): value is TenantApiKeyScope {
+    return value === 'content:read' || value === 'content:write'
+}
+
+function parseTenantApiKeyScopes(value: unknown): TenantApiKeyScope[] | null {
+    if (!Array.isArray(value) || value.length === 0 || value.length > 8) {
+        return null
+    }
+    const scopes: TenantApiKeyScope[] = []
+    for (const item of value) {
+        if (!isTenantApiKeyScope(item)) {
+            return null
+        }
+        scopes.push(item)
+    }
+    return scopes
+}
+
+function parseTenantApiKey(value: unknown): TenantApiKey | null {
+    if (
+        !isRecord(value) ||
+        !isPositiveSafeInteger(value.id) ||
+        !isBoundedString(value.name, 100) ||
+        !isBoundedString(value.prefix, 16) ||
+        !isBoundedString(value.createdAt, 64) ||
+        !isNullableString(value.lastUsedAt, 64) ||
+        !isNullableString(value.expiresAt, 64) ||
+        !isNullableString(value.revokedAt, 64)
+    ) {
+        return null
+    }
+    const scopes = parseTenantApiKeyScopes(value.scopes)
+    if (scopes === null) {
+        return null
+    }
+    return {
+        id: value.id,
+        name: value.name,
+        prefix: value.prefix,
+        scopes,
+        createdAt: value.createdAt,
+        lastUsedAt: value.lastUsedAt,
+        expiresAt: value.expiresAt,
+        revokedAt: value.revokedAt,
+    }
+}
+
+function parseCreatedTenantApiKey(value: unknown): CreatedTenantApiKey | null {
+    const base = parseTenantApiKey(value)
+    if (base === null || !isRecord(value) || !isBoundedString(value.secret, 512)) {
+        return null
+    }
+    return {...base, secret: value.secret}
+}
+
+export function parseTenantApiKeyListEnvelope(
+    value: unknown,
+): ApiEnvelope<TenantApiKey[]> | null {
+    return parseEnvelope(value, (data) =>
+        parseBoundedArray(data, 100, parseTenantApiKey),
+    )
+}
+
+export function parseTenantApiKeyEnvelope(
+    value: unknown,
+): ApiEnvelope<TenantApiKey> | null {
+    return parseEnvelope(value, parseTenantApiKey)
+}
+
+export function parseCreatedTenantApiKeyEnvelope(
+    value: unknown,
+): ApiEnvelope<CreatedTenantApiKey> | null {
+    return parseEnvelope(value, parseCreatedTenantApiKey)
 }
 
 function isMembershipStatus(value: unknown): value is MembershipStatus {

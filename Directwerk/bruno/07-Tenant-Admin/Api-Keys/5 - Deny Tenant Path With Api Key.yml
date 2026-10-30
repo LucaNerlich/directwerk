@@ -1,0 +1,33 @@
+info:
+  name: 5 - Deny Tenant Path With Api Key
+  type: http
+  seq: 5
+
+http:
+  method: GET
+  url: "{{baseUrl}}/api/v1/tenant/users"
+  headers:
+    - name: Authorization
+      value: "Bearer {{tenantApiKeySecret}}"
+    - name: Accept
+      value: application/json
+  auth:
+    type: none
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("API key cannot hit tenant admin surface", function() {
+          expect([401, 403].includes(res.getStatus())).to.equal(true);
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false
+
+docs: |-
+  Opaque content key must not authorize /api/v1/tenant/** (requires create step first).
