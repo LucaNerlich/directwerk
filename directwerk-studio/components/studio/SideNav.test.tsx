@@ -1,4 +1,4 @@
-import {cleanup, fireEvent, screen} from '@testing-library/react'
+import {cleanup, fireEvent, screen, waitFor} from '@testing-library/react'
 import type {ReactNode} from 'react'
 import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest'
 
@@ -313,12 +313,17 @@ describe('SideNav', () => {
             expect(screen.queryByRole('link', {name: 'Beiträge'})).not.toBeInTheDocument()
         })
 
-        it('restores the last active desk on shared routes for hybrid tenants', () => {
+        it('restores the last active desk on shared routes for hybrid tenants', async () => {
             window.localStorage.setItem('dw.studio.lastDesk:slug:tenant', 'WRITE')
             currentPathname = '/media'
             renderNavigation(<SideNav config={hybridConfig} />)
 
-            expect(screen.getByRole('link', {name: 'Start'})).toHaveAttribute('href', '/de/write')
+            await waitFor(() => {
+                expect(screen.getByRole('link', {name: 'Start'})).toHaveAttribute(
+                    'href',
+                    '/de/write',
+                )
+            })
             expect(screen.getByRole('link', {name: 'Beiträge'})).toHaveAttribute(
                 'href',
                 '/de/write/articles',
@@ -344,15 +349,17 @@ describe('SideNav', () => {
             expect(screen.queryByRole('link', {name: 'Formate'})).not.toBeInTheDocument()
         })
 
-        it('restores the remembered Podcast desk on Studio home for hybrid tenants', () => {
+        it('restores the remembered Podcast desk on Studio home for hybrid tenants', async () => {
             window.localStorage.setItem('dw.studio.lastDesk:slug:tenant', 'PODCAST')
             currentPathname = '/'
             renderNavigation(<SideNav config={hybridConfig} />)
 
-            expect(screen.getByRole('link', {name: 'Start'})).toHaveAttribute(
-                'href',
-                '/de/podcast',
-            )
+            await waitFor(() => {
+                expect(screen.getByRole('link', {name: 'Start'})).toHaveAttribute(
+                    'href',
+                    '/de/podcast',
+                )
+            })
             expect(screen.getByRole('link', {name: 'Folgen'})).toHaveAttribute(
                 'href',
                 '/de/podcast/episodes',

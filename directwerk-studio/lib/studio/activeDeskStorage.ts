@@ -108,8 +108,19 @@ export function getLastActiveDesk(scope: DeskStorageScope = {}): StudioDesk | nu
 
 /**
  * Persists the last active desk for the tenant scope in localStorage.
+ * When both tenant id and slug are known, writes both keys so a pre-`/me`
+ * cold load (slug-only) cannot restore a stale value after an id-scoped write.
  */
 export function setLastActiveDesk(desk: StudioDesk, scope: DeskStorageScope = {}): void {
     writeLocal(lastDeskStorageKey(scope), desk)
+    if (
+        scope.tenantId != null &&
+        Number.isFinite(scope.tenantId) &&
+        scope.tenantId > 0 &&
+        scope.tenantSlug != null &&
+        scope.tenantSlug.length > 0
+    ) {
+        writeLocal(lastDeskStorageKey({tenantSlug: scope.tenantSlug}), desk)
+    }
     clearLegacySession()
 }

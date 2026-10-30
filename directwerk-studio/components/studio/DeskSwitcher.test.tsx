@@ -1,4 +1,4 @@
-import {cleanup, fireEvent, screen} from '@testing-library/react'
+import {cleanup, fireEvent, screen, waitFor} from '@testing-library/react'
 import type {ComponentProps, ReactNode} from 'react'
 import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest'
 
@@ -96,15 +96,17 @@ describe('DeskSwitcher', () => {
         expect(screen.getByRole('link', {name: 'Artikel'})).not.toHaveAttribute('aria-current')
     })
 
-    it('restores last active desk on shared routes when remembered', () => {
+    it('restores last active desk on shared routes when remembered', async () => {
         window.localStorage.setItem('dw.studio.lastDesk:slug:tenant', 'PODCAST')
         currentPathname = '/media'
         renderWithLocale(<DeskSwitcher config={config()} />)
 
-        expect(screen.getByRole('link', {name: 'Podcast'})).toHaveAttribute(
-            'aria-current',
-            'page',
-        )
+        await waitFor(() => {
+            expect(screen.getByRole('link', {name: 'Podcast'})).toHaveAttribute(
+                'aria-current',
+                'page',
+            )
+        })
         expect(screen.getByRole('link', {name: 'Artikel'})).not.toHaveAttribute('aria-current')
     })
 

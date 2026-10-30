@@ -31,6 +31,13 @@ describe('activeDeskStorage', () => {
         expect(getLastActiveDesk({tenantId: 7, tenantSlug: 'seven'})).toBe('PODCAST')
     })
 
+    it('mirrors the desk onto the slug key when both id and slug are known', () => {
+        setLastActiveDesk('WRITE', {tenantId: 5, tenantSlug: 'acme'})
+        expect(window.localStorage.getItem('dw.studio.lastDesk:5')).toBe('WRITE')
+        expect(window.localStorage.getItem('dw.studio.lastDesk:slug:acme')).toBe('WRITE')
+        expect(getLastActiveDesk({tenantSlug: 'acme'})).toBe('WRITE')
+    })
+
     it('migrates a slug-scoped value onto the tenant id key', () => {
         setLastActiveDesk('WRITE', {tenantSlug: 'acme'})
         expect(getLastActiveDesk({tenantId: 9, tenantSlug: 'acme'})).toBe('WRITE')

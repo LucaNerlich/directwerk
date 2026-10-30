@@ -13,27 +13,21 @@ import type {SiteConfig, StudioDesk} from '@directwerk/api/types'
  * Path under `/write` or `/podcast` wins; otherwise restores the last valid
  * localStorage desk for this tenant; first visit falls through to module /
  * `studioHome` defaults.
+ *
+ * Storage is read in an effect (not `useState` init) so SSR and the first
+ * client render stay on module defaults — avoids hydration mismatch.
  */
 export function useActiveDesk(config: SiteConfig): StudioDesk | null {
     const pathname = usePathname()
     const me = useOptionalMe()
     const tenantId = me?.tenantId ?? null
     const tenantSlug = config.tenant.slug
-    const [lastDesk, setLastDesk] = useState<StudioDesk | null>(() =>
-        getLastActiveDesk({tenantSlug}),
-    )
+    const [lastDesk, setLastDesk] = useState<StudioDesk | null>(null)
 
     const pathDesk = resolveActiveDesk(pathname, config)
 
-    // When /me resolves, re-read under the tenant-id key (may migrate from slug).
     useEffect(() => {
-        if (tenantId == null) {
-            return
-        }
-        const remembered = getLastActiveDesk({tenantId, tenantSlug})
-        if (remembered !== null) {
-            setLastDesk(remembered)
-        }
+        setLastDesk(getLastActiveDesk({tenantId, tenantSlug}))
     }, [tenantId, tenantSlug])
 
     useEffect(() => {
