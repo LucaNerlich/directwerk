@@ -85,7 +85,7 @@ describe('SideNav', () => {
         expect(screen.queryByRole('link', {name: 'Kategorien'})).not.toBeInTheDocument()
     })
 
-    it('shows Mediathek hub when media modules are enabled', () => {
+    it('shows a single Mediathek link in desk primary when media modules are enabled', () => {
         renderNavigation(
             <SideNav
                 config={config({
@@ -94,8 +94,26 @@ describe('SideNav', () => {
                 })}
             />,
         )
-        expect(screen.getAllByRole('link', {name: 'Mediathek'}).length).toBeGreaterThan(0)
+        const mediaLinks = screen.getAllByRole('link', {name: 'Mediathek'})
+        expect(mediaLinks).toHaveLength(1)
+        expect(mediaLinks[0]).toHaveAttribute('href', '/de/media')
         expect(screen.queryByRole('link', {name: 'Bonusdateien'})).not.toBeInTheDocument()
+    })
+
+    it('keeps Mediathek under Verwaltung when no desk would surface it', () => {
+        renderNavigation(
+            <SideNav
+                config={config({
+                    enabledModules: ['DIGITAL_CONTENT'],
+                    studioDesks: [],
+                    studioHome: 'OVERVIEW',
+                })}
+            />,
+        )
+        const mediaLinks = screen.getAllByRole('link', {name: 'Mediathek'})
+        expect(mediaLinks).toHaveLength(1)
+        expect(mediaLinks[0]).toHaveAttribute('href', '/de/media')
+        expect(screen.getByText('Verwaltung')).toBeInTheDocument()
     })
 
     it('hides Mediathek when no media modules are enabled', () => {
@@ -248,7 +266,7 @@ describe('SideNav', () => {
                 'href',
                 '/de/write/articles',
             )
-            expect(screen.getAllByRole('link', {name: 'Mediathek'}).length).toBeGreaterThan(0)
+            expect(screen.getAllByRole('link', {name: 'Mediathek'})).toHaveLength(1)
 
             expandMore()
             expect(screen.getByRole('link', {name: 'Import'})).toHaveAttribute(
@@ -290,7 +308,7 @@ describe('SideNav', () => {
                 'href',
                 '/de/podcast/feeds',
             )
-            expect(screen.getAllByRole('link', {name: 'Mediathek'}).length).toBeGreaterThan(0)
+            expect(screen.getAllByRole('link', {name: 'Mediathek'})).toHaveLength(1)
             expect(screen.queryByRole('link', {name: 'Beiträge'})).not.toBeInTheDocument()
         })
 
@@ -317,7 +335,7 @@ describe('SideNav', () => {
                 'href',
                 '/de/write/articles',
             )
-            expect(screen.getAllByRole('link', {name: 'Mediathek'}).length).toBeGreaterThan(0)
+            expect(screen.getAllByRole('link', {name: 'Mediathek'})).toHaveLength(1)
             expect(screen.getByText('Verwaltung')).toBeInTheDocument()
 
             expect(screen.queryByRole('link', {name: 'Folgen'})).not.toBeInTheDocument()
