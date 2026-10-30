@@ -9,11 +9,13 @@ import static org.mockito.Mockito.when;
 import de.pnnit.directwerk.modules.core.entity.MembershipStatus;
 import de.pnnit.directwerk.modules.core.entity.Role;
 import de.pnnit.directwerk.modules.core.entity.Tenant;
+import de.pnnit.directwerk.modules.core.entity.TenantBranding;
 import de.pnnit.directwerk.modules.core.entity.TenantDomain;
 import de.pnnit.directwerk.modules.core.entity.TenantMembership;
 import de.pnnit.directwerk.modules.core.entity.TenantStatus;
 import de.pnnit.directwerk.modules.core.entity.User;
 import de.pnnit.directwerk.modules.core.entity.UserStatus;
+import de.pnnit.directwerk.modules.core.repository.TenantBrandingRepository;
 import de.pnnit.directwerk.modules.core.repository.TenantDomainRepository;
 import de.pnnit.directwerk.modules.core.repository.TenantMembershipRepository;
 import de.pnnit.directwerk.modules.core.repository.UserRepository;
@@ -38,6 +40,8 @@ class StudioWorkspaceDiscoveryServiceTest {
     @Mock
     private TenantDomainRepository tenantDomainRepository;
     @Mock
+    private TenantBrandingRepository tenantBrandingRepository;
+    @Mock
     private PasswordEncoder passwordEncoder;
 
     @InjectMocks
@@ -48,6 +52,11 @@ class StudioWorkspaceDiscoveryServiceTest {
         User user = activeUser();
         Tenant tenant = activeTenant("alpha-show-a", "Alpha Show A");
         TenantMembership membership = editorMembership(user, tenant);
+        TenantBranding branding = branding(
+                tenant,
+                "https://cdn.example.test/favicon.ico",
+                "https://cdn.example.test/logo.png"
+        );
 
         when(userRepository.findByEmailIgnoreCase("editor@example.com")).thenReturn(Optional.of(user));
         when(passwordEncoder.matches("ValidPassword12!", "hash")).thenReturn(true);
@@ -55,12 +64,36 @@ class StudioWorkspaceDiscoveryServiceTest {
                 .thenReturn(List.of(membership));
         when(tenantDomainRepository.findVerifiedByTenantIdOrderByPrimaryDescIdAsc(10L))
                 .thenReturn(List.of(verifiedDomain(tenant, "alpha-a.localhost")));
+        when(tenantBrandingRepository.findByTenantIdIn(List.of(10L))).thenReturn(List.of(branding));
 
         var workspaces = service.discoverWorkspaces("editor@example.com", "ValidPassword12!");
 
         assertThat(workspaces).hasSize(1);
         assertThat(workspaces.getFirst().host()).isEqualTo("alpha-a.localhost");
         assertThat(workspaces.getFirst().slug()).isEqualTo("alpha-show-a");
+        assertThat(workspaces.getFirst().faviconUrl()).isEqualTo("https://cdn.example.test/favicon.ico");
+        assertThat(workspaces.getFirst().logoUrl()).isEqualTo("https://cdn.example.test/logo.png");
+    }
+
+    @Test
+    void discoverWorkspacesOmitsBrandingUrlsWhenBrandingMissing() {
+        User user = activeUser();
+        Tenant tenant = activeTenant("alpha-show-a", "Alpha Show A");
+        TenantMembership membership = editorMembership(user, tenant);
+
+        when(userRepository.findByEmailIgnoreCase("editor@example.com")).thenReturn(Optional.of(user));
+        when(passwordEncoder.matches("ValidPassword12!", "hash")).thenReturn(true);
+        when(tenantMembershipRepository.findActiveMembershipsByUserId(1L, MembershipStatus.ACTIVE))
+                .thenReturn(List.of(membership));
+        when(tenantDomainRepository.findVerifiedByTenantIdOrderByPrimaryDescIdAsc(10L))
+                .thenReturn(List.of(verifiedDomain(tenant, "alpha-a.localhost")));
+        when(tenantBrandingRepository.findByTenantIdIn(List.of(10L))).thenReturn(List.of());
+
+        var workspaces = service.discoverWorkspaces("editor@example.com", "ValidPassword12!");
+
+        assertThat(workspaces).hasSize(1);
+        assertThat(workspaces.getFirst().faviconUrl()).isNull();
+        assertThat(workspaces.getFirst().logoUrl()).isNull();
     }
 
     @Test
@@ -155,5 +188,14 @@ class StudioWorkspaceDiscoveryServiceTest {
         domain.setVerified(true);
         domain.setPrimary(true);
         return domain;
+    }
+
+    private static TenantBranding branding(Tenant tenant, String faviconUrl, String logoUrl) {
+        TenantBranding branding = new TenantBranding();
+        branding.setTenant(tenant);
+        branding.setTenantId(tenant.getId());
+        branding.setFaviconUrl(faviconUrl);
+        branding.setLogoUrl(logoUrl);
+        return branding;
     }
 }

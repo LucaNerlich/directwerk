@@ -191,5 +191,9 @@ Accept: application/json
     client.test("Studio workspaces discovery", function() {
         client.assert(response.status === 200, "Expected 200, got " + response.status);
         client.assert(Array.isArray(response.body.data.workspaces), "Expected workspaces array");
+        const first = response.body.data.workspaces[0];
+        client.assert(first !== undefined, "Expected at least one workspace");
+        client.assert("faviconUrl" in first, "Expected faviconUrl on workspace");
+        client.assert("logoUrl" in first, "Expected logoUrl on workspace");
     });
 %}

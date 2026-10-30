@@ -4814,6 +4814,8 @@ export interface components {
             slug?: string;
             name?: string;
             host?: string;
+            faviconUrl?: string;
+            logoUrl?: string;
         };
         StudioWorkspacesResponse: {
             workspaces?: components["schemas"]["StudioWorkspaceResponse"][];

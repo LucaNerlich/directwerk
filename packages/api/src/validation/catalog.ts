@@ -138,11 +138,19 @@ export function parseStudioWorkspacesEnvelope(
             ) {
                 return null
             }
+            // Omitted fields (older API / Jackson omit-null) normalize to null.
+            const faviconUrl = item.faviconUrl === undefined ? null : item.faviconUrl
+            const logoUrl = item.logoUrl === undefined ? null : item.logoUrl
+            if (!isNullableString(faviconUrl, 2048) || !isNullableString(logoUrl, 2048)) {
+                return null
+            }
             workspaces.push({
                 tenantId: item.tenantId,
                 slug: item.slug,
                 name: item.name,
                 host: item.host,
+                faviconUrl,
+                logoUrl,
             })
         }
 

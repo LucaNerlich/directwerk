@@ -1,6 +1,8 @@
 package de.pnnit.directwerk.modules.core.repository;
 
 import de.pnnit.directwerk.modules.core.entity.TenantBranding;
+import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -11,6 +13,9 @@ import org.springframework.stereotype.Repository;
 public interface TenantBrandingRepository extends JpaRepository<TenantBranding, Long> {
 
     Optional<TenantBranding> findByTenantId(Long tenantId);
+
+    /** Batched counterpart of {@link #findByTenantId(Long)} for studio workspace discovery. */
+    List<TenantBranding> findByTenantIdIn(Collection<Long> tenantIds);
 
     /**
      * Counts branding rows of <em>other</em> tenants that claim the same Umami website id.

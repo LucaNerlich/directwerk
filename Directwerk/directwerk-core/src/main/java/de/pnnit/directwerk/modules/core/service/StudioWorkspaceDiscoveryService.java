@@ -3,10 +3,12 @@ package de.pnnit.directwerk.modules.core.service;
 import de.pnnit.directwerk.modules.core.entity.MembershipStatus;
 import de.pnnit.directwerk.modules.core.entity.Role;
 import de.pnnit.directwerk.modules.core.entity.Tenant;
+import de.pnnit.directwerk.modules.core.entity.TenantBranding;
 import de.pnnit.directwerk.modules.core.entity.TenantDomain;
 import de.pnnit.directwerk.modules.core.entity.TenantMembership;
 import de.pnnit.directwerk.modules.core.entity.User;
 import de.pnnit.directwerk.modules.core.entity.UserStatus;
+import de.pnnit.directwerk.modules.core.repository.TenantBrandingRepository;
 import de.pnnit.directwerk.modules.core.repository.TenantDomainRepository;
 import de.pnnit.directwerk.modules.core.repository.TenantMembershipRepository;
 import de.pnnit.directwerk.modules.core.repository.UserRepository;
@@ -14,7 +16,9 @@ import de.pnnit.directwerk.modules.core.util.EmailNormalizer;
 import de.pnnit.directwerk.modules.core.util.PasswordPolicy;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -35,6 +39,7 @@ public class StudioWorkspaceDiscoveryService {
     private final UserRepository userRepository;
     private final TenantMembershipRepository tenantMembershipRepository;
     private final TenantDomainRepository tenantDomainRepository;
+    private final TenantBrandingRepository tenantBrandingRepository;
     private final PasswordEncoder passwordEncoder;
 
     private volatile String missingUserEncodedPassword;
@@ -68,7 +73,7 @@ public class StudioWorkspaceDiscoveryService {
                 MembershipStatus.ACTIVE
         );
 
-        List<StudioWorkspaceView> workspaces = new ArrayList<>();
+        List<EligibleTenant> eligible = new ArrayList<>();
         for (TenantMembership membership : memberships) {
             if (!hasStudioAccess(membership)) {
                 continue;
@@ -81,11 +86,21 @@ public class StudioWorkspaceDiscoveryService {
             if (host.isEmpty()) {
                 continue;
             }
+            eligible.add(new EligibleTenant(tenant, host.get()));
+        }
+
+        Map<Long, TenantBranding> brandingByTenantId = loadBrandingByTenantId(eligible);
+
+        List<StudioWorkspaceView> workspaces = new ArrayList<>(eligible.size());
+        for (EligibleTenant item : eligible) {
+            TenantBranding branding = brandingByTenantId.get(item.tenant().getId());
             workspaces.add(new StudioWorkspaceView(
-                    tenant.getId(),
-                    tenant.getSlug(),
-                    tenant.getName(),
-                    host.get()
+                    item.tenant().getId(),
+                    item.tenant().getSlug(),
+                    item.tenant().getName(),
+                    item.host(),
+                    branding != null ? branding.getFaviconUrl() : null,
+                    branding != null ? branding.getLogoUrl() : null
             ));
         }
 
@@ -100,6 +115,18 @@ public class StudioWorkspaceDiscoveryService {
         }
 
         return workspaces;
+    }
+
+    private Map<Long, TenantBranding> loadBrandingByTenantId(List<EligibleTenant> eligible) {
+        if (eligible.isEmpty()) {
+            return Map.of();
+        }
+        List<Long> tenantIds = eligible.stream().map(item -> item.tenant().getId()).toList();
+        Map<Long, TenantBranding> brandingByTenantId = new HashMap<>();
+        for (TenantBranding branding : tenantBrandingRepository.findByTenantIdIn(tenantIds)) {
+            brandingByTenantId.put(branding.getTenantId(), branding);
+        }
+        return brandingByTenantId;
     }
 
     private static boolean hasStudioAccess(TenantMembership membership) {
@@ -135,6 +162,16 @@ public class StudioWorkspaceDiscoveryService {
         return value;
     }
 
-    public record StudioWorkspaceView(Long tenantId, String slug, String name, String host) {
+    private record EligibleTenant(Tenant tenant, String host) {
+    }
+
+    public record StudioWorkspaceView(
+            Long tenantId,
+            String slug,
+            String name,
+            String host,
+            String faviconUrl,
+            String logoUrl
+    ) {
     }
 }
