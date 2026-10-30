@@ -7,7 +7,6 @@ import {Button} from '@directwerk/ui/components/button'
 import AppShell from '@directwerk/ui/components/layout/app-shell'
 import {usePathname} from 'next/navigation'
 
-import LanguageSwitcher from '@/components/i18n/LanguageSwitcher'
 import LocaleLink from '@/components/i18n/LocaleLink'
 import {useDictionary} from '@/components/i18n/LocaleProvider'
 import DeskSwitcher from '@/components/studio/DeskSwitcher'
@@ -17,6 +16,11 @@ import {resolveMobileShell} from '@/lib/studio/mobileShell'
 import {useActiveDesk} from '@/lib/studio/useActiveDesk'
 import {SiteConfigProvider} from '@/lib/site/SiteConfigProvider'
 import type {SiteConfig} from '@directwerk/api/types'
+
+function tenantHomeInitial(name: string): string {
+    const trimmed = name.trim()
+    return trimmed.length > 0 ? trimmed.charAt(0).toUpperCase() : '?'
+}
 
 export default function StudioShell({
     config,
@@ -40,19 +44,29 @@ export default function StudioShell({
                 <AppShell
                     brand={
                         <div className="flex min-w-0 flex-col gap-3 group-data-[collapsible=icon]:items-center group-data-[collapsible=icon]:gap-2">
-                            <div className="min-w-0 group-data-[collapsible=icon]:hidden">
-                                <p className="truncate text-sm font-semibold">
-                                    {config.tenant.name}
-                                </p>
-                                <p className="text-xs text-muted-foreground">
-                                    {dict.meta.productName}
-                                </p>
-                            </div>
+                            <LocaleLink
+                                aria-label={config.tenant.name}
+                                className="block min-w-0 rounded-md outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring group-data-[collapsible=icon]:flex group-data-[collapsible=icon]:size-8 group-data-[collapsible=icon]:items-center group-data-[collapsible=icon]:justify-center"
+                                href="/"
+                                title={config.tenant.name}
+                            >
+                                <span className="min-w-0 group-data-[collapsible=icon]:hidden">
+                                    <p className="truncate text-sm font-semibold">
+                                        {config.tenant.name}
+                                    </p>
+                                    <p className="text-xs text-muted-foreground">
+                                        {dict.meta.productName}
+                                    </p>
+                                </span>
+                                <span
+                                    aria-hidden="true"
+                                    className="hidden text-sm font-semibold group-data-[collapsible=icon]:inline"
+                                >
+                                    {tenantHomeInitial(config.tenant.name)}
+                                </span>
+                            </LocaleLink>
                             <div className="group-data-[collapsible=icon]:hidden">
                                 <DeskSwitcher config={config} />
-                            </div>
-                            <div className="group-data-[collapsible=icon]:hidden">
-                                <LanguageSwitcher />
                             </div>
                         </div>
                     }

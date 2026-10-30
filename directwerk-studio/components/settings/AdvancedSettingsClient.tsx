@@ -12,6 +12,7 @@ import {Skeleton} from '@directwerk/ui/components/skeleton'
 import Form from 'next/form'
 import {useActionState, useEffect, useRef, useState} from 'react'
 
+import LanguageSwitcher from '@/components/i18n/LanguageSwitcher'
 import {useDictionary} from '@/components/i18n/LocaleProvider'
 import {hasModule} from '@/lib/api/client'
 import {getBranding, updateBranding} from '@/lib/api/tenantSettingsApi'
@@ -107,34 +108,6 @@ export default function AdvancedSettingsClient(): React.JSX.Element {
 
     const [state, formAction, pending] = useActionState(saveAction, INITIAL_STATE)
 
-    if (isLoading) {
-        return (
-            <PageStack>
-                <PageHeader
-                    eyebrow={dict.nav.verwaltung.settings}
-                    title={dict.nav.verwaltung.advanced}
-                    description={s.optionalesWebsiteTrackingOhneWebsite}
-                />
-                <Skeleton className="h-48 w-full max-w-xl" />
-            </PageStack>
-        )
-    }
-
-    if (loadError !== null) {
-        return (
-            <PageStack>
-                <PageHeader
-                    eyebrow={dict.nav.verwaltung.settings}
-                    title={dict.nav.verwaltung.advanced}
-                    description={s.optionalesWebsiteTrackingOhneWebsite}
-                />
-                <Alert variant="destructive">
-                    <AlertDescription>{loadError}</AlertDescription>
-                </Alert>
-            </PageStack>
-        )
-    }
-
     return (
         <PageStack>
             <PageHeader
@@ -142,65 +115,83 @@ export default function AdvancedSettingsClient(): React.JSX.Element {
                 title={dict.nav.verwaltung.advanced}
                 description={s.optionalesWebsiteTrackingOhneWebsite}
             />
-            <Form action={formAction} className="grid w-full max-w-xl gap-6">
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Analytics (Umami)</CardTitle>
-                        <CardDescription>{s.optionalesWebsiteTrackingOhneWebsite}</CardDescription>
-                    </CardHeader>
-                    <CardContent className="grid gap-5">
-                        <div className="grid gap-2">
-                            <Label htmlFor="umamiWebsiteId">{s.umamiWebsiteId}</Label>
-                            <Input
-                                aria-describedby="umamiWebsiteId-help"
-                                defaultValue={branding?.umamiWebsiteId ?? ''}
-                                id="umamiWebsiteId"
-                                key={`id-${branding?.umamiWebsiteId ?? ''}`}
-                                maxLength={64}
-                                name="umamiWebsiteId"
-                                type="text"
-                            />
-                            <p className="text-xs text-muted-foreground" id="umamiWebsiteId-help">
-                                {s.umamiWebsiteIdHilfe}
-                            </p>
-                        </div>
-                        <div className="grid gap-2">
-                            <Label htmlFor="umamiHostUrl">{s.umamiServer}</Label>
-                            <Input
-                                aria-describedby="umamiHostUrl-help"
-                                defaultValue={branding?.umamiHostUrl ?? ''}
-                                id="umamiHostUrl"
-                                key={`host-${branding?.umamiHostUrl ?? ''}`}
-                                maxLength={512}
-                                name="umamiHostUrl"
-                                placeholder="https://umami.example.com"
-                                type="url"
-                            />
-                            <p className="text-xs text-muted-foreground" id="umamiHostUrl-help">
-                                {s.umamiServerHilfe}
-                            </p>
-                        </div>
-                        {analyticsModuleActive === false && branding?.umamiWebsiteId ? (
-                            <Alert variant="destructive">
-                                <AlertDescription>{s.analyticsModuleInactiveHint}</AlertDescription>
-                            </Alert>
-                        ) : null}
-                    </CardContent>
-                </Card>
-                {state.error ? (
-                    <Alert variant="destructive">
-                        <AlertDescription>{state.error}</AlertDescription>
-                    </Alert>
-                ) : null}
-                {state.success ? (
-                    <Alert role="status">
-                        <AlertDescription>{state.success}</AlertDescription>
-                    </Alert>
-                ) : null}
-                <Button disabled={pending} type="submit">
-                    {pending ? dict.common.saving : dict.common.save}
-                </Button>
-            </Form>
+            <Card className="w-full max-w-xl">
+                <CardHeader>
+                    <CardTitle>{s.preferences}</CardTitle>
+                    <CardDescription>{s.preferencesDescription}</CardDescription>
+                </CardHeader>
+                <CardContent className="grid gap-2">
+                    <Label>{dict.shell.language}</Label>
+                    <LanguageSwitcher />
+                </CardContent>
+            </Card>
+            {isLoading ? <Skeleton className="h-48 w-full max-w-xl" /> : null}
+            {loadError !== null ? (
+                <Alert variant="destructive">
+                    <AlertDescription>{loadError}</AlertDescription>
+                </Alert>
+            ) : null}
+            {!isLoading && loadError === null ? (
+                <Form action={formAction} className="grid w-full max-w-xl gap-6">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Analytics (Umami)</CardTitle>
+                            <CardDescription>{s.optionalesWebsiteTrackingOhneWebsite}</CardDescription>
+                        </CardHeader>
+                        <CardContent className="grid gap-5">
+                            <div className="grid gap-2">
+                                <Label htmlFor="umamiWebsiteId">{s.umamiWebsiteId}</Label>
+                                <Input
+                                    aria-describedby="umamiWebsiteId-help"
+                                    defaultValue={branding?.umamiWebsiteId ?? ''}
+                                    id="umamiWebsiteId"
+                                    key={`id-${branding?.umamiWebsiteId ?? ''}`}
+                                    maxLength={64}
+                                    name="umamiWebsiteId"
+                                    type="text"
+                                />
+                                <p className="text-xs text-muted-foreground" id="umamiWebsiteId-help">
+                                    {s.umamiWebsiteIdHilfe}
+                                </p>
+                            </div>
+                            <div className="grid gap-2">
+                                <Label htmlFor="umamiHostUrl">{s.umamiServer}</Label>
+                                <Input
+                                    aria-describedby="umamiHostUrl-help"
+                                    defaultValue={branding?.umamiHostUrl ?? ''}
+                                    id="umamiHostUrl"
+                                    key={`host-${branding?.umamiHostUrl ?? ''}`}
+                                    maxLength={512}
+                                    name="umamiHostUrl"
+                                    placeholder="https://umami.example.com"
+                                    type="url"
+                                />
+                                <p className="text-xs text-muted-foreground" id="umamiHostUrl-help">
+                                    {s.umamiServerHilfe}
+                                </p>
+                            </div>
+                            {analyticsModuleActive === false && branding?.umamiWebsiteId ? (
+                                <Alert variant="destructive">
+                                    <AlertDescription>{s.analyticsModuleInactiveHint}</AlertDescription>
+                                </Alert>
+                            ) : null}
+                        </CardContent>
+                    </Card>
+                    {state.error ? (
+                        <Alert variant="destructive">
+                            <AlertDescription>{state.error}</AlertDescription>
+                        </Alert>
+                    ) : null}
+                    {state.success ? (
+                        <Alert role="status">
+                            <AlertDescription>{state.success}</AlertDescription>
+                        </Alert>
+                    ) : null}
+                    <Button disabled={pending} type="submit">
+                        {pending ? dict.common.saving : dict.common.save}
+                    </Button>
+                </Form>
+            ) : null}
         </PageStack>
     )
 }

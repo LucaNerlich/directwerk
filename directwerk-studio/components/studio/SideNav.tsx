@@ -146,10 +146,6 @@ export default function SideNav({config}: {config: SiteConfig}) {
 
     return (
         <nav aria-label={dict.nav.ariaMain}>
-            <NavigationGroup
-                items={[{href: '/', label: dict.nav.studio}]}
-                pathname={pathname}
-            />
             {activeDesk === 'WRITE' ? (
                 <>
                     <NavigationGroup

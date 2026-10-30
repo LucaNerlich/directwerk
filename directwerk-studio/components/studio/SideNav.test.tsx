@@ -261,7 +261,7 @@ describe('SideNav', () => {
             currentPathname = '/write/articles'
             renderNavigation(<SideNav config={hybridConfig} />)
 
-            expect(screen.getByRole('link', {name: 'Studio'})).toHaveAttribute('href', '/de')
+            expect(screen.queryByRole('link', {name: 'Studio'})).not.toBeInTheDocument()
             expect(screen.getByRole('link', {name: 'Start'})).toHaveAttribute('href', '/de/write')
             expect(screen.getByRole('link', {name: 'Beiträge'})).toHaveAttribute(
                 'href',
@@ -283,7 +283,7 @@ describe('SideNav', () => {
             currentPathname = '/podcast/episodes'
             renderNavigation(<SideNav config={hybridConfig} />)
 
-            expect(screen.getByRole('link', {name: 'Studio'})).toHaveAttribute('href', '/de')
+            expect(screen.queryByRole('link', {name: 'Studio'})).not.toBeInTheDocument()
             expect(screen.getByRole('link', {name: 'Start'})).toHaveAttribute(
                 'href',
                 '/de/podcast',
@@ -335,7 +335,7 @@ describe('SideNav', () => {
             currentPathname = '/'
             renderNavigation(<SideNav config={hybridConfig} />)
 
-            expect(screen.getByRole('link', {name: 'Studio'})).toHaveAttribute('href', '/de')
+            expect(screen.queryByRole('link', {name: 'Studio'})).not.toBeInTheDocument()
             expect(screen.getByRole('link', {name: 'Start'})).toHaveAttribute('href', '/de/write')
             expect(screen.getByRole('link', {name: 'Beiträge'})).toHaveAttribute(
                 'href',

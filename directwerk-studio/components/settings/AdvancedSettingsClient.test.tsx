@@ -10,6 +10,11 @@ vi.mock('next/link', () => ({
     ),
 }))
 
+vi.mock('next/navigation', () => ({
+    usePathname: () => '/de/settings/advanced',
+    useRouter: () => ({replace: vi.fn()}),
+}))
+
 vi.mock('@directwerk/api/auth/useAuthRequired', () => ({
     useAuthRequired: () => () => false,
 }))
@@ -105,5 +110,29 @@ describe('AdvancedSettingsClient', () => {
         expect(screen.getByRole('alert')).toHaveTextContent(
             'ANALYTICS-Modul ist für diesen Workspace nicht aktiv',
         )
+    })
+
+    it('shows the language toggle under Preferences', async () => {
+        renderWithLocale(<AdvancedSettingsClient />)
+        expect(await screen.findByText('Präferenzen')).toBeInTheDocument()
+        expect(screen.getByRole('group', {name: 'Sprache'})).toBeInTheDocument()
+        expect(screen.getByRole('button', {name: 'Deutsch'})).toHaveAttribute(
+            'aria-pressed',
+            'true',
+        )
+        expect(screen.getByRole('button', {name: 'English'})).toHaveAttribute(
+            'aria-pressed',
+            'false',
+        )
+    })
+
+    it('keeps Preferences when branding fails to load', async () => {
+        getBranding.mockRejectedValue(new Error('branding unavailable'))
+        renderWithLocale(<AdvancedSettingsClient />)
+
+        expect(await screen.findByText('Präferenzen')).toBeInTheDocument()
+        expect(screen.getByRole('group', {name: 'Sprache'})).toBeInTheDocument()
+        expect(screen.getByRole('alert')).toHaveTextContent('branding unavailable')
+        expect(screen.queryByLabelText('Umami Website-ID')).not.toBeInTheDocument()
     })
 })
