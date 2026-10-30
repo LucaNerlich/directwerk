@@ -8,6 +8,10 @@ describe('safeReturnTo', () => {
         expect(safeReturnTo('/episodes/my-show', '/account', 'en')).toBe(
             '/en/episodes/my-show',
         )
+        expect(safeReturnTo('/e/splinter-cell', '/account', 'en')).toBe(
+            '/en/e/splinter-cell',
+        )
+        expect(safeReturnTo('/a/my-piece', '/account', 'de')).toBe('/de/a/my-piece')
     })
 
     it('rejects absolute / protocol-relative URLs', () => {

@@ -7,7 +7,9 @@ const ALLOWED_PREFIXES = [
     '/feeds',
     '/downloads',
     '/episodes',
+    '/e',
     '/articles',
+    '/a',
     '/checkout',
 ] as const
 
