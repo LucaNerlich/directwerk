@@ -48,9 +48,13 @@ public class TenantMembershipGuardFilter extends OncePerRequestFilter {
         }
 
         try {
-            TenantMembership membership = currentTenantMembershipService.requireActiveMembership();
-            if (!hasRequiredRole(membership.getRoles(), scope)) {
-                throw new TenantMismatchException("Active tenant membership required");
+            if (isApiKeyAuthentication()) {
+                enforceApiKeyAccess(request, path);
+            } else {
+                TenantMembership membership = currentTenantMembershipService.requireActiveMembership();
+                if (!hasRequiredRole(membership.getRoles(), scope)) {
+                    throw new TenantMismatchException("Active tenant membership required");
+                }
             }
         } catch (RuntimeException ex) {
             // Issue #576: expected tenant exceptions and unexpected membership-lookup failures
@@ -62,6 +66,32 @@ public class TenantMembershipGuardFilter extends OncePerRequestFilter {
         }
 
         filterChain.doFilter(request, response);
+    }
+
+    /**
+     * API keys skip DB membership re-check (machine tokens). They are limited to content paths
+     * and scopes instead — never tenant-admin billing/domains/users.
+     */
+    private static void enforceApiKeyAccess(HttpServletRequest request, String path) {
+        var authentication = org.springframework.security.core.context.SecurityContextHolder
+                .getContext()
+                .getAuthentication();
+        if (!(authentication instanceof TenantApiKeyAuthenticationToken apiKeyAuth)) {
+            throw new TenantMismatchException("Active tenant membership required");
+        }
+        if (!TenantApiKeyPathAccess.isAllowedPath(path)) {
+            throw new TenantMismatchException("API key cannot access this path");
+        }
+        if (!TenantApiKeyPathAccess.isMethodAllowed(request.getMethod(), apiKeyAuth.scopes())) {
+            throw new TenantMismatchException("API key scope does not allow this method");
+        }
+    }
+
+    private static boolean isApiKeyAuthentication() {
+        var authentication = org.springframework.security.core.context.SecurityContextHolder
+                .getContext()
+                .getAuthentication();
+        return authentication instanceof TenantApiKeyAuthenticationToken;
     }
 
     /**

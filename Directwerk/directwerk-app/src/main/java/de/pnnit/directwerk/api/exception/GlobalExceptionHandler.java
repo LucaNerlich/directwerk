@@ -15,6 +15,7 @@ import de.pnnit.directwerk.modules.core.service.CannotRevokeSelfException;
 import de.pnnit.directwerk.modules.core.service.ModuleDependencyMissingException;
 import de.pnnit.directwerk.modules.core.service.ModuleNotEnabledException;
 import de.pnnit.directwerk.modules.core.service.PlatformAdminNotFoundException;
+import de.pnnit.directwerk.modules.core.service.TenantApiKeyNotFoundException;
 import de.pnnit.directwerk.modules.core.service.TenantMembershipNotFoundException;
 import de.pnnit.directwerk.modules.digital.exception.AssetAccessDeniedException;
 import de.pnnit.directwerk.modules.digital.exception.EntitlementDeniedException;
@@ -348,6 +349,11 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(CategoryNotFoundException.class)
     ResponseEntity<Response<Void>> handleCategoryNotFound(CategoryNotFoundException ex) {
         return notFound("CATEGORY_NOT_FOUND", ex);
+    }
+
+    @ExceptionHandler(TenantApiKeyNotFoundException.class)
+    ResponseEntity<Response<Void>> handleTenantApiKeyNotFound(TenantApiKeyNotFoundException ex) {
+        return notFound("TENANT_API_KEY_NOT_FOUND", ex);
     }
 
     @ExceptionHandler(DigitalPublicationNotFoundException.class)

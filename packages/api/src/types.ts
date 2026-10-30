@@ -1310,6 +1310,30 @@ export interface TenantDomain {
     verified: boolean
 }
 
+/** Tenant inbound API key (hash-only; raw secret only on create). */
+export type TenantApiKeyScope = 'content:read' | 'content:write'
+
+export interface TenantApiKey {
+    id: number
+    name: string
+    prefix: string
+    scopes: TenantApiKeyScope[]
+    createdAt: string
+    lastUsedAt: string | null
+    expiresAt: string | null
+    revokedAt: string | null
+}
+
+export interface CreatedTenantApiKey extends TenantApiKey {
+    /** Raw secret shown once at create time (`dwk_<prefix>_…`). */
+    secret: string
+}
+
+export interface CreateTenantApiKeyInput {
+    name: string
+    scopes: TenantApiKeyScope[]
+}
+
 export interface AddTenantDomainInput {
     host: string
     isPrimary?: boolean

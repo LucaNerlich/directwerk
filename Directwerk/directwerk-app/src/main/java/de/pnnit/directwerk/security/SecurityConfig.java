@@ -108,6 +108,7 @@ public class SecurityConfig {
             PlatformAdminGuardFilter platformAdminGuardFilter,
             DirectwerkJwtAuthenticationConverter jwtAuthenticationConverter,
             BillingRateLimitFilter billingRateLimitFilter,
+            TenantApiKeyAuthenticationFilter tenantApiKeyAuthenticationFilter,
             ApiAuthenticationEntryPoint apiAuthenticationEntryPoint,
             ApiAccessDeniedHandler apiAccessDeniedHandler
     ) throws Exception {
@@ -142,7 +143,9 @@ public class SecurityConfig {
                     }
                     auth.anyRequest().authenticated();
                 })
-                .oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt -> jwt
+                .oauth2ResourceServer(oauth2 -> oauth2
+                        .bearerTokenResolver(new DirectwerkBearerTokenResolver())
+                        .jwt(jwt -> jwt
                         .decoder(jwtDecoder)
                         .jwtAuthenticationConverter(jwtAuthenticationConverter)
                 )
@@ -155,6 +158,10 @@ public class SecurityConfig {
                         .authenticationEntryPoint(apiAuthenticationEntryPoint)
                         .accessDeniedHandler(apiAccessDeniedHandler)
                 )
+                .addFilterBefore(
+                        tenantApiKeyAuthenticationFilter,
+                        org.springframework.security.oauth2.server.resource.web.authentication.BearerTokenAuthenticationFilter.class
+                )
                 .addFilterAfter(tenantContextFilter, org.springframework.security.oauth2.server.resource.web.authentication.BearerTokenAuthenticationFilter.class)
                 .addFilterBefore(bffTenantRoutingHostFilter, TenantContextFilter.class)
                 .addFilterAfter(billingRateLimitFilter, TenantContextFilter.class)
@@ -162,6 +169,14 @@ public class SecurityConfig {
                 .addFilterAfter(platformAdminGuardFilter, TenantMembershipGuardFilter.class);
 
         return http.build();
+    }
+
+    @Bean
+    TenantApiKeyAuthenticationFilter tenantApiKeyAuthenticationFilter(
+            de.pnnit.directwerk.modules.core.service.TenantApiKeyService tenantApiKeyService,
+            ApiAuthenticationEntryPoint apiAuthenticationEntryPoint
+    ) {
+        return new TenantApiKeyAuthenticationFilter(tenantApiKeyService, apiAuthenticationEntryPoint);
     }
 
     /** JWT-layer access level for one ordered matcher row. */

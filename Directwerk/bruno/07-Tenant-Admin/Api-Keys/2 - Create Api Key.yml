@@ -1,0 +1,58 @@
+info:
+  name: 2 - Create Api Key
+  type: http
+  seq: 2
+
+http:
+  method: POST
+  url: "{{baseUrl}}/api/v1/tenant/api-keys"
+  body:
+    type: json
+    data: |-
+      {
+        "name": "Cursor MCP",
+        "scopes": ["content:read", "content:write"]
+      }
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("returns expected status", function() {
+          expect(res.getStatus() === 201).to.equal(true);
+        });
+        test("returns secret once with dwk_ prefix", function() {
+          expect(res.body.data).to.have.property("secret");
+          expect(res.body.data.secret).to.match(/^dwk_/);
+          expect(res.body.data).to.have.property("prefix");
+          expect(res.body.data.scopes).to.be.an("array");
+        });
+  actions:
+    - type: set-variable
+      phase: after-response
+      selector:
+        expression: res.body.data.id
+        method: jsonq
+      variable:
+        name: tenantApiKeyId
+        scope: runtime
+    - type: set-variable
+      phase: after-response
+      selector:
+        expression: res.body.data.secret
+        method: jsonq
+      variable:
+        name: tenantApiKeySecret
+        scope: runtime
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+docs: |-
+  Creates a tenant API key. The raw secret is returned only in this response.
+  Captures tenantApiKeyId and tenantApiKeySecret for revoke / content Bearer tests.

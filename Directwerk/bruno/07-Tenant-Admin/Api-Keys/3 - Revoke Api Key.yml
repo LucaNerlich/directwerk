@@ -1,0 +1,30 @@
+info:
+  name: 3 - Revoke Api Key
+  type: http
+  seq: 3
+
+http:
+  method: DELETE
+  url: "{{baseUrl}}/api/v1/tenant/api-keys/{{tenantApiKeyId}}"
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("returns expected status", function() {
+          expect(res.getStatus() === 200).to.equal(true);
+        });
+        test("marks key revoked", function() {
+          expect(res.body.data.revokedAt).to.be.a("string");
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+docs: |-
+  Revokes the API key created by request 2 (tenantApiKeyId). Immediate effect.

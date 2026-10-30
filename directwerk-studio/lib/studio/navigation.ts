@@ -203,6 +203,11 @@ export function buildSettingsTabs(
         })
     }
     tabs.push({
+        href: '/settings/api-keys',
+        label: v.apiKeys,
+        match: (path) => path === '/settings/api-keys' || path.startsWith('/settings/api-keys/'),
+    })
+    tabs.push({
         href: '/settings/advanced',
         label: v.advanced,
         match: (path) => path === '/settings/advanced' || path.startsWith('/settings/advanced/'),

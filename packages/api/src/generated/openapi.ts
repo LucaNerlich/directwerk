@@ -672,6 +672,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/tenant/api-keys": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["listApiKeys"];
+        put?: never;
+        post: operations["createApiKey"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/series": {
         parameters: {
             query?: never;
@@ -3292,6 +3308,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/tenant/api-keys/{keyId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: operations["revokeApiKey"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/platform/tenants/{tenantId}/modules/{moduleKey}": {
         parameters: {
             query?: never;
@@ -3557,7 +3589,6 @@ export interface components {
             updatedAt?: string;
         };
         ContactEmailUpdateRequest: {
-            /** Format: email */
             contactEmail: string;
         };
         ContactEmailView: {
@@ -4242,6 +4273,36 @@ export interface components {
             statusCode?: number;
             statusMessage?: string;
             data?: components["schemas"]["DomainView"];
+            errors?: components["schemas"]["ErrorDetail"][];
+            metadata?: {
+                [key: string]: unknown;
+            };
+        };
+        CreateApiKeyRequest: {
+            name: string;
+            scopes: string[];
+        };
+        CreatedApiKeyView: {
+            /** Format: int64 */
+            id?: number;
+            name?: string;
+            prefix?: string;
+            scopes?: string[];
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            lastUsedAt?: string;
+            /** Format: date-time */
+            expiresAt?: string;
+            /** Format: date-time */
+            revokedAt?: string;
+            secret?: string;
+        };
+        ResponseCreatedApiKeyView: {
+            /** Format: int32 */
+            statusCode?: number;
+            statusMessage?: string;
+            data?: components["schemas"]["CreatedApiKeyView"];
             errors?: components["schemas"]["ErrorDetail"][];
             metadata?: {
                 [key: string]: unknown;
@@ -5270,6 +5331,31 @@ export interface components {
                 [key: string]: unknown;
             };
         };
+        ApiKeyView: {
+            /** Format: int64 */
+            id?: number;
+            name?: string;
+            prefix?: string;
+            scopes?: string[];
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            lastUsedAt?: string;
+            /** Format: date-time */
+            expiresAt?: string;
+            /** Format: date-time */
+            revokedAt?: string;
+        };
+        ResponseListApiKeyView: {
+            /** Format: int32 */
+            statusCode?: number;
+            statusMessage?: string;
+            data?: components["schemas"]["ApiKeyView"][];
+            errors?: components["schemas"]["ErrorDetail"][];
+            metadata?: {
+                [key: string]: unknown;
+            };
+        };
         ResponseStatsView: {
             /** Format: int32 */
             statusCode?: number;
@@ -6080,6 +6166,16 @@ export interface components {
             statusCode?: number;
             statusMessage?: string;
             data?: components["schemas"]["CategoryView"][];
+            errors?: components["schemas"]["ErrorDetail"][];
+            metadata?: {
+                [key: string]: unknown;
+            };
+        };
+        ResponseApiKeyView: {
+            /** Format: int32 */
+            statusCode?: number;
+            statusMessage?: string;
+            data?: components["schemas"]["ApiKeyView"];
             errors?: components["schemas"]["ErrorDetail"][];
             metadata?: {
                 [key: string]: unknown;
@@ -7652,6 +7748,50 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["ResponseDomainView"];
+                };
+            };
+        };
+    };
+    listApiKeys: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ResponseListApiKeyView"];
+                };
+            };
+        };
+    };
+    createApiKey: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateApiKeyRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ResponseCreatedApiKeyView"];
                 };
             };
         };
@@ -11811,6 +11951,28 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["ResponseSubscriptionView"];
+                };
+            };
+        };
+    };
+    revokeApiKey: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                keyId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ResponseApiKeyView"];
                 };
             };
         };
