@@ -125,4 +125,14 @@ describe('AdvancedSettingsClient', () => {
             'false',
         )
     })
+
+    it('keeps Preferences when branding fails to load', async () => {
+        getBranding.mockRejectedValue(new Error('branding unavailable'))
+        renderWithLocale(<AdvancedSettingsClient />)
+
+        expect(await screen.findByText('Präferenzen')).toBeInTheDocument()
+        expect(screen.getByRole('group', {name: 'Sprache'})).toBeInTheDocument()
+        expect(screen.getByRole('alert')).toHaveTextContent('branding unavailable')
+        expect(screen.queryByLabelText('Umami Website-ID')).not.toBeInTheDocument()
+    })
 })
