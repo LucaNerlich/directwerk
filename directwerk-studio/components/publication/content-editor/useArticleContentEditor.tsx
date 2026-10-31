@@ -17,10 +17,10 @@ import {
 import {listNewsletterLists} from '@/lib/api/newsletterListsApi'
 import {getMediaPreviewUrl} from '@/lib/api/mediaApi'
 import {useDeskAccess} from '@/lib/rbac/useDeskAccess'
+import {listAllArticles} from '@/lib/api/listAllArticles'
 import {
     createArticle,
     getArticle,
-    listArticles,
     updateArticle,
 } from '@/lib/api/writeApi'
 import type {ArticleDetail, CategorySummary, NewsletterListSummary} from '@directwerk/api/types'
@@ -282,7 +282,7 @@ export function useArticleContentEditor(
         // Slug uniqueness only needs {id,slug}. Defer after first paint so
         // TipTap / media chrome are not contended by the full list download.
         const loadSlugIndex = (): void => {
-            void listArticles()
+            void listAllArticles()
                 .then((loaded) => {
                     if (active) {
                         setSlugIndex(toSlugEntries(loaded))
