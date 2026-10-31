@@ -311,7 +311,19 @@
     "seriesDescriptionBefore": "Overview of shows.",
     "seriesTitle": "Shows",
     "visibleCountArticles": "{count} {noun} visible.",
-    "visibleCountEpisodes": "{count} {noun} visible."
+    "visibleCountEpisodes": "{count} {noun} visible.",
+    "searchArticlesLabel": "Search articles",
+    "searchEpisodesLabel": "Search episodes",
+    "searchPlaceholder": "Title, slug, category…",
+    "searchEpisodesPlaceholder": "Title, show, format, category…",
+    "clearSearch": "Clear search",
+    "clearFilters": "Clear filters",
+    "categoriesLegend": "Categories",
+    "formatsLegend": "Formats",
+    "uncategorized": "Uncategorized",
+    "noBrowseMatchesTitle": "No matches",
+    "noBrowseMatchesDescription": "Try another search term or clear the filters.",
+    "hitCount": "{count} matches"
   },
   "billing": {
     "cancelDescription": "Nothing was charged. You can choose another product later.",
