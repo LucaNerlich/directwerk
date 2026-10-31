@@ -15,6 +15,14 @@ class TenantApiKeyPathAccessTest {
         assertThat(TenantApiKeyPathAccess.isAllowedPath("/api/v1/articles")).isTrue();
         assertThat(TenantApiKeyPathAccess.isAllowedPath("/api/v1/articles/1")).isTrue();
         assertThat(TenantApiKeyPathAccess.isAllowedPath("/api/v1/articles/1/categories")).isTrue();
+        assertThat(TenantApiKeyPathAccess.isAllowedPath("/api/v1/articles/1/newsletter-lists")).isTrue();
+        assertThat(TenantApiKeyPathAccess.isAllowedPath("/api/v1/articles/1/archive")).isTrue();
+        assertThat(TenantApiKeyPathAccess.isAllowedPath("/api/v1/articles/bulk/publish")).isTrue();
+        assertThat(TenantApiKeyPathAccess.isAllowedPath("/api/v1/episodes/2/enclosure-enabled")).isTrue();
+        assertThat(TenantApiKeyPathAccess.isAllowedPath("/api/v1/episodes/bulk/delete")).isTrue();
+        assertThat(TenantApiKeyPathAccess.isAllowedPath("/api/v1/media/1/preview-url")).isTrue();
+        assertThat(TenantApiKeyPathAccess.isAllowedPath("/api/v1/media/limits")).isTrue();
+        assertThat(TenantApiKeyPathAccess.isAllowedPath("/api/v1/media/storage-summary")).isTrue();
         assertThat(TenantApiKeyPathAccess.isAllowedPath("/api/v1/episodes")).isTrue();
         assertThat(TenantApiKeyPathAccess.isAllowedPath("/api/v1/series/3")).isTrue();
         assertThat(TenantApiKeyPathAccess.isAllowedPath("/api/v1/media/folders")).isTrue();
