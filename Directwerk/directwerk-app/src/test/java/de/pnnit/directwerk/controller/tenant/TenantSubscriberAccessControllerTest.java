@@ -12,7 +12,7 @@ import de.pnnit.directwerk.subscription.SubscriberEntitlementExplainService.Subj
 import de.pnnit.directwerk.subscription.SubscriberEntitlementExplainService.SubscriberAccessExplainView;
 import de.pnnit.directwerk.modules.core.service.ModuleGateService;
 import de.pnnit.directwerk.modules.subscription.SubscriptionModule;
-import de.pnnit.directwerk.modules.subscription.service.SubscriberAccessQueryService;
+import de.pnnit.directwerk.modules.subscription.service.EntitlementService.LevelEntitlement;
 import de.pnnit.directwerk.modules.subscription.service.SubscriberDirectoryQueryService;
 import de.pnnit.directwerk.multitenancy.TenantContext;
 import java.util.List;
@@ -62,7 +62,7 @@ class TenantSubscriberAccessControllerTest {
         when(subscriberEntitlementExplainService.explain(10L, 20L, null, null))
                 .thenReturn(Optional.of(new SubscriberAccessExplainView(
                         20L,
-                        List.of(new SubscriberAccessQueryService.LevelView(1L, "supporter", "Supporter", 1)),
+                        List.of(new LevelEntitlement(1L, "supporter", "Supporter", 1)),
                         1,
                         List.of(),
                         null
@@ -95,7 +95,7 @@ class TenantSubscriberAccessControllerTest {
         when(subscriberEntitlementExplainService.explain(10L, 20L, 55L, null))
                 .thenReturn(Optional.of(new SubscriberAccessExplainView(
                         20L,
-                        List.of(new SubscriberAccessQueryService.LevelView(1L, "supporter", "Supporter", 1)),
+                        List.of(new LevelEntitlement(1L, "supporter", "Supporter", 1)),
                         1,
                         List.of(),
                         check

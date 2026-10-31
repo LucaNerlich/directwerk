@@ -11,11 +11,12 @@ import de.pnnit.directwerk.modules.podcast.entity.EpisodeStatus;
 import de.pnnit.directwerk.modules.podcast.repository.EpisodeRepository;
 import de.pnnit.directwerk.modules.subscription.service.EntitlementService;
 import de.pnnit.directwerk.modules.subscription.service.EntitlementService.AccessExplanation;
+import de.pnnit.directwerk.modules.subscription.service.EntitlementService.AccessSummary;
 import de.pnnit.directwerk.modules.subscription.service.EntitlementService.ArticleAccessSubject;
 import de.pnnit.directwerk.modules.subscription.service.EntitlementService.EpisodeAccessSubject;
+import de.pnnit.directwerk.modules.subscription.service.EntitlementService.LevelEntitlement;
 import de.pnnit.directwerk.modules.subscription.service.EntitlementService.MatchedPackageRule;
-import de.pnnit.directwerk.modules.subscription.service.SubscriberAccessQueryService;
-import de.pnnit.directwerk.modules.subscription.service.SubscriberAccessQueryService.SubscriberAccessView;
+import de.pnnit.directwerk.modules.subscription.service.EntitlementService.PackageEntitlement;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -31,7 +32,6 @@ import org.springframework.transaction.annotation.Transactional;
 public class SubscriberEntitlementExplainService {
 
     private final TenantMembershipRepository tenantMembershipRepository;
-    private final SubscriberAccessQueryService subscriberAccessQueryService;
     private final EntitlementService entitlementService;
     private final EpisodeRepository episodeRepository;
     private final ArticleRepository articleRepository;
@@ -50,7 +50,7 @@ public class SubscriberEntitlementExplainService {
             return Optional.empty();
         }
 
-        SubscriberAccessView access = subscriberAccessQueryService.resolveAccessView(tenantId, userId);
+        AccessSummary access = entitlementService.resolveAccess(tenantId, userId);
         ContentCheckView check = null;
         if (episodeId != null) {
             check = explainEpisode(tenantId, userId, episodeId);
@@ -129,9 +129,9 @@ public class SubscriberEntitlementExplainService {
 
     public record SubscriberAccessExplainView(
             Long userId,
-            List<SubscriberAccessQueryService.LevelView> activeLevels,
+            List<LevelEntitlement> activeLevels,
             Integer maxLevelSortOrder,
-            List<SubscriberAccessQueryService.PackageView> activePackages,
+            List<PackageEntitlement> activePackages,
             ContentCheckView check
     ) {
     }
