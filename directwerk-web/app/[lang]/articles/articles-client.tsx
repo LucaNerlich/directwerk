@@ -192,6 +192,16 @@ export default function ArticlesClient({
                     {featured !== null ? (
                         <FeatureCard
                             eyebrow={common.newest}
+                            media={
+                                featured.heroImageUrl != null ? (
+                                    <CatalogMediaThumb
+                                        alt={featured.title}
+                                        priority
+                                        size="side"
+                                        src={featured.heroImageUrl}
+                                    />
+                                ) : undefined
+                            }
                             title={
                                 <Link
                                     className="hover:underline"
@@ -227,32 +237,24 @@ export default function ArticlesClient({
                                 </>
                             }
                         >
-                            <div className="flex flex-col gap-4 sm:flex-row sm:items-end">
-                                <CatalogMediaThumb
-                                    alt={featured.title}
-                                    priority
-                                    size="lg"
-                                    src={featured.heroImageUrl}
-                                />
-                                <div className="flex flex-wrap gap-2">
-                                    {featured.body !== null ? (
-                                        <Button
-                                            nativeButton={false}
-                                            render={
-                                                <Link
-                                                    href={localizedPath(lang, `/articles/${encodeURIComponent(featured.slug)}`)}
-                                                />
-                                            }
-                                        >
-                                            {common.read}
-                                        </Button>
-                                    ) : featured.accessPolicy === 'PAID' ? (
-                                        <LockedCatalogAction
-                                            isAuthenticated={isAuthenticated}
-                                            unlockHref={unlockTarget}
-                                        />
-                                    ) : null}
-                                </div>
+                            <div className="flex flex-wrap gap-2">
+                                {featured.body !== null ? (
+                                    <Button
+                                        nativeButton={false}
+                                        render={
+                                            <Link
+                                                href={localizedPath(lang, `/articles/${encodeURIComponent(featured.slug)}`)}
+                                            />
+                                        }
+                                    >
+                                        {common.read}
+                                    </Button>
+                                ) : featured.accessPolicy === 'PAID' ? (
+                                    <LockedCatalogAction
+                                        isAuthenticated={isAuthenticated}
+                                        unlockHref={unlockTarget}
+                                    />
+                                ) : null}
                             </div>
                         </FeatureCard>
                     ) : null}
