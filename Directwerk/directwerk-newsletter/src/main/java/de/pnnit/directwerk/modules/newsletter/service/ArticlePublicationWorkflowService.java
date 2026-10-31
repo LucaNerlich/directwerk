@@ -14,7 +14,6 @@ import de.pnnit.directwerk.modules.digital.service.HtmlSanitizer;
 import de.pnnit.directwerk.modules.newsletter.ArticlesModule;
 import de.pnnit.directwerk.modules.newsletter.entity.Article;
 import de.pnnit.directwerk.modules.newsletter.entity.ArticleStatus;
-import de.pnnit.directwerk.modules.newsletter.entity.NewsletterListStatus;
 import de.pnnit.directwerk.modules.newsletter.exception.ArticleValidationException;
 import de.pnnit.directwerk.modules.newsletter.job.ArticleRssFeedRefreshJobProducer;
 import de.pnnit.directwerk.modules.newsletter.repository.ArticleRepository;
@@ -221,10 +220,10 @@ public class ArticlePublicationWorkflowService extends PublicationWorkflow<Artic
 
     @Override
     protected boolean shouldNotify(Article article, boolean notifySubscribers) {
-        // Match NewsletterNotificationService.resolveRecipients: only ACTIVE lists can fan out.
+        // Match NewsletterNotificationService: draft-overlaid ACTIVE lists (Studio contract).
         // ARCHIVED-only attachments must not claim email_notified_at and then send nothing.
-        return notifySubscribers && article.getNewsletterLists().stream()
-                .anyMatch(list -> list.getStatus() == NewsletterListStatus.ACTIVE);
+        return notifySubscribers
+                && articleService.hasActiveNewsletterAudience(article.getTenant().getId(), article);
     }
 
     @Override

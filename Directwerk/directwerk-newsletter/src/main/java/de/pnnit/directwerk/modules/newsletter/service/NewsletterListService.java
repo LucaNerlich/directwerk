@@ -13,6 +13,7 @@ import de.pnnit.directwerk.modules.newsletter.repository.NewsletterListRepositor
 import de.pnnit.directwerk.modules.newsletter.repository.NewsletterSubscriptionRepository;
 import de.pnnit.directwerk.security.SecurityUtils;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -41,8 +42,13 @@ public class NewsletterListService {
     }
 
     @Transactional(readOnly = true)
+    public Optional<NewsletterList> findList(Long tenantId, Long listId) {
+        return newsletterListRepository.findByIdAndTenantId(listId, tenantId);
+    }
+
+    @Transactional(readOnly = true)
     public NewsletterList requireList(Long tenantId, Long listId) {
-        return newsletterListRepository.findByIdAndTenantId(listId, tenantId)
+        return findList(tenantId, listId)
                 .orElseThrow(() -> new NewsletterListNotFoundException(listId));
     }
 

@@ -16,8 +16,6 @@ import de.pnnit.directwerk.modules.core.notification.SubscriberNotificationGate;
 import de.pnnit.directwerk.modules.core.repository.TenantMembershipRepository;
 import de.pnnit.directwerk.modules.newsletter.entity.Article;
 import de.pnnit.directwerk.modules.newsletter.entity.ArticleStatus;
-import de.pnnit.directwerk.modules.newsletter.entity.NewsletterList;
-import de.pnnit.directwerk.modules.newsletter.entity.NewsletterListStatus;
 import de.pnnit.directwerk.modules.newsletter.repository.ArticleRepository;
 import de.pnnit.directwerk.modules.newsletter.service.ArticlePublicationWorkflowService;
 import de.pnnit.directwerk.modules.podcast.entity.Episode;
@@ -30,7 +28,6 @@ import de.pnnit.directwerk.modules.queue.QueueNames;
 import de.pnnit.directwerk.modules.queue.QueueService;
 import java.time.Instant;
 import java.util.Optional;
-import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -143,10 +140,8 @@ class ContentNotifyStudioServiceTest {
         Article article = new Article();
         article.setId(7L);
         article.setStatus(ArticleStatus.PUBLISHED);
-        NewsletterList list = new NewsletterList();
-        list.setStatus(NewsletterListStatus.ACTIVE);
-        article.setNewsletterLists(Set.of(list));
         when(articleRepository.findByIdAndTenantId(7L, TENANT_ID)).thenReturn(Optional.of(article));
+        when(newsletterNotificationApi.hasActiveArticleAudience(TENANT_ID, 7L)).thenReturn(true);
         when(newsletterNotificationApi.countArticleRecipients(TENANT_ID, 7L)).thenReturn(3L);
         when(queueService.findLatestByCorrelation(any(), anyLong(), any())).thenReturn(Optional.empty());
 
@@ -154,6 +149,22 @@ class ContentNotifyStudioServiceTest {
 
         assertThat(preview.estimatedRecipients()).isEqualTo(3L);
         assertThat(preview.canRetry()).isTrue();
+    }
+
+    @Test
+    void previewArticleTreatsDraftClearedAudienceAsNotRetryable() {
+        Article article = new Article();
+        article.setId(7L);
+        article.setStatus(ArticleStatus.PUBLISHED);
+        when(articleRepository.findByIdAndTenantId(7L, TENANT_ID)).thenReturn(Optional.of(article));
+        when(newsletterNotificationApi.hasActiveArticleAudience(TENANT_ID, 7L)).thenReturn(false);
+        when(newsletterNotificationApi.countArticleRecipients(TENANT_ID, 7L)).thenReturn(0L);
+        when(queueService.findLatestByCorrelation(any(), anyLong(), any())).thenReturn(Optional.empty());
+
+        ContentNotifyPreviewView preview = service.previewArticle(TENANT_ID, 7L);
+
+        assertThat(preview.estimatedRecipients()).isZero();
+        assertThat(preview.canRetry()).isFalse();
     }
 
     private static QueueJob job(UUID id, JobStatus status, String lastError) {

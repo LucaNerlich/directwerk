@@ -11,7 +11,6 @@ import de.pnnit.directwerk.modules.core.repository.TenantMembershipRepository;
 import de.pnnit.directwerk.modules.newsletter.ArticlesModule;
 import de.pnnit.directwerk.modules.newsletter.entity.Article;
 import de.pnnit.directwerk.modules.newsletter.entity.ArticleStatus;
-import de.pnnit.directwerk.modules.newsletter.entity.NewsletterListStatus;
 import de.pnnit.directwerk.modules.newsletter.exception.ArticleNotFoundException;
 import de.pnnit.directwerk.modules.newsletter.repository.ArticleRepository;
 import de.pnnit.directwerk.modules.newsletter.service.ArticlePublicationWorkflowService;
@@ -70,8 +69,8 @@ public class ContentNotifyStudioService {
     public ContentNotifyPreviewView previewArticle(Long tenantId, Long articleId) {
         Article article = articleRepository.findByIdAndTenantId(articleId, tenantId)
                 .orElseThrow(() -> new ArticleNotFoundException(articleId));
-        boolean audienceOk = article.getNewsletterLists().stream()
-                .anyMatch(list -> list.getStatus() == NewsletterListStatus.ACTIVE);
+        // Draft-overlaid lists (same as Studio / fan-out), not live joins alone.
+        boolean audienceOk = newsletterNotificationApi.hasActiveArticleAudience(tenantId, articleId);
         long recipients = newsletterNotificationApi.countArticleRecipients(tenantId, articleId);
         return preview(
                 tenantId,

@@ -20,4 +20,10 @@ public interface NewsletterNotificationApi {
      * Deduped ACTIVE-list recipient count for studio notify preview (same rules as fan-out).
      */
     long countArticleRecipients(Long tenantId, Long articleId);
+
+    /**
+     * Whether the article has at least one ACTIVE newsletter list in the effective set
+     * (working-draft overlay when present, otherwise live joins) — same gate as fan-out.
+     */
+    boolean hasActiveArticleAudience(Long tenantId, Long articleId);
 }

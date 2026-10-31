@@ -261,6 +261,30 @@ public class ArticleService {
     }
 
     /**
+     * Whether notify/preview should treat this article as having an ACTIVE audience.
+     * Uses the working-draft newsletter-list overlay when present (same as Studio).
+     */
+    @Transactional(readOnly = true)
+    public boolean hasActiveNewsletterAudience(Long tenantId, Article article) {
+        Set<Long> effectiveIds = ArticleNewsletterAudience.effectiveListIds(article);
+        if (effectiveIds.isEmpty()) {
+            return false;
+        }
+        if (!ArticleNewsletterAudience.hasDraftListOverlay(article)) {
+            return article.getNewsletterLists().stream()
+                    .anyMatch(list -> list.getStatus() == NewsletterListStatus.ACTIVE);
+        }
+        for (Long listId : effectiveIds) {
+            if (newsletterListService.findList(tenantId, listId)
+                    .filter(list -> list.getStatus() == NewsletterListStatus.ACTIVE)
+                    .isPresent()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
      * Applies a working-draft overlay onto live columns and join tables. Used by over-publish
      * and by unpublish (so staged edits are not discarded when withdrawing).
      */

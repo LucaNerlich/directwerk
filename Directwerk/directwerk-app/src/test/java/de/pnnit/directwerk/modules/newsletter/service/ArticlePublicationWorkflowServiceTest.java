@@ -119,6 +119,12 @@ class ArticlePublicationWorkflowServiceTest {
         lenient().when(notificationGate.enabled(anyLong(), any(), anyLong())).thenReturn(true);
         lenient().when(selfProvider.getObject()).thenReturn(articlePublicationWorkflowService);
         lenient().when(articleRepository.save(any(Article.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        lenient().when(articleService.hasActiveNewsletterAudience(anyLong(), any(Article.class)))
+                .thenAnswer(invocation -> {
+                    Article article = invocation.getArgument(1);
+                    return article.getNewsletterLists().stream()
+                            .anyMatch(list -> list.getStatus() == NewsletterListStatus.ACTIVE);
+                });
         SecurityContextHolder.clearContext();
         authenticate(5L, Role.EDITOR);
     }
