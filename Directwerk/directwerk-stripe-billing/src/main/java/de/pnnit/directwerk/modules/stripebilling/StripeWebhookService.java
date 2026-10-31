@@ -5,11 +5,13 @@ import de.pnnit.directwerk.modules.subscription.entity.SubscriptionProduct;
 import de.pnnit.directwerk.modules.subscription.entity.SubscriptionStatus;
 import de.pnnit.directwerk.modules.stripebilling.entity.TenantStripeAccount;
 import de.pnnit.directwerk.modules.stripebilling.exception.StripeSignatureException;
+import de.pnnit.directwerk.modules.stripebilling.exception.StripeSubscriptionRebindRefusedException;
 import de.pnnit.directwerk.modules.stripebilling.repository.ProcessedWebhookEventRepository;
 import de.pnnit.directwerk.modules.subscription.repository.SubscriptionProductRepository;
 import de.pnnit.directwerk.modules.subscription.repository.SubscriptionRepository;
 import de.pnnit.directwerk.modules.stripebilling.service.StripeSubscriptionSyncService;
 import de.pnnit.directwerk.multitenancy.TenantContext;
+import java.util.concurrent.atomic.AtomicReference;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -67,8 +69,50 @@ public class StripeWebhookService {
         // cannot pin a Hikari connection (issue #745). null = guard does not apply; true = skip;
         // false = local row is canceled but Stripe still reports live — apply with a row lock.
         Boolean shouldSkipReactivation = resolveShouldSkipReactivation(event);
-        new TransactionTemplate(transactionManager).executeWithoutResult(status ->
-                applyParsedEventInTransaction(event, shouldSkipReactivation));
+        // #944: a rebind refuse must keep the webhook marked processed (so the job does not
+        // retry) and cancel the unbound Stripe subscription outside the write transaction.
+        AtomicReference<StripeSubscriptionRebindRefusedException> refused = new AtomicReference<>();
+        new TransactionTemplate(transactionManager).executeWithoutResult(status -> {
+            try {
+                applyParsedEventInTransaction(event, shouldSkipReactivation);
+            } catch (StripeSubscriptionRebindRefusedException ex) {
+                refused.set(ex);
+            }
+        });
+        if (refused.get() != null) {
+            cancelOrphanStripeSubscription(event, refused.get());
+        }
+    }
+
+    private void cancelOrphanStripeSubscription(
+            StripeOperations.StripeWebhookPayload event,
+            StripeSubscriptionRebindRefusedException refused
+    ) {
+        if (!stripeOperations.isConfigured()) {
+            log.warn(
+                    "Rebind refused for tenant {} subscription {}; Stripe not configured to cancel orphan {}",
+                    refused.getTenantId(),
+                    refused.getMessage(),
+                    refused.getRefusedExternalSubscriptionId());
+            return;
+        }
+        String accountId = event.connectedAccountId();
+        if (accountId == null || accountId.isBlank()) {
+            TenantStripeAccount account = stripeConnectService.findByTenantId(refused.getTenantId());
+            accountId = account != null ? account.getStripeAccountId() : null;
+        }
+        if (accountId == null || accountId.isBlank()) {
+            log.error(
+                    "Rebind refused but no Stripe account to cancel orphan {} for tenant {}",
+                    refused.getRefusedExternalSubscriptionId(),
+                    refused.getTenantId());
+            return;
+        }
+        log.warn(
+                "Canceling orphan Stripe subscription {} after rebind refuse for tenant {}",
+                refused.getRefusedExternalSubscriptionId(),
+                refused.getTenantId());
+        stripeOperations.cancelSubscription(accountId, refused.getRefusedExternalSubscriptionId());
     }
 
     private void applyParsedEventInTransaction(

@@ -18,6 +18,7 @@ import de.pnnit.directwerk.modules.stripebilling.StripeConnectService;
 import de.pnnit.directwerk.modules.stripebilling.StripeOperations;
 import de.pnnit.directwerk.modules.stripebilling.StripeWebhookService;
 import de.pnnit.directwerk.modules.stripebilling.entity.TenantStripeAccount;
+import de.pnnit.directwerk.modules.stripebilling.exception.StripeSubscriptionRebindRefusedException;
 import de.pnnit.directwerk.modules.stripebilling.repository.ProcessedWebhookEventRepository;
 import de.pnnit.directwerk.modules.subscription.repository.SubscriptionProductRepository;
 import de.pnnit.directwerk.modules.subscription.repository.SubscriptionRepository;
@@ -729,6 +730,54 @@ class StripeWebhookServiceTest {
         service.applyParsedEvent(service.parseAndValidate("{}", "sig"));
 
         verify(stripeConnectService).applyAccountUpdate("acct_1", true, true, true);
+    }
+
+    @Test
+    void checkoutCompletedCancelsOrphanWhenRebindIsRefused() {
+        // #944: dual checkout race — second webhook must cancel the unbound Stripe sub and still
+        // keep the event processed (do not throw / fail the job).
+        StripeOperations.StripeWebhookPayload payload = new StripeOperations.StripeWebhookPayload(
+                "evt_rebind",
+                "checkout.session.completed",
+                "acct_1",
+                "cus_1",
+                "sub_orphan",
+                "price_1",
+                Instant.parse("2026-09-01T00:00:00Z"),
+                "active",
+                true,
+                true,
+                true,
+                Map.of("tenant_id", "7", "user_id", "3", "product_id", "11"),
+                "pi_1",
+                false,
+                "paid",
+                true
+        );
+        when(stripeOperations.parseWebhook("{}", "sig")).thenReturn(payload);
+        when(processedWebhookEventRepository.insertIfAbsent("evt_rebind", "checkout.session.completed", "acct_1"))
+                .thenReturn(1);
+        TenantStripeAccount account = account(7L, "acct_1");
+        when(stripeConnectService.findByStripeAccountId("acct_1")).thenReturn(account);
+        SubscriptionProduct product = new SubscriptionProduct();
+        product.setId(11L);
+        when(subscriptionProductRepository.findByIdAndTenantId(11L, 7L)).thenReturn(Optional.of(product));
+        when(stripeSubscriptionSyncService.upsertStripeSubscription(
+                7L,
+                3L,
+                11L,
+                "sub_orphan",
+                "cus_1",
+                SubscriptionStatus.ACTIVE,
+                Instant.parse("2026-09-01T00:00:00Z"),
+                "pi_1"
+        )).thenThrow(new StripeSubscriptionRebindRefusedException(7L, 99L, "sub_old", "sub_orphan"));
+        when(stripeOperations.isConfigured()).thenReturn(true);
+
+        service.applyParsedEvent(service.parseAndValidate("{}", "sig"));
+
+        verify(stripeOperations).cancelSubscription("acct_1", "sub_orphan");
+        verify(transactionManager).commit(any());
     }
 
     private static TenantStripeAccount account(Long tenantId, String stripeAccountId) {

@@ -11,6 +11,7 @@ import de.pnnit.directwerk.modules.content.TenantEntitlementsChangedEvent;
 import de.pnnit.directwerk.modules.core.entity.User;
 import de.pnnit.directwerk.modules.core.repository.TenantRepository;
 import de.pnnit.directwerk.modules.core.repository.UserRepository;
+import de.pnnit.directwerk.modules.stripebilling.exception.StripeSubscriptionRebindRefusedException;
 import de.pnnit.directwerk.modules.subscription.entity.Subscription;
 import de.pnnit.directwerk.modules.subscription.entity.SubscriptionProduct;
 import de.pnnit.directwerk.modules.subscription.entity.SubscriptionSource;
@@ -112,8 +113,14 @@ class StripeSubscriptionSyncServiceTest {
                 null,
                 null
         ))
-                .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("Refusing to rebind");
+                .isInstanceOf(StripeSubscriptionRebindRefusedException.class)
+                .hasMessageContaining("Refusing to rebind")
+                .satisfies(ex -> {
+                    StripeSubscriptionRebindRefusedException refused =
+                            (StripeSubscriptionRebindRefusedException) ex;
+                    assertThat(refused.getTenantId()).isEqualTo(TENANT_ID);
+                    assertThat(refused.getRefusedExternalSubscriptionId()).isEqualTo("sub_new");
+                });
 
         assertThat(existing.getExternalSubscriptionId()).isEqualTo("sub_old");
     }

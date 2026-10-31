@@ -3,6 +3,7 @@ package de.pnnit.directwerk.modules.stripebilling.service;
 import de.pnnit.directwerk.modules.content.TenantEntitlementsChangedEvent;
 import de.pnnit.directwerk.modules.core.entity.User;
 import de.pnnit.directwerk.modules.core.repository.UserRepository;
+import de.pnnit.directwerk.modules.stripebilling.exception.StripeSubscriptionRebindRefusedException;
 import de.pnnit.directwerk.modules.subscription.entity.Subscription;
 import de.pnnit.directwerk.modules.core.repository.TenantRepository;
 import de.pnnit.directwerk.modules.subscription.entity.SubscriptionProduct;
@@ -107,9 +108,13 @@ public class StripeSubscriptionSyncService {
                     && currentExternalId != null
                     && !currentExternalId.isBlank()
                     && !currentExternalId.equals(externalSubscriptionId)) {
-                throw new IllegalStateException(
-                        "Refusing to rebind subscription " + subscription.getId()
-                                + " from " + currentExternalId + " to " + externalSubscriptionId);
+                // Leave the local row on the first Stripe id. Callers must cancel the refused
+                // (orphan) subscription at Stripe and treat the webhook as processed.
+                throw new StripeSubscriptionRebindRefusedException(
+                        tenantId,
+                        subscription.getId(),
+                        currentExternalId,
+                        externalSubscriptionId);
             }
             subscription.setExternalSubscriptionId(externalSubscriptionId);
         }
