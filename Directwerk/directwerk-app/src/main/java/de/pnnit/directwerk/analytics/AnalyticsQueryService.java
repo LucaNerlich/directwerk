@@ -369,7 +369,9 @@ public class AnalyticsQueryService {
      * built and closed per request — the dashboard path calls this 2-4 times per query, so it paid
      * a full connect/TLS handshake every time. Keyed by host + resolved address set, so a DNS
      * change rebuilds rather than pinning a stale address. `ponytail:` the map is bounded by the
-     * handful of distinct analytics hosts.
+     * handful of distinct analytics hosts — switch to a size-capped map (and close superseded
+     * clients with a refcount, same as the publish shortcut below) when distinct hosts exceed ~10
+     * or Umami hostnames rotate often enough that unused clients accumulate.
      */
     private static final class PinnedRequestSender implements RequestSender {
 
