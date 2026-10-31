@@ -58,6 +58,7 @@ Studio → **Settings → API keys** shows a copy-paste remote snippet for the c
 | `DIRECTWERK_API_KEY` | Tenant API key (`dwk_…`) from Studio → Settings → API keys |
 | `DIRECTWERK_TENANT_HOST` | Verified tenant hostname (sent as `X-Tenant-Host` for multi-tenancy) |
 | `PORT` / `DIRECTWERK_MCP_PORT` | Local HTTP listen port (default `3100`, `start:http` only) |
+| `DIRECTWERK_MCP_HOST` | Local HTTP bind host (default `127.0.0.1`; loopback only) |
 
 ## Cursor install (stdio)
 
@@ -83,7 +84,7 @@ Studio → **Settings → API keys** shows a copy-paste remote snippet for the c
 
 Or after `pnpm --filter @directwerk/mcp-studio build`, point `command` at `node` and `args` at the absolute `dist/index.js` path.
 
-Local Streamable HTTP (same tools, for debugging): `pnpm --filter @directwerk/mcp-studio start:http` → `http://127.0.0.1:3100/mcp`.
+Local Streamable HTTP (REST tools only — no `import_podcast_manifest`): `pnpm --filter @directwerk/mcp-studio start:http` → `http://127.0.0.1:3100/mcp`. Bind is loopback-only.
 
 ## OpenCode install (stdio)
 

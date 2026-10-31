@@ -41,7 +41,16 @@ const idSchema = z.coerce.number().int().positive()
 const optionalLimit = z.coerce.number().int().min(1).max(100).optional()
 const optionalOffset = z.coerce.number().int().min(0).optional()
 
-export function createMcpServer(client: DirectwerkClient): McpServer {
+/** Options for {@link createMcpServer}. Filesystem tools stay stdio-only. */
+export type CreateMcpServerOptions = {
+    /** When true, register local-filesystem tools (import_podcast_manifest). Default false. */
+    filesystemTools?: boolean
+}
+
+export function createMcpServer(
+    client: DirectwerkClient,
+    options: CreateMcpServerOptions = {},
+): McpServer {
     const server = new McpServer({
         name: 'directwerk-studio',
         version: '0.1.0',
@@ -49,6 +58,8 @@ export function createMcpServer(client: DirectwerkClient): McpServer {
 
     const api = (method: string, path: string, body?: unknown, query?: Record<string, string | number | boolean | undefined>) =>
         client.request(method, path.startsWith('/') ? path.slice(1) : path, body, query)
+
+    const filesystemTools = options.filesystemTools === true
 
     // --- Articles ---
     server.tool('list_articles', 'List articles for the tenant', {
@@ -838,10 +849,15 @@ export function createMcpServer(client: DirectwerkClient): McpServer {
         }
     })
 
-    // --- Bulk import (Karo-type podcast episode manifests) ---
+    // --- Bulk import (Karo-type podcast episode manifests) — stdio only ---
     // Reads a seller-provided JSON manifest; uploads local audio/cover files through
     // the usual upload-url -> PUT -> confirm flow, then creates/publishes episodes.
     // Idempotent: reuses READY assets by originalFilename and DRAFT episodes by slug.
+    // Local HTTP entry must not register this (no request auth + ambient API key).
+    if (!filesystemTools) {
+        return server
+    }
+
     const slugPattern = /^[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,62}[a-zA-Z0-9])?$/
 
     const unwrap = (value: unknown): any =>
