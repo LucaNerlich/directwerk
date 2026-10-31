@@ -200,6 +200,13 @@ public class StripeSubscriptionSyncService {
                     }
                     subscriptionRepository.save(subscription);
                     eventPublisher.publishEvent(new TenantEntitlementsChangedEvent(tenantId));
+                    // Same first-ACTIVE publish as upsertStripeSubscription: delayed pay
+                    // (checkout → INCOMPLETE, then invoice.paid) must still create the default feed.
+                    Long userId = subscription.getUser() != null ? subscription.getUser().getId() : null;
+                    if (userId != null) {
+                        eventPublisher.publishEvent(
+                                new SubscriptionMembershipActivatedEvent(tenantId, userId));
+                    }
                 });
     }
 
