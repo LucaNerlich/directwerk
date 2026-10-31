@@ -57,7 +57,7 @@ public class TenantRoutingHostResolver {
             String serverName
     ) {
         return explicitTenant
-                .or(() -> parseForwardedHeader(request.getHeader("Forwarded")))
+                .or(() -> parseForwardedHeader(request.getHeader("Forwarded"), platformApiHost))
                 .or(() -> parseForwardedHostChain(request.getHeader("X-Forwarded-Host"), platformApiHost))
                 .orElse(serverName);
     }
@@ -113,12 +113,27 @@ public class TenantRoutingHostResolver {
         return lastNonPlatform;
     }
 
-    static Optional<String> parseForwardedHeader(String rawHeader) {
+    /**
+     * Same last-non-platform rule as {@link #parseForwardedHostChain}: proxies often prepend the
+     * API hostname into {@code Forwarded}, which must not shadow a later tenant host or XFF.
+     */
+    static Optional<String> parseForwardedHeader(String rawHeader, String platformApiHost) {
         if (!StringUtils.hasText(rawHeader)) {
             return Optional.empty();
         }
-        String first = rawHeader.split(",")[0].trim();
-        for (String part : first.split(";")) {
+        Optional<String> lastNonPlatform = Optional.empty();
+        for (String element : rawHeader.split(",")) {
+            Optional<String> parsed = parseForwardedElementHost(element);
+            if (parsed.isPresent()
+                    && (platformApiHost == null || !parsed.get().equalsIgnoreCase(platformApiHost))) {
+                lastNonPlatform = parsed;
+            }
+        }
+        return lastNonPlatform;
+    }
+
+    private static Optional<String> parseForwardedElementHost(String element) {
+        for (String part : element.split(";")) {
             String trimmed = part.trim();
             if (!trimmed.regionMatches(true, 0, "host=", 0, 5)) {
                 continue;
