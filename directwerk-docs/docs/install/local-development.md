@@ -16,7 +16,7 @@ The preferred workflow for day-to-day API work: **Compose for infrastructure**, 
 |------|-------------|
 | **Java 21** | Host `./gradlew` builds, tests, and `bootRun` |
 | **Docker** + **Compose v2** | Local Postgres + Mailpit (recommended) |
-| **pnpm 12** (optional) | Next.js apps at repo root |
+| **pnpm 10.33.2** (optional) | Next.js apps at repo root (workspace `packageManager`) |
 | **`.env` file** | Copy from `Directwerk/.env.example`; never commit |
 
 ## Configure environment

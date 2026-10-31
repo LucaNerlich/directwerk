@@ -11,7 +11,7 @@ This page summarizes the fastest local setup. For full detail see [Local develop
 
 - **Java 21**
 - **Docker** + Compose v2
-- **pnpm 12** (optional — for Next.js frontends)
+- **pnpm 10.33.2** (optional — for Next.js frontends; matches workspace `packageManager`)
 
 ## 1. Start infrastructure
 
