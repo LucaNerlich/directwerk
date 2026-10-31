@@ -10,7 +10,11 @@ import {
     type ReactNode,
 } from 'react'
 
+import {STUDIO_THEME_STORAGE_KEY} from '@/lib/studio/theme-init-script'
+
 export type Theme = 'dark' | 'light' | 'system'
+
+export {STUDIO_THEME_STORAGE_KEY}
 
 type ThemeProviderProps = {
     children: ReactNode
@@ -27,8 +31,6 @@ type ThemeProviderState = {
 }
 
 const ThemeProviderContext = createContext<ThemeProviderState | null>(null)
-
-export const STUDIO_THEME_STORAGE_KEY = 'dw.studio.theme'
 
 function readStoredTheme(storageKey: string, fallback: Theme): Theme {
     if (typeof window === 'undefined') {
@@ -69,8 +71,9 @@ function applyThemeClass(resolved: 'light' | 'dark'): void {
  * Class-based theme provider matching shared `@directwerk/ui` `.dark` tokens
  * (`theme.css` `@custom-variant dark`). Persists to localStorage.
  *
- * Until the client mounts, the document class is owned by {@link themeInitScript}
- * so this provider does not overwrite the pre-paint theme during hydration.
+ * Until the client mounts, the document class is owned by the SSR-safe
+ * `themeInitScript` string (`lib/studio/theme-init-script.ts`) so this provider
+ * does not overwrite the pre-paint theme during hydration.
  */
 export function ThemeProvider({
     children,
@@ -141,13 +144,4 @@ export function useTheme(): ThemeProviderState {
         throw new Error('useTheme must be used within a ThemeProvider')
     }
     return context
-}
-
-/**
- * Inline script for early document bootstrap — applies the stored theme before
- * paint so the first frame matches localStorage / system preference.
- */
-export function themeInitScript(storageKey = STUDIO_THEME_STORAGE_KEY): string {
-    // Keep in sync with resolveTheme / applyThemeClass above.
-    return `(function(){try{var k=${JSON.stringify(storageKey)};var t=localStorage.getItem(k);if(t!=="dark"&&t!=="light"&&t!=="system")t="system";var d=t==="dark"||(t==="system"&&window.matchMedia("(prefers-color-scheme: dark)").matches);var r=document.documentElement;r.classList.remove("light","dark");r.classList.add(d?"dark":"light");}catch(e){}})();`
 }

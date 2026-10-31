@@ -1,12 +1,8 @@
 import {cleanup, render, screen} from '@testing-library/react'
 import {afterEach, beforeEach, describe, expect, it} from 'vitest'
 
-import {
-    STUDIO_THEME_STORAGE_KEY,
-    ThemeProvider,
-    themeInitScript,
-    useTheme,
-} from '@/components/theme-provider'
+import {ThemeProvider, useTheme} from '@/components/theme-provider'
+import {STUDIO_THEME_STORAGE_KEY} from '@/lib/studio/theme-init-script'
 
 function ThemeProbe(): React.JSX.Element {
     const {theme, resolvedTheme, setTheme} = useTheme()
@@ -54,12 +50,5 @@ describe('ThemeProvider', () => {
         expect(await screen.findByTestId('theme')).toHaveTextContent('light')
         expect(document.documentElement.classList.contains('light')).toBe(true)
         expect(window.localStorage.getItem(STUDIO_THEME_STORAGE_KEY)).toBe('light')
-    })
-
-    it('emits a bootstrap script that mirrors the storage key', () => {
-        const script = themeInitScript('custom-key')
-        expect(script).toContain('custom-key')
-        expect(script).toContain('prefers-color-scheme: dark')
-        expect(script).toContain('classList.add')
     })
 })
