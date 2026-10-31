@@ -278,7 +278,7 @@ Accept: application/json
 ###
 
 ### @name listPodcastEpisodes
-### Page with ?limit=1..500 (default 100) and ?offset=<rows skipped> (default 0).
+### Page with ?limit=1..500 (default 100) and ?offset=<rows skipped> (default 0; not pageIndex×limit).
 GET {{baseUrl}}/api/v1/episodes?limit=100&offset=0
 Host: {{tenantAHost}}
 Authorization: Bearer {{tenantAAccessToken}}

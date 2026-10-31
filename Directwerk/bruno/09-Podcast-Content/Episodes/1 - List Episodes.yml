@@ -14,7 +14,7 @@ http:
     - name: offset
       value: "0"
       type: query
-      description: Rows to skip (default 0). Studio list pages page with limit+offset via the tenant BFF.
+      description: Rows to skip (default 0), not pageIndex×limit — non-multiples of limit are valid (e.g. offset=50&limit=100).
   auth: inherit
 
 runtime:

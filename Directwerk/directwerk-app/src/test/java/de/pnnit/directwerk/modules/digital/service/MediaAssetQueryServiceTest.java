@@ -135,7 +135,7 @@ class MediaAssetQueryServiceTest {
     }
 
     @Test
-    void listInFolderPagingUsesTheOffsetAsPageNumber() {
+    void listInFolderPagingTreatsOffsetAsRowsToSkip() {
         when(mediaAssetRepository.findFiltered(eq(AssetType.IMAGE), isNull(), any(Pageable.class)))
                 .thenReturn(List.of());
 
@@ -143,8 +143,22 @@ class MediaAssetQueryServiceTest {
 
         ArgumentCaptor<Pageable> pageable = ArgumentCaptor.forClass(Pageable.class);
         verify(mediaAssetRepository).findFiltered(eq(AssetType.IMAGE), isNull(), pageable.capture());
-        assertThat(pageable.getValue().getPageNumber()).isEqualTo(2);
+        assertThat(pageable.getValue().getOffset()).isEqualTo(100);
         assertThat(pageable.getValue().getPageSize()).isEqualTo(50);
+    }
+
+    @Test
+    void listInFolderPagingPreservesNonMultipleOffset() {
+        when(mediaAssetRepository.findFiltered(eq(AssetType.IMAGE), isNull(), any(Pageable.class)))
+                .thenReturn(List.of());
+
+        // Studio load-more after a mid-list delete often sends offset % limit != 0.
+        service.listInFolder(AssetType.IMAGE, null, null, false, false, 100, 50);
+
+        ArgumentCaptor<Pageable> pageable = ArgumentCaptor.forClass(Pageable.class);
+        verify(mediaAssetRepository).findFiltered(eq(AssetType.IMAGE), isNull(), pageable.capture());
+        assertThat(pageable.getValue().getOffset()).isEqualTo(50);
+        assertThat(pageable.getValue().getPageSize()).isEqualTo(100);
     }
 
     @Test

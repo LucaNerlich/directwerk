@@ -39,7 +39,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import org.springframework.data.domain.PageRequest;
+import de.pnnit.directwerk.modules.core.util.OffsetLimitPageRequest;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
@@ -69,9 +69,8 @@ public class EpisodeService {
     /** Offset variant so a tenant can reach episodes past the first page (#733). */
     @Transactional(readOnly = true)
     public List<Episode> listEpisodes(Long tenantId, int limit, int offset) {
-        int pageSize = Math.max(limit, 1);
         return episodeRepository.findByTenantIdOrderByCreatedAtDescIdDesc(
-                tenantId, PageRequest.of(Math.max(offset, 0) / pageSize, pageSize));
+                tenantId, OffsetLimitPageRequest.of(limit, offset));
     }
 
     @Transactional(readOnly = true)

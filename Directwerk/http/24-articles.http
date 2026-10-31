@@ -34,7 +34,7 @@ Accept: application/json
 ###
 
 ### @name listArticles
-### Page with ?limit=1..500 (default 100) and ?offset=<rows skipped> (default 0).
+### Page with ?limit=1..500 (default 100) and ?offset=<rows skipped> (default 0; not pageIndex×limit).
 ### Each article includes heroImageUrl (public CDN hero; null while private/unset) for studio list thumbs.
 GET {{baseUrl}}/api/v1/articles?limit=100&offset=0
 Host: {{tenantAHost}}
