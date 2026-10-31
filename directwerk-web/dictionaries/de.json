@@ -311,7 +311,19 @@
     "seriesDescriptionBefore": "Übersicht der Sendungen.",
     "seriesTitle": "Sendungen",
     "visibleCountArticles": "{count} {noun} sichtbar.",
-    "visibleCountEpisodes": "{count} {noun} sichtbar."
+    "visibleCountEpisodes": "{count} {noun} sichtbar.",
+    "searchArticlesLabel": "Beiträge durchsuchen",
+    "searchEpisodesLabel": "Folgen durchsuchen",
+    "searchPlaceholder": "Titel, Slug, Kategorie…",
+    "searchEpisodesPlaceholder": "Titel, Sendung, Format, Kategorie…",
+    "clearSearch": "Suche zurücksetzen",
+    "clearFilters": "Filter zurücksetzen",
+    "categoriesLegend": "Kategorien",
+    "formatsLegend": "Formate",
+    "uncategorized": "Ohne Kategorie",
+    "noBrowseMatchesTitle": "Keine Treffer",
+    "noBrowseMatchesDescription": "Anderen Suchbegriff versuchen oder Filter zurücksetzen.",
+    "hitCount": "{count} Treffer"
   },
   "billing": {
     "cancelDescription": "Es wurde nichts berechnet. Du kannst später ein anderes Produkt wählen.",
