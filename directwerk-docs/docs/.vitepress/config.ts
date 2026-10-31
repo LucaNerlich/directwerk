@@ -205,7 +205,7 @@ export default defineConfig({
     outline: 'deep',
     editLink: {
       pattern: ({ filePath }) =>
-        filePath === 'changelog.md'
+        filePath === 'changelog/index.md' || filePath === 'changelog.md'
           ? 'https://github.com/LucaNerlich/directwerk/edit/main/CHANGELOG.md'
           : `https://github.com/LucaNerlich/directwerk/edit/main/directwerk-docs/docs/${filePath}`,
       text: 'Suggest changes to this page',

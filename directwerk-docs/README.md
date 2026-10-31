@@ -92,7 +92,7 @@ directwerk-docs/
 ├── scripts/
 │   ├── export-openapi.sh
 │   ├── sync-architecture-docs.sh
-│   └── sync-changelog.mjs   # CHANGELOG.md → docs/changelog.md
+│   └── sync-changelog.mjs   # CHANGELOG.md → docs/changelog/index.md
 └── docs/
     ├── .vitepress/config.ts
     ├── guide/           # Product overview
@@ -100,6 +100,7 @@ directwerk-docs/
     ├── operators/       # Creator/tenant admin how-tos
     ├── architecture/    # Integrator-facing design
     ├── api/             # Integration guide + OpenAPI reference
-    ├── changelog.md     # Synced from repo-root CHANGELOG.md
+    ├── changelog/       # Synced from repo-root CHANGELOG.md (index.md)
     └── openapi/         # Checked-in OpenAPI JSON
 ```
+
