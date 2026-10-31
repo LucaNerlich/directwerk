@@ -122,6 +122,7 @@ class ContentNotifyStudioServiceTest {
         when(episodePublicationWorkflow.notifySubscribersNow(TENANT_ID, EPISODE_ID)).thenReturn(episode);
 
         assertThat(service.retryEpisode(TENANT_ID, EPISODE_ID)).isSameAs(episode);
+        // Markers must stay so already-enqueued recipients are not remelted on Studio retry.
         verify(episodePublicationWorkflow).notifySubscribersNow(TENANT_ID, EPISODE_ID);
     }
 

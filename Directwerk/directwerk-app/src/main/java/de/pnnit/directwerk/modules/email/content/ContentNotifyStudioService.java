@@ -87,6 +87,9 @@ public class ContentNotifyStudioService {
     public Episode retryEpisode(Long tenantId, Long episodeId) {
         ContentNotifyPreviewView preview = previewEpisode(tenantId, episodeId);
         requireRetryable(preview);
+        // Do not clear per-recipient markers: claim-after-successful-enqueue already leaves
+        // failed/null enqueue unmarked, and wiping markers on Studio retry remelts the whole
+        // audience (#949 review). Already-marked recipients stay skipped on re-fan-out.
         return episodePublicationWorkflow.notifySubscribersNow(tenantId, episodeId);
     }
 

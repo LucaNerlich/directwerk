@@ -123,8 +123,10 @@ class ContentNotifyJobHandlerTest {
                 .thenReturn(new TenantContentBrandingResolver.BrandingContext("Acme", "Acme", "#000000"));
         when(tenantMembershipRepository.findNotificationOptedInMembers(TENANT_ID, MembershipStatus.ACTIVE))
                 .thenReturn(List.of(membership(2L, "grace@example.com", null)));
-        when(contentNotificationMarkerRepository.claim(TENANT_ID, ContentType.EPISODE.name(), 3L, 2L))
-                .thenReturn(true);
+        when(contentNotificationMarkerRepository.exists(TENANT_ID, ContentType.EPISODE.name(), 3L, 2L))
+                .thenReturn(false);
+        when(emailJobProducer.enqueueContentNotification(any(), any(), any(), any(), any()))
+                .thenReturn(org.mockito.Mockito.mock(QueueJob.class));
 
         handler.handle(job(ContentNotifyJobPayload.from(
                 ContentType.EPISODE, 3L, "New episode", null, "ep-3", "FREE"
@@ -134,6 +136,7 @@ class ContentNotifyJobHandlerTest {
         verify(emailJobProducer).enqueueContentNotification(
                 eq(TENANT_ID), eq("grace@example.com"), eq(EmailTemplate.CONTENT_EPISODE_PUBLISHED), variablesCaptor.capture(), any()
         );
+        verify(contentNotificationMarkerRepository).claim(TENANT_ID, ContentType.EPISODE.name(), 3L, 2L);
         assertThat(variablesCaptor.getValue().get("recipientName")).isEqualTo("there");
         assertThat(variablesCaptor.getValue().get("contentUrl")).isEqualTo("https://tenant.example/de/episodes/ep-3");
         assertThat(variablesCaptor.getValue().get("preferencesUrl"))
@@ -143,6 +146,36 @@ class ContentNotifyJobHandlerTest {
     @Test
     void skipsRecipientsAlreadyNotifiedOnRetry() {
         when(directwerkConfig.isEmailEnabled()).thenReturn(true);
+        when(tenantMembershipRepository.findNotificationOptedInMembers(TENANT_ID, MembershipStatus.ACTIVE))
+                .thenReturn(List.of(membership(2L, "grace@example.com", null)));
+        // Marker already claimed by the previous successful enqueue.
+        when(contentNotificationMarkerRepository.exists(TENANT_ID, ContentType.EPISODE.name(), 3L, 2L))
+                .thenReturn(true);
+
+        handler.handle(job(ContentNotifyJobPayload.from(
+                ContentType.EPISODE, 3L, "New episode", null, "ep-3", "FREE"
+        )));
+
+        verify(emailJobProducer, never()).enqueueContentNotification(any(), any(), any(), any(), any());
+        verify(contentNotificationMarkerRepository, never()).claim(any(), any(), any(), any());
+    }
+
+    @Test
+    void failsEpisodeNotificationWhenEmailDeliveryDisabled() {
+        when(directwerkConfig.isEmailEnabled()).thenReturn(false);
+
+        assertThatThrownBy(() -> handler.handle(job(ContentNotifyJobPayload.from(
+                ContentType.EPISODE, 3L, "New episode", null, "ep-3", "FREE"
+        )))).isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("Email delivery is disabled");
+
+        verify(emailJobProducer, never()).enqueueContentNotification(any(), any(), any(), any(), any());
+        verify(contentNotificationMarkerRepository, never()).claim(any(), any(), any(), any());
+    }
+
+    @Test
+    void nullEnqueueLeavesNoMarker() {
+        when(directwerkConfig.isEmailEnabled()).thenReturn(true);
         when(publicContentUrlResolver.contentPageUrl(any(), any(), any()))
                 .thenReturn("https://tenant.example/de/episodes/ep-3");
         when(publicContentUrlResolver.notificationPreferencesUrl(any()))
@@ -151,26 +184,15 @@ class ContentNotifyJobHandlerTest {
                 .thenReturn(new TenantContentBrandingResolver.BrandingContext("Acme", "Acme", "#000000"));
         when(tenantMembershipRepository.findNotificationOptedInMembers(TENANT_ID, MembershipStatus.ACTIVE))
                 .thenReturn(List.of(membership(2L, "grace@example.com", null)));
-        // Marker already claimed by the previous attempt.
-        when(contentNotificationMarkerRepository.claim(TENANT_ID, ContentType.EPISODE.name(), 3L, 2L))
+        when(contentNotificationMarkerRepository.exists(TENANT_ID, ContentType.EPISODE.name(), 3L, 2L))
                 .thenReturn(false);
+        when(emailJobProducer.enqueueContentNotification(any(), any(), any(), any(), any()))
+                .thenReturn(null);
 
-        handler.handle(job(ContentNotifyJobPayload.from(
+        assertThatThrownBy(() -> handler.handle(job(ContentNotifyJobPayload.from(
                 ContentType.EPISODE, 3L, "New episode", null, "ep-3", "FREE"
-        )));
+        )))).isInstanceOf(IllegalStateException.class);
 
-        verify(emailJobProducer, never()).enqueueContentNotification(any(), any(), any(), any(), any());
-    }
-
-    @Test
-    void skipsEpisodeNotificationWhenEmailDeliveryDisabled() {
-        when(directwerkConfig.isEmailEnabled()).thenReturn(false);
-
-        handler.handle(job(ContentNotifyJobPayload.from(
-                ContentType.EPISODE, 3L, "New episode", null, "ep-3", "FREE"
-        )));
-
-        verify(emailJobProducer, never()).enqueueContentNotification(any(), any(), any(), any(), any());
         verify(contentNotificationMarkerRepository, never()).claim(any(), any(), any(), any());
     }
 
