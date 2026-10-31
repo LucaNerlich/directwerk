@@ -16,6 +16,12 @@ runtime:
           expect(res.getStatus()).to.equal(200);
         });
 
+        test("article view exposes heroImageUrl", function() {
+          const data = res.body && res.body.data;
+          expect(data).to.not.equal(undefined);
+          expect('heroImageUrl' in data).to.equal(true);
+        });
+
 settings:
   encodeUrl: true
   timeout: 0

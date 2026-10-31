@@ -4087,6 +4087,7 @@ export interface components {
             seoDescription?: string;
             /** Format: int64 */
             heroAssetId?: number;
+            heroImageUrl?: string;
             accessPolicy?: string;
             /** Format: int32 */
             requiredLevelSortOrder?: number;

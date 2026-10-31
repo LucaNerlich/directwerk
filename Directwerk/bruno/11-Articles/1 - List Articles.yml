@@ -17,6 +17,26 @@ http:
       description: Rows to skip (default 0). Studio list pages page with limit+offset via the tenant BFF.
   auth: inherit
 
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("returns expected status", function() {
+          expect([200, 403].includes(res.getStatus())).to.equal(true);
+        });
+
+        test("article views expose heroImageUrl", function() {
+          if (res.getStatus() !== 200) {
+            return;
+          }
+          const data = res.body && res.body.data;
+          expect(Array.isArray(data)).to.equal(true);
+          if (data.length === 0) {
+            return;
+          }
+          expect('heroImageUrl' in data[0]).to.equal(true);
+        });
+
 settings:
   encodeUrl: true
   timeout: 0

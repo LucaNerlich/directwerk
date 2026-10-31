@@ -1,10 +1,11 @@
 package de.pnnit.directwerk.controller.newsletter;
 
 import de.pnnit.directwerk.api.MediaAssetViewMapper;
+import de.pnnit.directwerk.api.PublicArticleViewMapper;
+import de.pnnit.directwerk.api.dto.ArticleView;
 import de.pnnit.directwerk.api.dto.ContentTextLimits;
 import de.pnnit.directwerk.api.dto.MediaAssetView;
 import de.pnnit.directwerk.api.response.Response;
-import de.pnnit.directwerk.controller.newsletter.ArticleController.ArticleView;
 import de.pnnit.directwerk.controller.support.ImportControllerSupport;
 import de.pnnit.directwerk.job.ArticleRssBulkImportPayload;
 import de.pnnit.directwerk.modules.core.RequiresModule;
@@ -53,6 +54,7 @@ public class ArticleImportController {
 
     private final ArticleImportService articleImportService;
     private final MediaAssetViewMapper mediaAssetViewMapper;
+    private final PublicArticleViewMapper publicArticleViewMapper;
     private final MediaAssetQueryApi mediaAssetQueryApi;
     private final QueueService queueService;
     private final ObjectMapper objectMapper;
@@ -61,6 +63,7 @@ public class ArticleImportController {
     public ArticleImportController(
             ArticleImportService articleImportService,
             MediaAssetViewMapper mediaAssetViewMapper,
+            PublicArticleViewMapper publicArticleViewMapper,
             MediaAssetQueryApi mediaAssetQueryApi,
             QueueService queueService,
             ObjectMapper objectMapper,
@@ -68,6 +71,7 @@ public class ArticleImportController {
     ) {
         this.articleImportService = articleImportService;
         this.mediaAssetViewMapper = mediaAssetViewMapper;
+        this.publicArticleViewMapper = publicArticleViewMapper;
         this.mediaAssetQueryApi = mediaAssetQueryApi;
         this.queueService = queueService;
         this.objectMapper = objectMapper;
@@ -140,7 +144,7 @@ public class ArticleImportController {
         );
         HttpStatus status = imported.alreadyImported() ? HttpStatus.OK : HttpStatus.CREATED;
         ImportedArticleView view = new ImportedArticleView(
-                ArticleController.toView(imported.article()),
+                publicArticleViewMapper.toStudioView(imported.article()),
                 imported.alreadyImported()
         );
         return ResponseEntity.status(status).body(

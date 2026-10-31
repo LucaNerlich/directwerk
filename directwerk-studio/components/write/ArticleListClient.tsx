@@ -44,6 +44,16 @@ export default function ArticleListClient() {
         }
     }, [authRedirect])
 
+    // Shared PublicationListSection reads coverImageUrl (episode field name).
+    const mapItems = useCallback(
+        (articles: ArticleDetail[]) =>
+            articles.map((article) => ({
+                ...article,
+                coverImageUrl: article.heroImageUrl,
+            })),
+        [],
+    )
+
     return (
         <PublicationListClient<ArticleDetail>
             page={{
@@ -99,6 +109,7 @@ export default function ArticleListClient() {
             contentLabel={w.articleSingular}
             contentLabelPlural={w.articlePlural}
             editorBasePath="/write/articles"
+            mapItems={mapItems}
             retryLabel={dict.common.retry}
             renderEmpty={() => (
                 <EmptyState
