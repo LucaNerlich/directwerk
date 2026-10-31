@@ -53,7 +53,8 @@ class ArticleRssXmlBuilderTest {
 
         String xml = builder.buildFeed(tenant, List.of(article), "https://alpha.example.test", null);
 
-        assertThat(xml).contains("<description><![CDATA[Teaser only]]></description>");
+        // Plain excerpts go through HtmlSanitizer's Markdown path → wrapped <p> (same as #921).
+        assertThat(xml).contains("<description><![CDATA[<p>Teaser only</p>");
         assertThat(xml).doesNotContain("Secret body");
     }
 
@@ -77,6 +78,26 @@ class ArticleRssXmlBuilderTest {
         assertThat(xml).contains("<description><![CDATA[<p>ok</p>]]></description>");
         assertThat(xml).doesNotContain("<script");
         assertThat(xml).doesNotContain("alert");
+    }
+
+    @Test
+    void descriptionCdataUsesDecodedCosmeticEntitiesAndKeepsAmp() {
+        Tenant tenant = tenant();
+        Article article = article(
+                5L,
+                "entity-post",
+                "Entity Post",
+                "<p>A &amp; B &#61; C &#64;host Blizzard&#39;s</p>",
+                AccessPolicy.FREE
+        );
+
+        String xml = builder.buildFeed(tenant, List.of(article), "https://alpha.example.test", null);
+
+        assertThat(xml).contains(
+                "<description><![CDATA[<p>A &amp; B = C @host Blizzard's</p>]]></description>");
+        assertThat(xml).doesNotContain("&#61;");
+        assertThat(xml).doesNotContain("&#64;");
+        assertThat(xml).doesNotContain("&#39;");
     }
 
     @Test

@@ -20,6 +20,10 @@ import com.vladsch.flexmark.util.data.MutableDataSet;
  * importers often send CommonMark, sometimes with inline HTML. Non-TipTap-shaped
  * input is converted with Flexmark, then sanitized. Stored rows and RSS/email
  * therefore see HTML without depending on a client fallback.
+ *
+ * <p>OWASP re-encodes defense-in-depth characters ({@code = @ + ' `}) as numeric
+ * entities. After the allowlist pass those are restored so API/MCP/RSS payloads
+ * stay readable; {@code &amp; &lt; &gt; &#34;} remain encoded for markup safety.
  */
 @Component
 public class HtmlSanitizer {
@@ -57,12 +61,15 @@ public class HtmlSanitizer {
         if (htmlOrMarkdown == null || htmlOrMarkdown.isEmpty()) {
             return "";
         }
+        String sanitized;
         if (looksLikeTipTapHtml(htmlOrMarkdown)) {
-            return POLICY.sanitize(htmlOrMarkdown);
+            sanitized = POLICY.sanitize(htmlOrMarkdown);
+        } else {
+            String markdown = decodeBasicEntities(htmlOrMarkdown);
+            String rendered = MARKDOWN_RENDERER.render(MARKDOWN_PARSER.parse(markdown));
+            sanitized = POLICY.sanitize(normalizeHeadingLevels(rendered));
         }
-        String markdown = decodeBasicEntities(htmlOrMarkdown);
-        String rendered = MARKDOWN_RENDERER.render(MARKDOWN_PARSER.parse(markdown));
-        return POLICY.sanitize(normalizeHeadingLevels(rendered));
+        return relaxCosmeticEntities(sanitized);
     }
 
     /**
@@ -85,6 +92,33 @@ public class HtmlSanitizer {
                 .replace("&apos;", "'");
         decoded = replaceNumericEntities(decoded);
         return decoded.replace("&amp;", "&");
+    }
+
+    /**
+     * After OWASP allowlisting, restore characters it encodes only for
+     * defense-in-depth ({@code = @ + ' `}). Leaves {@code &amp; &lt; &gt; &#34;}
+     * alone so markup and double-quoted attributes stay intact. Idempotent with
+     * a second {@link #sanitize} pass, so MCP decode-and-rewrite can clear
+     * legacy pollution.
+     */
+    static String relaxCosmeticEntities(String html) {
+        if (html == null || html.isEmpty() || html.indexOf('&') < 0) {
+            return html;
+        }
+        return html
+                .replace("&#61;", "=")
+                .replace("&#x3d;", "=")
+                .replace("&#x3D;", "=")
+                .replace("&#64;", "@")
+                .replace("&#x40;", "@")
+                .replace("&#43;", "+")
+                .replace("&#x2b;", "+")
+                .replace("&#x2B;", "+")
+                .replace("&#39;", "'")
+                .replace("&#x27;", "'")
+                .replace("&apos;", "'")
+                .replace("&#96;", "`")
+                .replace("&#x60;", "`");
     }
 
     private static String replaceNumericEntities(String value) {

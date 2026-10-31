@@ -110,10 +110,53 @@ class HtmlSanitizerTest {
         assertThat(sanitized).contains("<h2>Alliance &amp; Horde</h2>");
         assertThat(sanitized).contains("<blockquote>");
         assertThat(sanitized).contains("Move on when quests turn green.");
-        // Apostrophe may be re-encoded by OWASP as &#39; in text nodes.
-        assertThat(sanitized).contains("Blizzard");
-        assertThat(sanitized).contains("Forever launch.");
+        assertThat(sanitized).contains("Blizzard's Forever launch.");
         assertThat(sanitized).doesNotContain("&gt;");
+        assertThat(sanitized).doesNotContain("&#39;");
+    }
+
+    @Test
+    void restoresCosmeticOwaspEntitiesWithoutWeakeningMarkupEscapes() {
+        String sanitized = htmlSanitizer.sanitize(
+                "<p>A &amp; B &#61; C &#64;user &#43;1 &#39;quote&#39; &#96;tick&#96;</p>");
+
+        assertThat(sanitized).isEqualTo("<p>A &amp; B = C @user +1 'quote' `tick`</p>");
+        assertThat(sanitized).doesNotContain("&#61;");
+        assertThat(sanitized).doesNotContain("&#64;");
+        assertThat(sanitized).doesNotContain("&#43;");
+        assertThat(sanitized).doesNotContain("&#39;");
+        assertThat(sanitized).doesNotContain("&#96;");
+        assertThat(sanitized).contains("&amp;");
+    }
+
+    @Test
+    void cosmeticRelaxIsIdempotentSoMcpRewriteCanClearLegacyPollution() {
+        String polluted = "<p>score&#61;10 mail&#64;x.test Blizzard&#39;s</p>";
+        String once = htmlSanitizer.sanitize(polluted);
+        String twice = htmlSanitizer.sanitize(once);
+
+        assertThat(once).isEqualTo("<p>score=10 mail@x.test Blizzard's</p>");
+        assertThat(twice).isEqualTo(once);
+    }
+
+    @Test
+    void stillStripsScriptsAfterCosmeticRelax() {
+        String sanitized = htmlSanitizer.sanitize(
+                "<p>a&#61;b</p><script>alert(1)</script><p>mail&#64;x</p>");
+
+        assertThat(sanitized).contains("a=b");
+        assertThat(sanitized).contains("mail@x");
+        assertThat(sanitized).doesNotContain("<script");
+        assertThat(sanitized).doesNotContain("alert");
+    }
+
+    @Test
+    void keepsDoubleQuoteEntitiesSoAttributesStayIntact() {
+        String sanitized = htmlSanitizer.sanitize(
+                "<p><img src=\"https://cdn.example.test/a.png\" alt=\"say &#34;hi&#34;\"></p>");
+
+        assertThat(sanitized).contains("alt=\"say &#34;hi&#34;\"");
+        assertThat(sanitized).doesNotContain("alt=\"say \"hi\"\"");
     }
 
     @Test
