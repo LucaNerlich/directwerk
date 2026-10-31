@@ -15,6 +15,7 @@
         "@directwerk/ui": "workspace:*",
         "@tiptap/extension-image": "^3.32.0",
         "@tiptap/extension-link": "^3.32.0",
+        "@tiptap/extension-table": "^3.32.0",
         "@tiptap/react": "^3.32.0",
         "@tiptap/starter-kit": "^3.32.0",
         "lucide-react": "^1.61.0",

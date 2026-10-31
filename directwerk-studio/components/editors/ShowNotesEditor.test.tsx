@@ -63,6 +63,37 @@ describe('ShowNotesEditor', () => {
         expect(sanitized).toContain('src="https://cdn.example.test/image.png"')
     })
 
+    it('preserves pasted table markup', () => {
+        const sanitized = sanitizePastedHtml(
+            '<table><thead><tr><th>Quest</th></tr></thead>' +
+                '<tbody><tr><td>Defias</td></tr></tbody></table>',
+        )
+        expect(sanitized).toContain('<table>')
+        expect(sanitized).toContain('<th>Quest</th>')
+        expect(sanitized).toContain('<td>Defias</td>')
+    })
+
+    it('keeps table markup in the editor schema on load', async () => {
+        const onChange = vi.fn()
+        const tableHtml =
+            '<table><thead><tr><th>Quest</th></tr></thead>' +
+            '<tbody><tr><td>Defias</td></tr></tbody></table>'
+        const {container} = renderWithLocale(
+            <ShowNotesEditor onChange={onChange} value={tableHtml} />,
+        )
+
+        const editor = await waitFor(() => {
+            const element = container.querySelector('.ProseMirror')
+            expect(element).toBeInTheDocument()
+            return element as HTMLElement
+        })
+        // Without TableKit, ProseMirror drops <table> to loose text nodes.
+        expect(editor.querySelector('table')).not.toBeNull()
+        expect(editor.querySelector('th')?.textContent).toContain('Quest')
+        expect(editor.querySelector('td')?.textContent).toContain('Defias')
+        expect(onChange).not.toHaveBeenCalled()
+    })
+
     it('does not report a content change when mounted or disabled', async () => {
         const onChange = vi.fn()
         const {container, rerender} = renderWithLocale(

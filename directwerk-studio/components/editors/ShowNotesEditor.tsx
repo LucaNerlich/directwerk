@@ -4,6 +4,7 @@ import {Button} from '@directwerk/ui/components/button'
 
 import Link from '@tiptap/extension-link'
 import Image from '@tiptap/extension-image'
+import {TableKit} from '@tiptap/extension-table'
 import {EditorContent, useEditor, useEditorState, type Editor} from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import {
@@ -393,6 +394,8 @@ export default function ShowNotesEditor({
                 allowBase64: false,
                 HTMLAttributes: {loading: 'lazy'},
             }),
+            // Schema-only: preserves GFM/MCP table HTML on round-trip; no toolbar.
+            TableKit.configure({table: {resizable: false}}),
         ],
         content: value,
         onUpdate: ({editor: currentEditor}) => {
