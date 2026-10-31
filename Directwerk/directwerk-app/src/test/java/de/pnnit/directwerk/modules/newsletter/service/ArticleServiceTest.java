@@ -46,8 +46,10 @@ import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -110,6 +112,19 @@ class ArticleServiceTest {
     @AfterEach
     void clearAuthentication() {
         SecurityContextHolder.clearContext();
+    }
+
+    @Test
+    void listArticlesPassesTrueRowOffsetToRepository() {
+        when(articleRepository.findByTenantIdOrderByCreatedAtDescIdDesc(eq(TENANT_ID), any(Pageable.class)))
+                .thenReturn(List.of());
+
+        articleService.listArticles(TENANT_ID, 100, 50);
+
+        ArgumentCaptor<Pageable> pageable = ArgumentCaptor.forClass(Pageable.class);
+        verify(articleRepository).findByTenantIdOrderByCreatedAtDescIdDesc(eq(TENANT_ID), pageable.capture());
+        assertThat(pageable.getValue().getOffset()).isEqualTo(50);
+        assertThat(pageable.getValue().getPageSize()).isEqualTo(100);
     }
 
     @Test

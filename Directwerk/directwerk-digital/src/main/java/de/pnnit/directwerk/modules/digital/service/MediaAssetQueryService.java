@@ -21,7 +21,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.PageRequest;
+import de.pnnit.directwerk.modules.core.util.OffsetLimitPageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -84,7 +85,7 @@ public class MediaAssetQueryService implements MediaAssetQueryApi {
     @Override
     @Transactional(readOnly = true)
     public List<MediaAsset> list(AssetType assetType, AssetStatus status, int limit, int offset) {
-        PageRequest page = pageRequest(limit, offset);
+        Pageable page = pageRequest(limit, offset);
         return mediaAssetRepository.findFiltered(assetType, status, page);
     }
 
@@ -99,7 +100,7 @@ public class MediaAssetQueryService implements MediaAssetQueryApi {
             boolean unreferencedOnly,
             int limit,
             int offset) {
-        PageRequest page = pageRequest(limit, offset);
+        Pageable page = pageRequest(limit, offset);
         if (folderId != null && unassignedOnly) {
             throw new IllegalArgumentException("folderId and unassignedOnly are mutually exclusive");
         }
@@ -127,7 +128,7 @@ public class MediaAssetQueryService implements MediaAssetQueryApi {
             Long folderId,
             boolean recursive,
             boolean unassignedOnly,
-            PageRequest page) {
+            Pageable page) {
         Long tenantId = TenantContext.requireTenantId();
         String assetTypeName = assetType == null ? null : assetType.name();
         String statusName = status == null ? null : status.name();
@@ -168,10 +169,8 @@ public class MediaAssetQueryService implements MediaAssetQueryApi {
         return ordered;
     }
 
-    private static PageRequest pageRequest(int limit, int offset) {
-        int pageSize = Math.min(Math.max(limit, 1), 100);
-        int safeOffset = Math.max(offset, 0);
-        return PageRequest.of(safeOffset / pageSize, pageSize);
+    private static Pageable pageRequest(int limit, int offset) {
+        return OffsetLimitPageRequest.of(limit, offset, 100);
     }
 
     private MediaFolder requireFolderInContext(Long tenantId, Long folderId) {

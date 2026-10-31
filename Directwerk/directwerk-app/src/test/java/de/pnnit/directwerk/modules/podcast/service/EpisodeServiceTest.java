@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -39,8 +40,10 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -112,6 +115,19 @@ class EpisodeServiceTest {
     @AfterEach
     void clearAuthentication() {
         SecurityContextHolder.clearContext();
+    }
+
+    @Test
+    void listEpisodesPassesTrueRowOffsetToRepository() {
+        when(episodeRepository.findByTenantIdOrderByCreatedAtDescIdDesc(eq(TENANT_ID), any(Pageable.class)))
+                .thenReturn(List.of());
+
+        episodeService.listEpisodes(TENANT_ID, 100, 50);
+
+        ArgumentCaptor<Pageable> pageable = ArgumentCaptor.forClass(Pageable.class);
+        verify(episodeRepository).findByTenantIdOrderByCreatedAtDescIdDesc(eq(TENANT_ID), pageable.capture());
+        assertThat(pageable.getValue().getOffset()).isEqualTo(50);
+        assertThat(pageable.getValue().getPageSize()).isEqualTo(100);
     }
 
     @Test
