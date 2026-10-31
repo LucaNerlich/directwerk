@@ -32,7 +32,6 @@ public class RssFeedService {
 
 
     private final PublicPodcastQueryService publicPodcastQueryService;
-    private final SubscriberEpisodeService subscriberEpisodeService;
     private final SubscriberFeedAccess subscriberFeedAccess;
     private final RssXmlBuilder rssXmlBuilder;
     private final EpisodeDownloadAnalyticsService episodeDownloadAnalyticsService;
