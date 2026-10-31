@@ -1,12 +1,12 @@
 import type {MetadataRoute} from 'next'
 
-import {locales} from '@/lib/i18n/config'
 import {
     fetchPublicArticleSlugsServer,
     fetchPublicEpisodeSlugsServer,
 } from '@/lib/site/fetchPublicContentServer'
 import {fetchSiteConfigServer} from '@/lib/site/fetchSiteConfigServer'
 import {getTenantHost} from '@/lib/site/getTenantHost'
+import {localizedSitemapEntry} from '@/lib/site/sitemapEntries'
 import {resolveTenantOrigin} from '@/lib/site/siteOrigin'
 
 function toLastModified(
@@ -31,11 +31,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     }
     const origin = resolveTenantOrigin(host)
 
+    // One `<url>` per logical page (not per locale); hreflang alternates cover de/en/x-default.
     const staticPaths = ['', '/articles', '/episodes', '/feeds', '/pricing']
-    const staticRoutes: MetadataRoute.Sitemap = locales.flatMap((lang) =>
-        staticPaths.map((path) => ({
-            url: `${origin}/${lang}${path}`,
-        })),
+    const staticRoutes: MetadataRoute.Sitemap = staticPaths.map((path) =>
+        localizedSitemapEntry(origin, path),
     )
 
     let articleEntries: MetadataRoute.Sitemap = []
@@ -46,22 +45,25 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
             fetchPublicArticleSlugsServer(host),
             fetchPublicEpisodeSlugsServer(host),
         ])
-        articleEntries = locales.flatMap((lang) =>
-            articles.map((article) => ({
-                url: `${origin}/${lang}/articles/${encodeURIComponent(article.slug)}`,
-                lastModified: toLastModified(article.publishedAt),
-            })),
+        articleEntries = articles.map((article) =>
+            localizedSitemapEntry(
+                origin,
+                `/articles/${encodeURIComponent(article.slug)}`,
+                toLastModified(article.publishedAt),
+            ),
         )
-        episodeEntries = locales.flatMap((lang) =>
-            episodes.map((episode) => ({
-                url: `${origin}/${lang}/episodes/${encodeURIComponent(episode.slug)}`,
-                lastModified: toLastModified(episode.publishedAt),
-            })),
+        episodeEntries = episodes.map((episode) =>
+            localizedSitemapEntry(
+                origin,
+                `/episodes/${encodeURIComponent(episode.slug)}`,
+                toLastModified(episode.publishedAt),
+            ),
         )
 
         try {
             const config = await fetchSiteConfigServer(host)
             const feedUrls = [config.publicRssUrl, config.publicArticleRssUrl]
+            // RSS endpoints are locale-agnostic — no hreflang cluster.
             feedEntries = feedUrls.flatMap((feedUrl) =>
                 feedUrl === null || feedUrl.length === 0
                     ? []
