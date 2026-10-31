@@ -23,6 +23,7 @@ export default function PublicationContentEditor<
         slug: string
         title: string
         createdBy?: number | null
+        hasWorkingDraft?: boolean
     },
 >({model}: {model: ContentEditorModel<T>}): React.JSX.Element {
     const {descriptor} = model
