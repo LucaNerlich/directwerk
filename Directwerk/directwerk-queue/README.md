@@ -19,6 +19,11 @@ stacking duplicates. A `PROCESSING` job does not block a follow-up `QUEUED` row.
 
 Each handler may override lease duration, retry delay, and default max attempts via `JobHandler#settings()`.
 
+While a job runs, `QueueWorker` heartbeats the lease. If the lease is lost mid-run (another worker
+re-claimed it), `JobLeaseCancel.isCancelled()` becomes true and the worker abandons the execution
+without `complete`/`fail`. Handlers with non-idempotent side effects must poll that flag between
+steps and return early when cancelled.
+
 ## Dependencies
 
 - `directwerk-common`

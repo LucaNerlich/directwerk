@@ -2,6 +2,11 @@ package de.pnnit.directwerk.modules.queue;
 
 /**
  * Processes jobs claimed from a named queue.
+ *
+ * <p>Lease contract: while {@code handle} runs, the worker heartbeats the lease. If another
+ * instance re-claims the job, {@link JobLeaseCancel#isCancelled()} becomes {@code true} and the
+ * worker abandons the run (no {@code complete}/{@code fail}). Non-idempotent handlers must poll
+ * that flag between side-effecting steps and return early when cancelled.
  */
 public interface JobHandler {
 
@@ -12,6 +17,9 @@ public interface JobHandler {
 
     /**
      * Processes a claimed queue job.
+     *
+     * <p>Poll {@link JobLeaseCancel#isCancelled()} during long or multi-step work; when true,
+     * stop without further side effects — another worker owns the lease.
      *
      * @param job the leased job to process
      */

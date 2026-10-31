@@ -109,51 +109,70 @@ public class QueueWorker {
             log.warn("Skipping job id={} queue={} — lease was lost before execution", job.id(), job.queue());
             return;
         }
-        ScheduledFuture<?> leaseHeartbeatTask = startLeaseHeartbeat(job);
-        try {
-            if (handler.requiresTenant() && job.tenantId() == null) {
-                throw new IllegalStateException(
-                        "Job requires a tenant but none is set (queue=" + job.queue() + ", id=" + job.id() + ")");
-            }
-            TenantContext.runWithTenant(job.tenantId(), () -> handler.handle(job));
-            queueService.complete(job.id(), workerId);
-            log.info("Completed job id={} queue={}", job.id(), job.queue());
-        } catch (Exception ex) {
-            String message = ex.getMessage() == null ? ex.getClass().getSimpleName() : ex.getMessage();
-            String error = message.length() > 2000 ? message.substring(0, 2000) : message;
+        try (JobLeaseCancel.Scope cancel = JobLeaseCancel.open()) {
+            ScheduledFuture<?> leaseHeartbeatTask = startLeaseHeartbeat(job, cancel);
             try {
-                long retryDelaySeconds = queueService.resolveRetryDelaySeconds(
-                        job.queue(),
-                        directwerkConfig.queue().retryDelaySeconds()
-                );
-                QueueJob result = queueService.fail(job, workerId, error, retryDelaySeconds);
-                log.warn(
-                        "Failed job id={} queue={} status={} attempts={}",
-                        job.id(),
-                        job.queue(),
-                        result.status(),
-                        result.attempts()
-                );
-            } catch (JobConflictException conflict) {
-                log.warn("Could not fail job id={} (lease lost): {}", job.id(), conflict.getMessage());
+                if (handler.requiresTenant() && job.tenantId() == null) {
+                    throw new IllegalStateException(
+                            "Job requires a tenant but none is set (queue=" + job.queue() + ", id=" + job.id() + ")");
+                }
+                TenantContext.runWithTenant(job.tenantId(), () -> handler.handle(job));
+                if (cancel.isLost()) {
+                    log.warn(
+                            "Abandoning job id={} queue={} after lease loss (no complete)",
+                            job.id(),
+                            job.queue()
+                    );
+                    return;
+                }
+                queueService.complete(job.id(), workerId);
+                log.info("Completed job id={} queue={}", job.id(), job.queue());
+            } catch (Exception ex) {
+                if (cancel.isLost()) {
+                    log.warn(
+                            "Abandoning job id={} queue={} after lease loss (no fail): {}",
+                            job.id(),
+                            job.queue(),
+                            ex.getMessage()
+                    );
+                    return;
+                }
+                String message = ex.getMessage() == null ? ex.getClass().getSimpleName() : ex.getMessage();
+                String error = message.length() > 2000 ? message.substring(0, 2000) : message;
+                try {
+                    long retryDelaySeconds = queueService.resolveRetryDelaySeconds(
+                            job.queue(),
+                            directwerkConfig.queue().retryDelaySeconds()
+                    );
+                    QueueJob result = queueService.fail(job, workerId, error, retryDelaySeconds);
+                    log.warn(
+                            "Failed job id={} queue={} status={} attempts={}",
+                            job.id(),
+                            job.queue(),
+                            result.status(),
+                            result.attempts()
+                    );
+                } catch (JobConflictException conflict) {
+                    log.warn("Could not fail job id={} (lease lost): {}", job.id(), conflict.getMessage());
+                }
+            } finally {
+                if (leaseHeartbeatTask != null) {
+                    leaseHeartbeatTask.cancel(false);
+                }
+                TenantContext.clear();
             }
-        } finally {
-            if (leaseHeartbeatTask != null) {
-                leaseHeartbeatTask.cancel(false);
-            }
-            TenantContext.clear();
         }
     }
 
     /**
      * One scheduled heartbeat tick: renew the lease and stop the heartbeat on loss.
      *
-     * <p>Throwing suppresses further firings; completion/failure of our run is rejected as stale
-     * by the repository guards (issue #583 review: the call site, not just the helper, must be
-     * pinned so the result cannot be discarded again).</p>
+     * <p>Throwing suppresses further firings. Setting the cancel scope marks the handler run for
+     * cooperative abort so {@code complete}/{@code fail} are not attempted on a re-claimed job.
      */
-    void heartbeatTick(QueueJob job, long leaseSeconds) {
+    void heartbeatTick(QueueJob job, long leaseSeconds, JobLeaseCancel.Scope cancel) {
         if (!renewLeaseOnce(job, leaseSeconds)) {
+            cancel.markLost();
             log.warn("Lease lost during execution: job id={} queue={}", job.id(), job.queue());
             throw new IllegalStateException("lease lost");
         }
@@ -181,7 +200,7 @@ public class QueueWorker {
      * SMTP relay or RSS refresh is not re-claimed and re-executed by another
      * node mid-flight. The renewal period is a third of the effective lease.
      */
-    private ScheduledFuture<?> startLeaseHeartbeat(QueueJob job) {
+    private ScheduledFuture<?> startLeaseHeartbeat(QueueJob job, JobLeaseCancel.Scope cancel) {
         try {
             long leaseSeconds = queueService.resolveLeaseSeconds(
                     job.queue(),
@@ -189,7 +208,7 @@ public class QueueWorker {
             );
             long periodSeconds = Math.max(1, leaseSeconds / 3);
             return leaseHeartbeat.scheduleAtFixedRate(
-                    () -> heartbeatTick(job, leaseSeconds),
+                    () -> heartbeatTick(job, leaseSeconds, cancel),
                     periodSeconds,
                     periodSeconds,
                     TimeUnit.SECONDS
