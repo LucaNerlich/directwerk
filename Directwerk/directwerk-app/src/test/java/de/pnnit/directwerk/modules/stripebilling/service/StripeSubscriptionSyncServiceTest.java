@@ -16,6 +16,7 @@ import de.pnnit.directwerk.modules.subscription.entity.Subscription;
 import de.pnnit.directwerk.modules.subscription.entity.SubscriptionProduct;
 import de.pnnit.directwerk.modules.subscription.entity.SubscriptionSource;
 import de.pnnit.directwerk.modules.subscription.entity.SubscriptionStatus;
+import de.pnnit.directwerk.modules.subscription.event.SubscriptionMembershipActivatedEvent;
 import de.pnnit.directwerk.modules.subscription.repository.SubscriptionRepository;
 import de.pnnit.directwerk.modules.subscription.service.SubscriptionProductService;
 import java.lang.reflect.Method;
@@ -244,6 +245,8 @@ class StripeSubscriptionSyncServiceTest {
 
         assertThat(overdue.getStatus()).isEqualTo(SubscriptionStatus.ACTIVE);
         assertThat(overdue.getEndsAt()).isEqualTo(endsAt);
+        verify(eventPublisher).publishEvent(any(TenantEntitlementsChangedEvent.class));
+        verify(eventPublisher).publishEvent(any(SubscriptionMembershipActivatedEvent.class));
     }
 
     @Test
@@ -259,6 +262,19 @@ class StripeSubscriptionSyncServiceTest {
 
         assertThat(overdue.getStatus()).isEqualTo(SubscriptionStatus.ACTIVE);
         assertThat(overdue.getEndsAt()).isEqualTo(existingEnd);
+        verify(eventPublisher).publishEvent(any(SubscriptionMembershipActivatedEvent.class));
+    }
+
+    @Test
+    void markInvoicePaidNoOpsWhenAlreadyActive() {
+        Subscription active = subscription(SubscriptionSource.STRIPE, SubscriptionStatus.ACTIVE);
+        when(subscriptionRepository.findByTenantIdAndExternalSubscriptionIdForUpdate(TENANT_ID, "sub_9"))
+                .thenReturn(Optional.of(active));
+
+        service.markInvoicePaid(TENANT_ID, "sub_9", Instant.parse("2026-10-01T00:00:00Z"));
+
+        verify(subscriptionRepository, never()).save(active);
+        verify(eventPublisher, never()).publishEvent(any());
     }
 
     @Test
