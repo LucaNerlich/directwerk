@@ -15,6 +15,7 @@ import de.pnnit.directwerk.modules.core.repository.UserRepository;
 import de.pnnit.directwerk.modules.core.util.EmailNormalizer;
 import de.pnnit.directwerk.modules.core.util.PasswordPolicy;
 import de.pnnit.directwerk.modules.content.TenantMembershipActivatedEvent;
+import de.pnnit.directwerk.modules.core.event.PasswordChangedEvent;
 import de.pnnit.directwerk.multitenancy.TenantSuspendedException;
 import de.pnnit.directwerk.security.DirectwerkUserPrincipal;
 import de.pnnit.directwerk.security.SecurityUtils;
@@ -160,7 +161,13 @@ public class UserAccountService {
         if (StringUtils.hasText(name)) {
             user.setName(name);
         }
-        user.setPasswordHash(passwordEncoder.encode(password));
+        // Never rewrite an existing password on register. Authenticated join skips password
+        // proof (#947); rewriting would let a stolen session set a new password without
+        // PasswordChangedEvent (and without revoking other refresh tokens).
+        if (!StringUtils.hasText(user.getPasswordHash())) {
+            user.setPasswordHash(passwordEncoder.encode(password));
+            eventPublisher.publishEvent(new PasswordChangedEvent(user.getEmail(), user.getId()));
+        }
         if (!directwerkConfig.isEmailVerificationRequired()) {
             user.setStatus(UserStatus.ACTIVE);
         }

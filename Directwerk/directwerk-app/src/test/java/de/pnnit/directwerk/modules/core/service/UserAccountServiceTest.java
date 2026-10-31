@@ -14,19 +14,27 @@ import de.pnnit.directwerk.modules.core.entity.Tenant;
 import de.pnnit.directwerk.modules.core.entity.TenantMembership;
 import de.pnnit.directwerk.modules.core.entity.TenantStatus;
 import de.pnnit.directwerk.modules.core.entity.User;
+import de.pnnit.directwerk.modules.core.event.PasswordChangedEvent;
 import de.pnnit.directwerk.modules.core.exception.ConflictException;
 import de.pnnit.directwerk.modules.core.repository.TenantMembershipRepository;
 import de.pnnit.directwerk.modules.core.repository.TenantRepository;
 import de.pnnit.directwerk.modules.core.repository.UserRepository;
 import de.pnnit.directwerk.multitenancy.TenantSuspendedException;
+import de.pnnit.directwerk.security.DirectwerkUserPrincipal;
+import de.pnnit.directwerk.security.RoleConstants;
 import java.util.EnumSet;
+import java.util.List;
 import java.util.Optional;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 @ExtendWith(MockitoExtension.class)
@@ -55,6 +63,11 @@ class UserAccountServiceTest {
 
     @InjectMocks
     private UserAccountService userAccountService;
+
+    @AfterEach
+    void clearSecurityContext() {
+        SecurityContextHolder.clearContext();
+    }
 
     @Test
     void registerRejectsSuspendedTenantWithoutWrites() {
@@ -175,7 +188,6 @@ class UserAccountServiceTest {
         when(userRepository.findByEmailIgnoreCase("editor@example.com")).thenReturn(Optional.of(invitedUser));
         when(tenantMembershipRepository.findByUserIdAndTenantId(10L, 1L)).thenReturn(Optional.of(invitedMembership));
         when(passwordEncoder.matches("correct-password", "hash")).thenReturn(true);
-        when(passwordEncoder.encode("correct-password")).thenReturn("encoded-password");
         when(directwerkConfig.isEmailVerificationRequired()).thenReturn(false);
         when(userRepository.save(invitedUser)).thenReturn(invitedUser);
         when(tenantMembershipRepository.save(invitedMembership)).thenReturn(invitedMembership);
@@ -188,8 +200,84 @@ class UserAccountServiceTest {
         );
 
         assertThat(registered).isSameAs(invitedUser);
+        assertThat(invitedUser.getPasswordHash()).isEqualTo("hash");
         assertThat(invitedMembership.getStatus()).isEqualTo(MembershipStatus.ACTIVE);
+        verify(passwordEncoder, never()).encode(any());
+        verify(eventPublisher, never()).publishEvent(any(PasswordChangedEvent.class));
         verify(tenantMembershipRepository).save(invitedMembership);
+    }
+
+    @Test
+    void authenticatedRegisterDoesNotRewriteExistingPassword() {
+        // #947: stolen session must not set a new password via permitAll register.
+        Tenant tenantB = tenant(2L);
+        User existingUser = user(10L, "member@example.com", "original-hash");
+        existingUser.setStatus(de.pnnit.directwerk.modules.core.entity.UserStatus.ACTIVE);
+        DirectwerkUserPrincipal principal = new DirectwerkUserPrincipal(
+                10L,
+                "member@example.com",
+                "original-hash",
+                1L,
+                List.of(new SimpleGrantedAuthority(RoleConstants.SUBSCRIBER))
+        );
+        SecurityContextHolder.getContext().setAuthentication(
+                UsernamePasswordAuthenticationToken.authenticated(principal, null, principal.getAuthorities())
+        );
+
+        when(tenantRepository.findById(2L)).thenReturn(Optional.of(tenantB));
+        when(userRepository.findByEmailIgnoreCase("member@example.com")).thenReturn(Optional.of(existingUser));
+        when(tenantMembershipRepository.findByUserIdAndTenantId(10L, 2L)).thenReturn(Optional.empty());
+        when(directwerkConfig.isEmailVerificationRequired()).thenReturn(false);
+        when(userRepository.save(existingUser)).thenReturn(existingUser);
+        when(tenantMembershipRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        userAccountService.register(
+                "member@example.com",
+                "attacker-chosen-password",
+                "Member",
+                tenantB.getId()
+        );
+
+        assertThat(existingUser.getPasswordHash()).isEqualTo("original-hash");
+        verify(passwordEncoder, never()).encode(any());
+        verify(passwordEncoder, never()).matches(any(), any());
+        verify(eventPublisher, never()).publishEvent(any(PasswordChangedEvent.class));
+        verify(tenantMembershipRepository).save(any());
+    }
+
+    @Test
+    void registerSetsFirstPasswordAndPublishesPasswordChangedEvent() {
+        Tenant tenant = tenant(1L);
+        User invitedUser = user(10L, "editor@example.com", null);
+        TenantMembership invitedMembership = membership(100L, invitedUser, tenant, MembershipStatus.INVITED, Role.EDITOR);
+        DirectwerkUserPrincipal principal = new DirectwerkUserPrincipal(
+                10L,
+                "editor@example.com",
+                null,
+                1L,
+                List.of(new SimpleGrantedAuthority(RoleConstants.EDITOR))
+        );
+        SecurityContextHolder.getContext().setAuthentication(
+                UsernamePasswordAuthenticationToken.authenticated(principal, null, principal.getAuthorities())
+        );
+
+        when(tenantRepository.findById(1L)).thenReturn(Optional.of(tenant));
+        when(userRepository.findByEmailIgnoreCase("editor@example.com")).thenReturn(Optional.of(invitedUser));
+        when(tenantMembershipRepository.findByUserIdAndTenantId(10L, 1L)).thenReturn(Optional.of(invitedMembership));
+        when(passwordEncoder.encode("new-password")).thenReturn("encoded-new");
+        when(directwerkConfig.isEmailVerificationRequired()).thenReturn(false);
+        when(userRepository.save(invitedUser)).thenReturn(invitedUser);
+        when(tenantMembershipRepository.save(invitedMembership)).thenReturn(invitedMembership);
+
+        userAccountService.register(
+                "editor@example.com",
+                "new-password",
+                "Editor",
+                tenant.getId()
+        );
+
+        assertThat(invitedUser.getPasswordHash()).isEqualTo("encoded-new");
+        verify(eventPublisher).publishEvent(any(PasswordChangedEvent.class));
     }
 
     private static TenantMembership membership(
