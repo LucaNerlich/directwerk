@@ -114,23 +114,42 @@ export function browseEpisodes(
     })
 }
 
+export interface GroupByCategoryOptions {
+    /**
+     * When non-empty, only emit groups for these category ids (active chip
+     * filter). Multi-tag items still appear under each *selected* category,
+     * but never under a category the user did not select.
+     */
+    categoryIds?: ReadonlySet<number>
+}
+
 /**
- * Group items by category. Multi-category items appear under each match.
- * Items with no categories land in a trailing uncategorized group.
+ * Group items by category. Multi-category items appear under each match
+ * (or each selected match when {@link GroupByCategoryOptions.categoryIds} is set).
+ * Items with no categories land in a trailing uncategorized group — omitted
+ * when a category filter is active (those items cannot match the filter).
  */
 export function groupByCategory<T extends {id: number; categories: PublicCategory[]}>(
     items: readonly T[],
     uncategorizedLabel: string,
+    options: GroupByCategoryOptions = {},
 ): CatalogGroup<T>[] {
+    const filterIds = options.categoryIds
+    const filtering = filterIds !== undefined && filterIds.size > 0
     const groups = new Map<number, CatalogGroup<T>>()
     const uncategorized: T[] = []
 
     for (const item of items) {
-        if (item.categories.length === 0) {
-            uncategorized.push(item)
+        const categories = filtering
+            ? item.categories.filter((category) => filterIds.has(category.id))
+            : item.categories
+        if (categories.length === 0) {
+            if (!filtering) {
+                uncategorized.push(item)
+            }
             continue
         }
-        for (const category of item.categories) {
+        for (const category of categories) {
             let group = groups.get(category.id)
             if (group === undefined) {
                 group = {

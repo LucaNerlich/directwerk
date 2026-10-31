@@ -142,6 +142,18 @@ describe('catalogBrowse', () => {
         expect(groups[2]?.items.map((i) => i.slug)).toEqual(['none'])
     })
 
+    it('when category filter is active, only emits groups for selected ids', () => {
+        const items = [
+            article({id: 1, slug: 'both', title: 'Both', categories: [lore, raids]}),
+            article({id: 2, slug: 'lore-only', title: 'Lore only', categories: [lore]}),
+        ]
+        const groups = groupByCategory(items, 'Uncategorized', {
+            categoryIds: new Set([lore.id]),
+        })
+        expect(groups.map((g) => g.key)).toEqual(['category-1'])
+        expect(groups[0]?.items.map((i) => i.slug)).toEqual(['both', 'lore-only'])
+    })
+
     it('toggleId and hasActiveBrowse helpers', () => {
         expect(hasActiveBrowse('', new Set())).toBe(false)
         expect(hasActiveBrowse(' x ', new Set())).toBe(true)

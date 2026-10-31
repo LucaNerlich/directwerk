@@ -97,8 +97,11 @@ export default function EpisodesClient({
     }, [filtered, featured])
     const visibleItems = listSource.slice(0, visibleCount)
     const groups = useMemo(
-        () => groupByCategory(visibleItems, catalog.uncategorized),
-        [visibleItems, catalog.uncategorized],
+        () =>
+            groupByCategory(visibleItems, catalog.uncategorized, {
+                categoryIds,
+            }),
+        [visibleItems, catalog.uncategorized, categoryIds],
     )
     const remainingAfterVisible = Math.max(0, listSource.length - visibleCount)
     const showBrowse =
