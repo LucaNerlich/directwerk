@@ -9,9 +9,10 @@ describe('sanitizeContentHtml', () => {
             '<ul><li>One</li></ul><p><a href="https://example.test/x">Link</a></p>'
         expect(sanitizeContentHtml(html)).toContain('<h2>Intro</h2>')
         expect(sanitizeContentHtml(html)).toContain('<strong>friend</strong>')
-        expect(sanitizeContentHtml(html)).toContain(
-            '<a href="https://example.test/x">Link</a>',
-        )
+        expect(sanitizeContentHtml(html)).toContain('href="https://example.test/x"')
+        expect(sanitizeContentHtml(html)).toContain('target="_blank"')
+        expect(sanitizeContentHtml(html)).toContain('rel="noopener noreferrer"')
+        expect(sanitizeContentHtml(html)).toContain('>Link</a>')
     })
 
     it('preserves newsletter blockquote, strike, and horizontal rules', () => {
@@ -41,13 +42,28 @@ describe('sanitizeContentHtml', () => {
         ).toBe('<p><a>bad</a></p>')
     })
 
-    it('preserves tel: links', () => {
+    it('preserves tel: links without new-tab attrs', () => {
         expect(
             sanitizeContentHtml('<p><a href="tel:+491234567890">call</a></p>'),
         ).toBe('<p><a href="tel:+491234567890">call</a></p>')
+    })
+
+    it('opens external http(s) links in a new tab', () => {
+        const sanitized = sanitizeContentHtml(
+            '<p><a href="http://example.test">site</a></p>',
+        )
+        expect(sanitized).toContain('href="http://example.test"')
+        expect(sanitized).toContain('target="_blank"')
+        expect(sanitized).toContain('rel="noopener noreferrer"')
+        expect(sanitized).toContain('>site</a>')
+    })
+
+    it('keeps relative links same-tab and strips stray target/rel', () => {
         expect(
-            sanitizeContentHtml('<p><a href="http://example.test">site</a></p>'),
-        ).toBe('<p><a href="http://example.test">site</a></p>')
+            sanitizeContentHtml(
+                '<p><a href="/en/a/x" target="_blank" rel="noopener">in</a></p>',
+            ),
+        ).toBe('<p><a href="/en/a/x">in</a></p>')
     })
 
     it('preserves inline library images, strips unsafe sources', () => {
