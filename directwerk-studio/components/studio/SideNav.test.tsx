@@ -382,6 +382,10 @@ describe('SideNav', () => {
                 'href',
                 '/de/write/import',
             )
+            expect(screen.getByRole('link', {name: 'Kategorien'})).toHaveAttribute(
+                'href',
+                '/de/manage/categories',
+            )
             expect(screen.queryByRole('link', {name: 'Folgen'})).not.toBeInTheDocument()
             expect(screen.queryByRole('link', {name: 'Sendungen'})).not.toBeInTheDocument()
             expect(screen.queryByRole('link', {name: 'Formate'})).not.toBeInTheDocument()
