@@ -195,19 +195,34 @@ export default function MediaLibraryClient(): React.JSX.Element {
         const currentFolderView = folderViewRef.current
         const currentIncludeSubfolders = includeSubfoldersRef.current
         const currentOrphanOnly = orphanOnlyRef.current
-        const page = await listMedia({
-            limit: MEDIA_PAGE_SIZE,
-            offset: assets.length,
-            folderId: currentFolderView ?? undefined,
-            recursive: currentIncludeSubfolders,
-            unassignedOnly: currentFolderView === null && !currentIncludeSubfolders,
-            ...(currentOrphanOnly ? {unreferencedOnly: true} : {}),
-        })
-        setAssets((current) => [
-            ...current,
-            ...page.filter((item) => !current.some((existing) => existing.id === item.id)),
-        ])
-        setHasMoreAssets(page.length === MEDIA_PAGE_SIZE)
+        setIsBusy(true)
+        setErrorMessage(null)
+        try {
+            const page = await listMedia({
+                limit: MEDIA_PAGE_SIZE,
+                offset: assets.length,
+                folderId: currentFolderView ?? undefined,
+                recursive: currentIncludeSubfolders,
+                unassignedOnly: currentFolderView === null && !currentIncludeSubfolders,
+                ...(currentOrphanOnly ? {unreferencedOnly: true} : {}),
+            })
+            setAssets((current) => [
+                ...current,
+                ...page.filter((item) => !current.some((existing) => existing.id === item.id)),
+            ])
+            setHasMoreAssets(page.length === MEDIA_PAGE_SIZE)
+        } catch (error) {
+            if (authRedirect(error)) {
+                return
+            }
+            setErrorMessage(
+                error instanceof Error
+                    ? error.message
+                    : 'Medien konnten nicht geladen werden.',
+            )
+        } finally {
+            setIsBusy(false)
+        }
     }
 
     async function reload(): Promise<void> {
@@ -1132,7 +1147,12 @@ export default function MediaLibraryClient(): React.JSX.Element {
 
             {hasMoreAssets ? (
                 <div className="flex justify-center">
-                    <Button onClick={() => void loadMoreAssets()} type="button" variant="outline">
+                    <Button
+                        disabled={isBusy}
+                        onClick={() => void loadMoreAssets()}
+                        type="button"
+                        variant="outline"
+                    >
                         Weitere Dateien laden
                     </Button>
                 </div>

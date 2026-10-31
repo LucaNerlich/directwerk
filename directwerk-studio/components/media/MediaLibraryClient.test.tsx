@@ -1001,6 +1001,31 @@ describe('MediaLibraryClient', () => {
         expect(getMediaPreviewUrl).not.toHaveBeenCalled()
     })
 
+    it('surfaces load-more failures like reload instead of leaving an unhandled rejection', async () => {
+        const firstPage = Array.from({length: 100}, (_, index) => ({
+            ...coverAsset,
+            id: index + 1,
+            originalFilename: `cover-${index + 1}.png`,
+            cdnUrl: `https://cdn.example/cover-${index + 1}.png`,
+        }))
+        vi.mocked(listMedia)
+            .mockResolvedValueOnce(firstPage)
+            .mockRejectedValueOnce(new Error('Netzwerk weg'))
+
+        renderWithLocale(<MediaLibraryClient />)
+
+        await waitFor(() =>
+            expect(screen.getByRole('button', {name: 'Weitere Dateien laden'})).toBeInTheDocument(),
+        )
+
+        fireEvent.click(screen.getByRole('button', {name: 'Weitere Dateien laden'}))
+
+        await waitFor(() =>
+            expect(screen.getByText('Netzwerk weg')).toBeInTheDocument(),
+        )
+        expect(screen.getByRole('button', {name: 'Weitere Dateien laden'})).toBeInTheDocument()
+    })
+
     it('reloads the folder the user navigated into when an upload finishes', async () => {
         vi.mocked(listMediaFolders).mockResolvedValue([testFolder(1, 'Interviews', null)])
         vi.mocked(listMedia).mockResolvedValue([])
