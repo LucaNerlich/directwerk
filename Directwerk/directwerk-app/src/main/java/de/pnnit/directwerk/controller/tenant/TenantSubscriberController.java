@@ -8,7 +8,8 @@ import de.pnnit.directwerk.subscription.SubscriberEntitlementExplainService.Subj
 import de.pnnit.directwerk.subscription.SubscriberEntitlementExplainService.SubscriberAccessExplainView;
 import de.pnnit.directwerk.modules.core.RequiresModule;
 import de.pnnit.directwerk.modules.subscription.SubscriptionModule;
-import de.pnnit.directwerk.modules.subscription.service.SubscriberAccessQueryService;
+import de.pnnit.directwerk.modules.subscription.service.EntitlementService.LevelEntitlement;
+import de.pnnit.directwerk.modules.subscription.service.EntitlementService.PackageEntitlement;
 import de.pnnit.directwerk.modules.subscription.service.SubscriberDirectoryQueryService;
 import de.pnnit.directwerk.modules.subscription.service.SubscriberDirectoryQueryService.SubscriberDirectoryEntry;
 import de.pnnit.directwerk.modules.subscription.service.SubscriberDirectoryQueryService.SubscriberDirectoryPage;
@@ -124,11 +125,11 @@ public class TenantSubscriberController {
         );
     }
 
-    private static LevelView toLevelView(SubscriberAccessQueryService.LevelView level) {
+    private static LevelView toLevelView(LevelEntitlement level) {
         return new LevelView(level.id(), level.slug(), level.title(), level.sortOrder());
     }
 
-    private static PackageView toPackageView(SubscriberAccessQueryService.PackageView pkg) {
+    private static PackageView toPackageView(PackageEntitlement pkg) {
         return new PackageView(pkg.id(), pkg.slug(), pkg.title());
     }
 

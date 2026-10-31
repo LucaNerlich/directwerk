@@ -8,7 +8,7 @@ import de.pnnit.directwerk.modules.core.service.MembershipPermissionService;
 import de.pnnit.directwerk.modules.core.service.UserAccountService;
 import de.pnnit.directwerk.modules.subscription.entity.Subscription;
 import de.pnnit.directwerk.modules.subscription.entity.SubscriptionProduct;
-import de.pnnit.directwerk.modules.subscription.service.SubscriberAccessQueryService;
+import de.pnnit.directwerk.modules.subscription.service.EntitlementService;
 import de.pnnit.directwerk.modules.subscription.service.SubscriptionService;
 import de.pnnit.directwerk.security.DirectwerkUserPrincipal;
 import de.pnnit.directwerk.security.SecurityUtils;
@@ -27,18 +27,18 @@ import org.springframework.web.bind.annotation.RestController;
 public class MeController {
 
     private final UserAccountService userAccountService;
-    private final SubscriberAccessQueryService subscriberAccessQueryService;
+    private final EntitlementService entitlementService;
     private final SubscriptionService subscriptionService;
     private final MembershipPermissionService membershipPermissionService;
 
     public MeController(
             UserAccountService userAccountService,
-            SubscriberAccessQueryService subscriberAccessQueryService,
+            EntitlementService entitlementService,
             SubscriptionService subscriptionService,
             MembershipPermissionService membershipPermissionService
     ) {
         this.userAccountService = userAccountService;
-        this.subscriberAccessQueryService = subscriberAccessQueryService;
+        this.entitlementService = entitlementService;
         this.subscriptionService = subscriptionService;
         this.membershipPermissionService = membershipPermissionService;
     }
@@ -85,8 +85,8 @@ public class MeController {
 
         return userAccountService.findAccount(user.userId())
                 .map(account -> {
-                    SubscriberAccessQueryService.SubscriberAccessView access =
-                            subscriberAccessQueryService.resolveAccessView(tenantId, account.id());
+                    EntitlementService.AccessSummary access =
+                            entitlementService.resolveAccess(tenantId, account.id());
                     List<LevelView> levels = access.activeLevels().stream()
                             .map(level -> new LevelView(level.id(), level.slug(), level.title(), level.sortOrder()))
                             .toList();
