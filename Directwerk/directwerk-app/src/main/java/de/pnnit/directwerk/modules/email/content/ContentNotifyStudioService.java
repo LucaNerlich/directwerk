@@ -19,6 +19,7 @@ import de.pnnit.directwerk.modules.podcast.entity.EpisodeStatus;
 import de.pnnit.directwerk.modules.podcast.exception.EpisodeNotFoundException;
 import de.pnnit.directwerk.modules.podcast.repository.EpisodeRepository;
 import de.pnnit.directwerk.modules.podcast.service.PublicationWorkflowService;
+import de.pnnit.directwerk.modules.email.repository.ContentNotificationMarkerRepository;
 import de.pnnit.directwerk.modules.queue.JobStatus;
 import de.pnnit.directwerk.modules.queue.QueueJob;
 import de.pnnit.directwerk.modules.queue.QueueNames;
@@ -46,6 +47,7 @@ public class ContentNotifyStudioService {
     private final QueueService queueService;
     private final PublicationWorkflowService episodePublicationWorkflow;
     private final ArticlePublicationWorkflowService articlePublicationWorkflow;
+    private final ContentNotificationMarkerRepository contentNotificationMarkerRepository;
 
     @Transactional(readOnly = true)
     public ContentNotifyPreviewView previewEpisode(Long tenantId, Long episodeId) {
@@ -87,6 +89,11 @@ public class ContentNotifyStudioService {
     public Episode retryEpisode(Long tenantId, Long episodeId) {
         ContentNotifyPreviewView preview = previewEpisode(tenantId, episodeId);
         requireRetryable(preview);
+        // Clear per-recipient markers so a prior successful enqueue that later FAILED at
+        // delivery can be re-fan-out (#949). content-notify COMPLETED + FAILED email jobs
+        // still need canRetry (FAILED content-notify / neverSent); markers alone must not stick.
+        contentNotificationMarkerRepository.clearForContent(
+                tenantId, ContentType.EPISODE.name(), episodeId);
         return episodePublicationWorkflow.notifySubscribersNow(tenantId, episodeId);
     }
 
@@ -95,6 +102,7 @@ public class ContentNotifyStudioService {
     public Article retryArticle(Long tenantId, Long articleId) {
         ContentNotifyPreviewView preview = previewArticle(tenantId, articleId);
         requireRetryable(preview);
+        contentNotificationMarkerRepository.clearNewsletterForContent(tenantId, articleId);
         return articlePublicationWorkflow.notifySubscribersNow(tenantId, articleId);
     }
 

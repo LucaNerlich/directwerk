@@ -91,9 +91,8 @@ public class NewsletterNotificationService implements NewsletterNotificationApi 
         TenantContentBrandingResolver.BrandingContext branding = tenantContentBrandingResolver.resolve(tenantId);
         String contentUrl = publicContentUrlResolver.contentPageUrl(tenantId, ContentType.ARTICLE, event.slug());
         for (Recipient recipient : recipients) {
-            // Issue #539: a retried CONTENT_NOTIFY job re-runs this fan-out. Claim each address
-            // once so a lease takeover cannot enqueue a second campaign to the same recipient.
-            if (!contentNotificationMarkerRepository.claimNewsletterRecipient(
+            // Issue #949: skip addresses already claimed after a prior successful enqueue.
+            if (contentNotificationMarkerRepository.existsNewsletterRecipient(
                     tenantId, event.contentId(), recipient.email())) {
                 continue;
             }
@@ -101,7 +100,7 @@ public class NewsletterNotificationService implements NewsletterNotificationApi 
             // protected-token channel (protectForQueue) and let the handler build the URL, instead
             // of persisting the full unsubscribe URL — and with it the raw token — in cleartext in
             // the job payload.
-            emailJobProducer.enqueueTokenizedContentNotification(
+            var job = emailJobProducer.enqueueTokenizedContentNotification(
                     tenantId,
                     recipient.email(),
                     EmailTemplate.NEWSLETTER_ARTICLE_PUBLISHED,
@@ -109,6 +108,11 @@ public class NewsletterNotificationService implements NewsletterNotificationApi 
                     recipient.rawUnsubscribeToken(),
                     correlationId(event.contentId(), recipient.email())
             );
+            if (job == null) {
+                throw new IllegalStateException("Email delivery is disabled");
+            }
+            contentNotificationMarkerRepository.claimNewsletterRecipient(
+                    tenantId, event.contentId(), recipient.email());
         }
     }
 

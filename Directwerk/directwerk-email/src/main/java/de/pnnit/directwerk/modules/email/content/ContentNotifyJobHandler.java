@@ -96,7 +96,9 @@ public class ContentNotifyJobHandler implements JobHandler {
 
     private void notifyEpisodeMembers(Long tenantId, ContentNotifyJobPayload payload, ContentType contentType) {
         if (!directwerkConfig.isEmailEnabled()) {
-            return;
+            // Fail the content-notify job so Studio can retry once email is re-enabled;
+            // do not leave per-recipient markers from a no-op fan-out.
+            throw new IllegalStateException("Email delivery is disabled");
         }
         TenantContentBrandingResolver.BrandingContext branding = tenantContentBrandingResolver.resolve(tenantId);
         String contentUrl = publicContentUrlResolver.contentPageUrl(tenantId, ContentType.EPISODE, payload.slug());
@@ -107,9 +109,8 @@ public class ContentNotifyJobHandler implements JobHandler {
         );
         for (TenantMembership membership : recipients) {
             Long userId = membership.getUser().getId();
-            // Claimed once per (content, recipient): a retry of this job skips subscribers who
-            // were already notified instead of enqueueing a fresh email job for them.
-            if (!contentNotificationMarkerRepository.claim(
+            // Skip addresses already claimed after a prior successful enqueue (#949).
+            if (contentNotificationMarkerRepository.exists(
                     tenantId, contentType.name(), payload.contentId(), userId)) {
                 continue;
             }
@@ -118,13 +119,18 @@ public class ContentNotifyJobHandler implements JobHandler {
                     payload.contentId(),
                     userId
             );
-            emailJobProducer.enqueueContentNotification(
+            var job = emailJobProducer.enqueueContentNotification(
                     tenantId,
                     membership.getUser().getEmail(),
                     EmailTemplate.CONTENT_EPISODE_PUBLISHED,
                     variables,
                     correlationId
             );
+            if (job == null) {
+                throw new IllegalStateException("Email delivery is disabled");
+            }
+            contentNotificationMarkerRepository.claim(
+                    tenantId, contentType.name(), payload.contentId(), userId);
         }
     }
 

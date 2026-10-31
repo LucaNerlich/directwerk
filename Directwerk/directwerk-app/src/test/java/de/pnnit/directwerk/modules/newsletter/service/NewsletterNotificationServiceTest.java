@@ -105,8 +105,10 @@ class NewsletterNotificationServiceTest {
                 subscription("grace@example.com", "enc-grace")
         ));
         when(feedTokenProtector.reveal(anyString())).thenAnswer(invocation -> "raw-" + invocation.getArgument(0));
-        when(contentNotificationMarkerRepository.claimNewsletterRecipient(eq(TENANT_ID), eq(ARTICLE_ID), anyString()))
-                .thenReturn(true);
+        when(contentNotificationMarkerRepository.existsNewsletterRecipient(eq(TENANT_ID), eq(ARTICLE_ID), anyString()))
+                .thenReturn(false);
+        when(emailJobProducer.enqueueTokenizedContentNotification(any(), any(), any(), any(), any(), any()))
+                .thenReturn(org.mockito.Mockito.mock(de.pnnit.directwerk.modules.queue.QueueJob.class));
         when(tenantContentBrandingResolver.resolve(TENANT_ID))
                 .thenReturn(new TenantContentBrandingResolver.BrandingContext("Acme", "Acme Magazine", "#123456"));
         when(publicContentUrlResolver.contentPageUrl(TENANT_ID, ContentType.ARTICLE, "hello-world"))
@@ -126,6 +128,8 @@ class NewsletterNotificationServiceTest {
                 eq(TENANT_ID), eq("grace@example.com"), eq(EmailTemplate.NEWSLETTER_ARTICLE_PUBLISHED),
                 any(), any(), any()
         );
+        verify(contentNotificationMarkerRepository).claimNewsletterRecipient(TENANT_ID, ARTICLE_ID, "ada@example.com");
+        verify(contentNotificationMarkerRepository).claimNewsletterRecipient(TENANT_ID, ARTICLE_ID, "grace@example.com");
         Map<String, String> variables = variablesCaptor.getValue();
         assertThat(variables.get("title")).isEqualTo("Hello world");
         assertThat(variables.get("tenantName")).isEqualTo("Acme");
@@ -152,10 +156,12 @@ class NewsletterNotificationServiceTest {
         when(publicContentUrlResolver.contentPageUrl(TENANT_ID, ContentType.ARTICLE, "hello-world"))
                 .thenReturn("https://tenant.example/de/articles/hello-world");
         // The first run already claimed Ada; the retry must skip her and still reach Grace.
-        when(contentNotificationMarkerRepository.claimNewsletterRecipient(TENANT_ID, ARTICLE_ID, "ada@example.com"))
-                .thenReturn(false);
-        when(contentNotificationMarkerRepository.claimNewsletterRecipient(TENANT_ID, ARTICLE_ID, "grace@example.com"))
+        when(contentNotificationMarkerRepository.existsNewsletterRecipient(TENANT_ID, ARTICLE_ID, "ada@example.com"))
                 .thenReturn(true);
+        when(contentNotificationMarkerRepository.existsNewsletterRecipient(TENANT_ID, ARTICLE_ID, "grace@example.com"))
+                .thenReturn(false);
+        when(emailJobProducer.enqueueTokenizedContentNotification(any(), any(), any(), any(), any(), any()))
+                .thenReturn(org.mockito.Mockito.mock(de.pnnit.directwerk.modules.queue.QueueJob.class));
 
         service.notifyArticlePublished(event());
 
@@ -163,6 +169,36 @@ class NewsletterNotificationServiceTest {
                 any(), eq("ada@example.com"), any(), any(), any(), any());
         verify(emailJobProducer).enqueueTokenizedContentNotification(
                 any(), eq("grace@example.com"), any(), any(), any(), any());
+        verify(contentNotificationMarkerRepository, never())
+                .claimNewsletterRecipient(TENANT_ID, ARTICLE_ID, "ada@example.com");
+        verify(contentNotificationMarkerRepository)
+                .claimNewsletterRecipient(TENANT_ID, ARTICLE_ID, "grace@example.com");
+    }
+
+    @Test
+    void nullEnqueueLeavesNoNewsletterMarker() {
+        Article article = new Article();
+        article.getNewsletterLists().add(newsletterList(1L, NewsletterListStatus.ACTIVE));
+        when(articleRepository.findByIdAndTenantId(ARTICLE_ID, TENANT_ID)).thenReturn(Optional.of(article));
+        when(subscriptionRepository.findActiveByTenantIdAndListIdIn(TENANT_ID, Set.of(1L))).thenReturn(List.of(
+                subscription("ada@example.com", "enc-ada")
+        ));
+        when(feedTokenProtector.reveal(anyString())).thenReturn("raw-enc-ada");
+        when(tenantContentBrandingResolver.resolve(TENANT_ID))
+                .thenReturn(new TenantContentBrandingResolver.BrandingContext("Acme", "Acme Magazine", "#123456"));
+        when(publicContentUrlResolver.contentPageUrl(TENANT_ID, ContentType.ARTICLE, "hello-world"))
+                .thenReturn("https://tenant.example/de/articles/hello-world");
+        when(contentNotificationMarkerRepository.existsNewsletterRecipient(TENANT_ID, ARTICLE_ID, "ada@example.com"))
+                .thenReturn(false);
+        when(emailJobProducer.enqueueTokenizedContentNotification(any(), any(), any(), any(), any(), any()))
+                .thenReturn(null);
+
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> service.notifyArticlePublished(event()))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("Email delivery is disabled");
+
+        verify(contentNotificationMarkerRepository, never())
+                .claimNewsletterRecipient(any(), any(), any());
     }
 
     @Test
