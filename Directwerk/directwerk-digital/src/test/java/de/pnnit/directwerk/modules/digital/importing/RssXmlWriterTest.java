@@ -1,12 +1,19 @@
 package de.pnnit.directwerk.modules.digital.importing;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 
+import de.pnnit.directwerk.modules.digital.service.HtmlSanitizer;
+import java.io.StringReader;
 import java.time.Instant;
 import java.util.List;
+import javax.xml.parsers.DocumentBuilderFactory;
 import org.junit.jupiter.api.Test;
+import org.xml.sax.InputSource;
 
 class RssXmlWriterTest {
+
+    private final HtmlSanitizer htmlSanitizer = new HtmlSanitizer();
 
     @Test
     void rendersAPlainFeedWhenItunesIsOff() {
@@ -162,5 +169,127 @@ class RssXmlWriterTest {
 
         assertThat(xml).contains("<managingEditor>editor@example.com (Tenant)</managingEditor>");
         assertThat(xml).doesNotContain("itunes:owner");
+    }
+
+    @Test
+    void cdataWrapsSanitizedShowNotesWithDecodedCosmeticEntities() {
+        String showNotes = "<p>A &amp; B &#61; C &#64;host +1 Blizzard&#39;s &#96;tick&#96;</p>";
+        RssXmlWriter.Channel channel = new RssXmlWriter.Channel(
+                "Podcast", "https://example.com", "Channel notes", "de", true, null, false, null, 4_000);
+        RssXmlWriter.Item item = new RssXmlWriter.Item(
+                "Ep = 1 @live",
+                "https://example.com/e",
+                showNotes,
+                "guid",
+                Instant.parse("2026-01-01T00:00:00Z"),
+                null,
+                "https://example.com/e.mp3",
+                12L,
+                "audio/mpeg"
+        );
+
+        String xml = RssXmlWriter.build(channel, List.of(item), entry -> item, htmlSanitizer::sanitize);
+
+        assertThat(xml).contains(
+                "<description><![CDATA[<p>A &amp; B = C @host +1 Blizzard's `tick`</p>]]></description>");
+        assertThat(xml).doesNotContain("&#61;");
+        assertThat(xml).doesNotContain("&#64;");
+        assertThat(xml).doesNotContain("&#39;");
+        assertThat(xml).contains("<title>Ep = 1 @live</title>");
+        assertThatXmlIsWellFormed(xml);
+    }
+
+    @Test
+    void cdataKeepsAmpAndGtEncodedSoXmlStaysWellFormed() {
+        // OWASP turns '>' into '&gt;', so a literal ']]>' in show notes becomes ']]&gt;'
+        // inside CDATA (no terminator split needed). Raw '&' stays '&amp;'.
+        String showNotes = "<p>A & B <tag> ]]></p><script>alert(1)</script>";
+        RssXmlWriter.Channel channel = new RssXmlWriter.Channel(
+                "Podcast", "https://example.com", "Tenant", "de", true, null, false, null, null);
+        RssXmlWriter.Item item = new RssXmlWriter.Item(
+                "Entry", "https://example.com/e", showNotes, "guid", null, null, null, null, null);
+
+        String xml = RssXmlWriter.build(channel, List.of(item), entry -> item, htmlSanitizer::sanitize);
+
+        assertThat(xml).contains(
+                "<description><![CDATA[<p>A &amp; B  ]]&gt;</p>]]></description>");
+        assertThat(xml).doesNotContain("<script");
+        assertThat(xml).doesNotContain("alert");
+        assertThatXmlIsWellFormed(xml);
+    }
+
+    @Test
+    void cdataSplitsLiteralTerminatorWhenPresentInSanitizedHtml() {
+        // Bypass HtmlSanitizer so the CDATA path is tested with a real ']]>' sequence
+        // (OWASP would have encoded the '>').
+        RssXmlWriter.Channel channel = new RssXmlWriter.Channel(
+                "Podcast", "https://example.com", "Tenant", "de", true, null, false, null, null);
+        RssXmlWriter.Item item = new RssXmlWriter.Item(
+                "Entry",
+                "https://example.com/e",
+                "<p>before ]]> after</p>",
+                "guid",
+                null,
+                null,
+                null,
+                null,
+                null
+        );
+
+        String xml = RssXmlWriter.build(channel, List.of(item), entry -> item, value -> value);
+
+        assertThat(xml).contains(
+                "<description><![CDATA[<p>before ]]]]><![CDATA[> after</p>]]></description>");
+        assertThatXmlIsWellFormed(xml);
+    }
+
+    @Test
+    void channelAndItemDescriptionsShareCdataPathThroughHtmlSanitizer() {
+        RssXmlWriter.Channel channel = new RssXmlWriter.Channel(
+                "Podcast",
+                "https://example.com",
+                "<p>Channel &#64;notes a&#61;1</p><script>x</script>",
+                "de",
+                true,
+                null,
+                false,
+                null,
+                4_000
+        );
+        RssXmlWriter.Item item = new RssXmlWriter.Item(
+                "Entry",
+                "https://example.com/e",
+                "<p>Item &#64;notes a&#61;1</p>",
+                "guid",
+                null,
+                null,
+                null,
+                null,
+                null
+        );
+
+        String xml = RssXmlWriter.build(channel, List.of(item), entry -> item, htmlSanitizer::sanitize);
+
+        assertThat(xml).contains("<description><![CDATA[<p>Channel @notes a=1</p>]]></description>");
+        assertThat(xml).contains("<description><![CDATA[<p>Item @notes a=1</p>]]></description>");
+        assertThat(xml).doesNotContain("<script");
+        assertThatXmlIsWellFormed(xml);
+    }
+
+    @Test
+    void cdataHelperSplitsTerminatorWithoutEscapingDecodedContent() {
+        assertThat(RssXmlWriter.cdata("<p>a=b @c 'd'</p>"))
+                .isEqualTo("<![CDATA[<p>a=b @c 'd'</p>]]>");
+        assertThat(RssXmlWriter.cdata("pre]]>post"))
+                .isEqualTo("<![CDATA[pre]]]]><![CDATA[>post]]>");
+    }
+
+    private static void assertThatXmlIsWellFormed(String xml) {
+        assertThatCode(() -> {
+            DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+            factory.setNamespaceAware(true);
+            factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
+            factory.newDocumentBuilder().parse(new InputSource(new StringReader(xml)));
+        }).doesNotThrowAnyException();
     }
 }
