@@ -35,6 +35,7 @@ export function buildWriteDeskNav(
 
     const secondary: NavigationItem[] = [
         {href: '/write/import', label: dict.nav.write.import},
+        {href: '/manage/categories', label: dict.nav.write.categories},
     ]
     if (hasModule(config, 'EMAIL_NOTIFY')) {
         secondary.push({href: '/write/lists', label: dict.nav.write.lists})

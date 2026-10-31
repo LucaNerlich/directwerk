@@ -53,8 +53,7 @@ function isActivePath(pathname: string, href: string): boolean {
             path === '/media' ||
             path.startsWith('/media/') ||
             path === '/bonus' ||
-            path.startsWith('/bonus/') ||
-            path.startsWith('/manage/categories')
+            path.startsWith('/bonus/')
         )
     }
     if (href === '/manage') {

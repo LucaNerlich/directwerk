@@ -261,6 +261,7 @@
     },
     "write": {
       "articles": "Beiträge",
+      "categories": "Kategorien",
       "feeds": "Feeds",
       "import": "Import",
       "label": "Artikel",
