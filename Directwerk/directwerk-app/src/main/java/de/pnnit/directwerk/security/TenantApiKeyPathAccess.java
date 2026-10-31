@@ -8,8 +8,9 @@ import java.util.Set;
 /**
  * Path/method gate for opaque tenant API keys: Studio MCP content surface only
  * (articles, episodes, series, media, categories, formats). Never
- * {@code /api/v1/tenant/**}, and never deferred editor surfaces (imports, newsletter
- * lists, digital publications).
+ * {@code /api/v1/tenant/**}, and never deferred editor surfaces (imports,
+ * {@code /api/v1/newsletter-lists/**} CRUD, digital publications).
+ * Article↔list attach under {@code /api/v1/articles/{id}/newsletter-lists} is allowed.
  */
 public final class TenantApiKeyPathAccess {
 

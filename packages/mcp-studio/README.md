@@ -158,3 +158,14 @@ pnpm --filter @directwerk/mcp-studio start
 ```
 
 Keys never grant `/api/v1/tenant/**` (billing, domains, users). Content scopes map to editor-equivalent access on content routes (plus categories/formats for taxonomy tools).
+
+## Tool surface (hosted ↔ stdio)
+
+Same names on API `/mcp` and this package (except stdio-only `import_podcast_manifest`):
+
+- **Articles** — CRUD, categories, publish/unpublish/schedule/`cancel_schedule_article`, archive/unarchive, notify + notify-preview, `set_article_newsletter_lists`, bulk publish/unpublish/delete
+- **Episodes** — CRUD, formats/categories, audio attach, `set_episode_enclosure_enabled`, publish/unpublish/schedule/`cancel_schedule_episode`, archive/unarchive, notify + notify-preview, bulk publish/unpublish/delete
+- **Series / categories / formats** — list + CRUD (series update includes status)
+- **Media** — list/get, upload-url + confirm, `rename_media`, `get_media_preview_url`, `list_media_references`, `get_media_limits`, `get_media_storage_summary`, delete/move, folders CRUD
+
+Publish/schedule args match REST (`notifySubscribers`, `scheduledAt`, `publishedAt`). Newsletter **list** CRUD remains outside the API-key allowlist; attach uses article path only.

@@ -69,10 +69,33 @@ class StudioMcpEndpointTest {
                 "list_categories",
                 "list_formats",
                 "list_media",
-                "create_media_upload_url"
+                "create_media_upload_url",
+                "archive_article",
+                "unarchive_article",
+                "cancel_schedule_article",
+                "bulk_publish_articles",
+                "bulk_unpublish_articles",
+                "bulk_delete_articles",
+                "notify_article",
+                "notify_preview_article",
+                "set_article_newsletter_lists",
+                "archive_episode",
+                "unarchive_episode",
+                "cancel_schedule_episode",
+                "bulk_publish_episodes",
+                "bulk_unpublish_episodes",
+                "bulk_delete_episodes",
+                "notify_episode",
+                "notify_preview_episode",
+                "set_episode_enclosure_enabled",
+                "rename_media",
+                "get_media_preview_url",
+                "list_media_references",
+                "get_media_limits",
+                "get_media_storage_summary"
         );
         assertThat(names).doesNotContain("import_podcast_manifest");
-        assertThat(names.size()).isGreaterThanOrEqualTo(40);
+        assertThat(names.size()).isGreaterThanOrEqualTo(63);
     }
 
     @Test
@@ -110,6 +133,6 @@ class StudioMcpEndpointTest {
 
         JsonNode toolsBody = objectMapper.readTree(tools.getResponse().getContentAsString());
         assertThat(toolsBody.path("result").path("tools").isArray()).isTrue();
-        assertThat(toolsBody.path("result").path("tools").size()).isGreaterThanOrEqualTo(40);
+        assertThat(toolsBody.path("result").path("tools").size()).isGreaterThanOrEqualTo(63);
     }
 }

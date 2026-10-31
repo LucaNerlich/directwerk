@@ -132,10 +132,14 @@ export function createMcpServer(client: DirectwerkClient): McpServer {
 
     server.tool('publish_article', 'Publish an article', {
         articleId: idSchema,
-        notify: z.boolean().optional(),
-    }, async ({articleId, notify}) => {
+        notifySubscribers: z.boolean().optional(),
+        publishedAt: z.string().optional(),
+    }, async ({articleId, notifySubscribers, publishedAt}) => {
         try {
-            return toolResult(await api('POST', `api/v1/articles/${articleId}/publish`, notify === undefined ? {} : {notify}))
+            const body: Record<string, unknown> = {}
+            if (notifySubscribers !== undefined) {body.notifySubscribers = notifySubscribers}
+            if (publishedAt !== undefined) {body.publishedAt = publishedAt}
+            return toolResult(await api('POST', `api/v1/articles/${articleId}/publish`, body))
         } catch (error) {
             return toolError(error)
         }
@@ -151,13 +155,111 @@ export function createMcpServer(client: DirectwerkClient): McpServer {
         }
     })
 
-    server.tool('schedule_article', 'Schedule an article publish time', {
+    server.tool('schedule_article', 'Schedule an article publish time (field matches backend: scheduledAt)', {
         articleId: idSchema,
-        publishAt: z.string().min(1),
-        notify: z.boolean().optional(),
-    }, async ({articleId, ...body}) => {
+        scheduledAt: z.string().min(1),
+        notifySubscribers: z.boolean().optional(),
+    }, async ({articleId, scheduledAt, notifySubscribers}) => {
         try {
+            const body: Record<string, unknown> = {scheduledAt}
+            if (notifySubscribers !== undefined) {body.notifySubscribers = notifySubscribers}
             return toolResult(await api('POST', `api/v1/articles/${articleId}/schedule`, body))
+        } catch (error) {
+            return toolError(error)
+        }
+    })
+
+    server.tool('cancel_schedule_article', 'Cancel a scheduled article publish', {
+        articleId: idSchema,
+    }, async ({articleId}) => {
+        try {
+            return toolResult(await api('POST', `api/v1/articles/${articleId}/cancel-schedule`, {}))
+        } catch (error) {
+            return toolError(error)
+        }
+    })
+
+    server.tool('archive_article', 'Archive an article', {
+        articleId: idSchema,
+    }, async ({articleId}) => {
+        try {
+            return toolResult(await api('POST', `api/v1/articles/${articleId}/archive`, {}))
+        } catch (error) {
+            return toolError(error)
+        }
+    })
+
+    server.tool('unarchive_article', 'Unarchive an article', {
+        articleId: idSchema,
+    }, async ({articleId}) => {
+        try {
+            return toolResult(await api('POST', `api/v1/articles/${articleId}/unarchive`, {}))
+        } catch (error) {
+            return toolError(error)
+        }
+    })
+
+    server.tool('notify_preview_article', 'Preview subscriber notification recipients for an article', {
+        articleId: idSchema,
+    }, async ({articleId}) => {
+        try {
+            return toolResult(await api('GET', `api/v1/articles/${articleId}/notify-preview`))
+        } catch (error) {
+            return toolError(error)
+        }
+    })
+
+    server.tool('notify_article', 'Send or retry subscriber notification for a published article', {
+        articleId: idSchema,
+    }, async ({articleId}) => {
+        try {
+            return toolResult(await api('POST', `api/v1/articles/${articleId}/notify`, {}))
+        } catch (error) {
+            return toolError(error)
+        }
+    })
+
+    server.tool('set_article_newsletter_lists', 'Replace article newsletter list attachments (list ids must already be known; list CRUD is not in MCP)', {
+        articleId: idSchema,
+        newsletterListIds: z.array(idSchema),
+    }, async ({articleId, newsletterListIds}) => {
+        try {
+            return toolResult(await api('PUT', `api/v1/articles/${articleId}/newsletter-lists`, {newsletterListIds}))
+        } catch (error) {
+            return toolError(error)
+        }
+    })
+
+    server.tool('bulk_publish_articles', 'Publish multiple articles (1-100 ids, atomic)', {
+        ids: z.array(idSchema).min(1).max(100),
+        notifySubscribers: z.boolean().optional(),
+        publishedAt: z.string().optional(),
+    }, async ({ids, notifySubscribers, publishedAt}) => {
+        try {
+            const body: Record<string, unknown> = {ids}
+            if (notifySubscribers !== undefined) {body.notifySubscribers = notifySubscribers}
+            if (publishedAt !== undefined) {body.publishedAt = publishedAt}
+            return toolResult(await api('POST', 'api/v1/articles/bulk/publish', body))
+        } catch (error) {
+            return toolError(error)
+        }
+    })
+
+    server.tool('bulk_unpublish_articles', 'Unpublish multiple articles (1-100 ids, atomic)', {
+        ids: z.array(idSchema).min(1).max(100),
+    }, async ({ids}) => {
+        try {
+            return toolResult(await api('POST', 'api/v1/articles/bulk/unpublish', {ids}))
+        } catch (error) {
+            return toolError(error)
+        }
+    })
+
+    server.tool('bulk_delete_articles', 'Delete multiple articles (1-100 ids, atomic)', {
+        ids: z.array(idSchema).min(1).max(100),
+    }, async ({ids}) => {
+        try {
+            return toolResult(await api('POST', 'api/v1/articles/bulk/delete', {ids}))
         } catch (error) {
             return toolError(error)
         }
@@ -300,6 +402,102 @@ export function createMcpServer(client: DirectwerkClient): McpServer {
             const body: Record<string, unknown> = {scheduledAt}
             if (notifySubscribers !== undefined) {body.notifySubscribers = notifySubscribers}
             return toolResult(await api('POST', `api/v1/episodes/${episodeId}/schedule`, body))
+        } catch (error) {
+            return toolError(error)
+        }
+    })
+
+    server.tool('cancel_schedule_episode', 'Cancel a scheduled episode publish', {
+        episodeId: idSchema,
+    }, async ({episodeId}) => {
+        try {
+            return toolResult(await api('POST', `api/v1/episodes/${episodeId}/cancel-schedule`, {}))
+        } catch (error) {
+            return toolError(error)
+        }
+    })
+
+    server.tool('archive_episode', 'Archive an episode', {
+        episodeId: idSchema,
+    }, async ({episodeId}) => {
+        try {
+            return toolResult(await api('POST', `api/v1/episodes/${episodeId}/archive`, {}))
+        } catch (error) {
+            return toolError(error)
+        }
+    })
+
+    server.tool('unarchive_episode', 'Unarchive an episode', {
+        episodeId: idSchema,
+    }, async ({episodeId}) => {
+        try {
+            return toolResult(await api('POST', `api/v1/episodes/${episodeId}/unarchive`, {}))
+        } catch (error) {
+            return toolError(error)
+        }
+    })
+
+    server.tool('set_episode_enclosure_enabled', 'Enable or disable the RSS enclosure for an episode', {
+        episodeId: idSchema,
+        enabled: z.boolean(),
+    }, async ({episodeId, enabled}) => {
+        try {
+            return toolResult(await api('PUT', `api/v1/episodes/${episodeId}/enclosure-enabled`, {enabled}))
+        } catch (error) {
+            return toolError(error)
+        }
+    })
+
+    server.tool('notify_preview_episode', 'Preview subscriber notification recipients for an episode', {
+        episodeId: idSchema,
+    }, async ({episodeId}) => {
+        try {
+            return toolResult(await api('GET', `api/v1/episodes/${episodeId}/notify-preview`))
+        } catch (error) {
+            return toolError(error)
+        }
+    })
+
+    server.tool('notify_episode', 'Send or retry subscriber notification for a published episode', {
+        episodeId: idSchema,
+    }, async ({episodeId}) => {
+        try {
+            return toolResult(await api('POST', `api/v1/episodes/${episodeId}/notify`, {}))
+        } catch (error) {
+            return toolError(error)
+        }
+    })
+
+    server.tool('bulk_publish_episodes', 'Publish multiple episodes (1-100 ids, atomic)', {
+        ids: z.array(idSchema).min(1).max(100),
+        notifySubscribers: z.boolean().optional(),
+        publishedAt: z.string().optional(),
+    }, async ({ids, notifySubscribers, publishedAt}) => {
+        try {
+            const body: Record<string, unknown> = {ids}
+            if (notifySubscribers !== undefined) {body.notifySubscribers = notifySubscribers}
+            if (publishedAt !== undefined) {body.publishedAt = publishedAt}
+            return toolResult(await api('POST', 'api/v1/episodes/bulk/publish', body))
+        } catch (error) {
+            return toolError(error)
+        }
+    })
+
+    server.tool('bulk_unpublish_episodes', 'Unpublish multiple episodes (1-100 ids, atomic)', {
+        ids: z.array(idSchema).min(1).max(100),
+    }, async ({ids}) => {
+        try {
+            return toolResult(await api('POST', 'api/v1/episodes/bulk/unpublish', {ids}))
+        } catch (error) {
+            return toolError(error)
+        }
+    })
+
+    server.tool('bulk_delete_episodes', 'Delete multiple episodes (1-100 ids, atomic)', {
+        ids: z.array(idSchema).min(1).max(100),
+    }, async ({ids}) => {
+        try {
+            return toolResult(await api('POST', 'api/v1/episodes/bulk/delete', {ids}))
         } catch (error) {
             return toolError(error)
         }
@@ -496,6 +694,53 @@ export function createMcpServer(client: DirectwerkClient): McpServer {
     }, async ({assetId}) => {
         try {
             return toolResult(await api('POST', `api/v1/media/${assetId}/confirm`, {}))
+        } catch (error) {
+            return toolError(error)
+        }
+    })
+
+    server.tool('rename_media', 'Rename a media asset filename', {
+        assetId: idSchema,
+        filename: z.string().min(1).max(255),
+    }, async ({assetId, filename}) => {
+        try {
+            return toolResult(await api('PUT', `api/v1/media/${assetId}`, {filename}))
+        } catch (error) {
+            return toolError(error)
+        }
+    })
+
+    server.tool('get_media_preview_url', 'Get a short-lived preview URL for a media asset', {
+        assetId: idSchema,
+    }, async ({assetId}) => {
+        try {
+            return toolResult(await api('GET', `api/v1/media/${assetId}/preview-url`))
+        } catch (error) {
+            return toolError(error)
+        }
+    })
+
+    server.tool('list_media_references', 'List content that references a media asset', {
+        assetId: idSchema,
+    }, async ({assetId}) => {
+        try {
+            return toolResult(await api('GET', `api/v1/media/${assetId}/references`))
+        } catch (error) {
+            return toolError(error)
+        }
+    })
+
+    server.tool('get_media_limits', 'Get effective upload limits for the tenant', {}, async () => {
+        try {
+            return toolResult(await api('GET', 'api/v1/media/limits'))
+        } catch (error) {
+            return toolError(error)
+        }
+    })
+
+    server.tool('get_media_storage_summary', 'Get media storage usage summary for the tenant', {}, async () => {
+        try {
+            return toolResult(await api('GET', 'api/v1/media/storage-summary'))
         } catch (error) {
             return toolError(error)
         }

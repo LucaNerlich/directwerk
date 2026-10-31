@@ -61,24 +61,76 @@ public class StudioMcpTools {
                     Map.of("categoryIds", a.get("categoryIds")));
         }));
         tools.add(tool("publish_article", "Publish an article", """
-                {"type":"object","properties":{"articleId":{"type":"integer","minimum":1},"notify":{"type":"boolean"}},"required":["articleId"],"additionalProperties":false}
+                {"type":"object","properties":{"articleId":{"type":"integer","minimum":1},"notifySubscribers":{"type":"boolean"},"publishedAt":{"type":"string"}},"required":["articleId"],"additionalProperties":false}
                 """, (ctx, req) -> {
             Map<String, Object> a = args(req);
             Map<String, Object> body = new LinkedHashMap<>();
-            if (a.containsKey("notify")) {
-                body.put("notify", a.get("notify"));
+            if (a.containsKey("notifySubscribers")) {
+                body.put("notifySubscribers", a.get("notifySubscribers"));
+            }
+            if (a.containsKey("publishedAt")) {
+                body.put("publishedAt", a.get("publishedAt"));
             }
             return api.post(ctx, "/api/v1/articles/" + longArg(a, "articleId") + "/publish", body);
         }));
         tools.add(tool("unpublish_article", "Unpublish an article", """
                 {"type":"object","properties":{"articleId":{"type":"integer","minimum":1}},"required":["articleId"],"additionalProperties":false}
                 """, (ctx, req) -> api.post(ctx, "/api/v1/articles/" + longArg(args(req), "articleId") + "/unpublish", Map.of())));
-        tools.add(tool("schedule_article", "Schedule an article publish time", """
-                {"type":"object","properties":{"articleId":{"type":"integer","minimum":1},"publishAt":{"type":"string","minLength":1},"notify":{"type":"boolean"}},"required":["articleId","publishAt"],"additionalProperties":false}
+        tools.add(tool("schedule_article",
+                "Schedule an article publish time (field matches backend: scheduledAt)", """
+                {"type":"object","properties":{"articleId":{"type":"integer","minimum":1},"scheduledAt":{"type":"string","minLength":1},"notifySubscribers":{"type":"boolean"}},"required":["articleId","scheduledAt"],"additionalProperties":false}
                 """, (ctx, req) -> {
             Map<String, Object> a = args(req);
-            return api.post(ctx, "/api/v1/articles/" + longArg(a, "articleId") + "/schedule", withoutKeys(a, "articleId"));
+            Map<String, Object> body = new LinkedHashMap<>();
+            body.put("scheduledAt", a.get("scheduledAt"));
+            if (a.containsKey("notifySubscribers")) {
+                body.put("notifySubscribers", a.get("notifySubscribers"));
+            }
+            return api.post(ctx, "/api/v1/articles/" + longArg(a, "articleId") + "/schedule", body);
         }));
+        tools.add(tool("cancel_schedule_article", "Cancel a scheduled article publish", """
+                {"type":"object","properties":{"articleId":{"type":"integer","minimum":1}},"required":["articleId"],"additionalProperties":false}
+                """, (ctx, req) -> api.post(ctx, "/api/v1/articles/" + longArg(args(req), "articleId") + "/cancel-schedule", Map.of())));
+        tools.add(tool("archive_article", "Archive an article", """
+                {"type":"object","properties":{"articleId":{"type":"integer","minimum":1}},"required":["articleId"],"additionalProperties":false}
+                """, (ctx, req) -> api.post(ctx, "/api/v1/articles/" + longArg(args(req), "articleId") + "/archive", Map.of())));
+        tools.add(tool("unarchive_article", "Unarchive an article", """
+                {"type":"object","properties":{"articleId":{"type":"integer","minimum":1}},"required":["articleId"],"additionalProperties":false}
+                """, (ctx, req) -> api.post(ctx, "/api/v1/articles/" + longArg(args(req), "articleId") + "/unarchive", Map.of())));
+        tools.add(tool("notify_preview_article", "Preview subscriber notification recipients for an article", """
+                {"type":"object","properties":{"articleId":{"type":"integer","minimum":1}},"required":["articleId"],"additionalProperties":false}
+                """, (ctx, req) -> api.get(ctx, "/api/v1/articles/" + longArg(args(req), "articleId") + "/notify-preview", null)));
+        tools.add(tool("notify_article", "Send or retry subscriber notification for a published article", """
+                {"type":"object","properties":{"articleId":{"type":"integer","minimum":1}},"required":["articleId"],"additionalProperties":false}
+                """, (ctx, req) -> api.post(ctx, "/api/v1/articles/" + longArg(args(req), "articleId") + "/notify", Map.of())));
+        tools.add(tool("set_article_newsletter_lists",
+                "Replace article newsletter list attachments (list ids must already be known; list CRUD is not in MCP)", """
+                {"type":"object","properties":{"articleId":{"type":"integer","minimum":1},"newsletterListIds":{"type":"array","items":{"type":"integer","minimum":1}}},"required":["articleId","newsletterListIds"],"additionalProperties":false}
+                """, (ctx, req) -> {
+            Map<String, Object> a = args(req);
+            return api.put(ctx, "/api/v1/articles/" + longArg(a, "articleId") + "/newsletter-lists",
+                    Map.of("newsletterListIds", a.get("newsletterListIds")));
+        }));
+        tools.add(tool("bulk_publish_articles", "Publish multiple articles (1-100 ids, atomic)", """
+                {"type":"object","properties":{"ids":{"type":"array","items":{"type":"integer","minimum":1},"minItems":1,"maxItems":100},"notifySubscribers":{"type":"boolean"},"publishedAt":{"type":"string"}},"required":["ids"],"additionalProperties":false}
+                """, (ctx, req) -> {
+            Map<String, Object> a = args(req);
+            Map<String, Object> body = new LinkedHashMap<>();
+            body.put("ids", a.get("ids"));
+            if (a.containsKey("notifySubscribers")) {
+                body.put("notifySubscribers", a.get("notifySubscribers"));
+            }
+            if (a.containsKey("publishedAt")) {
+                body.put("publishedAt", a.get("publishedAt"));
+            }
+            return api.post(ctx, "/api/v1/articles/bulk/publish", body);
+        }));
+        tools.add(tool("bulk_unpublish_articles", "Unpublish multiple articles (1-100 ids, atomic)", """
+                {"type":"object","properties":{"ids":{"type":"array","items":{"type":"integer","minimum":1},"minItems":1,"maxItems":100}},"required":["ids"],"additionalProperties":false}
+                """, (ctx, req) -> api.post(ctx, "/api/v1/articles/bulk/unpublish", Map.of("ids", args(req).get("ids")))));
+        tools.add(tool("bulk_delete_articles", "Delete multiple articles (1-100 ids, atomic)", """
+                {"type":"object","properties":{"ids":{"type":"array","items":{"type":"integer","minimum":1},"minItems":1,"maxItems":100}},"required":["ids"],"additionalProperties":false}
+                """, (ctx, req) -> api.post(ctx, "/api/v1/articles/bulk/delete", Map.of("ids", args(req).get("ids")))));
 
         // Episodes
         tools.add(tool("list_episodes", "List episodes for the tenant", """
@@ -149,6 +201,48 @@ public class StudioMcpTools {
             }
             return api.post(ctx, "/api/v1/episodes/" + longArg(a, "episodeId") + "/schedule", body);
         }));
+        tools.add(tool("cancel_schedule_episode", "Cancel a scheduled episode publish", """
+                {"type":"object","properties":{"episodeId":{"type":"integer","minimum":1}},"required":["episodeId"],"additionalProperties":false}
+                """, (ctx, req) -> api.post(ctx, "/api/v1/episodes/" + longArg(args(req), "episodeId") + "/cancel-schedule", Map.of())));
+        tools.add(tool("archive_episode", "Archive an episode", """
+                {"type":"object","properties":{"episodeId":{"type":"integer","minimum":1}},"required":["episodeId"],"additionalProperties":false}
+                """, (ctx, req) -> api.post(ctx, "/api/v1/episodes/" + longArg(args(req), "episodeId") + "/archive", Map.of())));
+        tools.add(tool("unarchive_episode", "Unarchive an episode", """
+                {"type":"object","properties":{"episodeId":{"type":"integer","minimum":1}},"required":["episodeId"],"additionalProperties":false}
+                """, (ctx, req) -> api.post(ctx, "/api/v1/episodes/" + longArg(args(req), "episodeId") + "/unarchive", Map.of())));
+        tools.add(tool("set_episode_enclosure_enabled", "Enable or disable the RSS enclosure for an episode", """
+                {"type":"object","properties":{"episodeId":{"type":"integer","minimum":1},"enabled":{"type":"boolean"}},"required":["episodeId","enabled"],"additionalProperties":false}
+                """, (ctx, req) -> {
+            Map<String, Object> a = args(req);
+            return api.put(ctx, "/api/v1/episodes/" + longArg(a, "episodeId") + "/enclosure-enabled",
+                    Map.of("enabled", a.get("enabled")));
+        }));
+        tools.add(tool("notify_preview_episode", "Preview subscriber notification recipients for an episode", """
+                {"type":"object","properties":{"episodeId":{"type":"integer","minimum":1}},"required":["episodeId"],"additionalProperties":false}
+                """, (ctx, req) -> api.get(ctx, "/api/v1/episodes/" + longArg(args(req), "episodeId") + "/notify-preview", null)));
+        tools.add(tool("notify_episode", "Send or retry subscriber notification for a published episode", """
+                {"type":"object","properties":{"episodeId":{"type":"integer","minimum":1}},"required":["episodeId"],"additionalProperties":false}
+                """, (ctx, req) -> api.post(ctx, "/api/v1/episodes/" + longArg(args(req), "episodeId") + "/notify", Map.of())));
+        tools.add(tool("bulk_publish_episodes", "Publish multiple episodes (1-100 ids, atomic)", """
+                {"type":"object","properties":{"ids":{"type":"array","items":{"type":"integer","minimum":1},"minItems":1,"maxItems":100},"notifySubscribers":{"type":"boolean"},"publishedAt":{"type":"string"}},"required":["ids"],"additionalProperties":false}
+                """, (ctx, req) -> {
+            Map<String, Object> a = args(req);
+            Map<String, Object> body = new LinkedHashMap<>();
+            body.put("ids", a.get("ids"));
+            if (a.containsKey("notifySubscribers")) {
+                body.put("notifySubscribers", a.get("notifySubscribers"));
+            }
+            if (a.containsKey("publishedAt")) {
+                body.put("publishedAt", a.get("publishedAt"));
+            }
+            return api.post(ctx, "/api/v1/episodes/bulk/publish", body);
+        }));
+        tools.add(tool("bulk_unpublish_episodes", "Unpublish multiple episodes (1-100 ids, atomic)", """
+                {"type":"object","properties":{"ids":{"type":"array","items":{"type":"integer","minimum":1},"minItems":1,"maxItems":100}},"required":["ids"],"additionalProperties":false}
+                """, (ctx, req) -> api.post(ctx, "/api/v1/episodes/bulk/unpublish", Map.of("ids", args(req).get("ids")))));
+        tools.add(tool("bulk_delete_episodes", "Delete multiple episodes (1-100 ids, atomic)", """
+                {"type":"object","properties":{"ids":{"type":"array","items":{"type":"integer","minimum":1},"minItems":1,"maxItems":100}},"required":["ids"],"additionalProperties":false}
+                """, (ctx, req) -> api.post(ctx, "/api/v1/episodes/bulk/delete", Map.of("ids", args(req).get("ids")))));
 
         // Series
         tools.add(tool("list_series", "List podcast series", """
@@ -214,6 +308,24 @@ public class StudioMcpTools {
         tools.add(tool("confirm_media_upload", "Confirm a completed media upload", """
                 {"type":"object","properties":{"assetId":{"type":"integer","minimum":1}},"required":["assetId"],"additionalProperties":false}
                 """, (ctx, req) -> api.post(ctx, "/api/v1/media/" + longArg(args(req), "assetId") + "/confirm", Map.of())));
+        tools.add(tool("rename_media", "Rename a media asset filename", """
+                {"type":"object","properties":{"assetId":{"type":"integer","minimum":1},"filename":{"type":"string","minLength":1,"maxLength":255}},"required":["assetId","filename"],"additionalProperties":false}
+                """, (ctx, req) -> {
+            Map<String, Object> a = args(req);
+            return api.put(ctx, "/api/v1/media/" + longArg(a, "assetId"), Map.of("filename", a.get("filename")));
+        }));
+        tools.add(tool("get_media_preview_url", "Get a short-lived preview URL for a media asset", """
+                {"type":"object","properties":{"assetId":{"type":"integer","minimum":1}},"required":["assetId"],"additionalProperties":false}
+                """, (ctx, req) -> api.get(ctx, "/api/v1/media/" + longArg(args(req), "assetId") + "/preview-url", null)));
+        tools.add(tool("list_media_references", "List content that references a media asset", """
+                {"type":"object","properties":{"assetId":{"type":"integer","minimum":1}},"required":["assetId"],"additionalProperties":false}
+                """, (ctx, req) -> api.get(ctx, "/api/v1/media/" + longArg(args(req), "assetId") + "/references", null)));
+        tools.add(tool("get_media_limits", "Get effective upload limits for the tenant", """
+                {"type":"object","properties":{},"additionalProperties":false}
+                """, (ctx, req) -> api.get(ctx, "/api/v1/media/limits", null)));
+        tools.add(tool("get_media_storage_summary", "Get media storage usage summary for the tenant", """
+                {"type":"object","properties":{},"additionalProperties":false}
+                """, (ctx, req) -> api.get(ctx, "/api/v1/media/storage-summary", null)));
         tools.add(tool("delete_media", "Delete a media asset", """
                 {"type":"object","properties":{"assetId":{"type":"integer","minimum":1}},"required":["assetId"],"additionalProperties":false}
                 """, (ctx, req) -> api.delete(ctx, "/api/v1/media/" + longArg(args(req), "assetId"))));
