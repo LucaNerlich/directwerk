@@ -1,0 +1,50 @@
+info:
+  name: 3 - Tools Call List Articles
+  type: http
+  seq: 3
+
+http:
+  method: POST
+  url: "{{baseUrl}}/mcp"
+  body:
+    type: json
+    data: |-
+      {
+        "jsonrpc": "2.0",
+        "id": 3,
+        "method": "tools/call",
+        "params": {
+          "name": "list_articles",
+          "arguments": {}
+        }
+      }
+  headers:
+    - name: Authorization
+      value: "Bearer {{tenantApiKeySecret}}"
+    - name: Accept
+      value: "application/json, text/event-stream"
+    - name: Content-Type
+      value: application/json
+  auth:
+    type: none
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("MCP tools/call list_articles succeeds", function() {
+          expect(res.getStatus() === 200).to.equal(true);
+          const body = res.getBody();
+          expect(body.result).to.not.equal(undefined);
+          expect(body.result.isError === true).to.equal(false);
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false
+
+docs: |-
+  Exercises hosted MCP tools/call loopback (tenant Host + API key). Requires Api-Keys create.

@@ -1,15 +1,19 @@
 package de.pnnit.directwerk.mcp;
 
+import de.pnnit.directwerk.config.DirectwerkConfig;
 import io.modelcontextprotocol.common.McpTransportContext;
 import io.modelcontextprotocol.spec.McpSchema;
 import java.net.URI;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import org.springframework.core.env.Environment;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientResponseException;
 import org.springframework.web.util.UriComponentsBuilder;
@@ -20,6 +24,10 @@ import tools.jackson.databind.ObjectMapper;
  * Loopback REST client used by hosted MCP tools — same surface as
  * {@code packages/mcp-studio} {@code DirectwerkClient}, forwarding the caller's
  * Bearer + tenant host from {@link McpTransportContext}.
+ *
+ * <p>Connects to {@code 127.0.0.1} but sets {@code Host} to the platform API
+ * issuer host so {@link de.pnnit.directwerk.multitenancy.TenantRoutingHostResolver}
+ * treats the call like a BFF upstream and honors {@code X-Tenant-Host}.
  */
 @Component
 public class StudioMcpApiClient {
@@ -30,15 +38,18 @@ public class StudioMcpApiClient {
     private final RestClient.Builder restClientBuilder;
     private final Environment environment;
     private final ObjectMapper objectMapper;
+    private final DirectwerkConfig directwerkConfig;
 
     public StudioMcpApiClient(
             RestClient.Builder restClientBuilder,
             Environment environment,
-            ObjectMapper objectMapper
+            ObjectMapper objectMapper,
+            DirectwerkConfig directwerkConfig
     ) {
         this.restClientBuilder = restClientBuilder;
         this.environment = environment;
         this.objectMapper = objectMapper;
+        this.directwerkConfig = directwerkConfig;
     }
 
     public McpSchema.CallToolResult request(
@@ -52,11 +63,14 @@ public class StudioMcpApiClient {
             String authorization = requireContext(context, CTX_AUTHORIZATION);
             String tenantHost = requireContext(context, CTX_TENANT_HOST);
             URI uri = buildUri(path, query);
+            // Prefer issuer host (BFF path + X-Tenant-Host); else tenant Host (direct traffic).
+            String routingHost = platformApiHost() != null ? platformApiHost() : tenantHost;
             RestClient.RequestBodySpec spec = restClientBuilder.build()
                     .method(org.springframework.http.HttpMethod.valueOf(method))
                     .uri(uri)
                     .accept(MediaType.APPLICATION_JSON)
                     .header("Authorization", authorization)
+                    .header(HttpHeaders.HOST, routingHost)
                     .header("X-Tenant-Host", tenantHost);
             String responseBody;
             if (body != null) {
@@ -180,6 +194,19 @@ public class StudioMcpApiClient {
             return local;
         }
         return environment.getProperty("server.port", "8080");
+    }
+
+    private String platformApiHost() {
+        String issuer = directwerkConfig.security().issuer();
+        if (!StringUtils.hasText(issuer)) {
+            return null;
+        }
+        try {
+            URI uri = URI.create(issuer.trim());
+            return uri.getHost() == null ? null : uri.getHost().toLowerCase(Locale.ROOT);
+        } catch (IllegalArgumentException ex) {
+            return null;
+        }
     }
 
     private static String requireContext(McpTransportContext context, String key) {

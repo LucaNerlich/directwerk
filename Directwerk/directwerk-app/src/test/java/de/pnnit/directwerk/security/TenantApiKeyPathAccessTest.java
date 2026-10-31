@@ -51,11 +51,23 @@ class TenantApiKeyPathAccessTest {
     }
 
     @Test
+    void readScopeAllowsMcpProtocolPost() {
+        Set<String> read = Set.of(TenantApiKeyScopes.CONTENT_READ);
+        assertThat(TenantApiKeyPathAccess.isMethodAllowed("POST", "/mcp", read)).isTrue();
+        assertThat(TenantApiKeyPathAccess.isMethodAllowed("GET", "/mcp", read)).isTrue();
+        assertThat(TenantApiKeyPathAccess.isMethodAllowed("POST", "/mcp/", read)).isTrue();
+        // Write still required for content mutations.
+        assertThat(TenantApiKeyPathAccess.isMethodAllowed("POST", "/api/v1/articles", read)).isFalse();
+        assertThat(TenantApiKeyPathAccess.isMethodAllowed("DELETE", "/mcp", read)).isFalse();
+    }
+
+    @Test
     void writeScopeAllowsMutations() {
         Set<String> write = Set.of(TenantApiKeyScopes.CONTENT_WRITE);
         assertThat(TenantApiKeyPathAccess.isMethodAllowed("GET", write)).isTrue();
         assertThat(TenantApiKeyPathAccess.isMethodAllowed("POST", write)).isTrue();
         assertThat(TenantApiKeyPathAccess.isMethodAllowed("PUT", write)).isTrue();
         assertThat(TenantApiKeyPathAccess.isMethodAllowed("DELETE", write)).isTrue();
+        assertThat(TenantApiKeyPathAccess.isMethodAllowed("POST", "/mcp", write)).isTrue();
     }
 }

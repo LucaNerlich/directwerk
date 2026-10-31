@@ -240,6 +240,21 @@ class TenantMembershipGuardFilterTest {
                 .isInstanceOf(TenantMismatchException.class);
     }
 
+    @Test
+    void allowsApiKeyReadScopeOnMcpPost() throws Exception {
+        authenticateApiKey(1L, Set.of("content:read"));
+        TenantContext.setTenantId(1L);
+
+        HttpServletRequest request = mock(HttpServletRequest.class);
+        when(request.getRequestURI()).thenReturn("/mcp");
+        when(request.getMethod()).thenReturn("POST");
+        FilterChain chain = mock(FilterChain.class);
+        MockHttpServletResponse response = new MockHttpServletResponse();
+
+        filter.doFilter(request, response, chain);
+        verify(chain).doFilter(request, response);
+    }
+
     private static TenantMembership activeMembership(Role role) {
         TenantMembership membership = new TenantMembership();
         membership.setStatus(MembershipStatus.ACTIVE);
