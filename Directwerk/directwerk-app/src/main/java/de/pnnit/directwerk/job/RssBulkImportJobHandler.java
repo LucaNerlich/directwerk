@@ -1,6 +1,8 @@
 package de.pnnit.directwerk.job;
 
+import de.pnnit.directwerk.modules.digital.exception.UploadValidationException;
 import de.pnnit.directwerk.modules.email.TransactionalEmailService;
+import de.pnnit.directwerk.modules.podcast.exception.EpisodeValidationException;
 import de.pnnit.directwerk.modules.podcast.exception.RssImportException;
 import de.pnnit.directwerk.modules.podcast.service.PodcastImportService;
 import de.pnnit.directwerk.security.DirectwerkUserPrincipal;
@@ -95,7 +97,11 @@ public class RssBulkImportJobHandler implements JobHandler {
                 episode -> episode.alreadyImportedEpisodeId() != null,
                 PodcastImportService.PreviewEpisode::guid,
                 PodcastImportService.PreviewEpisode::title,
-                ex -> true,
+                // A broken audio/cover or an invalid item must not abort the run; genuine
+                // infrastructure failures still propagate so the job retries (#965 / #727).
+                ex -> ex instanceof RssImportException
+                        || ex instanceof UploadValidationException
+                        || ex instanceof EpisodeValidationException,
                 episode -> {
                     var result = podcastImportService.importEpisode(new PodcastImportService.ImportEpisodeCommand(
                             payload.seriesId(),
