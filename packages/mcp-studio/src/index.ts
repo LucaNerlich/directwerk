@@ -6,7 +6,7 @@ import {createMcpServer} from './server.js'
 async function main(): Promise<void> {
     const config = loadConfigFromEnv()
     const client = new DirectwerkClient(config)
-    const server = createMcpServer(client)
+    const server = createMcpServer(client, {filesystemTools: true})
     const transport = new StdioServerTransport()
     await server.connect(transport)
 }

@@ -15,6 +15,7 @@
         "start": "node dist/index.js",
         "start:http": "node dist/http.js",
         "typecheck": "tsc -p tsconfig.json --noEmit",
+        "test": "tsx --test src/server.test.ts",
         "dev": "tsx src/index.ts",
         "dev:http": "tsx src/http.ts"
     },
