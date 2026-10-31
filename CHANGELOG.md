@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-10-31
+
+### Added
+
+- Studio content MCP tools for archive/unarchive, cancel schedule, bulk publish/unpublish/delete, notify (+ preview), episode enclosure, article newsletter lists, and media rename/preview/references/limits/storage summary (hosted `/mcp` and stdio `@directwerk/mcp-studio` parity).
+
+### Fixed
+
+- Studio mobile sidebar closes on SideNav navigation (link click and pathname change).
+
 ## [0.4.0] - 2026-10-31
 
 ### Added
