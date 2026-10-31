@@ -14,7 +14,15 @@ public class ProductAccessRuleScopeValidator {
 
     @Transactional(readOnly = true)
     public void validateScope(Long tenantId, ProductAccessScopeType scopeType, Long scopeId) {
-        if (scopeType == null || scopeId == null) {
+        if (scopeType == null) {
+            return;
+        }
+        if (scopeType == ProductAccessScopeType.FEED_BUILDER) {
+            throw new IllegalArgumentException(
+                    "FEED_BUILDER product access rules are not supported; custom feeds are module-gated"
+            );
+        }
+        if (scopeId == null) {
             return;
         }
         switch (scopeType) {
@@ -22,7 +30,7 @@ public class ProductAccessRuleScopeValidator {
             case FORMAT -> contentScopeLookupApi.requireFormat(tenantId, scopeId);
             case CATEGORY -> contentScopeLookupApi.requireCategory(tenantId, scopeId);
             case DIGITAL_ASSET -> contentScopeLookupApi.requireDigitalAsset(tenantId, scopeId);
-            case ALL_PODCASTS, FEED_BUILDER -> {
+            case ALL_PODCASTS -> {
             }
             default -> throw new IllegalStateException("Unexpected scope type: " + scopeType);
         }

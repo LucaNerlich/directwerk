@@ -115,7 +115,7 @@ Active subscription = `status = ACTIVE` and (`endsAt` is null or in the future).
 | `FORMAT` | format id | Episode has that format |
 | `CATEGORY` | category id | Episode has that category |
 | `DIGITAL_ASSET` | media asset id | **Not** for episodes (asset API only) |
-| `FEED_BUILDER` | must be `null` | Reserved as a product-rule scope; does not grant episodes. Custom feeds are a subscriber filter, not an entitlement grant. |
+| `FEED_BUILDER` | — | **Rejected on write** (400). Custom feeds are module-gated (`FEED_BUILDER` feature module), not a product entitlement. |
 
 Effect is only `GRANT` (no deny rules). Rules are **PACKAGE-only**; replace is full replace (`PUT .../rules`).
 

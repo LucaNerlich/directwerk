@@ -62,6 +62,38 @@ Accept: application/json
 
 ###
 
+### @name rejectFeedBuilderPackageRules
+PUT {{baseUrl}}/api/v1/tenant/products/{{packageProductId}}/rules
+Host: {{tenantAHost}}
+Authorization: Bearer {{tenantAAccessToken}}
+Content-Type: application/json
+Accept: application/json
+
+{
+  "rules": [
+    {
+      "scopeType": "FEED_BUILDER"
+    }
+  ]
+}
+
+> {%
+    client.test("Reject FEED_BUILDER product access rules", function() {
+        client.assert(
+            response.status === 400 || response.status === 403 || response.status === 404,
+            "Expected 400 (or soft failure when product missing)"
+        );
+        if (response.status === 400) {
+            client.assert(
+                response.body.errors[0].code === "VALIDATION_ERROR",
+                "Expected VALIDATION_ERROR for unsupported FEED_BUILDER scope"
+            );
+        }
+    });
+%}
+
+###
+
 ### @name listPackageProductRules
 GET {{baseUrl}}/api/v1/tenant/products/{{packageProductId}}/rules
 Host: {{tenantAHost}}

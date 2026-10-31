@@ -117,11 +117,7 @@ class ProductAccessRuleServiceTest {
         )).isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("scopeId");
 
-        verify(productAccessRuleScopeValidator).validateScope(
-                eq(TENANT_ID),
-                eq(ProductAccessScopeType.PODCAST_SERIES),
-                eq(null)
-        );
+        verify(productAccessRuleRepository, never()).deleteByTenantIdAndProductId(any(), any());
         verify(productAccessRuleRepository, never()).saveAll(any());
     }
 
@@ -136,6 +132,22 @@ class ProductAccessRuleServiceTest {
                 List.of(new ProductAccessRuleService.RuleInput(ProductAccessScopeType.ALL_PODCASTS, 1L))
         )).isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("must not set scopeId");
+    }
+
+    @Test
+    void replaceRulesRejectsFeedBuilderScope() {
+        SubscriptionProduct product = packageProduct();
+        when(subscriptionProductService.requireProduct(TENANT_ID, PRODUCT_ID)).thenReturn(product);
+
+        assertThatThrownBy(() -> service.replaceRules(
+                TENANT_ID,
+                PRODUCT_ID,
+                List.of(new ProductAccessRuleService.RuleInput(ProductAccessScopeType.FEED_BUILDER, null))
+        )).isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("FEED_BUILDER");
+
+        verify(productAccessRuleRepository, never()).deleteByTenantIdAndProductId(any(), any());
+        verify(productAccessRuleRepository, never()).saveAll(any());
     }
 
     private static SubscriptionProduct packageProduct() {
