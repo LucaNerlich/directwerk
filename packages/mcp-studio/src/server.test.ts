@@ -28,3 +28,16 @@ test('stdio-style createMcpServer registers import_podcast_manifest', () => {
     const names = registeredToolNames(createMcpServer(stubClient(), {filesystemTools: true}))
     assert.equal(names.includes('import_podcast_manifest'), true)
 })
+
+test('list tools omit unbound q/seriesId filters', () => {
+    const server = createMcpServer(stubClient())
+    const tools = (server as unknown as {
+        _registeredTools: Record<string, {inputSchema?: {shape?: Record<string, unknown>}}>
+    })._registeredTools
+    const articleKeys = Object.keys(tools.list_articles?.inputSchema?.shape ?? {})
+    const episodeKeys = Object.keys(tools.list_episodes?.inputSchema?.shape ?? {})
+    const mediaKeys = Object.keys(tools.list_media?.inputSchema?.shape ?? {})
+    assert.deepEqual(articleKeys.sort(), ['limit', 'offset'])
+    assert.deepEqual(episodeKeys.sort(), ['limit', 'offset'])
+    assert.deepEqual(mediaKeys.sort(), ['folderId', 'limit', 'offset'])
+})
