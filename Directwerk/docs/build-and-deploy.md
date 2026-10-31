@@ -17,7 +17,7 @@ Related docs:
 |------|-------------|
 | **Java 21** | Host `./gradlew` builds, tests, and `bootRun` |
 | **Docker** + **Compose v2** | Local Postgres + Mailpit (recommended); full container stack; image builds |
-| **pnpm 12** (optional) | Next.js apps: `directwerk-studio/`, `directwerk-web/`, `directwerk-admin/` |
+| **pnpm 10.33.2** (optional) | Next.js apps: `directwerk-studio/`, `directwerk-web/`, `directwerk-admin/` (workspace `packageManager`) |
 | **`.env` file** | Copy from [`.env.example`](../.env.example); never commit `.env` |
 
 ## Project layout (build-relevant)
