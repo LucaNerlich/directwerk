@@ -1,5 +1,5 @@
 import type {Metadata} from 'next'
-import Script from 'next/script'
+import {headers} from 'next/headers'
 import {connection} from 'next/server'
 
 import UmamiAnalytics from '@directwerk/ui/components/umami-analytics'
@@ -45,15 +45,19 @@ export default async function LangLayout({
     const {lang: langParam} = await params
     const lang = assertLocale(langParam)
     const dictionary = await getDictionary(lang)
+    // Proxy forwards the CSP script nonce on every request (see directwerkProxy).
+    const nonce = (await headers()).get('x-nonce') ?? undefined
 
     return (
         <html lang={lang} suppressHydrationWarning>
-            <body className="min-h-svh bg-background text-foreground antialiased">
-                <Script
-                    id="dw-studio-theme"
-                    strategy="beforeInteractive"
+            <head>
+                {/* Parse-blocking: applies .dark/.light before first paint (FOUC). */}
+                <script
+                    nonce={nonce}
                     dangerouslySetInnerHTML={{__html: themeInitScript()}}
                 />
+            </head>
+            <body className="min-h-svh bg-background text-foreground antialiased">
                 <UmamiAnalytics />
                 <ThemeProvider>
                     <LocaleProvider dictionary={dictionary} lang={lang}>
