@@ -74,8 +74,38 @@ describe('renderContentHtml', () => {
         expect(rendered).toContain('<h2>Title</h2>')
         expect(rendered).toContain('<strong>y</strong>')
         expect(rendered).toContain('href="https://x.test"')
+        expect(rendered).toContain('target="_blank"')
+        expect(rendered).toContain('rel="noopener noreferrer"')
         expect(rendered).not.toContain('# Title')
         expect(rendered).not.toContain('**y**')
+    })
+
+    it('opens external http(s) links in a new tab, keeps relative same-tab', () => {
+        const md = [
+            'See [Wowhead](https://www.wowhead.com/classic/npc=123) and',
+            '[overview](/en/a/forever-wow-forever-overview) or [mail](mailto:a@b.test).',
+        ].join(' ')
+
+        const rendered = renderContentHtml(md)
+        expect(rendered).toMatch(
+            /<a href="https:\/\/www\.wowhead\.com\/classic\/npc=123"[^>]*target="_blank"[^>]*rel="noopener noreferrer"/,
+        )
+        expect(rendered).toContain('href="/en/a/forever-wow-forever-overview"')
+        expect(rendered).not.toMatch(
+            /href="\/en\/a\/forever-wow-forever-overview"[^>]*target=/,
+        )
+        expect(rendered).toContain('href="mailto:a@b.test"')
+        expect(rendered).not.toMatch(/href="mailto:a@b\.test"[^>]*target=/)
+    })
+
+    it('adds new-tab attrs to external links in TipTap HTML', () => {
+        const rendered = renderContentHtml(
+            '<p><a href="https://example.test/x">out</a> <a href="/en/a/y">in</a></p>',
+        )
+        expect(rendered).toContain('target="_blank"')
+        expect(rendered).toContain('rel="noopener noreferrer"')
+        expect(rendered).toContain('href="/en/a/y"')
+        expect(rendered).not.toMatch(/href="\/en\/a\/y"[^>]*target=/)
     })
 
     it('does not throw on invalid numeric entities', () => {
