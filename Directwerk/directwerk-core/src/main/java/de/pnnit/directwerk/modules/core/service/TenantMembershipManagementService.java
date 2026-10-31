@@ -5,6 +5,8 @@ import de.pnnit.directwerk.modules.core.audit.PlatformAuditService;
 import de.pnnit.directwerk.modules.core.entity.MembershipStatus;
 import de.pnnit.directwerk.modules.core.entity.Role;
 import de.pnnit.directwerk.modules.core.entity.TenantMembership;
+import de.pnnit.directwerk.modules.core.exception.ConflictCodes;
+import de.pnnit.directwerk.modules.core.exception.ConflictException;
 import de.pnnit.directwerk.modules.content.TenantMembershipActivatedEvent;
 import de.pnnit.directwerk.modules.core.repository.TenantMembershipRepository;
 import de.pnnit.directwerk.security.SecurityUtils;
@@ -73,15 +75,27 @@ public class TenantMembershipManagementService {
 
     /**
      * Reactivates a previously deactivated membership in a tenant.
+     * Only {@link MembershipStatus#DISABLED} → {@link MembershipStatus#ACTIVE} transitions;
+     * already-ACTIVE is a no-op (no event); any other status is refused with 409.
      *
      * @param tenantId the tenant the membership belongs to
      * @param userId   the identifier of the member to reactivate
      * @return the updated membership view
      * @throws TenantMembershipNotFoundException if no membership exists for the (tenant, user) pair
+     * @throws ConflictException if the membership is not DISABLED or ACTIVE
      */
     @Transactional
     public TenantUserQueryService.TenantUserView reactivateMembership(Long tenantId, Long userId) {
         TenantMembership membership = requireMembership(tenantId, userId);
+        if (membership.getStatus() == MembershipStatus.ACTIVE) {
+            return toView(membership);
+        }
+        if (membership.getStatus() != MembershipStatus.DISABLED) {
+            throw new ConflictException(
+                    ConflictCodes.INVALID_MEMBERSHIP_STATE,
+                    "Only disabled memberships can be reactivated"
+            );
+        }
         membership.setStatus(MembershipStatus.ACTIVE);
         TenantMembership saved = tenantMembershipRepository.save(membership);
         eventPublisher.publishEvent(new TenantMembershipActivatedEvent(tenantId, userId));

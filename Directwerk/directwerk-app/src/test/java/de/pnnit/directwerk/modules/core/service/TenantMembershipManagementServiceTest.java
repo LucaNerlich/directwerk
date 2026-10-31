@@ -8,12 +8,15 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import de.pnnit.directwerk.modules.content.TenantMembershipActivatedEvent;
 import de.pnnit.directwerk.modules.core.audit.PlatformAuditActions;
 import de.pnnit.directwerk.modules.core.audit.PlatformAuditService;
 import de.pnnit.directwerk.modules.core.entity.MembershipStatus;
 import de.pnnit.directwerk.modules.core.entity.Role;
 import de.pnnit.directwerk.modules.core.entity.TenantMembership;
 import de.pnnit.directwerk.modules.core.entity.User;
+import de.pnnit.directwerk.modules.core.exception.ConflictCodes;
+import de.pnnit.directwerk.modules.core.exception.ConflictException;
 import de.pnnit.directwerk.modules.core.repository.TenantMembershipRepository;
 import de.pnnit.directwerk.modules.core.service.MembershipPermissionService;
 import de.pnnit.directwerk.security.DirectwerkUserPrincipal;
@@ -105,6 +108,7 @@ class TenantMembershipManagementServiceTest {
 
         assertThat(result.status()).isEqualTo("ACTIVE");
         assertThat(membership.getStatus()).isEqualTo(MembershipStatus.ACTIVE);
+        verify(eventPublisher).publishEvent(new TenantMembershipActivatedEvent(TENANT_ID, 5L));
         verify(platformAuditService).record(
                 eq(PlatformAuditActions.MEMBERSHIP_REACTIVATED),
                 eq(TENANT_ID),
@@ -125,6 +129,37 @@ class TenantMembershipManagementServiceTest {
 
         assertThat(result.status()).isEqualTo("ACTIVE");
         verify(tenantMembershipRepository, never()).findByTenantId(TENANT_ID);
+    }
+
+    @Test
+    void reactivateAlreadyActiveIsIdempotentWithoutEvent() {
+        TenantMembership membership = membership(5L, MembershipStatus.ACTIVE, Role.EDITOR);
+        when(tenantMembershipRepository.findByUserIdAndTenantId(5L, TENANT_ID)).thenReturn(Optional.of(membership));
+
+        TenantUserQueryService.TenantUserView result = service.reactivateMembership(TENANT_ID, 5L);
+
+        assertThat(result.status()).isEqualTo("ACTIVE");
+        verify(tenantMembershipRepository, never()).save(membership);
+        verify(eventPublisher, never()).publishEvent(org.mockito.ArgumentMatchers.any());
+        verify(platformAuditService, never()).record(
+                eq(PlatformAuditActions.MEMBERSHIP_REACTIVATED),
+                eq(TENANT_ID),
+                eq(Map.of("userId", 5L))
+        );
+    }
+
+    @Test
+    void reactivateInvitedMembershipIsRejected() {
+        TenantMembership membership = membership(5L, MembershipStatus.INVITED, Role.EDITOR);
+        when(tenantMembershipRepository.findByUserIdAndTenantId(5L, TENANT_ID)).thenReturn(Optional.of(membership));
+
+        assertThatThrownBy(() -> service.reactivateMembership(TENANT_ID, 5L))
+                .isInstanceOf(ConflictException.class)
+                .extracting("code")
+                .isEqualTo(ConflictCodes.INVALID_MEMBERSHIP_STATE);
+
+        verify(tenantMembershipRepository, never()).save(membership);
+        verify(eventPublisher, never()).publishEvent(org.mockito.ArgumentMatchers.any());
     }
 
     @Test
