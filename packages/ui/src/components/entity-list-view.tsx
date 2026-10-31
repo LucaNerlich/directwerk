@@ -196,6 +196,7 @@ export function EntityListView<TId extends EntityListItemId>({
                                     'h-full',
                                     isSelected && 'ring-2 ring-primary',
                                 )}
+                                data-dw-surface="panel"
                                 size="sm"
                             >
                                 <CardHeader className="flex flex-row items-start gap-3">

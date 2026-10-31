@@ -28,11 +28,9 @@ describe('entity list components', () => {
             name: '„Media file“ auswählen',
         })
         expect(checkbox).toBeChecked()
-        expect(checkbox.closest('[data-slot="card"]')).toHaveClass(
-            'h-full',
-            'ring-2',
-            'ring-primary',
-        )
+        const card = checkbox.closest('[data-slot="card"]')
+        expect(card).toHaveClass('h-full', 'ring-2', 'ring-primary')
+        expect(card).toHaveAttribute('data-dw-surface', 'panel')
     })
 
     it('marks a partial select-all state as indeterminate', () => {

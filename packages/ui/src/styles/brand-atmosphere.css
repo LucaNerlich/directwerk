@@ -43,18 +43,18 @@
     /* No background-attachment: fixed — iOS Safari mispaints fixed washes on non-body wrappers. */
 }
 
-/* Dark: muted depth only — no bright white “glow” edges. */
+/* Dark: soft centered depth only — no white inset/edge bloom (top-weighted glow). */
 .dark .dw-brand,
 .dark .dw-web-brand {
-    --dw-surface-shadow: 0 1px 2px color-mix(in oklab, black 28%, transparent),
-        0 10px 28px color-mix(in oklab, black 22%, transparent);
-    --dw-surface-inset: 0 1px 0 color-mix(in oklab, white 6%, transparent) inset;
-    --dw-panel-shadow: 0 1px 2px color-mix(in oklab, black 24%, transparent),
-        0 8px 20px color-mix(in oklab, black 18%, transparent);
-    --dw-panel-inset: 0 1px 0 color-mix(in oklab, white 5%, transparent) inset;
-    --dw-glass-shadow: 0 1px 0 color-mix(in oklab, white 6%, transparent) inset,
-        0 14px 32px color-mix(in oklab, black 30%, transparent);
-    --dw-edge-highlight: color-mix(in oklab, white 8%, transparent);
+    --dw-surface-shadow: 0 1px 2px color-mix(in oklab, black 22%, transparent),
+        0 6px 16px color-mix(in oklab, black 14%, transparent);
+    --dw-surface-inset: 0 0 #0000;
+    --dw-panel-shadow: 0 1px 2px color-mix(in oklab, black 18%, transparent),
+        0 4px 12px color-mix(in oklab, black 12%, transparent);
+    --dw-panel-inset: 0 0 #0000;
+    --dw-glass-shadow: 0 1px 2px color-mix(in oklab, black 22%, transparent),
+        0 10px 24px color-mix(in oklab, black 18%, transparent);
+    --dw-edge-highlight: color-mix(in oklab, white 4%, transparent);
 }
 
 /* Public site sticky chrome (web SiteHeader / footer). */
@@ -112,14 +112,25 @@
 }
 
 /*
- * Soft centered panel depth for dashboard surfaces (StatCard, FeatureCard, ListPanel).
- * Opt in with data-dw-surface="panel" under a .dw-brand ancestor.
+ * Soft centered panel depth for dashboard surfaces (StatCard, FeatureCard,
+ * ListPanel, entity-list grid Cards via data-dw-surface="panel").
+ * Do not blanket [data-slot=card] — AuthCard uses the same slot with
+ * data-dw-surface="auth" and must keep frost glass.
  */
 /* Skip when the card already opted into marketing .dw-glass / .dw-neo. */
 .dw-brand [data-dw-surface='panel']:not(.dw-glass):not(.dw-neo) {
     background: color-mix(in oklab, var(--primary) 6%, var(--card));
     border-color: color-mix(in oklab, var(--primary) 18%, var(--border));
+    /* Even depth only — do not stack a white ring/glow on top. */
     box-shadow: var(--dw-panel-shadow), var(--dw-panel-inset);
+}
+
+/* Panel Cards that also use ring-primary (entity-list selection) keep outline. */
+.dw-brand [data-dw-surface='panel'][data-slot='card'].ring-primary {
+    box-shadow:
+        var(--dw-panel-shadow),
+        var(--dw-panel-inset),
+        0 0 0 2px var(--primary);
 }
 
 .dw-brand [data-dw-surface='empty'] {
