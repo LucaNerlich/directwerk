@@ -112,6 +112,7 @@ public class StripeSdkOperations implements StripeOperations {
     public CatalogIds upsertProductAndPrice(
             String accountId,
             String existingProductId,
+            String existingPriceId,
             String title,
             String description,
             long priceCents,
@@ -140,6 +141,13 @@ public class StripeSdkOperations implements StripeOperations {
                 Product.retrieve(productId, connected).update(update.build(), connected);
             }
 
+            if (existingPriceId != null && !existingPriceId.isBlank()) {
+                Price existing = Price.retrieve(existingPriceId, connected);
+                if (priceMatches(existing, productId, priceCents, currency, interval)) {
+                    return new CatalogIds(productId, existingPriceId);
+                }
+            }
+
             PriceCreateParams.Builder priceBuilder = PriceCreateParams.builder()
                     .setProduct(productId)
                     .setCurrency(currency.toLowerCase())
@@ -159,6 +167,37 @@ public class StripeSdkOperations implements StripeOperations {
         } catch (StripeException ex) {
             throw wrap(ex);
         }
+    }
+
+    /**
+     * True when the Stripe Price is still the one we would create for this sync
+     * (same product, amount, currency, interval, and active).
+     */
+    static boolean priceMatches(
+            Price price,
+            String productId,
+            long priceCents,
+            String currency,
+            BillingInterval interval
+    ) {
+        if (price == null || !Boolean.TRUE.equals(price.getActive())) {
+            return false;
+        }
+        if (productId == null || !productId.equals(price.getProduct())) {
+            return false;
+        }
+        if (price.getUnitAmount() == null || price.getUnitAmount() != priceCents) {
+            return false;
+        }
+        if (price.getCurrency() == null || !price.getCurrency().equalsIgnoreCase(currency)) {
+            return false;
+        }
+        String stripeInterval = price.getRecurring() == null ? null : price.getRecurring().getInterval();
+        return switch (interval) {
+            case MONTH -> "month".equals(stripeInterval);
+            case YEAR -> "year".equals(stripeInterval);
+            case ONE_TIME -> stripeInterval == null;
+        };
     }
 
     @Override

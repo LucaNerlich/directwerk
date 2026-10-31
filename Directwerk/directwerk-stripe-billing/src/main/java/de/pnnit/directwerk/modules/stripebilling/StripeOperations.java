@@ -25,6 +25,7 @@ public interface StripeOperations {
     CatalogIds upsertProductAndPrice(
             String accountId,
             String existingProductId,
+            String existingPriceId,
             String title,
             String description,
             long priceCents,
