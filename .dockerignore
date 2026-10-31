@@ -23,6 +23,7 @@ Directwerk/.gradle
 Directwerk/**/build
 
 **/*.md
+!CHANGELOG.md
 !Directwerk/docs/build-and-deploy.md
 !directwerk-docs/**/*.md
 

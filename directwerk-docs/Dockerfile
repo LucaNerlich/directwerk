@@ -38,7 +38,9 @@ RUN cp /ctx/package.json /ctx/pnpm-lock.yaml /ctx/pnpm-workspace.yaml . \
            esac; \
            cp -a "$entry" "./directwerk-docs/$base"; \
          done; \
-       fi
+       fi \
+    && if [ -f /ctx/CHANGELOG.md ]; then cp /ctx/CHANGELOG.md ./CHANGELOG.md; fi
+# Requires !CHANGELOG.md in /.dockerignore (Coolify prebuild sync).
 
 RUN --mount=type=cache,target=/root/.local/share/pnpm/store \
     pnpm install --frozen-lockfile --filter directwerk-docs...

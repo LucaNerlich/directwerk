@@ -98,6 +98,13 @@ const sidebarApi = [
   },
 ]
 
+const sidebarChangelog = [
+  {
+    text: 'Changelog',
+    items: [{ text: 'Release notes', link: '/changelog' }],
+  },
+]
+
 export default defineConfig({
   title: 'Directwerk Docs',
   description:
@@ -180,6 +187,7 @@ export default defineConfig({
         activeMatch: '/architecture/',
       },
       { text: 'API', link: '/api/integration', activeMatch: '/api/' },
+      { text: 'Changelog', link: '/changelog', activeMatch: '/changelog' },
       { component: 'DocsNavCta' },
     ],
     sidebar: {
@@ -188,6 +196,7 @@ export default defineConfig({
       '/operators/': sidebarOperators,
       '/architecture/': sidebarArchitecture,
       '/api/': sidebarApi,
+      '/changelog': sidebarChangelog,
     },
     search: {
       provider: 'local',
@@ -195,8 +204,10 @@ export default defineConfig({
     externalLinkIcon: true,
     outline: 'deep',
     editLink: {
-      pattern:
-        'https://github.com/LucaNerlich/directwerk/edit/main/directwerk-docs/docs/:path',
+      pattern: ({ filePath }) =>
+        filePath === 'changelog.md'
+          ? 'https://github.com/LucaNerlich/directwerk/edit/main/CHANGELOG.md'
+          : `https://github.com/LucaNerlich/directwerk/edit/main/directwerk-docs/docs/${filePath}`,
       text: 'Suggest changes to this page',
     },
     socialLinks: [
