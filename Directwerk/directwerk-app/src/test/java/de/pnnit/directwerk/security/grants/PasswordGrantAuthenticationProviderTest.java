@@ -3,15 +3,21 @@ package de.pnnit.directwerk.security.grants;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import de.pnnit.directwerk.multitenancy.TenantNotFoundException;
+import de.pnnit.directwerk.multitenancy.TenantSuspendedException;
 import java.security.Principal;
 import java.time.Instant;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.ArgumentCaptor;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -20,6 +26,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.core.OAuth2AccessToken;
 import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
 import org.springframework.security.oauth2.core.OAuth2ErrorCodes;
@@ -68,6 +75,38 @@ class PasswordGrantAuthenticationProviderTest {
         assertThat(unknownUserError.getError().getErrorCode()).isEqualTo(OAuth2ErrorCodes.INVALID_GRANT);
         assertThat(wrongPasswordError.getError().getErrorCode()).isEqualTo(OAuth2ErrorCodes.INVALID_GRANT);
         assertThat(unknownUserError.getClass()).isEqualTo(wrongPasswordError.getClass());
+    }
+
+    static Stream<RuntimeException> tenantLookupFailures() {
+        return Stream.of(
+                new TenantNotFoundException("Host required for tenant login"),
+                new TenantSuspendedException("acme")
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("tenantLookupFailures")
+    void tenantHostFailuresMapToInvalidGrantWithDummyBcrypt(RuntimeException tenantFailure) {
+        UserDetailsService userDetailsService = mock(UserDetailsService.class);
+        when(userDetailsService.loadUserByUsername("real@example.com")).thenThrow(tenantFailure);
+
+        PasswordEncoder encoder = mock(PasswordEncoder.class);
+        when(encoder.encode(anyString())).thenReturn("$2a$04$dummyEncodedPasswordValue____");
+        when(encoder.matches(anyString(), anyString())).thenReturn(false);
+
+        PasswordGrantAuthenticationProvider provider = new PasswordGrantAuthenticationProvider(
+                userDetailsService,
+                encoder,
+                mock(OAuth2AuthorizationService.class),
+                mock(OAuth2TokenGenerator.class)
+        );
+
+        OAuth2AuthenticationException error = catchOAuth2Exception(
+                provider, "real@example.com", "any-password"
+        );
+
+        assertThat(error.getError().getErrorCode()).isEqualTo(OAuth2ErrorCodes.INVALID_GRANT);
+        verify(encoder).matches(anyString(), anyString());
     }
 
     @Test
