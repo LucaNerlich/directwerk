@@ -10,7 +10,6 @@ import {
     getAccess,
     getMe,
     getNotificationPreferences,
-    getSiteConfig,
     listMySubscriptions,
     updateNotificationPreferences,
 } from '@/lib/api/client'

@@ -25,7 +25,6 @@ function wrapper({children}: {children: ReactNode}): React.JSX.Element {
 const getAccess = vi.fn()
 const getMe = vi.fn()
 const getNotificationPreferences = vi.fn()
-const getSiteConfig = vi.fn()
 const listMySubscriptions = vi.fn()
 
 vi.mock('next/navigation', () => ({useRouter: () => router}))
@@ -38,7 +37,6 @@ vi.mock('@/lib/api/client', () => ({
     getMe: (...args: unknown[]) => getMe(...args),
     getNotificationPreferences: (...args: unknown[]) =>
         getNotificationPreferences(...args),
-    getSiteConfig: (...args: unknown[]) => getSiteConfig(...args),
     listMySubscriptions: (...args: unknown[]) => listMySubscriptions(...args),
     updateNotificationPreferences: vi.fn(),
 }))
@@ -78,11 +76,6 @@ describe('useAccountDashboard', () => {
         siteConfig = {
             enabledModules: ['PODCAST_RSS', 'ARTICLE_RSS', 'SUBSCRIPTION'],
         } as PublicSiteConfig
-        getSiteConfig.mockResolvedValue({
-            data: {
-                enabledModules: ['PODCAST_RSS', 'ARTICLE_RSS', 'SUBSCRIPTION'],
-            },
-        })
 
         const {result} = renderHook(() => useAccountDashboard(), {wrapper})
 

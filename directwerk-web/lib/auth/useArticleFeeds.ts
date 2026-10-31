@@ -4,7 +4,6 @@ import {useAuthedQuery} from '@directwerk/api/client/useAuthedQuery'
 import type {ArticleFeedView} from '@directwerk/api/types'
 
 import {listMyArticleFeeds} from '@/lib/api/client'
-import {getWebClientTenantHost} from '@/lib/tenant/clientHost'
 import {userFacingFeedsError} from '@/lib/billing/userFacingBillingError'
 import {useDictionary} from '@/lib/i18n/LocaleProvider'
 
