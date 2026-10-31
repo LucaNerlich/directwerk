@@ -2,6 +2,7 @@ import {
     archiveEpisode,
     cancelScheduleEpisode,
     deleteEpisode,
+    discardEpisodeDraft,
     publishEpisode,
     scheduleEpisode,
     unarchiveEpisode,
@@ -38,6 +39,7 @@ export const episodeContentEditorDescriptor: ContentEditorDescriptor<EpisodeDeta
             unpublish: (id) => unpublishEpisode(id),
             archive: (id) => archiveEpisode(id),
             unarchive: (id) => unarchiveEpisode(id),
+            discardDraft: (id) => discardEpisodeDraft(id),
             delete: (id) => deleteEpisode(id),
         },
     }

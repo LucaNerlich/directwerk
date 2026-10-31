@@ -237,6 +237,20 @@ public class ArticleController {
     }
 
     @Operation(
+            summary = "Discard working draft",
+            description = "Clears the draft-over-publish overlay on a PUBLISHED article. "
+                    + "Live columns stay unchanged; the public page is unaffected."
+    )
+    @PostMapping("/{articleId}/discard-draft")
+    ResponseEntity<Response<ArticleView>> discardWorkingDraft(@PathVariable Long articleId) {
+        Long tenantId = TenantContext.requireTenantId();
+        return ContentEndpointSupport.ok(
+                articlePublicationWorkflowService.discardWorkingDraft(tenantId, articleId),
+                publicArticleViewMapper::toStudioView
+        );
+    }
+
+    @Operation(
             summary = "Publish multiple articles",
             description = "Publishes every id in a single transaction with a single RSS refresh. "
                     + "Atomic: the first failure rolls back all changes. Duplicate ids are "

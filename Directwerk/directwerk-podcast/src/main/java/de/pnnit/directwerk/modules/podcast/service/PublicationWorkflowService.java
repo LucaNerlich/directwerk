@@ -127,6 +127,12 @@ public class PublicationWorkflowService extends PublicationWorkflow<Episode, Epi
         return unarchiveContent(tenantId, episodeId);
     }
 
+    @Transactional
+    @RequiresModule(PodcastModule.KEY)
+    public Episode discardWorkingDraft(Long tenantId, Long episodeId) {
+        return discardWorkingDraftContent(tenantId, episodeId);
+    }
+
     public int publishDueScheduled() {
         return publishDueScheduledContent();
     }
@@ -207,6 +213,11 @@ public class PublicationWorkflowService extends PublicationWorkflow<Episode, Epi
     }
 
     @Override
+    protected void applyWorkingDraft(Long tenantId, Episode episode) {
+        episodeService.applyWorkingDraft(tenantId, episode);
+    }
+
+    @Override
     protected void validateAndPrepareForPublish(Long tenantId, Episode episode) {
         requirePublishedSeries(episode);
         if (episode.getTitle() == null || episode.getTitle().isBlank()) {
@@ -234,6 +245,10 @@ public class PublicationWorkflowService extends PublicationWorkflow<Episode, Epi
         if (episode.getAccessPolicy() == AccessPolicy.FREE) {
             MediaAsset publicAudio = episodeMediaApi.promoteToPublic(readyAudio.getId());
             episode.setAudioAsset(publicAudio);
+        } else if (readyAudio.getVisibility() == AssetVisibility.PUBLIC) {
+            // Over-publish FREE→PAID (or PAID with a still-public asset) must demote;
+            // unpublish used to be the only path that called demoteToPrivate.
+            episode.setAudioAsset(episodeMediaApi.demoteToPrivate(readyAudio.getId()));
         } else {
             episode.setAudioAsset(readyAudio);
         }

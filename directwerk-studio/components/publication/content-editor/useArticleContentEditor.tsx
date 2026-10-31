@@ -251,9 +251,23 @@ export function useArticleContentEditor(
         persistTags,
         saveImpl,
         onWorkflowComplete: (next) => {
+            // Rehydrate form fields so discard-draft / over-publish don't leave
+            // stale local draft text that would re-stage on the next save.
             setArticle(next)
+            setTitle(next.title)
+            setSlug(next.slug)
+            setBody(next.body ?? '')
+            setExcerpt(next.excerpt ?? '')
+            setSeoDescription(next.seoDescription ?? '')
+            setAccessPolicy(next.accessPolicy)
+            setHeroAssetId(next.heroAssetId)
+            setRequiredLevelSortOrder(next.requiredLevelSortOrder)
             applyPublicationSchedule(next.scheduledAt)
             applyPublicationPublishedAt(next.publishedAt)
+            setSelectedCategoryIds(new Set(next.categories.map((tag) => tag.id)))
+            setSelectedNewsletterListIds(
+                new Set(next.newsletterLists.map((tag) => tag.id)),
+            )
         },
         autosaveBlocked: heroUpload.isUploading,
         authRedirect,

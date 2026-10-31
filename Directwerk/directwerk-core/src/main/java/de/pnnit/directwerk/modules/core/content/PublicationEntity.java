@@ -2,6 +2,7 @@ package de.pnnit.directwerk.modules.core.content;
 
 import de.pnnit.directwerk.modules.core.entity.Tenant;
 import java.time.Instant;
+import java.util.Map;
 
 /**
  * The state every publishable content entity exposes to {@link PublicationWorkflow}.
@@ -41,4 +42,11 @@ public interface PublicationEntity<STATUS> {
     void setEmailNotifiedAt(Instant emailNotifiedAt);
 
     Tenant getTenant();
+
+    /**
+     * Optional JSON overlay for draft-over-publish. Null/empty means no pending draft.
+     */
+    Map<String, Object> getWorkingDraft();
+
+    void setWorkingDraft(Map<String, Object> workingDraft);
 }

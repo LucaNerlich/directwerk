@@ -266,6 +266,37 @@ class PublicationWorkflowServiceTest {
     }
 
     @Test
+    void overPublishFreeToPaidDemotesPublicAudio() {
+        Episode episode = draftEpisode();
+        episode.setStatus(EpisodeStatus.PUBLISHED);
+        episode.setPublishedAt(Instant.parse("2026-01-01T00:00:00Z"));
+        episode.setAccessPolicy(AccessPolicy.PAID);
+        episode.setWorkingDraft(java.util.Map.of("accessPolicy", "PAID"));
+        MediaAsset publicAudio = audio(99L, AssetVisibility.PUBLIC, AssetScope.TENANT_PUBLIC, "alpha/public/audio/ep.mp3");
+        MediaAsset privateAudio = audio(99L, AssetVisibility.PRIVATE, AssetScope.CONTENT, "alpha/private/audio/ep.mp3");
+        episode.setAudioAsset(publicAudio);
+
+        when(episodeService.requireEpisode(10L, 55L)).thenReturn(episode);
+        when(formatService.hasActiveFormats(10L)).thenReturn(false);
+        when(episodeMediaApi.requireReadyAudio(99L)).thenReturn(publicAudio);
+        when(episodeMediaApi.demoteToPrivate(99L)).thenReturn(privateAudio);
+        org.mockito.Mockito.doAnswer(invocation -> {
+            Episode target = invocation.getArgument(1);
+            target.setAccessPolicy(AccessPolicy.PAID);
+            target.setWorkingDraft(null);
+            return null;
+        }).when(episodeService).applyWorkingDraft(eq(10L), eq(episode));
+
+        Episode published = publicationWorkflowService.publish(10L, 55L);
+
+        assertThat(published.getStatus()).isEqualTo(EpisodeStatus.PUBLISHED);
+        assertThat(published.getAccessPolicy()).isEqualTo(AccessPolicy.PAID);
+        assertThat(published.getAudioAsset().getVisibility()).isEqualTo(AssetVisibility.PRIVATE);
+        verify(episodeMediaApi).demoteToPrivate(99L);
+        verify(episodeMediaApi, never()).promoteToPublic(any());
+    }
+
+    @Test
     void publishRequiresFormatWhenTenantHasActiveFormats() {
         Episode episode = draftEpisode();
         MediaAsset privateAudio = audio(99L, AssetVisibility.PRIVATE, AssetScope.CONTENT, "alpha/private/audio/ep.mp3");

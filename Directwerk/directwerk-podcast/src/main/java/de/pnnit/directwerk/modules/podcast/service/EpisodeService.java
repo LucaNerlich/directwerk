@@ -7,10 +7,13 @@ import de.pnnit.directwerk.modules.core.authorization.ContentOperation;
 import de.pnnit.directwerk.modules.core.content.BulkPublication;
 import de.pnnit.directwerk.modules.core.repository.TenantRepository;
 import de.pnnit.directwerk.modules.core.service.MembershipPermissionService;
+import de.pnnit.directwerk.modules.content.WorkingDraftMaps;
 import de.pnnit.directwerk.modules.core.util.FieldConstraints;
 import de.pnnit.directwerk.modules.core.util.SlugNormalizer;
 import de.pnnit.directwerk.modules.core.util.TitleNormalizer;
 import de.pnnit.directwerk.modules.digital.api.EpisodeMediaApi;
+import de.pnnit.directwerk.modules.digital.entity.AssetVisibility;
+import de.pnnit.directwerk.modules.digital.entity.Category;
 import de.pnnit.directwerk.modules.digital.entity.MediaAsset;
 import de.pnnit.directwerk.modules.podcast.PodcastModule;
 import de.pnnit.directwerk.modules.digital.entity.AccessPolicy;
@@ -31,7 +34,9 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.data.domain.PageRequest;
@@ -240,38 +245,37 @@ public class EpisodeService {
             Integer requiredLevelSortOrder,
             Boolean clearCoverAsset
     ) {
-        Episode episode = requireDraftEpisode(tenantId, episodeId);
+        Episode episode = requireEditableEpisode(tenantId, episodeId);
         permissionService.requireEpisodeAccess(ContentOperation.UPDATE, episode.getCreatedBy());
-        if (episodeNumber != null) {
-            episode.setEpisodeNumber(FieldConstraints.requirePositive(episodeNumber, "episodeNumber"));
+        if (episode.getStatus() == EpisodeStatus.PUBLISHED) {
+            return patchWorkingDraft(
+                    tenantId,
+                    episode,
+                    episodeNumber,
+                    rawSlug,
+                    title,
+                    description,
+                    coverAssetId,
+                    durationSeconds,
+                    accessPolicy,
+                    requiredLevelSortOrder,
+                    clearCoverAsset,
+                    null,
+                    null,
+                    null);
         }
-        if (rawSlug != null) {
-            String slug = SlugNormalizer.normalize(rawSlug);
-            if (episodeRepository.existsByTenantIdAndSlugAndIdNot(tenantId, slug, episodeId)) {
-                throw new ConflictException(ConflictCodes.EPISODE_SLUG_EXISTS, "Episode slug already exists: " + slug);
-            }
-            episode.setSlug(slug);
-        }
-        if (title != null) {
-            episode.setTitle(TitleNormalizer.normalize(title, "Episode"));
-        }
-        if (description != null) {
-            episode.setDescription(htmlSanitizer.sanitize(description));
-        }
-        if (Boolean.TRUE.equals(clearCoverAsset)) {
-            episode.setCoverAsset(null);
-        } else if (coverAssetId != null) {
-            episode.setCoverAsset(podcastCoverAssetResolver.resolveCoverAsset(tenantId, coverAssetId));
-        }
-        if (durationSeconds != null) {
-            episode.setDurationSeconds(FieldConstraints.requirePositive(durationSeconds, "durationSeconds"));
-        }
-        if (accessPolicy != null) {
-            episode.setAccessPolicy(accessPolicy);
-        }
-        if (requiredLevelSortOrder != null) {
-            episode.setRequiredLevelSortOrder(FieldConstraints.requireNonNegative(requiredLevelSortOrder, "requiredLevelSortOrder"));
-        }
+        applyLiveFieldUpdates(
+                tenantId,
+                episode,
+                episodeNumber,
+                rawSlug,
+                title,
+                description,
+                coverAssetId,
+                durationSeconds,
+                accessPolicy,
+                requiredLevelSortOrder,
+                clearCoverAsset);
         episodeRepository.save(episode);
         return requireEpisode(tenantId, episodeId);
     }
@@ -279,10 +283,16 @@ public class EpisodeService {
     @Transactional
     @RequiresModule(PodcastModule.KEY)
     public Episode replaceFormats(Long tenantId, Long episodeId, Set<Long> formatIds) {
-        Episode episode = requireDraftEpisode(tenantId, episodeId);
+        Episode episode = requireEditableEpisode(tenantId, episodeId);
         permissionService.requireEpisodeAccess(ContentOperation.UPDATE, episode.getCreatedBy());
+        Set<Format> resolved = resolveFormats(tenantId, formatIds);
+        if (episode.getStatus() == EpisodeStatus.PUBLISHED) {
+            List<Long> ids = resolved.stream().map(Format::getId).sorted().toList();
+            return patchWorkingDraft(
+                    tenantId, episode, null, null, null, null, null, null, null, null, null, ids, null, null);
+        }
         episode.getFormats().clear();
-        episode.getFormats().addAll(resolveFormats(tenantId, formatIds));
+        episode.getFormats().addAll(resolved);
         episodeRepository.save(episode);
         return requireEpisode(tenantId, episodeId);
     }
@@ -290,11 +300,17 @@ public class EpisodeService {
     @Transactional
     @RequiresModule(PodcastModule.KEY)
     public Episode replaceCategories(Long tenantId, Long episodeId, Set<Long> categoryIds) {
-        Episode episode = requireDraftEpisode(tenantId, episodeId);
+        Episode episode = requireEditableEpisode(tenantId, episodeId);
         permissionService.requireEpisodeAccess(ContentOperation.UPDATE, episode.getCreatedBy());
+        Set<Category> resolved = categoryService.resolveActiveCategories(tenantId, categoryIds,
+                id -> { throw new EpisodeValidationException("Category is inactive: " + id); });
+        if (episode.getStatus() == EpisodeStatus.PUBLISHED) {
+            List<Long> ids = resolved.stream().map(Category::getId).sorted().toList();
+            return patchWorkingDraft(
+                    tenantId, episode, null, null, null, null, null, null, null, null, null, null, ids, null);
+        }
         episode.getCategories().clear();
-        episode.getCategories().addAll(categoryService.resolveActiveCategories(tenantId, categoryIds,
-                id -> { throw new EpisodeValidationException("Category is inactive: " + id); }));
+        episode.getCategories().addAll(resolved);
         episodeRepository.save(episode);
         return requireEpisode(tenantId, episodeId);
     }
@@ -302,13 +318,107 @@ public class EpisodeService {
     @Transactional
     @RequiresModule(PodcastModule.KEY)
     public Episode attachAudio(Long tenantId, Long episodeId, Long audioAssetId) {
-        Episode episode = requireDraftEpisode(tenantId, episodeId);
+        Episode episode = requireEditableEpisode(tenantId, episodeId);
         permissionService.requireEpisodeAccess(ContentOperation.UPDATE, episode.getCreatedBy());
         MediaAsset audio = episodeMediaApi.requireReadyAudio(audioAssetId);
+        if (episode.getStatus() == EpisodeStatus.PUBLISHED) {
+            return patchWorkingDraft(
+                    tenantId,
+                    episode,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    audio.getId());
+        }
         episode.setAudioAsset(audio);
         episodeRepository.save(episode);
         episodeMediaApi.attachEpisode(audioAssetId, episodeId);
         return requireEpisode(tenantId, episodeId);
+    }
+
+    /**
+     * Applies a working-draft overlay onto live columns and join tables (over-publish / unpublish).
+     */
+    @Transactional
+    @RequiresModule(PodcastModule.KEY)
+    public void applyWorkingDraft(Long tenantId, Episode episode) {
+        Map<String, Object> draft = episode.getWorkingDraft();
+        if (!WorkingDraftMaps.isPresent(draft)) {
+            return;
+        }
+        if (WorkingDraftMaps.containsKey(draft, WorkingDraftMaps.EPISODE_NUMBER)) {
+            episode.setEpisodeNumber(FieldConstraints.requirePositive(
+                    WorkingDraftMaps.getInteger(draft, WorkingDraftMaps.EPISODE_NUMBER), "episodeNumber"));
+        }
+        if (WorkingDraftMaps.containsKey(draft, WorkingDraftMaps.SLUG)) {
+            String slug = SlugNormalizer.normalize(WorkingDraftMaps.getString(draft, WorkingDraftMaps.SLUG));
+            if (episodeRepository.existsByTenantIdAndSlugAndIdNot(tenantId, slug, episode.getId())) {
+                throw new ConflictException(ConflictCodes.EPISODE_SLUG_EXISTS, "Episode slug already exists: " + slug);
+            }
+            episode.setSlug(slug);
+        }
+        if (WorkingDraftMaps.containsKey(draft, WorkingDraftMaps.TITLE)) {
+            episode.setTitle(TitleNormalizer.normalize(
+                    WorkingDraftMaps.getString(draft, WorkingDraftMaps.TITLE), "Episode"));
+        }
+        if (WorkingDraftMaps.containsKey(draft, WorkingDraftMaps.DESCRIPTION)) {
+            episode.setDescription(htmlSanitizer.sanitize(
+                    WorkingDraftMaps.getString(draft, WorkingDraftMaps.DESCRIPTION)));
+        }
+        if (WorkingDraftMaps.getBoolean(draft, WorkingDraftMaps.CLEAR_COVER_ASSET, false)) {
+            episode.setCoverAsset(null);
+        } else if (WorkingDraftMaps.containsKey(draft, WorkingDraftMaps.COVER_ASSET_ID)) {
+            episode.setCoverAsset(podcastCoverAssetResolver.resolveCoverAsset(
+                    tenantId, WorkingDraftMaps.getLong(draft, WorkingDraftMaps.COVER_ASSET_ID)));
+        }
+        if (WorkingDraftMaps.containsKey(draft, WorkingDraftMaps.DURATION_SECONDS)) {
+            episode.setDurationSeconds(FieldConstraints.requirePositive(
+                    WorkingDraftMaps.getInteger(draft, WorkingDraftMaps.DURATION_SECONDS), "durationSeconds"));
+        }
+        if (WorkingDraftMaps.containsKey(draft, WorkingDraftMaps.ACCESS_POLICY)) {
+            episode.setAccessPolicy(AccessPolicy.valueOf(
+                    WorkingDraftMaps.getString(draft, WorkingDraftMaps.ACCESS_POLICY)));
+        }
+        if (WorkingDraftMaps.containsKey(draft, WorkingDraftMaps.REQUIRED_LEVEL_SORT_ORDER)) {
+            episode.setRequiredLevelSortOrder(FieldConstraints.requireNonNegative(
+                    WorkingDraftMaps.getInteger(draft, WorkingDraftMaps.REQUIRED_LEVEL_SORT_ORDER),
+                    "requiredLevelSortOrder"));
+        }
+        if (WorkingDraftMaps.containsKey(draft, WorkingDraftMaps.FORMAT_IDS)) {
+            Set<Long> formatIds = new LinkedHashSet<>(
+                    WorkingDraftMaps.getLongList(draft, WorkingDraftMaps.FORMAT_IDS));
+            episode.getFormats().clear();
+            episode.getFormats().addAll(resolveFormats(tenantId, formatIds));
+        }
+        if (WorkingDraftMaps.containsKey(draft, WorkingDraftMaps.CATEGORY_IDS)) {
+            Set<Long> categoryIds = new LinkedHashSet<>(
+                    WorkingDraftMaps.getLongList(draft, WorkingDraftMaps.CATEGORY_IDS));
+            episode.getCategories().clear();
+            episode.getCategories().addAll(categoryService.resolveActiveCategories(tenantId, categoryIds,
+                    id -> { throw new EpisodeValidationException("Category is inactive: " + id); }));
+        }
+        if (WorkingDraftMaps.containsKey(draft, WorkingDraftMaps.AUDIO_ASSET_ID)) {
+            Long audioAssetId = WorkingDraftMaps.getLong(draft, WorkingDraftMaps.AUDIO_ASSET_ID);
+            MediaAsset previous = episode.getAudioAsset();
+            MediaAsset audio = episodeMediaApi.requireReadyAudio(audioAssetId);
+            episode.setAudioAsset(audio);
+            episodeMediaApi.attachEpisode(audioAssetId, episode.getId());
+            if (previous != null
+                    && previous.getId() != null
+                    && !previous.getId().equals(audioAssetId)
+                    && previous.getVisibility() == AssetVisibility.PUBLIC) {
+                episodeMediaApi.demoteToPrivate(previous.getId());
+            }
+        }
+        episode.setWorkingDraft(null);
     }
 
     /** Toggle stable enclosure proxy URLs for published or draft episodes. */
@@ -380,12 +490,167 @@ public class EpisodeService {
         return deleted;
     }
 
-    private Episode requireDraftEpisode(Long tenantId, Long episodeId) {
+    private Episode requireEditableEpisode(Long tenantId, Long episodeId) {
         Episode episode = requireEpisode(tenantId, episodeId);
-        if (episode.getStatus() != EpisodeStatus.DRAFT) {
-            throw new EpisodeValidationException("Only DRAFT episodes can be edited");
+        EpisodeStatus status = episode.getStatus();
+        if (status != EpisodeStatus.DRAFT && status != EpisodeStatus.PUBLISHED) {
+            throw new EpisodeValidationException(
+                    "Only DRAFT or PUBLISHED episodes can be edited");
         }
         return episode;
+    }
+
+    private Episode patchWorkingDraft(
+            Long tenantId,
+            Episode episode,
+            Integer episodeNumber,
+            String rawSlug,
+            String title,
+            String description,
+            Long coverAssetId,
+            Integer durationSeconds,
+            AccessPolicy accessPolicy,
+            Integer requiredLevelSortOrder,
+            Boolean clearCoverAsset,
+            List<Long> formatIds,
+            List<Long> categoryIds,
+            Long audioAssetId
+    ) {
+        Map<String, Object> draft = WorkingDraftMaps.isPresent(episode.getWorkingDraft())
+                ? WorkingDraftMaps.mutableCopy(episode.getWorkingDraft())
+                : seedWorkingDraft(episode);
+        if (episodeNumber != null) {
+            WorkingDraftMaps.putInteger(
+                    draft,
+                    WorkingDraftMaps.EPISODE_NUMBER,
+                    FieldConstraints.requirePositive(episodeNumber, "episodeNumber"));
+        }
+        if (rawSlug != null) {
+            String slug = SlugNormalizer.normalize(rawSlug);
+            if (episodeRepository.existsByTenantIdAndSlugAndIdNot(tenantId, slug, episode.getId())) {
+                throw new ConflictException(ConflictCodes.EPISODE_SLUG_EXISTS, "Episode slug already exists: " + slug);
+            }
+            WorkingDraftMaps.putString(draft, WorkingDraftMaps.SLUG, slug);
+        }
+        if (title != null) {
+            WorkingDraftMaps.putString(
+                    draft, WorkingDraftMaps.TITLE, TitleNormalizer.normalize(title, "Episode"));
+        }
+        if (description != null) {
+            WorkingDraftMaps.putString(
+                    draft, WorkingDraftMaps.DESCRIPTION, htmlSanitizer.sanitize(description));
+        }
+        if (Boolean.TRUE.equals(clearCoverAsset)) {
+            WorkingDraftMaps.putBoolean(draft, WorkingDraftMaps.CLEAR_COVER_ASSET, true);
+            WorkingDraftMaps.putNullableLong(draft, WorkingDraftMaps.COVER_ASSET_ID, null);
+        } else if (coverAssetId != null) {
+            podcastCoverAssetResolver.resolveCoverAsset(tenantId, coverAssetId);
+            WorkingDraftMaps.putBoolean(draft, WorkingDraftMaps.CLEAR_COVER_ASSET, false);
+            WorkingDraftMaps.putNullableLong(draft, WorkingDraftMaps.COVER_ASSET_ID, coverAssetId);
+        }
+        if (durationSeconds != null) {
+            WorkingDraftMaps.putInteger(
+                    draft,
+                    WorkingDraftMaps.DURATION_SECONDS,
+                    FieldConstraints.requirePositive(durationSeconds, "durationSeconds"));
+        }
+        if (accessPolicy != null) {
+            WorkingDraftMaps.putString(draft, WorkingDraftMaps.ACCESS_POLICY, accessPolicy.name());
+        }
+        if (requiredLevelSortOrder != null) {
+            WorkingDraftMaps.putInteger(
+                    draft,
+                    WorkingDraftMaps.REQUIRED_LEVEL_SORT_ORDER,
+                    FieldConstraints.requireNonNegative(requiredLevelSortOrder, "requiredLevelSortOrder"));
+        }
+        if (formatIds != null) {
+            WorkingDraftMaps.putLongList(draft, WorkingDraftMaps.FORMAT_IDS, formatIds);
+        }
+        if (categoryIds != null) {
+            WorkingDraftMaps.putLongList(draft, WorkingDraftMaps.CATEGORY_IDS, categoryIds);
+        }
+        if (audioAssetId != null) {
+            WorkingDraftMaps.putNullableLong(draft, WorkingDraftMaps.AUDIO_ASSET_ID, audioAssetId);
+        }
+        episode.setWorkingDraft(draft);
+        episodeRepository.save(episode);
+        return requireEpisode(tenantId, episode.getId());
+    }
+
+    private Map<String, Object> seedWorkingDraft(Episode episode) {
+        Map<String, Object> draft = WorkingDraftMaps.mutableCopy(null);
+        WorkingDraftMaps.putInteger(draft, WorkingDraftMaps.EPISODE_NUMBER, episode.getEpisodeNumber());
+        WorkingDraftMaps.putString(draft, WorkingDraftMaps.SLUG, episode.getSlug());
+        WorkingDraftMaps.putString(draft, WorkingDraftMaps.TITLE, episode.getTitle());
+        WorkingDraftMaps.putString(draft, WorkingDraftMaps.DESCRIPTION, episode.getDescription());
+        WorkingDraftMaps.putNullableLong(
+                draft,
+                WorkingDraftMaps.COVER_ASSET_ID,
+                episode.getCoverAsset() != null ? episode.getCoverAsset().getId() : null);
+        WorkingDraftMaps.putBoolean(draft, WorkingDraftMaps.CLEAR_COVER_ASSET, false);
+        WorkingDraftMaps.putNullableLong(
+                draft,
+                WorkingDraftMaps.AUDIO_ASSET_ID,
+                episode.getAudioAsset() != null ? episode.getAudioAsset().getId() : null);
+        WorkingDraftMaps.putInteger(draft, WorkingDraftMaps.DURATION_SECONDS, episode.getDurationSeconds());
+        WorkingDraftMaps.putString(draft, WorkingDraftMaps.ACCESS_POLICY, episode.getAccessPolicy().name());
+        WorkingDraftMaps.putInteger(
+                draft, WorkingDraftMaps.REQUIRED_LEVEL_SORT_ORDER, episode.getRequiredLevelSortOrder());
+        WorkingDraftMaps.putLongList(
+                draft,
+                WorkingDraftMaps.FORMAT_IDS,
+                episode.getFormats().stream().map(Format::getId).sorted().collect(Collectors.toList()));
+        WorkingDraftMaps.putLongList(
+                draft,
+                WorkingDraftMaps.CATEGORY_IDS,
+                episode.getCategories().stream().map(Category::getId).sorted().collect(Collectors.toList()));
+        return draft;
+    }
+
+    private void applyLiveFieldUpdates(
+            Long tenantId,
+            Episode episode,
+            Integer episodeNumber,
+            String rawSlug,
+            String title,
+            String description,
+            Long coverAssetId,
+            Integer durationSeconds,
+            AccessPolicy accessPolicy,
+            Integer requiredLevelSortOrder,
+            Boolean clearCoverAsset
+    ) {
+        if (episodeNumber != null) {
+            episode.setEpisodeNumber(FieldConstraints.requirePositive(episodeNumber, "episodeNumber"));
+        }
+        if (rawSlug != null) {
+            String slug = SlugNormalizer.normalize(rawSlug);
+            if (episodeRepository.existsByTenantIdAndSlugAndIdNot(tenantId, slug, episode.getId())) {
+                throw new ConflictException(ConflictCodes.EPISODE_SLUG_EXISTS, "Episode slug already exists: " + slug);
+            }
+            episode.setSlug(slug);
+        }
+        if (title != null) {
+            episode.setTitle(TitleNormalizer.normalize(title, "Episode"));
+        }
+        if (description != null) {
+            episode.setDescription(htmlSanitizer.sanitize(description));
+        }
+        if (Boolean.TRUE.equals(clearCoverAsset)) {
+            episode.setCoverAsset(null);
+        } else if (coverAssetId != null) {
+            episode.setCoverAsset(podcastCoverAssetResolver.resolveCoverAsset(tenantId, coverAssetId));
+        }
+        if (durationSeconds != null) {
+            episode.setDurationSeconds(FieldConstraints.requirePositive(durationSeconds, "durationSeconds"));
+        }
+        if (accessPolicy != null) {
+            episode.setAccessPolicy(accessPolicy);
+        }
+        if (requiredLevelSortOrder != null) {
+            episode.setRequiredLevelSortOrder(
+                    FieldConstraints.requireNonNegative(requiredLevelSortOrder, "requiredLevelSortOrder"));
+        }
     }
 
     private Set<Format> resolveFormats(Long tenantId, Set<Long> formatIds) {

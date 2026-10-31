@@ -3,6 +3,10 @@ info:
   type: http
   seq: 4
 
+docs: |
+  DRAFT: writes live columns. PUBLISHED: stages a working_draft overlay (hasWorkingDraft=true);
+  public/RSS stay on live columns until POST …/publish (over-publish).
+
 http:
   method: PUT
   url: "{{baseUrl}}/api/v1/articles/{{articleId}}"

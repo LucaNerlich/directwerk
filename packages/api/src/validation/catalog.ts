@@ -283,6 +283,7 @@ function parseArticleDetail(value: unknown): ArticleDetail | null {
             ? value.emailNotifiedAt
             : null,
         createdBy: parseNullableUserId(value.createdBy),
+        hasWorkingDraft: value.hasWorkingDraft === true,
     }
 }
 
@@ -414,6 +415,7 @@ function parseEpisodeDetail(value: unknown): EpisodeDetail | null {
             ? value.emailNotifiedAt
             : null,
         createdBy: parseNullableUserId(value.createdBy),
+        hasWorkingDraft: value.hasWorkingDraft === true,
     }
 }
 

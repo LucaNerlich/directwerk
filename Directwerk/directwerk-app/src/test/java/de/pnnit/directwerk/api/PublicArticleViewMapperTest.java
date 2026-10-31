@@ -7,9 +7,11 @@ import de.pnnit.directwerk.api.dto.ArticleView;
 import de.pnnit.directwerk.api.dto.PublicArticleView;
 import de.pnnit.directwerk.modules.digital.entity.AccessPolicy;
 import de.pnnit.directwerk.modules.digital.entity.MediaAsset;
+import de.pnnit.directwerk.modules.digital.service.CategoryService;
 import de.pnnit.directwerk.modules.digital.service.PublicCdnUrlResolver;
 import de.pnnit.directwerk.modules.newsletter.entity.Article;
 import de.pnnit.directwerk.modules.newsletter.entity.ArticleStatus;
+import de.pnnit.directwerk.modules.newsletter.service.NewsletterListService;
 import java.net.URI;
 import java.time.Instant;
 import java.util.Optional;
@@ -21,10 +23,17 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
+@org.mockito.junit.jupiter.MockitoSettings(strictness = org.mockito.quality.Strictness.LENIENT)
 class PublicArticleViewMapperTest {
 
     @Mock
     private PublicCdnUrlResolver publicCdnUrlResolver;
+
+    @Mock
+    private CategoryService categoryService;
+
+    @Mock
+    private NewsletterListService newsletterListService;
 
     @InjectMocks
     private PublicArticleViewMapper mapper;
@@ -69,6 +78,36 @@ class PublicArticleViewMapperTest {
         assertThat(view.heroAssetId()).isEqualTo(9L);
         assertThat(view.heroImageUrl()).isEqualTo("https://cdn.test/hero.jpg");
         assertThat(view.status()).isEqualTo("DRAFT");
+        assertThat(view.hasWorkingDraft()).isFalse();
+    }
+
+    @Test
+    void publicViewIgnoresWorkingDraftOverlay() {
+        MediaAsset hero = org.mockito.Mockito.mock(MediaAsset.class);
+        when(hero.getId()).thenReturn(9L);
+        Article article = article(hero);
+        when(article.getTitle()).thenReturn("Live title");
+        when(article.getWorkingDraft()).thenReturn(java.util.Map.of("title", "Draft title"));
+        when(publicCdnUrlResolver.resolve(hero)).thenReturn(Optional.empty());
+
+        PublicArticleView view = mapper.toPublicView(article);
+
+        assertThat(view.title()).isEqualTo("Live title");
+    }
+
+    @Test
+    void studioViewOverlaysWorkingDraftTitle() {
+        MediaAsset hero = org.mockito.Mockito.mock(MediaAsset.class);
+        when(hero.getId()).thenReturn(9L);
+        Article article = article(hero);
+        when(article.getTitle()).thenReturn("Live title");
+        when(article.getWorkingDraft()).thenReturn(java.util.Map.of("title", "Draft title"));
+        when(publicCdnUrlResolver.resolve(hero)).thenReturn(Optional.empty());
+
+        ArticleView view = mapper.toStudioView(article);
+
+        assertThat(view.title()).isEqualTo("Draft title");
+        assertThat(view.hasWorkingDraft()).isTrue();
     }
 
     private static Article article(MediaAsset hero) {
@@ -96,6 +135,7 @@ class PublicArticleViewMapperTest {
         org.mockito.Mockito.lenient()
                 .when(article.getUpdatedAt())
                 .thenReturn(Instant.parse("2026-01-01T00:00:00Z"));
+        org.mockito.Mockito.lenient().when(article.getWorkingDraft()).thenReturn(null);
         return article;
     }
 }

@@ -22,11 +22,14 @@ import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 import java.time.Instant;
 import java.util.LinkedHashSet;
+import java.util.Map;
 import java.util.Set;
 import de.pnnit.directwerk.modules.core.content.PublicationEntity;
 import lombok.Getter;
 import lombok.Setter;
 import org.hibernate.annotations.Filter;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 @Entity
 @Table(
@@ -91,6 +94,14 @@ public class Article extends BaseEntity implements TenantOwned, PublicationEntit
 
     @Column(name = "notify_subscribers_on_publish", nullable = false)
     private boolean notifySubscribersOnPublish = false;
+
+    /**
+     * Draft-over-publish overlay. When non-null on a {@code PUBLISHED} article, Studio/MCP
+     * edits land here; public/RSS keep reading live columns until publish applies the draft.
+     */
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "working_draft", columnDefinition = "jsonb")
+    private Map<String, Object> workingDraft;
 
     /**
      * Creator for the RBAC permission model (issue #148). {@code null} means a

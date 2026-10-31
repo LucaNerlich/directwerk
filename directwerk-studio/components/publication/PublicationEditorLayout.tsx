@@ -80,6 +80,9 @@ interface PublicationEditorLayoutProps {
     onUnpublish: () => void
     onArchive: () => void
     onUnarchive: () => void
+    /** Staged draft-over-publish overlay on a live PUBLISHED item. */
+    hasWorkingDraft?: boolean
+    onDiscardDraft?: () => void
     sidebarExtra?: ReactNode
 }
 
@@ -152,12 +155,15 @@ export default function PublicationEditorLayout({
     onUnpublish,
     onArchive,
     onUnarchive,
+    hasWorkingDraft = false,
+    onDiscardDraft,
     sidebarExtra,
 }: PublicationEditorLayoutProps): React.JSX.Element {
     const dict = useDictionary()
     const bodyLabel = kind === 'episode' ? 'Shownotes' : 'Text'
     const readOnly = readOnlyReason !== null
-    const fieldsDisabled = isSaving || status !== 'DRAFT' || readOnly
+    const canEditFields = status === 'DRAFT' || status === 'PUBLISHED'
+    const fieldsDisabled = isSaving || !canEditFields || readOnly
     const publicationLabel = kind === 'episode' ? 'Folge' : 'Beitrag'
     const resolvedBackHref = backHref ?? (kind === 'episode' ? '/podcast/episodes' : '/write/articles')
     const resolvedBackLabel = backLabel ?? (kind === 'episode' ? 'Alle Folgen' : 'Alle Beiträge')
@@ -214,12 +220,12 @@ export default function PublicationEditorLayout({
                         {isSaving ? dict.common.saving : (saveHint ?? '')}
                     </p>
                     <div className="ml-auto flex flex-wrap items-center gap-2">
-                        {isDraft ? (
+                        {canEditFields ? (
                             <Button disabled={isSaving || readOnly} onClick={onSave} size="sm" type="button" variant="outline">
                                 {isSaving ? dict.common.saving : dict.common.save}
                             </Button>
                         ) : null}
-                        {(isDraft || isScheduled) ? (
+                        {(isDraft || isScheduled || (isPublished && hasWorkingDraft)) ? (
                             <Button
                                 disabled={isSaving || readOnly || publishDisabled}
                                 onClick={() => setPublishDialogOpen(true)}
@@ -227,15 +233,39 @@ export default function PublicationEditorLayout({
                                 title={blockedReason ?? undefined}
                                 type="button"
                             >
-                                {dict.common.publish}
+                                {isPublished && hasWorkingDraft
+                                    ? 'Änderungen veröffentlichen'
+                                    : dict.common.publish}
                             </Button>
                         ) : null}
                         {isPublished ? (
                             <>
+                                {hasWorkingDraft && onDiscardDraft !== undefined ? (
+                                    <Button
+                                        disabled={isSaving || readOnly}
+                                        onClick={onDiscardDraft}
+                                        size="sm"
+                                        type="button"
+                                        variant="outline"
+                                    >
+                                        Entwurf verwerfen
+                                    </Button>
+                                ) : null}
                                 <Button disabled={isSaving || readOnly} onClick={onUnpublish} size="sm" type="button" variant="outline">
                                     {dict.common.withdraw}
                                 </Button>
-                                <Button disabled={isSaving || readOnly} onClick={onArchive} size="sm" type="button" variant="outline">
+                                <Button
+                                    disabled={isSaving || readOnly || hasWorkingDraft}
+                                    onClick={onArchive}
+                                    size="sm"
+                                    title={
+                                        hasWorkingDraft
+                                            ? 'Entwurf veröffentlichen oder verwerfen, bevor archiviert wird.'
+                                            : undefined
+                                    }
+                                    type="button"
+                                    variant="outline"
+                                >
                                     {dict.common.archive}
                                 </Button>
                             </>
@@ -297,10 +327,19 @@ export default function PublicationEditorLayout({
                             id="publication-content-heading"
                             title="Inhalt"
                         />
-                        {status !== 'DRAFT' ? (
+                        {isPublished ? (
                             <Alert>
                                 <AlertDescription>
-                                    Diese {publicationLabel} ist {status === 'PUBLISHED' ? 'veröffentlicht' : status === 'SCHEDULED' ? 'geplant' : 'archiviert'} — Felder sind gesperrt. Zum Bearbeiten {status === 'ARCHIVED' ? 'wiederherstellen' : 'zurückziehen oder die Planung aufheben'}.
+                                    {hasWorkingDraft
+                                        ? `Live-${publicationLabel} bleibt online. Gespeicherte Änderungen liegen im Entwurf — „Änderungen veröffentlichen“ ersetzt die öffentliche Version.`
+                                        : `Diese ${publicationLabel} ist veröffentlicht. Du kannst weiterbearbeiten; die Live-Seite bleibt online, bis du die Änderungen veröffentlichst.`}
+                                </AlertDescription>
+                            </Alert>
+                        ) : null}
+                        {status === 'SCHEDULED' || status === 'ARCHIVED' ? (
+                            <Alert>
+                                <AlertDescription>
+                                    Diese {publicationLabel} ist {status === 'SCHEDULED' ? 'geplant' : 'archiviert'} — Felder sind gesperrt. Zum Bearbeiten {status === 'ARCHIVED' ? 'wiederherstellen' : 'die Planung aufheben'}.
                                 </AlertDescription>
                             </Alert>
                         ) : null}

@@ -236,10 +236,56 @@ class ArticleServiceTest {
     }
 
     @Test
-    void updateDraftRejectsPublishedArticle() {
+    void updateDraftStagesWorkingDraftOnPublishedArticle() {
         Article published = draftArticle();
         published.setStatus(ArticleStatus.PUBLISHED);
+        published.setTitle("Live title");
+        published.setBody("<p>Live</p>");
         when(articleRepository.findByIdAndTenantId(ARTICLE_ID, TENANT_ID)).thenReturn(Optional.of(published));
+        when(articleRepository.save(published)).thenReturn(published);
+
+        Article updated = articleService.updateDraft(
+                TENANT_ID,
+                ARTICLE_ID,
+                null,
+                "New title",
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null
+        );
+
+        assertThat(updated.getTitle()).isEqualTo("Live title");
+        assertThat(updated.getWorkingDraft()).isNotNull();
+        assertThat(updated.getWorkingDraft().get("title")).isEqualTo("New title");
+        assertThat(updated.getStatus()).isEqualTo(ArticleStatus.PUBLISHED);
+    }
+
+    @Test
+    void applyWorkingDraftCopiesOverlayOntoLiveColumns() {
+        Article published = draftArticle();
+        published.setStatus(ArticleStatus.PUBLISHED);
+        published.setTitle("Live title");
+        published.setBody("<p>Live</p>");
+        published.setWorkingDraft(java.util.Map.of(
+                "title", "Draft title",
+                "body", "<p>Draft body</p>"));
+
+        articleService.applyWorkingDraft(TENANT_ID, published);
+
+        assertThat(published.getTitle()).isEqualTo("Draft title");
+        assertThat(published.getBody()).contains("Draft body");
+        assertThat(published.getWorkingDraft()).isNull();
+    }
+
+    @Test
+    void updateDraftRejectsScheduledArticle() {
+        Article scheduled = draftArticle();
+        scheduled.setStatus(ArticleStatus.SCHEDULED);
+        when(articleRepository.findByIdAndTenantId(ARTICLE_ID, TENANT_ID)).thenReturn(Optional.of(scheduled));
 
         assertThatThrownBy(() -> articleService.updateDraft(
                 TENANT_ID,
@@ -254,7 +300,7 @@ class ArticleServiceTest {
                 null,
                 null
         )).isInstanceOf(ArticleValidationException.class)
-                .hasMessageContaining("DRAFT");
+                .hasMessageContaining("DRAFT or PUBLISHED");
     }
 
     @Test

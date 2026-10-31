@@ -158,6 +158,12 @@ export default function PublicationContentEditor<
                     descriptor.api.unarchive(saved.id),
                 )
             }}
+            hasWorkingDraft={model.publication?.hasWorkingDraft === true}
+            onDiscardDraft={() => {
+                void model.runWorkflow((saved) =>
+                    descriptor.api.discardDraft(saved.id),
+                )
+            }}
             sidebarExtra={
                 <>
                     {model.publishedLinks !== null ? (

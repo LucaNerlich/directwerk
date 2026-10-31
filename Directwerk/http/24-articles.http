@@ -160,6 +160,82 @@ Accept: application/json
 
 ###
 
+### @name updatePublishedArticleWorkingDraft
+### Stages edits without unpublishing. Studio GET overlays working_draft; public GET stays live.
+PUT {{baseUrl}}/api/v1/articles/{{articleId}}
+Host: {{tenantAHost}}
+Authorization: Bearer {{tenantAAccessToken}}
+Content-Type: application/json
+Accept: application/json
+
+{
+  "title": "Harness Article (working draft)",
+  "body": "<p>Staged over live without unpublishing.</p>"
+}
+
+> {%
+    client.test("Stage working draft on published article", function() {
+        client.assert(response.status === 200, "Expected 200");
+        client.assert(response.body.data.status === "PUBLISHED", "Status stays PUBLISHED");
+        client.assert(response.body.data.hasWorkingDraft === true, "hasWorkingDraft");
+        client.assert(response.body.data.title === "Harness Article (working draft)", "Studio view shows draft title");
+    });
+%}
+
+###
+
+### @name overPublishArticleWorkingDraft
+POST {{baseUrl}}/api/v1/articles/{{articleId}}/publish
+Host: {{tenantAHost}}
+Authorization: Bearer {{tenantAAccessToken}}
+Content-Type: application/json
+Accept: application/json
+
+{
+  "notifySubscribers": false
+}
+
+> {%
+    client.test("Over-publish applies working draft", function() {
+        client.assert(response.status === 200, "Expected 200");
+        client.assert(response.body.data.hasWorkingDraft === false, "Draft cleared");
+        client.assert(response.body.data.title === "Harness Article (working draft)", "Live title updated");
+    });
+%}
+
+###
+
+### @name discardArticleWorkingDraft
+### Re-stage then discard (optional; skip if over-publish already cleared the draft).
+PUT {{baseUrl}}/api/v1/articles/{{articleId}}
+Host: {{tenantAHost}}
+Authorization: Bearer {{tenantAAccessToken}}
+Content-Type: application/json
+Accept: application/json
+
+{
+  "title": "Harness Article (discard me)"
+}
+
+###
+
+POST {{baseUrl}}/api/v1/articles/{{articleId}}/discard-draft
+Host: {{tenantAHost}}
+Authorization: Bearer {{tenantAAccessToken}}
+Accept: application/json
+
+> {%
+    client.test("Discard working draft", function() {
+        client.assert(response.status === 200 || response.status === 409, "Expected 200 or 409");
+        if (response.status === 200) {
+            client.assert(response.body.data.hasWorkingDraft === false, "Draft cleared");
+            client.assert(response.body.data.title !== "Harness Article (discard me)", "Live title restored in studio view");
+        }
+    });
+%}
+
+###
+
 ### @name createArticleDraftForNotify
 < {%
   client.global.set("articleNotifySlug", "article-notify-" + Date.now().toString(36));

@@ -274,13 +274,22 @@ export function useEpisodeContentEditor(
         persistTags,
         saveImpl,
         onWorkflowComplete: (next) => {
+            // Rehydrate form fields so discard-draft / over-publish don't leave
+            // stale local draft text that would re-stage on the next save.
             setEpisode(next)
+            setTitle(next.title)
+            setSlug(next.slug)
+            setBody(next.description ?? '')
+            setAccessPolicy(next.accessPolicy)
+            setEpisodeNumber(
+                next.episodeNumber !== null ? String(next.episodeNumber) : '',
+            )
+            setRequiredLevelSortOrder(next.requiredLevelSortOrder)
+            setCoverAssetId(next.coverAssetId)
             applyPublicationSchedule(next.scheduledAt)
             applyPublicationPublishedAt(next.publishedAt)
-            if (next.episodeNumber !== null) {
-                setEpisodeNumber(String(next.episodeNumber))
-            }
-            setRequiredLevelSortOrder(next.requiredLevelSortOrder)
+            setSelectedFormatIds(new Set(next.formats.map((tag) => tag.id)))
+            setSelectedCategoryIds(new Set(next.categories.map((tag) => tag.id)))
         },
         autosaveBlocked: isUploading,
         authRedirect,

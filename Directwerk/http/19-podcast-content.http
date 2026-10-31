@@ -465,6 +465,50 @@ Accept: application/json
 
 ###
 
+### @name updatePublishedEpisodeWorkingDraft
+### Stages edits without unpublishing (same contract as articles).
+PUT {{baseUrl}}/api/v1/episodes/{{podcastEpisodeId}}
+Host: {{tenantAHost}}
+Authorization: Bearer {{tenantAAccessToken}}
+Content-Type: application/json
+Accept: application/json
+
+{
+  "title": "Harness Episode (working draft)"
+}
+
+> {%
+    client.test("Stage working draft on published episode", function() {
+        client.assert(
+            response.status === 200 || response.status === 400 || response.status === 404,
+            "Expected update response"
+        );
+        if (response.status === 200) {
+            client.assert(response.body.data.status === "PUBLISHED", "Status stays PUBLISHED");
+            client.assert(response.body.data.hasWorkingDraft === true, "hasWorkingDraft");
+        }
+    });
+%}
+
+###
+
+### @name discardEpisodeWorkingDraft
+POST {{baseUrl}}/api/v1/episodes/{{podcastEpisodeId}}/discard-draft
+Host: {{tenantAHost}}
+Authorization: Bearer {{tenantAAccessToken}}
+Accept: application/json
+
+> {%
+    client.test("Discard episode working draft", function() {
+        client.assert(
+            response.status === 200 || response.status === 404 || response.status === 409,
+            "Expected discard response"
+        );
+    });
+%}
+
+###
+
 ### @name createPodcastEpisodeDraftForNotify
 < {%
   client.global.set("podcastEpisodeNotifySlug", "episode-notify-" + Date.now().toString(36));

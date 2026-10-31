@@ -2,6 +2,7 @@ import {
     archiveArticle,
     cancelScheduleArticle,
     deleteArticle,
+    discardArticleDraft,
     publishArticle,
     scheduleArticle,
     unarchiveArticle,
@@ -38,6 +39,7 @@ export const articleContentEditorDescriptor: ContentEditorDescriptor<ArticleDeta
             unpublish: (id) => unpublishArticle(id),
             archive: (id) => archiveArticle(id),
             unarchive: (id) => unarchiveArticle(id),
+            discardDraft: (id) => discardArticleDraft(id),
             delete: (id) => deleteArticle(id),
         },
     }

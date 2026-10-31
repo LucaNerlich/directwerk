@@ -6,6 +6,7 @@ import de.pnnit.directwerk.modules.content.InvalidPublicationTransitionException
 import de.pnnit.directwerk.modules.content.PublicationLifecycleSupport;
 import de.pnnit.directwerk.modules.content.PublicationTransitions;
 import de.pnnit.directwerk.modules.content.ScheduledPublishing;
+import de.pnnit.directwerk.modules.content.WorkingDraftMaps;
 import de.pnnit.directwerk.modules.core.authorization.ContentEntityType;
 import de.pnnit.directwerk.modules.core.authorization.ContentOperation;
 import de.pnnit.directwerk.modules.core.notification.PublicationNotificationSupport;
@@ -135,6 +136,10 @@ public abstract class PublicationWorkflow<ENTITY extends PublicationEntity<STATU
     protected ENTITY archiveContent(Long tenantId, Long contentId) {
         ENTITY entity = requireEntity(tenantId, contentId);
         requirePermission(ContentOperation.ARCHIVE, entity);
+        PublicationTransitions.requireNoWorkingDraft(
+                WorkingDraftMaps.isPresent(entity.getWorkingDraft()),
+                pluralLabel(),
+                "archiving");
         PublicationLifecycleSupport.archive(
                 () -> phaseOf(entity.getStatus()) == Phase.PUBLISHED,
                 pluralLabel(),
@@ -148,6 +153,24 @@ public abstract class PublicationWorkflow<ENTITY extends PublicationEntity<STATU
         ENTITY archived = save(entity);
         requestFeedRefresh(tenantId);
         return archived;
+    }
+
+    /**
+     * Drops a working-draft overlay on a published entity without changing live columns.
+     */
+    protected ENTITY discardWorkingDraftContent(Long tenantId, Long contentId) {
+        ENTITY entity = requireEntity(tenantId, contentId);
+        requirePermission(ContentOperation.UPDATE, entity);
+        if (phaseOf(entity.getStatus()) != Phase.PUBLISHED) {
+            throw new InvalidPublicationTransitionException(
+                    "Only PUBLISHED " + pluralLabel() + " can discard a working draft");
+        }
+        if (!WorkingDraftMaps.isPresent(entity.getWorkingDraft())) {
+            throw new InvalidPublicationTransitionException(
+                    "No working draft to discard for this " + singularLabel());
+        }
+        entity.setWorkingDraft(null);
+        return save(entity);
     }
 
     /**
@@ -249,10 +272,17 @@ public abstract class PublicationWorkflow<ENTITY extends PublicationEntity<STATU
             Instant requestedPublishedAt,
             boolean refresh
     ) {
-        PublicationTransitions.requireDraftOrScheduled(
-                phaseOf(entity.getStatus()) == Phase.DRAFT
-                        || phaseOf(entity.getStatus()) == Phase.SCHEDULED,
-                pluralLabel());
+        Phase phase = phaseOf(entity.getStatus());
+        if (phase == Phase.PUBLISHED) {
+            PublicationTransitions.requireWorkingDraftForRepublish(
+                    WorkingDraftMaps.isPresent(entity.getWorkingDraft()),
+                    pluralLabel());
+            applyWorkingDraft(tenantId, entity);
+        } else {
+            PublicationTransitions.requireDraftOrScheduled(
+                    phase == Phase.DRAFT || phase == Phase.SCHEDULED,
+                    pluralLabel());
+        }
         validateAndPrepareForPublish(tenantId, entity);
 
         Instant publishedAt = PublicationTransitions.resolvePublishedAt(
@@ -262,6 +292,7 @@ public abstract class PublicationWorkflow<ENTITY extends PublicationEntity<STATU
         entity.setStatus(statusFor(Phase.PUBLISHED));
         entity.setPublishedAt(publishedAt);
         entity.setScheduledAt(null);
+        entity.setWorkingDraft(null);
         ENTITY published = save(entity);
 
         if (refresh) {
@@ -276,6 +307,10 @@ public abstract class PublicationWorkflow<ENTITY extends PublicationEntity<STATU
                 () -> phaseOf(entity.getStatus()) == Phase.PUBLISHED,
                 pluralLabel(),
                 () -> {
+                    if (WorkingDraftMaps.isPresent(entity.getWorkingDraft())) {
+                        applyWorkingDraft(tenantId, entity);
+                    }
+                    entity.setWorkingDraft(null);
                     beforeUnpublish(entity);
                     entity.setStatus(statusFor(Phase.DRAFT));
                     entity.setPublishedAt(null);
@@ -354,6 +389,12 @@ public abstract class PublicationWorkflow<ENTITY extends PublicationEntity<STATU
     protected void beforeSchedule(ENTITY entity) {
         // no-op
     }
+
+    /**
+     * Copies a working-draft overlay onto live columns (and join tables) before over-publish
+     * or unpublish. No-op when the entity has no draft.
+     */
+    protected abstract void applyWorkingDraft(Long tenantId, ENTITY entity);
 
     /** Module-specific unpublish side effect, such as demoting a public media asset. */
     protected void beforeUnpublish(ENTITY entity) {
