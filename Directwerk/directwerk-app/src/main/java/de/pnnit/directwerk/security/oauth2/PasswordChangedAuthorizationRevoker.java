@@ -4,6 +4,7 @@ import de.pnnit.directwerk.modules.core.event.PasswordChangedEvent;
 import java.util.Objects;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.jdbc.core.JdbcOperations;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.event.TransactionPhase;
@@ -21,8 +22,17 @@ import org.springframework.transaction.event.TransactionalEventListener;
  * {@code @EventListener} would delete rows before the password transaction
  * commits and could leave sessions revoked while a rolled-back reset restored
  * the old credential.
+ *
+ * <p>JDBC store only — memory store uses
+ * {@link MemoryPasswordChangedAuthorizationRevoker} (#971).
  */
 @Component
+@ConditionalOnProperty(
+        prefix = "directwerk.security",
+        name = "authorization-store",
+        havingValue = "jdbc",
+        matchIfMissing = true
+)
 public class PasswordChangedAuthorizationRevoker {
 
     private static final Logger log =
