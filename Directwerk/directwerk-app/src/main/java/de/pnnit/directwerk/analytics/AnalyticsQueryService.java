@@ -108,6 +108,12 @@ public class AnalyticsQueryService {
             );
         }
 
+        // Platform Umami block is optional in yaml; null means the read path is unavailable
+        // (same as missing credentials) — never NPE on analytics.umamiApiBaseUrl().
+        if (analytics == null) {
+            throw missingCredentials();
+        }
+
         // Prefer an explicit read-API base; otherwise reuse the same host resolution as
         // site-config (tenant override → platform DIRECTWERK_ANALYTICS_UMAMI_HOST_URL).
         String apiBase = analytics.umamiApiBaseUrl().isBlank()
@@ -171,13 +177,8 @@ public class AnalyticsQueryService {
 
     private String resolveToken(String base, boolean forceRelogin) {
         DirectwerkProperties.Analytics analytics = directwerkConfig.analytics();
-        if (!analytics.hasUmamiApiCredentials()) {
-            throw new AnalyticsQueryException(
-                    "UMAMI_CREDENTIALS_MISSING",
-                    HttpStatus.SERVICE_UNAVAILABLE,
-                    "Umami credentials are missing. Set DIRECTWERK_ANALYTICS_UMAMI_USERNAME and "
-                            + "DIRECTWERK_ANALYTICS_UMAMI_PASSWORD."
-            );
+        if (analytics == null || !analytics.hasUmamiApiCredentials()) {
+            throw missingCredentials();
         }
         CachedToken cached = this.cachedToken;
         if (!forceRelogin
@@ -240,6 +241,15 @@ public class AnalyticsQueryService {
         } catch (IOException | RuntimeException ex) {
             throw unavailable();
         }
+    }
+
+    private static AnalyticsQueryException missingCredentials() {
+        return new AnalyticsQueryException(
+                "UMAMI_CREDENTIALS_MISSING",
+                HttpStatus.SERVICE_UNAVAILABLE,
+                "Umami credentials are missing. Set DIRECTWERK_ANALYTICS_UMAMI_USERNAME and "
+                        + "DIRECTWERK_ANALYTICS_UMAMI_PASSWORD."
+        );
     }
 
     private static AnalyticsQueryException unavailable() {

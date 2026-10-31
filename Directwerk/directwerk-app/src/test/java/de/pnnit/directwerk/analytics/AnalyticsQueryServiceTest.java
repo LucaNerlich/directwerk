@@ -93,6 +93,23 @@ class AnalyticsQueryServiceTest {
     }
 
     @Test
+    void reportsUnavailableWhenPlatformAnalyticsConfigIsNull() {
+        TenantBranding branding = new TenantBranding();
+        branding.setUmamiWebsiteId("abcdefgh");
+        branding.setUmamiHostUrl("https://8.8.8.8");
+        when(tenantBrandingService.getBranding(10L)).thenReturn(branding);
+        when(directwerkConfig.analytics()).thenReturn(null);
+
+        assertThatThrownBy(() -> service().query(10L, AnalyticsRange.SEVEN_DAYS))
+                .isInstanceOf(AnalyticsQueryException.class)
+                .satisfies(ex -> {
+                    AnalyticsQueryException queryEx = (AnalyticsQueryException) ex;
+                    assertThat(queryEx.getCode()).isEqualTo("UMAMI_CREDENTIALS_MISSING");
+                    assertThat(queryEx.getStatus()).isEqualTo(org.springframework.http.HttpStatus.SERVICE_UNAVAILABLE);
+                });
+    }
+
+    @Test
     void fallsBackToPlatformHostWhenTenantHostIsBlank() {
         TenantBranding branding = new TenantBranding();
         branding.setUmamiWebsiteId("abcdefgh");
