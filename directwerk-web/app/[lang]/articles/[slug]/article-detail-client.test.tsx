@@ -1,11 +1,17 @@
-import {render} from '@testing-library/react'
-import {describe, expect, it} from 'vitest'
+import {cleanup, render, screen} from '@testing-library/react'
+import {afterEach, describe, expect, it, vi} from 'vitest'
+
+vi.mock('next/navigation', () => ({
+    usePathname: () => '/de/articles/sicherer-beitrag',
+}))
 
 import type {PublicArticle} from '@directwerk/api/types'
 
 import {TestLocale} from '@/lib/i18n/testWrapper'
 
 import ArticleDetailClient from './article-detail-client'
+
+afterEach(cleanup)
 
 const MALICIOUS_BODY =
     '<p>Lesbarer Text</p>' +
@@ -43,5 +49,25 @@ describe('ArticleDetailClient content rendering', () => {
         expect(container.innerHTML).not.toContain('javascript:')
         expect(container.innerHTML).not.toContain('onerror')
         expect(container.textContent).toContain('Lesbarer Text')
+    })
+
+    it('preserves returnTo on locked-description sign-in link', () => {
+        render(
+            <TestLocale>
+                <ArticleDetailClient
+                    slug="sicherer-beitrag"
+                    initialPublicArticle={{
+                        ...buildArticle(''),
+                        body: null,
+                        accessPolicy: 'PAID',
+                    }}
+                />
+            </TestLocale>,
+        )
+
+        expect(screen.getByRole('link', {name: 'anmelden'})).toHaveAttribute(
+            'href',
+            '/de/login?returnTo=%2Fde%2Farticles%2Fsicherer-beitrag',
+        )
     })
 })

@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import {usePathname} from 'next/navigation'
 import {useSyncExternalStore} from 'react'
 
 import PageHeader from '@directwerk/ui/components/page-header'
@@ -14,6 +15,7 @@ import EpisodeAudioPlayer from '@/components/EpisodeAudioPlayer'
 import {listMyEpisodes} from '@/lib/api/client'
 import {playerTrackFromEpisode} from '@/lib/player/playerTrack'
 import {renderContentHtml} from '@/lib/renderContentHtml'
+import {loginHref} from '@/lib/auth/loginHref'
 import {
     getAccessToken,
     subscribeToTokenStore,
@@ -46,6 +48,7 @@ export default function EpisodeDetailClient({
     initialPublicEpisode?: PublicEpisode | null
 }): React.JSX.Element {
     const lang = useLocale()
+    const pathname = usePathname()
     const {catalog, common, format} = useDictionary()
     const messages = {
         emptySlug: catalog.episodeNotFound,
@@ -170,7 +173,7 @@ export default function EpisodeDetailClient({
                                     ) : (
                                         <>
                                             {catalog.lockedEpisodeDescGuestBefore}
-                                            <Link href={localizedPath(lang, '/login')}>
+                                            <Link href={loginHref(lang, pathname)}>
                                                 {catalog.lockedEpisodeLoginLink}
                                             </Link>
                                             {catalog.lockedEpisodeDescGuestAfter}

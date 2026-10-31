@@ -1,6 +1,10 @@
 import {cleanup, fireEvent, render, screen, waitFor} from '@testing-library/react'
 import {afterEach, describe, expect, it, vi} from 'vitest'
 
+vi.mock('next/navigation', () => ({
+    usePathname: () => '/de/episodes/sichere-folge',
+}))
+
 import type {PublicEpisode} from '@directwerk/api/types'
 
 import {AudioPlayerProvider} from '@/lib/player/AudioPlayerContext'
@@ -149,5 +153,23 @@ describe('EpisodeDetailClient content rendering', () => {
         } finally {
             media.restore()
         }
+    })
+
+    it('preserves returnTo on locked-description sign-in link', () => {
+        renderDetail(
+            <EpisodeDetailClient
+                slug="sichere-folge"
+                initialPublicEpisode={{
+                    ...buildEpisode('<p>Teaser</p>'),
+                    accessPolicy: 'PAID',
+                    audioCdnUrl: null,
+                }}
+            />,
+        )
+
+        expect(screen.getByRole('link', {name: 'anmelden'})).toHaveAttribute(
+            'href',
+            '/de/login?returnTo=%2Fde%2Fepisodes%2Fsichere-folge',
+        )
     })
 })

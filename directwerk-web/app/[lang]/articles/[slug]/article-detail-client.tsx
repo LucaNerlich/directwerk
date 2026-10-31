@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import {usePathname} from 'next/navigation'
 import {useSyncExternalStore} from 'react'
 
 import PageHeader from '@directwerk/ui/components/page-header'
@@ -10,6 +11,7 @@ import CatalogMediaThumb from '@/components/CatalogMediaThumb'
 import ContentMetaLine from '@/components/ContentMetaLine'
 import DetailShell, {DetailLockedPanel} from '@/components/DetailShell'
 import {renderContentHtml} from '@/lib/renderContentHtml'
+import {loginHref} from '@/lib/auth/loginHref'
 import {
     getAccessToken,
     subscribeToTokenStore,
@@ -44,6 +46,7 @@ export default function ArticleDetailClient({
     initialPublicArticle?: PublicArticle | null
 }): React.JSX.Element {
     const lang = useLocale()
+    const pathname = usePathname()
     const {catalog, format} = useDictionary()
     const messages = {
         emptySlug: catalog.articleNotFound,
@@ -138,7 +141,7 @@ export default function ArticleDetailClient({
                                     ) : (
                                         <>
                                             {catalog.lockedArticleDescGuestBefore}
-                                            <Link href={localizedPath(lang, '/login')}>
+                                            <Link href={loginHref(lang, pathname)}>
                                                 {catalog.lockedArticleLoginLink}
                                             </Link>
                                             {catalog.lockedArticleDescGuestAfter}
