@@ -113,21 +113,20 @@
 
 /*
  * Soft centered panel depth for dashboard surfaces (StatCard, FeatureCard,
- * ListPanel) and shadcn Card (entity-list grid feed cards, etc.).
- * Opt in with data-dw-surface="panel" under a .dw-brand ancestor; Cards are
- * matched by data-slot so grid views pick up the same muted depth.
+ * ListPanel, entity-list grid Cards via data-dw-surface="panel").
+ * Do not blanket [data-slot=card] — AuthCard uses the same slot with
+ * data-dw-surface="auth" and must keep frost glass.
  */
 /* Skip when the card already opted into marketing .dw-glass / .dw-neo. */
-.dw-brand [data-dw-surface='panel']:not(.dw-glass):not(.dw-neo),
-.dw-brand [data-slot='card']:not(.dw-glass):not(.dw-neo) {
+.dw-brand [data-dw-surface='panel']:not(.dw-glass):not(.dw-neo) {
     background: color-mix(in oklab, var(--primary) 6%, var(--card));
     border-color: color-mix(in oklab, var(--primary) 18%, var(--border));
     /* Even depth only — do not stack a white ring/glow on top. */
     box-shadow: var(--dw-panel-shadow), var(--dw-panel-inset);
 }
 
-/* Selected grid cards keep a clear primary outline without a white halo. */
-.dw-brand [data-slot='card'].ring-primary {
+/* Panel Cards that also use ring-primary (entity-list selection) keep outline. */
+.dw-brand [data-dw-surface='panel'][data-slot='card'].ring-primary {
     box-shadow:
         var(--dw-panel-shadow),
         var(--dw-panel-inset),

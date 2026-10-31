@@ -57,8 +57,8 @@ Tenant branding overrides `--primary` and `--ring` at runtime via `BrandTheme`
 
 Put `className="dw-brand"` on `BrandTheme` to enable brand-token atmosphere
 (gradients, glass chrome, soft centered panel depth). Surfaces opt in with
-`data-dw-surface="panel|empty|auth"`; shadcn `[data-slot=card]` (entity-list
-grid) gets the same muted panel depth under `.dw-brand`. Shadow tokens
+`data-dw-surface="panel|empty|auth"` (entity-list grid Cards set `panel`;
+AuthCard keeps `auth` — do not blanket `[data-slot=card]`). Shadow tokens
 (`--dw-panel-shadow`, `--dw-surface-shadow`, `--dw-glass-shadow`,
 `--dw-edge-highlight`) stay even; under `.dark` white insets are off and Card
 uses `ring-border` (not `ring-foreground`) so rims do not bloom white. Do not
