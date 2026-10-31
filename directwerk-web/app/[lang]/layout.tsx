@@ -20,9 +20,10 @@ import {resolveTenantOrigin} from '@/lib/site/siteOrigin'
 import {SiteConfigProvider} from '@/lib/site/SiteConfigProvider'
 import type {PublicSiteConfig} from '@directwerk/api/types'
 
-// Matches light / dark `--background` tokens in `@directwerk/ui/theme.css`.
-const FALLBACK_THEME_COLOR_LIGHT = '#fcfbf8'
-const FALLBACK_THEME_COLOR_DARK = '#2f2b24'
+// Matches light / dark `--background` tokens in `@directwerk/ui/theme.css`
+// (`oklch(0.99 0.004 95)` / `oklch(0.21 0.012 70)` → sRGB).
+const FALLBACK_THEME_COLOR_LIGHT = '#fcfcf9'
+const FALLBACK_THEME_COLOR_DARK = '#1c1712'
 
 export function generateStaticParams(): Array<{lang: Locale}> {
     return locales.map((lang) => ({lang}))
