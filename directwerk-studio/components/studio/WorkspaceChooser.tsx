@@ -6,7 +6,7 @@ import {useState} from 'react'
 
 import {useDictionary} from '@/components/i18n/LocaleProvider'
 import {t} from '@/lib/i18n/dictionary'
-import {safeImageSrc} from '@/lib/url/safeUrl'
+import {tenantBrandImageSrc} from '@/lib/site/tenantBrandImageSrc'
 import type {StudioWorkspace} from '@directwerk/api/types'
 
 interface WorkspaceChooserProps {
@@ -23,14 +23,11 @@ function workspaceInitial(name: string): string {
     return trimmed.length > 0 ? trimmed.charAt(0).toUpperCase() : '?'
 }
 
-/** Prefer favicon, then logo; both must pass HTTPS image URL checks. */
-function workspaceAvatarSrc(workspace: StudioWorkspace): string | null {
-    return safeImageSrc(workspace.faviconUrl) ?? safeImageSrc(workspace.logoUrl)
-}
-
 function WorkspaceAvatar({workspace}: {workspace: StudioWorkspace}): React.JSX.Element {
     const [imageFailed, setImageFailed] = useState(false)
-    const src = imageFailed ? null : workspaceAvatarSrc(workspace)
+    const src = imageFailed
+        ? null
+        : tenantBrandImageSrc(workspace.faviconUrl, workspace.logoUrl)
 
     if (src !== null) {
         return (

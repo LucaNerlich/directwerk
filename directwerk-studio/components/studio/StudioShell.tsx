@@ -15,17 +15,12 @@ import SideNav from '@/components/studio/SideNav'
 import {resolveMobileShell} from '@/lib/studio/mobileShell'
 import {useActiveDesk} from '@/lib/studio/useActiveDesk'
 import {SiteConfigProvider} from '@/lib/site/SiteConfigProvider'
-import {safeImageSrc} from '@/lib/url/safeUrl'
+import {tenantBrandImageSrc} from '@/lib/site/tenantBrandImageSrc'
 import type {SiteConfig} from '@directwerk/api/types'
 
 function tenantHomeInitial(name: string): string {
     const trimmed = name.trim()
     return trimmed.length > 0 ? trimmed.charAt(0).toUpperCase() : '?'
-}
-
-/** Prefer favicon, then logo; both must pass HTTPS image URL checks. */
-function tenantBrandSrc(branding: SiteConfig['branding']): string | null {
-    return safeImageSrc(branding.faviconUrl) ?? safeImageSrc(branding.logoUrl)
 }
 
 function TenantBrandMark({
@@ -36,7 +31,9 @@ function TenantBrandMark({
     name: string
 }): React.JSX.Element {
     const [imageFailed, setImageFailed] = useState(false)
-    const src = imageFailed ? null : tenantBrandSrc(branding)
+    const src = imageFailed
+        ? null
+        : tenantBrandImageSrc(branding.faviconUrl, branding.logoUrl)
     // Expanded: 20px next to the name; collapsed icon rail: fill the 32px home hit target.
     const box =
         'size-5 group-data-[collapsible=icon]:size-8'
