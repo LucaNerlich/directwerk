@@ -147,6 +147,49 @@ class AssetAccessServiceTest {
     }
 
     @Test
+    void resolveDownloadUrlGrantsFreePublicationAssetWithoutPackageRule() throws Exception {
+        MediaAsset asset = givenLoaded(
+                standalonePrivateAsset(7L, "alpha-show-a", "alpha-show-a/private/bonus/free.pdf")
+        );
+        when(entitlementApi.hasDigitalAssetAccess(10L, 42L, 7L)).thenReturn(false);
+        when(digitalPublicationRepository.findByTenantIdAndStatusAndAssetIdIn(
+                10L, DigitalPublicationStatus.PUBLISHED, List.of(7L)))
+                .thenReturn(List.of(publication(asset, AccessPolicy.FREE, null)));
+        when(entitlementApi.filterAccessiblePublicationAssets(eq(10L), eq(42L), any()))
+                .thenReturn(Set.of(7L));
+        when(directwerkConfig.storage()).thenReturn(storageProps());
+        URL signed = URI.create("https://s3.example/signed-free-single").toURL();
+        when(privateObjectUrlSigner.signPrivateObject(eq(asset.getS3Key()), any(Duration.class))).thenReturn(signed);
+
+        URL url = service.resolveDownloadUrl(asset, subscriber(42L, 10L));
+
+        assertThat(url).isSameAs(signed);
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<Map<Long, EntitlementApi.PublicationAccessPolicy>> policiesCaptor =
+                ArgumentCaptor.forClass(Map.class);
+        verify(entitlementApi).filterAccessiblePublicationAssets(eq(10L), eq(42L), policiesCaptor.capture());
+        assertThat(policiesCaptor.getValue())
+                .containsEntry(7L, new EntitlementApi.PublicationAccessPolicy(true, 0));
+    }
+
+    @Test
+    void resolveDownloadUrlDeniesWhenPublicationPolicyDeniesAndNoPackageRule() {
+        MediaAsset asset = givenLoaded(
+                standalonePrivateAsset(7L, "alpha-show-a", "alpha-show-a/private/bonus/paid.pdf")
+        );
+        when(entitlementApi.hasDigitalAssetAccess(10L, 42L, 7L)).thenReturn(false);
+        when(digitalPublicationRepository.findByTenantIdAndStatusAndAssetIdIn(
+                10L, DigitalPublicationStatus.PUBLISHED, List.of(7L)))
+                .thenReturn(List.of(publication(asset, AccessPolicy.PAID, 2)));
+        when(entitlementApi.filterAccessiblePublicationAssets(eq(10L), eq(42L), any()))
+                .thenReturn(Set.of());
+
+        assertThatThrownBy(() -> service.resolveDownloadUrl(asset, subscriber(42L, 10L)))
+                .isInstanceOf(EntitlementDeniedException.class);
+        verify(privateObjectUrlSigner, never()).signPrivateObject(any(String.class), any(Duration.class));
+    }
+
+    @Test
     void resolveDownloadUrlDelegatesPrivateDeliveryToSigner() throws Exception {
         MediaAsset asset = givenLoaded(
                 privateContentAsset(10L, "alpha-show-a", "alpha-show-a/private/audio/x.mp3", null)

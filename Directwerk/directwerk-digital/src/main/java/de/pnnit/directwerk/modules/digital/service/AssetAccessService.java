@@ -316,11 +316,21 @@ public class AssetAccessService implements AssetAccessApi {
             }
             return;
         }
-        if (!entitlementApi.hasDigitalAssetAccess(
-                asset.getTenant().getId(), principal.userId(), asset.getId()
-        )) {
-            throw new EntitlementDeniedException(asset.getId());
+        Long tenantId = asset.getTenant().getId();
+        Long userId = principal.userId();
+        Long assetId = asset.getId();
+        // Match batch resolveDownloadUrls: PACKAGE DIGITAL_ASSET rule OR publication FREE/LEVEL.
+        if (entitlementApi.hasDigitalAssetAccess(tenantId, userId, assetId)) {
+            return;
         }
+        Map<Long, EntitlementApi.PublicationAccessPolicy> policies =
+                publicationAccessPolicies(tenantId, List.of(assetId));
+        if (!policies.isEmpty()
+                && entitlementApi.filterAccessiblePublicationAssets(tenantId, userId, policies)
+                        .contains(assetId)) {
+            return;
+        }
+        throw new EntitlementDeniedException(assetId);
     }
 
     private void authorizeRssContentAsset(MediaAsset asset, Long subscriberUserId) {
