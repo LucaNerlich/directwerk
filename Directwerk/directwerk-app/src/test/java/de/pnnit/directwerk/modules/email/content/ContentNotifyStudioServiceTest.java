@@ -22,7 +22,6 @@ import de.pnnit.directwerk.modules.podcast.entity.Episode;
 import de.pnnit.directwerk.modules.podcast.entity.EpisodeStatus;
 import de.pnnit.directwerk.modules.podcast.repository.EpisodeRepository;
 import de.pnnit.directwerk.modules.podcast.service.PublicationWorkflowService;
-import de.pnnit.directwerk.modules.email.repository.ContentNotificationMarkerRepository;
 import de.pnnit.directwerk.modules.queue.JobStatus;
 import de.pnnit.directwerk.modules.queue.QueueJob;
 import de.pnnit.directwerk.modules.queue.QueueNames;
@@ -51,7 +50,6 @@ class ContentNotifyStudioServiceTest {
     @Mock private QueueService queueService;
     @Mock private PublicationWorkflowService episodePublicationWorkflow;
     @Mock private ArticlePublicationWorkflowService articlePublicationWorkflow;
-    @Mock private ContentNotificationMarkerRepository contentNotificationMarkerRepository;
 
     @InjectMocks
     private ContentNotifyStudioService service;
@@ -124,8 +122,7 @@ class ContentNotifyStudioServiceTest {
         when(episodePublicationWorkflow.notifySubscribersNow(TENANT_ID, EPISODE_ID)).thenReturn(episode);
 
         assertThat(service.retryEpisode(TENANT_ID, EPISODE_ID)).isSameAs(episode);
-        verify(contentNotificationMarkerRepository)
-                .clearForContent(TENANT_ID, "EPISODE", EPISODE_ID);
+        // Markers must stay so already-enqueued recipients are not remelted on Studio retry.
         verify(episodePublicationWorkflow).notifySubscribersNow(TENANT_ID, EPISODE_ID);
     }
 
