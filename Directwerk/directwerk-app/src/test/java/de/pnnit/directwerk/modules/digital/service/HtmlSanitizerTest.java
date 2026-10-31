@@ -73,4 +73,55 @@ class HtmlSanitizerTest {
         assertThat(sanitized).doesNotContain("javascript");
         assertThat(sanitized).doesNotContain("onerror");
     }
+
+    @Test
+    void convertsCommonMarkToSanitizedHtml() {
+        String sanitized = htmlSanitizer.sanitize("""
+                # WoW Classic Leveling Guide
+
+                A walkthrough from levels **1–60**.
+
+                > Level ranges are community guidance.
+
+                ## How to use this guide
+
+                1. Pick your faction
+                2. Open each zone article
+
+                See [overview](/en/a/forever-wow-forever-overview).
+                """);
+
+        assertThat(sanitized).contains("<h2>WoW Classic Leveling Guide</h2>");
+        assertThat(sanitized).contains("<strong>1–60</strong>");
+        assertThat(sanitized).contains("<blockquote>");
+        assertThat(sanitized).contains("<h2>How to use this guide</h2>");
+        assertThat(sanitized).contains("<ol>");
+        assertThat(sanitized).contains("href=\"/en/a/forever-wow-forever-overview\"");
+        assertThat(sanitized).doesNotContain("# WoW");
+        assertThat(sanitized).doesNotContain("**1–60**");
+    }
+
+    @Test
+    void convertsEntityEscapedMarkdownBeforeRendering() {
+        String sanitized = htmlSanitizer.sanitize(
+                "# Alliance &amp; Horde\n\n&gt; Move on when quests turn green.\n\n"
+                        + "Blizzard&#39;s Forever launch.");
+
+        assertThat(sanitized).contains("<h2>Alliance &amp; Horde</h2>");
+        assertThat(sanitized).contains("<blockquote>");
+        assertThat(sanitized).contains("Move on when quests turn green.");
+        // Apostrophe may be re-encoded by OWASP as &#39; in text nodes.
+        assertThat(sanitized).contains("Blizzard");
+        assertThat(sanitized).contains("Forever launch.");
+        assertThat(sanitized).doesNotContain("&gt;");
+    }
+
+    @Test
+    void stripsScriptFromMarkdownHtmlPassthrough() {
+        String sanitized = htmlSanitizer.sanitize("Hello <script>alert(1)</script> **there**");
+
+        assertThat(sanitized).contains("<strong>there</strong>");
+        assertThat(sanitized).doesNotContain("<script>");
+        assertThat(sanitized).doesNotContain("alert");
+    }
 }
