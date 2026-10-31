@@ -264,6 +264,16 @@ export default function EpisodesClient({
                                 {featured !== null ? (
                                     <FeatureCard
                                         eyebrow={common.newest}
+                                        media={
+                                            featured.coverImageUrl != null ? (
+                                                <CatalogMediaThumb
+                                                    alt={featured.title}
+                                                    priority
+                                                    size="side"
+                                                    src={featured.coverImageUrl}
+                                                />
+                                            ) : undefined
+                                        }
                                         title={
                                             <Link
                                                 className="hover:underline"
@@ -301,23 +311,15 @@ export default function EpisodesClient({
                                             </span>
                                         }
                                     >
-                                        <div className="flex flex-col gap-4 sm:flex-row sm:items-end">
-                                            <CatalogMediaThumb
-                                                alt={featured.title}
-                                                priority
-                                                size="lg"
-                                                src={featured.coverImageUrl}
-                                            />
-                                            <div className="flex flex-wrap gap-2">
-                                                {featured.audioCdnUrl !== null ? (
-                                                    <EpisodeListenButton episode={featured} />
-                                                ) : featured.accessPolicy === 'PAID' ? (
-                                                    <LockedCatalogAction
-                                                        isAuthenticated={isAuthenticated}
-                                                        unlockHref={unlockTarget}
-                                                    />
-                                                ) : null}
-                                            </div>
+                                        <div className="flex flex-wrap gap-2">
+                                            {featured.audioCdnUrl !== null ? (
+                                                <EpisodeListenButton episode={featured} />
+                                            ) : featured.accessPolicy === 'PAID' ? (
+                                                <LockedCatalogAction
+                                                    isAuthenticated={isAuthenticated}
+                                                    unlockHref={unlockTarget}
+                                                />
+                                            ) : null}
                                         </div>
                                     </FeatureCard>
                                 ) : null}

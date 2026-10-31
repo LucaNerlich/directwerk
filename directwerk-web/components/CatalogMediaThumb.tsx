@@ -13,14 +13,16 @@ export default function CatalogMediaThumb({
 }: {
     src: string | null | undefined
     alt: string
-    size?: 'sm' | 'md' | 'lg'
+    /** `side` = compact fixed cover for catalog featured heroes (copy | image). */
+    size?: 'sm' | 'md' | 'lg' | 'side'
     priority?: boolean
 }): React.JSX.Element | null {
     if (src == null || !isAllowedFeedUrl(src)) {
         return null
     }
 
-    const pixels = size === 'lg' ? 320 : size === 'md' ? 240 : 64
+    const pixels =
+        size === 'lg' ? 320 : size === 'md' ? 240 : size === 'side' ? 160 : 64
     return (
         <Image
             alt={alt}
@@ -29,7 +31,9 @@ export default function CatalogMediaThumb({
                     ? 'aspect-square w-full max-w-xs rounded-xl object-cover'
                     : size === 'md'
                       ? 'aspect-square w-full rounded-lg object-cover'
-                      : 'size-14 shrink-0 rounded-lg object-cover'
+                      : size === 'side'
+                        ? 'size-36 shrink-0 rounded-xl object-cover sm:size-40'
+                        : 'size-14 shrink-0 rounded-lg object-cover'
             }
             height={pixels}
             preload={priority}
@@ -38,7 +42,9 @@ export default function CatalogMediaThumb({
                     ? '(max-width: 640px) 80vw, 320px'
                     : size === 'md'
                       ? '(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw'
-                      : '56px'
+                      : size === 'side'
+                        ? '(max-width: 640px) 144px, 160px'
+                        : '56px'
             }
             src={src}
             width={pixels}
