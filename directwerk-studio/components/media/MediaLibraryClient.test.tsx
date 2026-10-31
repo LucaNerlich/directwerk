@@ -756,19 +756,19 @@ describe('MediaLibraryClient', () => {
     })
 
     it('moves a single asset into a folder', async () => {
+        const user = userEvent.setup()
         vi.mocked(listMediaFolders).mockResolvedValue([testFolder(1, 'Interviews', null)])
         vi.mocked(listMedia).mockResolvedValue([coverAsset])
 
         renderWithLocale(<MediaLibraryClient />)
 
         expect(await screen.findByText('cover.png')).toBeInTheDocument()
-        fireEvent.click(screen.getByRole('button', {name: 'Verschieben'}))
+        await user.click(screen.getByRole('button', {name: 'Verschieben'}))
 
         const dialog = await screen.findByRole('dialog')
-        fireEvent.change(within(dialog).getByLabelText('Zielordner'), {
-            target: {value: '1'},
-        })
-        fireEvent.click(within(dialog).getByRole('button', {name: 'Verschieben'}))
+        await user.click(within(dialog).getByRole('combobox'))
+        await user.click(await screen.findByRole('option', {name: /Interviews/}))
+        await user.click(within(dialog).getByRole('button', {name: 'Verschieben'}))
 
         await waitFor(() =>
             expect(moveMediaAsset).toHaveBeenCalledWith(7, 1),
@@ -778,6 +778,7 @@ describe('MediaLibraryClient', () => {
 
     it('refreshes folder tile assetCount after moving an asset into a folder', async () => {
         // Preferring API assetCount without a post-move reload leaves tiles stale.
+        const user = userEvent.setup()
         vi.mocked(listMediaFolders).mockResolvedValue([testFolder(1, 'Interviews', null, 3)])
         vi.mocked(listMedia).mockResolvedValue([coverAsset])
 
@@ -789,12 +790,11 @@ describe('MediaLibraryClient', () => {
         vi.mocked(listMediaFolders).mockResolvedValue([testFolder(1, 'Interviews', null, 4)])
         vi.mocked(listMedia).mockResolvedValue([])
 
-        fireEvent.click(screen.getByRole('button', {name: 'Verschieben'}))
+        await user.click(screen.getByRole('button', {name: 'Verschieben'}))
         const dialog = await screen.findByRole('dialog')
-        fireEvent.change(within(dialog).getByLabelText('Zielordner'), {
-            target: {value: '1'},
-        })
-        fireEvent.click(within(dialog).getByRole('button', {name: 'Verschieben'}))
+        await user.click(within(dialog).getByRole('combobox'))
+        await user.click(await screen.findByRole('option', {name: /Interviews/}))
+        await user.click(within(dialog).getByRole('button', {name: 'Verschieben'}))
 
         await waitFor(() =>
             expect(moveMediaAsset).toHaveBeenCalledWith(7, 1),
@@ -807,25 +807,25 @@ describe('MediaLibraryClient', () => {
     })
 
     it('moves selected assets in bulk back to the library root', async () => {
+        const user = userEvent.setup()
         const filed = {...coverAsset, id: 9, originalFilename: 'filed.png', folderId: 1}
         vi.mocked(listMediaFolders).mockResolvedValue([testFolder(1, 'Interviews', null)])
         vi.mocked(listMedia).mockResolvedValue([filed])
 
         renderWithLocale(<MediaLibraryClient />)
 
-        fireEvent.click(
-            await screen.findByRole('button', {name: /Interviews/}),
-        )
-        fireEvent.click(
+        await user.click(await screen.findByRole('button', {name: /Interviews/}))
+        await user.click(
             await screen.findByRole('checkbox', {name: '„filed.png“ auswählen'}),
         )
-        fireEvent.click(screen.getByRole('button', {name: 'Auswahl verschieben'}))
+        await user.click(screen.getByRole('button', {name: 'Auswahl verschieben'}))
 
         const dialog = await screen.findByRole('dialog')
-        fireEvent.change(within(dialog).getByLabelText('Zielordner'), {
-            target: {value: ''},
-        })
-        fireEvent.click(within(dialog).getByRole('button', {name: 'Verschieben'}))
+        await user.click(within(dialog).getByRole('combobox'))
+        await user.click(
+            await screen.findByRole('option', {name: 'Bibliothek (oberste Ebene)'}),
+        )
+        await user.click(within(dialog).getByRole('button', {name: 'Verschieben'}))
 
         await waitFor(() =>
             expect(moveMediaAsset).toHaveBeenCalledWith(9, null),

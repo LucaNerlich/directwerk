@@ -12,8 +12,12 @@ import {
     DialogTitle,
 } from '@directwerk/ui/components/dialog'
 
+import SelectControl from '@/components/studio/SelectControl'
 import {buildFolderTree, flattenFolderTree} from '@/lib/media/folders'
 import type {MediaFolder} from '@directwerk/api/types'
+
+/** Base UI Select treats "" as "no value"; use a sentinel for library root. */
+const LIBRARY_ROOT = '__library_root__'
 
 interface MediaMoveDialogProps {
     open: boolean
@@ -47,7 +51,7 @@ export default function MediaMoveDialog({
     errorMessage,
     onSubmit,
 }: MediaMoveDialogProps): React.JSX.Element {
-    const [target, setTarget] = useState('')
+    const [target, setTarget] = useState(LIBRARY_ROOT)
     const targetId = useId()
 
     useEffect(() => {
@@ -57,7 +61,7 @@ export default function MediaMoveDialog({
         setTarget(
             initialParentId !== null && !excludeFolderIds?.has(initialParentId)
                 ? String(initialParentId)
-                : '',
+                : LIBRARY_ROOT,
         )
         // Reset only when the dialog opens; excludeFolderIds may be a new Set
         // identity on every parent re-render (e.g. submit busy state).
@@ -77,20 +81,19 @@ export default function MediaMoveDialog({
                 </DialogHeader>
                 <label className="grid gap-2 text-sm font-medium" htmlFor={targetId}>
                     <span>Zielordner</span>
-                    <select
-                        className="native-select"
+                    <SelectControl
                         disabled={isSaving}
                         id={targetId}
                         onChange={(event) => setTarget(event.target.value)}
                         value={target}
                     >
-                        <option value="">Bibliothek (oberste Ebene)</option>
+                        <option value={LIBRARY_ROOT}>Bibliothek (oberste Ebene)</option>
                         {options.map((node) => (
                             <option key={node.folder.id} value={node.folder.id}>
                                 {`${'— '.repeat(node.depth)}${node.folder.name}`}
                             </option>
                         ))}
-                    </select>
+                    </SelectControl>
                 </label>
                 {errorMessage !== null ? (
                     <p className="text-sm text-destructive" role="alert">
@@ -108,7 +111,9 @@ export default function MediaMoveDialog({
                     </Button>
                     <Button
                         disabled={isSaving}
-                        onClick={() => onSubmit(target === '' ? null : Number(target))}
+                        onClick={() =>
+                            onSubmit(target === LIBRARY_ROOT ? null : Number(target))
+                        }
                         type="button"
                     >
                         {isSaving ? 'Verschiebt…' : 'Verschieben'}

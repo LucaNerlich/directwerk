@@ -4,10 +4,15 @@
     min-width: 0;
     border: 1px solid var(--input);
     border-radius: var(--radius-lg);
-    background: transparent;
+    background: var(--background);
     padding: 0 0.625rem;
     color: var(--foreground);
     font-size: 0.875rem;
+}
+
+.native-select option {
+    background: var(--popover);
+    color: var(--popover-foreground);
 }
 
 .native-select:focus-visible {
