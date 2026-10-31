@@ -15,10 +15,10 @@ import SectionHeader from '@directwerk/ui/components/section-header'
 import AccessPolicyBadge from '@/components/AccessPolicyBadge'
 import CatalogBrowseControls from '@/components/CatalogBrowseControls'
 import CatalogMediaThumb from '@/components/CatalogMediaThumb'
-import CatalogRow, {LockedCatalogAction} from '@/components/CatalogRow'
+import CatalogRow, {CATALOG_GRID_CLASSNAME, LockedCatalogAction} from '@/components/CatalogRow'
 import ContentMetaLine from '@/components/ContentMetaLine'
 import EpisodeListenButton from '@/components/EpisodeListenButton'
-import {ListPanelSkeleton} from '@/components/ContentLoadingSkeleton'
+import {CardGridSkeleton} from '@/components/ContentLoadingSkeleton'
 import {PublicFeedStrip} from '@/components/PublicFeedFooter'
 import SubscriberContextBanner from '@/components/SubscriberContextBanner'
 import {usePublicCatalog} from '@/lib/catalog/usePublicCatalog'
@@ -125,7 +125,7 @@ export default function EpisodesClient({
             ) : null}
             <SubscriberContextBanner showWhenAuthenticated={false} />
 
-            {isLoading ? <ListPanelSkeleton rows={5} /> : null}
+            {isLoading ? <CardGridSkeleton cards={6} columns={3} /> : null}
             {errorMessage !== null ? (
                 <Alert variant="destructive">
                     <AlertDescription>{errorMessage}</AlertDescription>
@@ -329,7 +329,7 @@ export default function EpisodesClient({
                                                       {group.label}
                                                   </h3>
                                               ) : null}
-                                              <ListPanel>
+                                              <ul className={CATALOG_GRID_CLASSNAME}>
                                                   {group.items.map((episode) => {
                                                       const href = localizedPath(
                                                           lang,
@@ -399,7 +399,7 @@ export default function EpisodesClient({
                                                                           unlockHref={unlockTarget}
                                                                       />
                                                                   ) : (
-                                                                      <span className="max-w-32 text-right text-xs text-muted-foreground">
+                                                                      <span className="text-xs text-muted-foreground">
                                                                           {catalog.noAudio}
                                                                       </span>
                                                                   )
@@ -407,7 +407,7 @@ export default function EpisodesClient({
                                                           />
                                                       )
                                                   })}
-                                              </ListPanel>
+                                              </ul>
                                           </div>
                                       ))
                                     : null}

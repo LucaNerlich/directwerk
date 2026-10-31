@@ -4,15 +4,17 @@ import Link from 'next/link'
 import type {ReactNode} from 'react'
 
 import {buttonVariants} from '@directwerk/ui/components/button'
-import {ListPanelRow} from '@directwerk/ui/components/list-panel'
 
 import CatalogMediaThumb from '@/components/CatalogMediaThumb'
 import ContentMetaLine from '@/components/ContentMetaLine'
 import {useDictionary, useLocale} from '@/lib/i18n/LocaleProvider'
 import {localizedPath} from '@/lib/i18n/paths'
 
+/** Responsive catalog grid: 1 → 2 → 3 columns (matches downloads/pricing density). */
+export const CATALOG_GRID_CLASSNAME = 'grid gap-4 sm:grid-cols-2 lg:grid-cols-3'
+
 /**
- * Locked-state CTA shared by episode and article rows: guests are sent to
+ * Locked-state CTA shared by episode and article cards: guests are sent to
  * login, subscribers toward the unlocking membership (`unlockHref` prefers a
  * concrete product, see `lib/catalog/unlock`).
  */
@@ -40,9 +42,9 @@ export function LockedCatalogAction({
 }
 
 /**
- * One row pattern for episodes and articles: optional thumb, title link with
- * badge, meta line, optional excerpt, right-side CTA. Used inside a
- * `ListPanel` on both catalog list pages.
+ * Dense catalog tile for episode/article grids: optional cover, title link with
+ * badge, meta line, optional excerpt, and CTA. Place inside a `ul` with
+ * {@link CATALOG_GRID_CLASSNAME}.
  */
 export default function CatalogRow({
     href,
@@ -64,25 +66,26 @@ export default function CatalogRow({
     action: ReactNode
 }): React.JSX.Element {
     return (
-        <ListPanelRow>
-            <div className="flex min-w-0 flex-1 items-start gap-3">
-                <CatalogMediaThumb alt={imageAlt ?? ''} src={imageUrl} />
-                <div className="min-w-0 flex-1">
-                    <div className="flex flex-wrap items-center gap-2">
-                        <Link className="font-medium hover:underline" href={href}>
-                            {title}
-                        </Link>
-                        {badge}
-                    </div>
-                    <ContentMetaLine items={metaItems} />
-                    {excerpt !== undefined && excerpt !== null && excerpt.length > 0 ? (
-                        <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">
-                            {excerpt}
-                        </p>
-                    ) : null}
+        <li
+            className="flex h-full flex-col gap-3 rounded-xl border bg-card p-4 shadow-sm"
+            data-dw-surface="panel"
+        >
+            <CatalogMediaThumb alt={imageAlt ?? ''} size="md" src={imageUrl} />
+            <div className="min-w-0 flex-1 space-y-1">
+                <div className="flex flex-wrap items-center gap-2">
+                    <Link className="font-medium hover:underline" href={href}>
+                        {title}
+                    </Link>
+                    {badge}
                 </div>
+                <ContentMetaLine items={metaItems} />
+                {excerpt !== undefined && excerpt !== null && excerpt.length > 0 ? (
+                    <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">
+                        {excerpt}
+                    </p>
+                ) : null}
             </div>
-            <div className="flex shrink-0 items-center gap-2">{action}</div>
-        </ListPanelRow>
+            <div className="mt-auto flex shrink-0 flex-wrap items-center gap-2">{action}</div>
+        </li>
     )
 }

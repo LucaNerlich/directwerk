@@ -8,7 +8,7 @@ import {TestLocale} from '@/lib/i18n/testWrapper'
 afterEach(cleanup)
 
 describe('CatalogRow', () => {
-    it('unifies badge placement, meta order and CTA', () => {
+    it('unifies badge placement, meta order and CTA in a grid tile', () => {
         const {container} = render(
             <TestLocale><ul>
                 <CatalogRow
@@ -22,6 +22,7 @@ describe('CatalogRow', () => {
             </ul></TestLocale>
         )
 
+        expect(container.querySelector('li[data-dw-surface="panel"]')).not.toBeNull()
         expect(
             screen.getByRole('link', {name: 'Mein Beitrag'}),
         ).toHaveAttribute('href', '/articles/mein-beitrag')

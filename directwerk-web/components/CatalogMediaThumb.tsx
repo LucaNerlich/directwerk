@@ -13,25 +13,33 @@ export default function CatalogMediaThumb({
 }: {
     src: string | null | undefined
     alt: string
-    size?: 'sm' | 'lg'
+    size?: 'sm' | 'md' | 'lg'
     priority?: boolean
 }): React.JSX.Element | null {
     if (src == null || !isAllowedFeedUrl(src)) {
         return null
     }
 
-    const pixels = size === 'lg' ? 320 : 64
+    const pixels = size === 'lg' ? 320 : size === 'md' ? 240 : 64
     return (
         <Image
             alt={alt}
             className={
                 size === 'lg'
                     ? 'aspect-square w-full max-w-xs rounded-xl object-cover'
-                    : 'size-14 shrink-0 rounded-lg object-cover'
+                    : size === 'md'
+                      ? 'aspect-square w-full rounded-lg object-cover'
+                      : 'size-14 shrink-0 rounded-lg object-cover'
             }
             height={pixels}
             preload={priority}
-            sizes={size === 'lg' ? '(max-width: 640px) 80vw, 320px' : '56px'}
+            sizes={
+                size === 'lg'
+                    ? '(max-width: 640px) 80vw, 320px'
+                    : size === 'md'
+                      ? '(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw'
+                      : '56px'
+            }
             src={src}
             width={pixels}
         />
