@@ -36,6 +36,12 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class StudioWorkspaceDiscoveryService {
 
+    /**
+     * Sentinel user id used only so missing-email paths still pay the membership
+     * lookup cost before the shared 401 (timing equalization with known users).
+     */
+    static final long MISSING_USER_SENTINEL_ID = -1L;
+
     private final UserRepository userRepository;
     private final TenantMembershipRepository tenantMembershipRepository;
     private final TenantDomainRepository tenantDomainRepository;
@@ -64,12 +70,13 @@ public class StudioWorkspaceDiscoveryService {
         String hashToVerify = user.map(User::getPasswordHash).orElseGet(this::missingUserEncodedPassword);
         boolean passwordMatches = passwordEncoder.matches(password, hashToVerify);
 
-        if (user.isEmpty()) {
-            throw invalidCredentials();
-        }
+        // Unknown emails still run the membership/domain/branding discovery path
+        // (against a sentinel id that yields no rows) so timing matches known users
+        // before the shared 401.
+        long discoveryUserId = user.map(User::getId).orElse(MISSING_USER_SENTINEL_ID);
 
         List<TenantMembership> memberships = tenantMembershipRepository.findActiveMembershipsByUserId(
-                user.get().getId(),
+                discoveryUserId,
                 MembershipStatus.ACTIVE
         );
 
@@ -106,11 +113,11 @@ public class StudioWorkspaceDiscoveryService {
 
         workspaces.sort(Comparator.comparing(StudioWorkspaceView::name, String.CASE_INSENSITIVE_ORDER));
 
-        if (!passwordMatches || workspaces.isEmpty()) {
+        if (user.isEmpty() || !passwordMatches || workspaces.isEmpty()) {
             // Same 401 as bad credentials: distinguishing "valid login, no
             // studio access" (403) would let attackers verify guessed passwords.
-            // Active users take the same bounded membership/domain discovery
-            // path regardless of whether the submitted password is correct.
+            // Active users and unknown emails take the same bounded
+            // membership/domain discovery path before this throw.
             throw invalidCredentials();
         }
 

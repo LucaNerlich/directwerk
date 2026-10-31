@@ -99,6 +99,12 @@ class StudioWorkspaceDiscoveryServiceTest {
     @Test
     void discoverWorkspacesRejectsInvalidCredentials() {
         when(userRepository.findByEmailIgnoreCase("missing@example.com")).thenReturn(Optional.empty());
+        when(passwordEncoder.encode(anyString())).thenReturn("dummy");
+        when(passwordEncoder.matches("ValidPassword12!", "dummy")).thenReturn(false);
+        when(tenantMembershipRepository.findActiveMembershipsByUserId(
+                StudioWorkspaceDiscoveryService.MISSING_USER_SENTINEL_ID,
+                MembershipStatus.ACTIVE
+        )).thenReturn(List.of());
 
         assertThatThrownBy(() -> service.discoverWorkspaces("missing@example.com", "ValidPassword12!"))
                 .isInstanceOf(BadCredentialsException.class);
@@ -149,9 +155,19 @@ class StudioWorkspaceDiscoveryServiceTest {
         when(userRepository.findByEmailIgnoreCase("missing@example.com")).thenReturn(Optional.empty());
         when(passwordEncoder.encode(anyString())).thenReturn("dummy");
         when(passwordEncoder.matches("ValidPassword12!", "dummy")).thenReturn(false);
+        when(tenantMembershipRepository.findActiveMembershipsByUserId(
+                StudioWorkspaceDiscoveryService.MISSING_USER_SENTINEL_ID,
+                MembershipStatus.ACTIVE
+        )).thenReturn(List.of());
 
         assertThatThrownBy(() -> service.discoverWorkspaces("missing@example.com", "ValidPassword12!"))
-                .isInstanceOf(BadCredentialsException.class);
+                .isInstanceOf(BadCredentialsException.class)
+                .hasMessage("Invalid credentials");
+
+        verify(tenantMembershipRepository).findActiveMembershipsByUserId(
+                StudioWorkspaceDiscoveryService.MISSING_USER_SENTINEL_ID,
+                MembershipStatus.ACTIVE
+        );
     }
 
     private static User activeUser() {
