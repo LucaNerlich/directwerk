@@ -62,7 +62,10 @@ public class StripeConnectService {
         return toSnapshot(stored, moduleEnabled);
     }
 
-    @Transactional
+    // Deliberately not @Transactional (mirrors createCustomerRow / #956 review): this method
+    // spans Stripe HTTP (createExpressAccount, createAccountLink). An outer TX would also abort
+    // on unique-violation during concurrent first onboard, so the findByTenantId recovery below
+    // could not run on Postgres. Repository save/find each open their own short transaction.
     @RequiresModule(StripeBillingModule.KEY)
     public String createOnboardLink(Long tenantId, String returnUrl, String refreshUrl) {
         if (!stripeOperations.isConfigured()) {
@@ -91,7 +94,9 @@ public class StripeConnectService {
         } catch (DataIntegrityViolationException ex) {
             // Concurrent first onboard for the same tenant: the unique tenant_id row was
             // inserted by another request after our initial find. Reuse the winner's
-            // Express account for the AccountLink (mirrors createCustomerRow).
+            // Express account for the AccountLink (mirrors createCustomerRow). Safe only
+            // because createOnboardLink is not @Transactional — Postgres would otherwise
+            // abort the shared TX and reject this find.
             return tenantStripeAccountRepository.findByTenantId(tenantId).orElseThrow(() -> ex);
         }
     }

@@ -18,6 +18,7 @@ import de.pnnit.directwerk.modules.stripebilling.StripeOperations;
 import de.pnnit.directwerk.modules.stripebilling.entity.TenantStripeAccount;
 import de.pnnit.directwerk.modules.stripebilling.exception.StripeNotConfiguredException;
 import de.pnnit.directwerk.modules.stripebilling.repository.TenantStripeAccountRepository;
+import java.lang.reflect.Method;
 import java.util.Optional;
 import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
@@ -27,6 +28,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.transaction.annotation.Transactional;
 
 @ExtendWith(MockitoExtension.class)
 class StripeConnectServiceTest {
@@ -144,6 +146,15 @@ class StripeConnectServiceTest {
                 "https://studio.localhost/settings/stripe",
                 "https://studio.localhost/settings/stripe"
         );
+    }
+
+    @Test
+    void createOnboardLinkIsNotTransactional() throws Exception {
+        // Unique-violation recovery (findByTenantId after aborted save) only works when there is
+        // no outer TX — Postgres aborts the shared TX on unique violation (#956 review).
+        Method method = StripeConnectService.class.getMethod(
+                "createOnboardLink", Long.class, String.class, String.class);
+        assertThat(method.getAnnotation(Transactional.class)).isNull();
     }
 
     private static TenantStripeAccount winnerAccount(String stripeAccountId) {
