@@ -2,6 +2,8 @@ import {cleanup, fireEvent, screen, waitFor} from '@testing-library/react'
 import type {ReactNode} from 'react'
 import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest'
 
+import {SidebarProvider, useSidebar} from '@directwerk/ui/components/sidebar'
+
 import SideNav from '@/components/studio/SideNav'
 import {renderWithLocale} from '@/lib/i18n/testUtils'
 import type {Me, SiteConfig} from '@directwerk/api/types'
@@ -14,8 +16,26 @@ vi.mock('next/navigation', () => ({
     useRouter: () => ({replace: vi.fn()}),
 }))
 vi.mock('next/link', () => ({
-    default: ({children, href}: {children: React.ReactNode; href: string}) => (
-        <a href={href}>{children}</a>
+    default: ({
+        children,
+        href,
+        onClick,
+        ...rest
+    }: {
+        children: React.ReactNode
+        href: string
+        onClick?: React.MouseEventHandler<HTMLAnchorElement>
+    } & Record<string, unknown>) => (
+        <a
+            href={href}
+            onClick={(event) => {
+                event.preventDefault()
+                onClick?.(event)
+            }}
+            {...rest}
+        >
+            {children}
+        </a>
     ),
 }))
 
@@ -27,8 +47,20 @@ beforeEach(() => {
 
 afterEach(cleanup)
 
+function MobileOpenProbe(): React.JSX.Element {
+    const {openMobile, setOpenMobile} = useSidebar()
+    return (
+        <>
+            <button onClick={() => setOpenMobile(true)} type="button">
+                open-mobile
+            </button>
+            <span data-testid="mobile-open">{openMobile ? 'yes' : 'no'}</span>
+        </>
+    )
+}
+
 function renderNavigation(children: ReactNode): void {
-    renderWithLocale(<>{children}</>)
+    renderWithLocale(<SidebarProvider>{children}</SidebarProvider>)
 }
 
 function config(overrides: Partial<SiteConfig> = {}): SiteConfig {
@@ -72,6 +104,59 @@ function expandMore(): void {
 }
 
 describe('SideNav', () => {
+    it('closes the mobile sidebar when the pathname changes', async () => {
+        function tree(): React.JSX.Element {
+            return (
+                <SidebarProvider>
+                    <MobileOpenProbe />
+                    <SideNav config={config()} />
+                </SidebarProvider>
+            )
+        }
+
+        const {rerender} = renderWithLocale(tree())
+        fireEvent.click(screen.getByRole('button', {name: 'open-mobile'}))
+        expect(screen.getByTestId('mobile-open')).toHaveTextContent('yes')
+
+        // Same route: provider state must survive rerender (not a remount reset).
+        rerender(tree())
+        expect(screen.getByTestId('mobile-open')).toHaveTextContent('yes')
+
+        currentPathname = '/podcast/episodes'
+        rerender(tree())
+
+        await waitFor(() => {
+            expect(screen.getByTestId('mobile-open')).toHaveTextContent('no')
+        })
+    })
+
+    it('closes the mobile sidebar when a nav link is clicked', () => {
+        renderNavigation(
+            <>
+                <MobileOpenProbe />
+                <SideNav config={config()} />
+            </>,
+        )
+        fireEvent.click(screen.getByRole('button', {name: 'open-mobile'}))
+        expect(screen.getByTestId('mobile-open')).toHaveTextContent('yes')
+
+        fireEvent.click(screen.getByRole('link', {name: 'Folgen'}))
+        expect(screen.getByTestId('mobile-open')).toHaveTextContent('no')
+    })
+
+    it('keeps the mobile sidebar open when expanding Mehr…', () => {
+        renderNavigation(
+            <>
+                <MobileOpenProbe />
+                <SideNav config={config()} />
+            </>,
+        )
+        fireEvent.click(screen.getByRole('button', {name: 'open-mobile'}))
+        expandMore()
+        expect(screen.getByTestId('mobile-open')).toHaveTextContent('yes')
+        expect(screen.getByRole('link', {name: 'Formate'})).toBeInTheDocument()
+    })
+
     it('tucks Formate under Mehr… for the Podcast desk', () => {
         renderNavigation(<SideNav config={config()} />)
         const more = screen.getByRole('button', {name: 'Mehr…'})
