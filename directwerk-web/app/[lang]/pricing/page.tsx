@@ -1,7 +1,9 @@
 import {connection} from 'next/server'
 
-import {fetchPublicProductsServer} from '@/lib/site/fetchPublicContentServer'
-import {fetchPublicLevelsServer} from '@/lib/site/fetchPublicLevelsServer'
+import {
+    fetchPublicLevelsServer,
+    fetchPublicProductsServer,
+} from '@/lib/site/fetchPublicContentServer'
 import {getTenantHost} from '@/lib/site/getTenantHost'
 
 import PricingClient from './pricing-client'
