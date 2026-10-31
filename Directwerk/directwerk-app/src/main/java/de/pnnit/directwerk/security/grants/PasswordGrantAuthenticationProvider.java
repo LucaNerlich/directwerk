@@ -1,5 +1,7 @@
 package de.pnnit.directwerk.security.grants;
 
+import de.pnnit.directwerk.multitenancy.TenantNotFoundException;
+import de.pnnit.directwerk.multitenancy.TenantSuspendedException;
 import java.security.Principal;
 import java.util.Collections;
 import java.util.HashMap;
@@ -89,9 +91,12 @@ public class PasswordGrantAuthenticationProvider implements AuthenticationProvid
         UserDetails userDetails;
         try {
             userDetails = userDetailsService.loadUserByUsername(passwordGrant.getUsername());
-        } catch (UsernameNotFoundException ex) {
-            // Still run the encoder so an unknown username can't be distinguished from a wrong
-            // password by timing or by exception type.
+        } catch (UsernameNotFoundException
+                 | TenantNotFoundException
+                 | TenantSuspendedException ex) {
+            // Still run the encoder so an unknown username / missing Host / suspended tenant
+            // can't be distinguished from a wrong password by timing or by exception type
+            // (refresh path already maps the tenant exceptions the same way).
             passwordEncoder.matches(passwordGrant.getPassword(), missingUserEncodedPassword());
             throw new OAuth2AuthenticationException(OAuth2ErrorCodes.INVALID_GRANT);
         }
