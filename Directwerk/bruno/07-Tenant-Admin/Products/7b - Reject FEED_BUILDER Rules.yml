@@ -1,0 +1,45 @@
+info:
+  name: 7b - Reject FEED_BUILDER Rules
+  type: http
+  seq: 8
+
+http:
+  method: PUT
+  url: "{{baseUrl}}/api/v1/tenant/products/{{packageProductId}}/rules"
+  headers:
+    - name: Content-Type
+      value: application/json
+  body:
+    type: json
+    data: |-
+      {
+        "rules": [
+          {
+            "scopeType": "FEED_BUILDER"
+          }
+        ]
+      }
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("rejects FEED_BUILDER product access rules", function() {
+          const status = res.getStatus();
+          expect(status === 400 || status === 403 || status === 404).to.equal(true);
+          if (status === 400) {
+            expect(res.body.errors[0].code).to.equal("VALIDATION_ERROR");
+          }
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+docs: |
+  FEED_BUILDER is a feature module for custom feeds, not a ProductAccessRule scope.
+  PUT with FEED_BUILDER must 400 before mutating existing rules (#955).

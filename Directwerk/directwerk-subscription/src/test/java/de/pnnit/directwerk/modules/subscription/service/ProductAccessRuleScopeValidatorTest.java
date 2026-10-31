@@ -1,5 +1,7 @@
 package de.pnnit.directwerk.modules.subscription.service;
 
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 
@@ -47,6 +49,16 @@ class ProductAccessRuleScopeValidatorTest {
     @Test
     void skipsLookupForAllPodcasts() {
         validator.validateScope(10L, ProductAccessScopeType.ALL_PODCASTS, null);
+        verifyNoInteractions(contentScopeLookupApi);
+    }
+
+    @Test
+    void rejectsFeedBuilderScope() {
+        IllegalArgumentException ex = assertThrows(
+                IllegalArgumentException.class,
+                () -> validator.validateScope(10L, ProductAccessScopeType.FEED_BUILDER, null)
+        );
+        assertTrue(ex.getMessage().contains("FEED_BUILDER"));
         verifyNoInteractions(contentScopeLookupApi);
     }
 }

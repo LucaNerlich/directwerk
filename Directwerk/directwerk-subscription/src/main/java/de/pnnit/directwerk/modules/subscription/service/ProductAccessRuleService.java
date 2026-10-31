@@ -40,6 +40,11 @@ public class ProductAccessRuleService {
 
         List<RuleInput> safeInputs = inputs == null ? List.of() : List.copyOf(inputs);
         for (RuleInput input : safeInputs) {
+            if (input == null || input.scopeType() == null) {
+                throw new IllegalArgumentException("scopeType is required");
+            }
+            // Validate shape + known-noop scopes before mutating existing rules.
+            validateScopeId(input.scopeType(), input.scopeId());
             productAccessRuleScopeValidator.validateScope(tenantId, input.scopeType(), input.scopeId());
         }
         productAccessRuleRepository.deleteByTenantIdAndProductId(tenantId, productId);
@@ -68,7 +73,10 @@ public class ProductAccessRuleService {
 
     private static void validateScopeId(ProductAccessScopeType scopeType, Long scopeId) {
         switch (scopeType) {
-            case ALL_PODCASTS, FEED_BUILDER -> {
+            case FEED_BUILDER -> throw new IllegalArgumentException(
+                    "FEED_BUILDER product access rules are not supported; custom feeds are module-gated"
+            );
+            case ALL_PODCASTS -> {
                 if (scopeId != null) {
                     throw new IllegalArgumentException(scopeType + " rules must not set scopeId");
                 }
