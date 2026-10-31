@@ -70,7 +70,7 @@ class StripeCatalogSyncServiceTest {
         when(subscriptionProductService.requireProduct(TENANT_ID, PRODUCT_ID)).thenReturn(product);
         when(stripeConnectService.requireChargeableAccount(TENANT_ID)).thenReturn(account);
         when(stripeOperations.upsertProductAndPrice(
-                eq("acct_123"), any(), eq("Premium"), any(), eq(500L), eq("EUR"), eq(BillingInterval.MONTH)
+                eq("acct_123"), any(), any(), eq("Premium"), any(), eq(500L), eq("EUR"), eq(BillingInterval.MONTH)
         )).thenReturn(new StripeOperations.CatalogIds("prod_1", "price_1"));
         SubscriptionProduct assigned = product();
         assigned.setStripeProductId("prod_1");

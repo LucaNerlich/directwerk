@@ -38,6 +38,7 @@ public class StripeCatalogSyncService {
         StripeOperations.CatalogIds ids = stripeOperations.upsertProductAndPrice(
                 account.getStripeAccountId(),
                 product.getStripeProductId(),
+                product.getStripePriceId(),
                 product.getTitle(),
                 product.getDescription(),
                 product.getPriceCents(),
