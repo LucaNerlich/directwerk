@@ -163,6 +163,27 @@ describe('AuthBootstrap', () => {
         await act(async () => {
             await Promise.resolve()
         })
-        expect(replace).toHaveBeenCalledWith(expect.stringMatching(/^\/de\/login/))
+        expect(replace).toHaveBeenCalledWith(
+            '/de/login?returnTo=%2Fde%2Faccount',
+        )
+    })
+
+    it('preserves downloads returnTo on AUTH_REQUIRED', async () => {
+        navigation.pathname = '/de/downloads'
+        ensureAuthenticated.mockRejectedValue(new Error('AUTH_REQUIRED'))
+        render(
+            <TestLocale>
+                <AuthBootstrap>
+                    <p>Downloads</p>
+                </AuthBootstrap>
+            </TestLocale>,
+        )
+
+        await act(async () => {
+            await Promise.resolve()
+        })
+        expect(replace).toHaveBeenCalledWith(
+            '/de/login?returnTo=%2Fde%2Fdownloads',
+        )
     })
 })
