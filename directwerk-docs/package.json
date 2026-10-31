@@ -4,7 +4,10 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "sync-changelog": "node scripts/sync-changelog.mjs",
+    "predev": "node scripts/sync-changelog.mjs",
     "dev": "vitepress dev docs",
+    "prebuild": "node scripts/sync-changelog.mjs",
     "build": "vitepress build docs && node scripts/write-serve-config.mjs",
     "preview": "vitepress preview docs",
     "start": "serve docs/.vitepress/dist --listen tcp://0.0.0.0:${PORT:-3006} --no-clipboard",

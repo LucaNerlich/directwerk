@@ -60,6 +60,12 @@ pnpm --filter directwerk-docs build
 ./directwerk-docs/scripts/sync-architecture-docs.sh
 ```
 
+6. Public `/changelog` is synced from repo-root [`CHANGELOG.md`](../CHANGELOG.md) (not hand-edited). `predev` / `prebuild` refresh it; to sync alone:
+
+```sh
+pnpm --filter directwerk-docs sync-changelog
+```
+
 ## Deploy on Coolify
 
 **Recommended:** Dockerfile (VitePress build at deploy time + Node `serve` on **`PORT=3006`**, same pattern as admin/studio).
@@ -83,7 +89,10 @@ Rebuild when docs content or `docs/openapi/directwerk-api.json` changes.
 directwerk-docs/
 ├── Dockerfile
 ├── package.json
-├── scripts/export-openapi.sh
+├── scripts/
+│   ├── export-openapi.sh
+│   ├── sync-architecture-docs.sh
+│   └── sync-changelog.mjs   # CHANGELOG.md → docs/changelog.md
 └── docs/
     ├── .vitepress/config.ts
     ├── guide/           # Product overview
@@ -91,5 +100,6 @@ directwerk-docs/
     ├── operators/       # Creator/tenant admin how-tos
     ├── architecture/    # Integrator-facing design
     ├── api/             # Integration guide + OpenAPI reference
+    ├── changelog.md     # Synced from repo-root CHANGELOG.md
     └── openapi/         # Checked-in OpenAPI JSON
 ```
