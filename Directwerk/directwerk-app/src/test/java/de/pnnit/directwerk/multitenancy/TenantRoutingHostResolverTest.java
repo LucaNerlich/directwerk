@@ -74,7 +74,8 @@ class TenantRoutingHostResolverTest {
     @Test
     void parseForwardedHeaderExtractsHostParameter() {
         assertThat(TenantRoutingHostResolver.parseForwardedHeader(
-                "for=127.0.0.1;host=lucanerlich.directwerk.org;proto=https"
+                "for=127.0.0.1;host=lucanerlich.directwerk.org;proto=https",
+                "api.directwerk.org"
         )).contains("lucanerlich.directwerk.org");
     }
 
@@ -84,6 +85,41 @@ class TenantRoutingHostResolverTest {
                 "api.directwerk.org, lucanerlich.directwerk.org",
                 "api.directwerk.org"
         )).contains("lucanerlich.directwerk.org");
+    }
+
+    @Test
+    void prefersLastNonPlatformForwardedHostLikeXForwardedHost() {
+        HttpServletRequest request = mock(HttpServletRequest.class);
+        when(request.getServerName()).thenReturn("api.directwerk.org");
+        when(request.getHeader("X-Tenant-Host")).thenReturn(null);
+        when(request.getHeader("Forwarded")).thenReturn(
+                "for=10.0.0.1;host=api.directwerk.org;proto=https, for=10.0.0.2;host=lucanerlich.directwerk.org;proto=https"
+        );
+        when(request.getHeader("X-Forwarded-Host")).thenReturn(null);
+
+        assertThat(resolver.resolve(request)).isEqualTo("lucanerlich.directwerk.org");
+    }
+
+    @Test
+    void skipsPlatformOnlyForwardedAndFallsBackToXForwardedHost() {
+        HttpServletRequest request = mock(HttpServletRequest.class);
+        when(request.getServerName()).thenReturn("api.directwerk.org");
+        when(request.getHeader("X-Tenant-Host")).thenReturn(null);
+        when(request.getHeader("Forwarded")).thenReturn("for=10.0.0.1;host=api.directwerk.org;proto=https");
+        when(request.getHeader("X-Forwarded-Host")).thenReturn("lucanerlich.directwerk.org");
+
+        assertThat(resolver.resolve(request)).isEqualTo("lucanerlich.directwerk.org");
+    }
+
+    @Test
+    void prefersTenantHostOverForwardedAndXForwardedHost() {
+        HttpServletRequest request = mock(HttpServletRequest.class);
+        when(request.getServerName()).thenReturn("api.directwerk.org");
+        when(request.getHeader("X-Tenant-Host")).thenReturn("tenant-a.directwerk.org");
+        when(request.getHeader("Forwarded")).thenReturn("host=api.directwerk.org");
+        when(request.getHeader("X-Forwarded-Host")).thenReturn("lucanerlich.directwerk.org");
+
+        assertThat(resolver.resolve(request)).isEqualTo("tenant-a.directwerk.org");
     }
 
     @Test
