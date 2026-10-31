@@ -76,6 +76,7 @@ export function EntityListToolbar(
                 !showSelection && showViewToggle && 'sm:justify-end',
                 className,
             )}
+            data-dw-surface="panel"
         >
             {showSelection ? (
                 <div className="flex flex-wrap items-center gap-3">
