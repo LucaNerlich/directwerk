@@ -82,7 +82,7 @@ public class TenantMembershipGuardFilter extends OncePerRequestFilter {
         if (!TenantApiKeyPathAccess.isAllowedPath(path)) {
             throw new TenantMismatchException("API key cannot access this path");
         }
-        if (!TenantApiKeyPathAccess.isMethodAllowed(request.getMethod(), apiKeyAuth.scopes())) {
+        if (!TenantApiKeyPathAccess.isMethodAllowed(request.getMethod(), path, apiKeyAuth.scopes())) {
             throw new TenantMismatchException("API key scope does not allow this method");
         }
     }

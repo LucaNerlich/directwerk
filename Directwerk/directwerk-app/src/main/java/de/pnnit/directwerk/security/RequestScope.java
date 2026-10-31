@@ -103,6 +103,10 @@ public enum RequestScope {
         if (path == null) {
             return PUBLIC;
         }
+        // Hosted Studio MCP (Streamable HTTP) — editor/content-key surface, not under /api/v1.
+        if ("/mcp".equals(path) || path.startsWith("/mcp/")) {
+            return EDITOR_CONTENT;
+        }
         if (PLATFORM_SECURITY_PATH.equals(path) || isUnderAny(path, PLATFORM_PREFIXES)) {
             return PLATFORM;
         }

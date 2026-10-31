@@ -561,6 +561,84 @@ Accept: application/json
 
 ###
 
+### @name mcpInitialize
+POST {{baseUrl}}/mcp
+Host: {{tenantAHost}}
+Authorization: Bearer {{tenantApiKeySecret}}
+Content-Type: application/json
+Accept: application/json, text/event-stream
+
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "method": "initialize",
+  "params": {
+    "protocolVersion": "2025-03-26",
+    "capabilities": {},
+    "clientInfo": { "name": "http-client", "version": "0.0.1" }
+  }
+}
+
+> {%
+    client.test("MCP initialize", function() {
+        client.assert(response.status === 200, "Expected 200");
+        client.assert(response.body.result.serverInfo.name === "directwerk-studio", "Expected server name");
+    });
+%}
+
+###
+
+### @name mcpToolsList
+POST {{baseUrl}}/mcp
+Host: {{tenantAHost}}
+Authorization: Bearer {{tenantApiKeySecret}}
+Content-Type: application/json
+Accept: application/json, text/event-stream
+
+{
+  "jsonrpc": "2.0",
+  "id": 2,
+  "method": "tools/list",
+  "params": {}
+}
+
+> {%
+    client.test("MCP tools/list", function() {
+        client.assert(response.status === 200, "Expected 200");
+        client.assert(Array.isArray(response.body.result.tools), "Expected tools array");
+        client.assert(response.body.result.tools.length >= 40, "Expected hosted tool catalog");
+    });
+%}
+
+###
+
+### @name mcpToolsCallListArticles
+POST {{baseUrl}}/mcp
+Host: {{tenantAHost}}
+Authorization: Bearer {{tenantApiKeySecret}}
+Content-Type: application/json
+Accept: application/json, text/event-stream
+
+{
+  "jsonrpc": "2.0",
+  "id": 3,
+  "method": "tools/call",
+  "params": {
+    "name": "list_articles",
+    "arguments": {}
+  }
+}
+
+> {%
+    client.test("MCP tools/call list_articles", function() {
+        client.assert(response.status === 200, "Expected 200");
+        client.assert(response.body.result != null, "Expected result");
+        client.assert(response.body.result.isError !== true, "Expected non-error tool result");
+    });
+%}
+
+###
+
 ### @name revokeTenantApiKey
 DELETE {{baseUrl}}/api/v1/tenant/api-keys/{{tenantApiKeyId}}
 Host: {{tenantAHost}}

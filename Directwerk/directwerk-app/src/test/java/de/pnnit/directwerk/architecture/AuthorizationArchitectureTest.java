@@ -36,8 +36,20 @@ class AuthorizationArchitectureTest {
     static final ArchRule tenantControllersRequireTenantAdminRole = classes()
             .that().resideInAPackage("..controller.tenant..")
             .and().areAnnotatedWith(RestController.class)
+            // Taxonomy CRUD also accepts opaque content API keys (Studio MCP) — see rule below.
+            .and().doNotHaveSimpleName("TenantCategoryController")
+            .and().doNotHaveSimpleName("TenantFormatController")
             .should(bePreAuthorizedForExact("hasRole('TENANT_ADMIN')"))
             .because("tenant-admin endpoints must fail closed via method security, not just URL matchers");
+
+    @ArchTest
+    static final ArchRule taxonomyControllersAllowContentApiKeyWrite = classes()
+            .that().resideInAPackage("..controller.tenant..")
+            .and().areAnnotatedWith(RestController.class)
+            .and().haveNameMatching(".*\\.Tenant(Category|Format)Controller")
+            .should(bePreAuthorizedForExact(
+                    "hasRole('TENANT_ADMIN') or hasAuthority('API_KEY_CONTENT_WRITE')"))
+            .because("categories/formats are TENANT_ADMIN for humans and content-write API keys for MCP");
 
     @ArchTest
     static final ArchRule probeControllersRequireProbeRole = classes()

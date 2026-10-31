@@ -1,0 +1,50 @@
+info:
+  name: 1 - Initialize
+  type: http
+  seq: 1
+
+http:
+  method: POST
+  url: "{{baseUrl}}/mcp"
+  body:
+    type: json
+    data: |-
+      {
+        "jsonrpc": "2.0",
+        "id": 1,
+        "method": "initialize",
+        "params": {
+          "protocolVersion": "2025-03-26",
+          "capabilities": {},
+          "clientInfo": { "name": "bruno", "version": "0.0.1" }
+        }
+      }
+  headers:
+    - name: Authorization
+      value: "Bearer {{tenantApiKeySecret}}"
+    - name: Accept
+      value: "application/json, text/event-stream"
+    - name: Content-Type
+      value: application/json
+  auth:
+    type: none
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("MCP initialize returns serverInfo", function() {
+          expect(res.getStatus() === 200).to.equal(true);
+          const body = res.getBody();
+          expect(body.result.serverInfo.name).to.equal("directwerk-studio");
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false
+
+docs: |-
+  Stateless Streamable HTTP MCP initialize (requires Api-Keys create step first).

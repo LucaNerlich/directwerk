@@ -29,15 +29,24 @@ import {useDictionary} from '@/components/i18n/LocaleProvider'
 import {t} from '@/lib/i18n/dictionary'
 import {createApiKey, listApiKeys, revokeApiKey} from '@/lib/api/apiKeysApi'
 
-export default function ApiKeysClient(): React.JSX.Element {
+type McpTransport = 'remote' | 'stdio'
+type McpClient = 'claude' | 'opencode'
+
+export default function ApiKeysClient({mcpUrl}: {mcpUrl: string}): React.JSX.Element {
     const dict = useDictionary()
     const s = dict.settings
     const authRedirect = useAuthRequired()
     const {state: copyState, copy} = useCopyToClipboard()
     const {state: mcpCopyState, copy: copyMcpConfig} = useCopyToClipboard()
-    const [mcpClient, setMcpClient] = useState<'claude' | 'opencode'>('claude')
+    const [mcpTransport, setMcpTransport] = useState<McpTransport>('remote')
+    const [mcpClient, setMcpClient] = useState<McpClient>('claude')
     const tenantHost = getClientTenantHost()
-    const mcpConfig = mcpClient === 'opencode' ? buildOpenCodeConfig(tenantHost) : buildClaudeConfig(tenantHost)
+    const mcpConfig = buildMcpConfig({
+        transport: mcpTransport,
+        client: mcpClient,
+        mcpUrl,
+        tenantHost,
+    })
 
     const [keys, setKeys] = useState<TenantApiKey[]>([])
     const [isLoading, setIsLoading] = useState(true)
@@ -236,23 +245,42 @@ export default function ApiKeysClient(): React.JSX.Element {
                 </CardHeader>
                 <CardContent className="space-y-3">
                     <div className="flex flex-wrap items-center justify-between gap-2">
-                        <ToggleGroup
-                            aria-label={s.apiKeysMcpClientLabel}
-                            className="rounded-lg border bg-muted/40 p-1"
-                            onValueChange={(values) => {
-                                const next = values[0]
-                                if (next === 'claude' || next === 'opencode') {
-                                    setMcpClient(next)
-                                }
-                            }}
-                            size="sm"
-                            spacing={0}
-                            value={[mcpClient]}
-                            variant="outline"
-                        >
-                            <ToggleGroupItem value="claude">{s.apiKeysMcpClaude}</ToggleGroupItem>
-                            <ToggleGroupItem value="opencode">OpenCode</ToggleGroupItem>
-                        </ToggleGroup>
+                        <div className="flex flex-wrap gap-2">
+                            <ToggleGroup
+                                aria-label={s.apiKeysMcpTransportLabel}
+                                className="rounded-lg border bg-muted/40 p-1"
+                                onValueChange={(values) => {
+                                    const next = values[0]
+                                    if (next === 'remote' || next === 'stdio') {
+                                        setMcpTransport(next)
+                                    }
+                                }}
+                                size="sm"
+                                spacing={0}
+                                value={[mcpTransport]}
+                                variant="outline"
+                            >
+                                <ToggleGroupItem value="remote">{s.apiKeysMcpRemote}</ToggleGroupItem>
+                                <ToggleGroupItem value="stdio">{s.apiKeysMcpStdio}</ToggleGroupItem>
+                            </ToggleGroup>
+                            <ToggleGroup
+                                aria-label={s.apiKeysMcpClientLabel}
+                                className="rounded-lg border bg-muted/40 p-1"
+                                onValueChange={(values) => {
+                                    const next = values[0]
+                                    if (next === 'claude' || next === 'opencode') {
+                                        setMcpClient(next)
+                                    }
+                                }}
+                                size="sm"
+                                spacing={0}
+                                value={[mcpClient]}
+                                variant="outline"
+                            >
+                                <ToggleGroupItem value="claude">{s.apiKeysMcpClaude}</ToggleGroupItem>
+                                <ToggleGroupItem value="opencode">OpenCode</ToggleGroupItem>
+                            </ToggleGroup>
+                        </div>
                         <Button
                             type="button"
                             variant="outline"
@@ -267,8 +295,12 @@ export default function ApiKeysClient(): React.JSX.Element {
                     <pre className="max-h-96 overflow-auto rounded-md border bg-muted/40 p-4 font-mono text-xs leading-relaxed">
                         <code>{mcpConfig}</code>
                     </pre>
-                    <p className="text-xs text-muted-foreground">{s.apiKeysMcpHint}</p>
-                    <p className="text-xs text-muted-foreground">{s.apiKeysMcpBuildHint}</p>
+                    <p className="text-xs text-muted-foreground">
+                        {mcpTransport === 'remote' ? s.apiKeysMcpRemoteHint : s.apiKeysMcpHint}
+                    </p>
+                    {mcpTransport === 'stdio' ? (
+                        <p className="text-xs text-muted-foreground">{s.apiKeysMcpBuildHint}</p>
+                    ) : null}
                 </CardContent>
             </Card>
 
@@ -420,7 +452,74 @@ function formatInstant(value: string): string {
     return date.toLocaleString()
 }
 
-function buildClaudeConfig(tenantHost: string): string {
+function buildMcpConfig(options: {
+    transport: McpTransport
+    client: McpClient
+    mcpUrl: string
+    tenantHost: string
+}): string {
+    const host = options.tenantHost || 'your-tenant.example.com'
+    if (options.transport === 'remote') {
+        if (options.client === 'opencode') {
+            return JSON.stringify(
+                {
+                    $schema: 'https://opencode.ai/config.json',
+                    mcp: {
+                        servers: {
+                            'directwerk-studio': {
+                                type: 'remote',
+                                url: options.mcpUrl,
+                                oauth: false,
+                                headers: {
+                                    Authorization: 'Bearer {env:DIRECTWERK_API_KEY}',
+                                    'X-Tenant-Host': host,
+                                },
+                            },
+                        },
+                    },
+                },
+                null,
+                2,
+            )
+        }
+        return JSON.stringify(
+            {
+                mcpServers: {
+                    'directwerk-studio': {
+                        url: options.mcpUrl,
+                        headers: {
+                            Authorization: 'Bearer dwk_…',
+                            'X-Tenant-Host': host,
+                        },
+                    },
+                },
+            },
+            null,
+            2,
+        )
+    }
+    if (options.client === 'opencode') {
+        return JSON.stringify(
+            {
+                $schema: 'https://opencode.ai/config.json',
+                mcp: {
+                    servers: {
+                        'directwerk-studio': {
+                            type: 'local',
+                            command: ['node', '/absolute/path/to/packages/mcp-studio/dist/index.js'],
+                            environment: {
+                                DIRECTWERK_API_BASE_URL: 'https://api.example.com',
+                                DIRECTWERK_API_KEY: '{env:DIRECTWERK_API_KEY}',
+                                DIRECTWERK_TENANT_HOST: host,
+                            },
+                        },
+                    },
+                },
+            },
+            null,
+            2,
+        )
+    }
     return JSON.stringify(
         {
             mcpServers: {
@@ -430,30 +529,7 @@ function buildClaudeConfig(tenantHost: string): string {
                     env: {
                         DIRECTWERK_API_BASE_URL: 'https://api.example.com',
                         DIRECTWERK_API_KEY: 'dwk_…',
-                        DIRECTWERK_TENANT_HOST: tenantHost || 'your-tenant.example.com',
-                    },
-                },
-            },
-        },
-        null,
-        2,
-    )
-}
-
-function buildOpenCodeConfig(tenantHost: string): string {
-    return JSON.stringify(
-        {
-            $schema: 'https://opencode.ai/config.json',
-            mcp: {
-                servers: {
-                    'directwerk-studio': {
-                        type: 'local',
-                        command: ['node', '/absolute/path/to/packages/mcp-studio/dist/index.js'],
-                        environment: {
-                            DIRECTWERK_API_BASE_URL: 'https://api.example.com',
-                            DIRECTWERK_API_KEY: '{env:DIRECTWERK_API_KEY}',
-                            DIRECTWERK_TENANT_HOST: tenantHost || 'your-tenant.example.com',
-                        },
+                        DIRECTWERK_TENANT_HOST: host,
                     },
                 },
             },

@@ -18,6 +18,7 @@ public final class TenantApiKeyPathAccess {
      * also covers deferred MCP surfaces.
      */
     private static final List<String> ALLOWED_BASES = List.of(
+            "/mcp",
             "/api/v1/articles",
             "/api/v1/episodes",
             "/api/v1/series",
@@ -55,14 +56,33 @@ public final class TenantApiKeyPathAccess {
     }
 
     public static boolean isMethodAllowed(String method, Set<String> scopes) {
+        return isMethodAllowed(method, null, scopes);
+    }
+
+    /**
+     * Method gate for opaque keys. Hosted Streamable HTTP speaks JSON-RPC over
+     * {@code POST /mcp}; read keys must reach initialize / tools/list / read tools.
+     * Write enforcement stays on the underlying {@code /api/v1/**} calls.
+     */
+    public static boolean isMethodAllowed(String method, String path, Set<String> scopes) {
         if (method == null) {
             return false;
         }
         String verb = method.toUpperCase(Locale.ROOT);
+        if (isMcpProtocolPath(path)) {
+            if ("GET".equals(verb) || "POST".equals(verb) || "HEAD".equals(verb) || "OPTIONS".equals(verb)) {
+                return TenantApiKeyScopes.allowsRead(scopes);
+            }
+            return false;
+        }
         if ("GET".equals(verb) || "HEAD".equals(verb) || "OPTIONS".equals(verb)) {
             return TenantApiKeyScopes.allowsRead(scopes);
         }
         return TenantApiKeyScopes.allowsWrite(scopes);
+    }
+
+    private static boolean isMcpProtocolPath(String path) {
+        return path != null && (path.equals("/mcp") || path.startsWith("/mcp/"));
     }
 
     static List<String> allowedBases() {
