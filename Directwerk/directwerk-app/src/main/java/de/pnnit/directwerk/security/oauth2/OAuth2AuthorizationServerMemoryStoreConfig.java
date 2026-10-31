@@ -28,9 +28,17 @@ public class OAuth2AuthorizationServerMemoryStoreConfig {
     }
 
     @Bean
-    OAuth2AuthorizationService authorizationService(UserDetailsService userDetailsService) {
+    PrincipalIndexedOAuth2AuthorizationService principalIndexedAuthorizationService() {
+        return new PrincipalIndexedOAuth2AuthorizationService(new InMemoryOAuth2AuthorizationService());
+    }
+
+    @Bean
+    OAuth2AuthorizationService authorizationService(
+            PrincipalIndexedOAuth2AuthorizationService principalIndexedAuthorizationService,
+            UserDetailsService userDetailsService
+    ) {
         return new StateValidatingOAuth2AuthorizationService(
-                new InMemoryOAuth2AuthorizationService(),
+                principalIndexedAuthorizationService,
                 userDetailsService
         );
     }
