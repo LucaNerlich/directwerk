@@ -10,6 +10,17 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.5.1] - 2026-10-31
+
+### Added
+
+- Public docs site `/changelog` route, synced from the root `CHANGELOG.md`.
+
+### Fixed
+
+- Article (and episode) Markdown body rendered as HTML on the public site: Markdown→HTML on write with sanitization, plus shared client HTML rendering.
+- Studio mobile sidebar stays open when SideNav remounts.
+
 ## [0.5.0] - 2026-10-31
 
 ### Added
