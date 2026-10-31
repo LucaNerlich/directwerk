@@ -18,6 +18,7 @@ import de.pnnit.directwerk.modules.stripebilling.StripeOperations;
 import de.pnnit.directwerk.modules.stripebilling.entity.TenantStripeAccount;
 import de.pnnit.directwerk.modules.stripebilling.exception.StripeNotConfiguredException;
 import de.pnnit.directwerk.modules.stripebilling.repository.TenantStripeAccountRepository;
+import java.lang.reflect.Method;
 import java.util.Optional;
 import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
@@ -26,6 +27,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.transaction.annotation.Transactional;
 
 @ExtendWith(MockitoExtension.class)
 class StripeConnectServiceTest {
@@ -106,5 +109,58 @@ class StripeConnectServiceTest {
 
         assertThatThrownBy(() -> service.createOnboardLink(7L, "https://studio.localhost/x", "https://studio.localhost/x"))
                 .isInstanceOf(StripeNotConfiguredException.class);
+    }
+
+    @Test
+    void onboardUniqueViolationReusesWinnerExpressAccount() {
+        when(stripeOperations.isConfigured()).thenReturn(true);
+        when(redirectUrlValidator.requireAllowedUrl(eq(7L), eq("https://studio.localhost/settings/stripe"), eq("returnUrl")))
+                .thenReturn("https://studio.localhost/settings/stripe");
+        when(redirectUrlValidator.requireAllowedUrl(eq(7L), eq("https://studio.localhost/settings/stripe"), eq("refreshUrl")))
+                .thenReturn("https://studio.localhost/settings/stripe");
+        when(tenantStripeAccountRepository.findByTenantId(7L))
+                .thenReturn(Optional.empty())
+                .thenReturn(Optional.of(winnerAccount("acct_winner")));
+        when(stripeOperations.createExpressAccount(eq("DE"), anyMap()))
+                .thenReturn(new StripeOperations.ConnectedAccount("acct_loser", false, false, false));
+        Tenant tenant = new Tenant();
+        tenant.setId(7L);
+        when(tenantRepository.getReferenceById(7L)).thenReturn(tenant);
+        when(tenantStripeAccountRepository.save(any(TenantStripeAccount.class)))
+                .thenThrow(new DataIntegrityViolationException("uq_tenant_id"));
+        when(stripeOperations.createAccountLink(
+                "acct_winner",
+                "https://studio.localhost/settings/stripe",
+                "https://studio.localhost/settings/stripe"
+        )).thenReturn("https://connect.stripe.com/setup/s/winner");
+
+        String url = service.createOnboardLink(
+                7L,
+                "https://studio.localhost/settings/stripe",
+                "https://studio.localhost/settings/stripe"
+        );
+
+        assertThat(url).isEqualTo("https://connect.stripe.com/setup/s/winner");
+        verify(stripeOperations).createAccountLink(
+                "acct_winner",
+                "https://studio.localhost/settings/stripe",
+                "https://studio.localhost/settings/stripe"
+        );
+    }
+
+    @Test
+    void createOnboardLinkIsNotTransactional() throws Exception {
+        // Unique-violation recovery (findByTenantId after aborted save) only works when there is
+        // no outer TX — Postgres aborts the shared TX on unique violation (#956 review).
+        Method method = StripeConnectService.class.getMethod(
+                "createOnboardLink", Long.class, String.class, String.class);
+        assertThat(method.getAnnotation(Transactional.class)).isNull();
+    }
+
+    private static TenantStripeAccount winnerAccount(String stripeAccountId) {
+        TenantStripeAccount account = new TenantStripeAccount();
+        account.setStripeAccountId(stripeAccountId);
+        account.setStatus("PENDING");
+        return account;
     }
 }
