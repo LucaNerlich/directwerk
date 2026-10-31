@@ -6,6 +6,8 @@ import java.time.Clock;
 import java.time.Duration;
 import java.util.Optional;
 import java.util.UUID;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.Transactional;
@@ -13,6 +15,8 @@ import org.springframework.transaction.support.TransactionTemplate;
 
 @Service
 public class EmailDeliveryGuard {
+
+    private static final Logger log = LoggerFactory.getLogger(EmailDeliveryGuard.class);
 
     /**
      * How long a provisional claim is considered in-flight, derived from the queue lease so the
@@ -78,9 +82,19 @@ public class EmailDeliveryGuard {
             return false;
         }
         outboundSubmission.run();
-        Integer updated = transactionTemplate.execute(status -> emailDeliveryRepository.finalizeClaim(
-                claim.jobId(), claim.claimToken(), clock.instant()));
-        return updated != null && updated > 0;
+        try {
+            Integer updated = transactionTemplate.execute(status -> emailDeliveryRepository.finalizeClaim(
+                    claim.jobId(), claim.claimToken(), clock.instant()));
+            return updated != null && updated > 0;
+        } catch (RuntimeException ex) {
+            // #948: outbound already succeeded. Propagating would release the provisional claim
+            // and let a retry re-send. Keep the claim and treat the job as done.
+            log.error(
+                    "Finalize failed after outbound send for job={}; leaving claim to prevent duplicate",
+                    claim.jobId(),
+                    ex);
+            return true;
+        }
     }
 
     @Transactional
