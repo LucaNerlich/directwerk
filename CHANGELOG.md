@@ -4,10 +4,11 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
-## [0.4.0] - 2026-10-30
+## [0.4.0] - 2026-10-31
 
 ### Added
 
+- Hosted Studio content MCP over Streamable HTTP on the API (`/mcp`), alongside the stdio `@directwerk/mcp-studio` package.
 - Studio API keys page: MCP setup section with copyable configuration for OpenCode and Claude Desktop/Cursor, with the workspace host prefilled.
 - Directwerk MCP server for Studio content management, plus tenant API keys with content scopes.
 - Bulk podcast import through the MCP server, including a manifest builder for channel2mp3 output and OpenCode setup docs.
