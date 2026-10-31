@@ -36,8 +36,8 @@ public class StudioMcpTools {
 
         // Articles
         tools.add(tool("list_articles", "List articles for the tenant", """
-                {"type":"object","properties":{"limit":{"type":"integer","minimum":1,"maximum":100},"offset":{"type":"integer","minimum":0},"q":{"type":"string","maxLength":200}},"additionalProperties":false}
-                """, (ctx, req) -> api.get(ctx, "/api/v1/articles", queryOf(args(req), "limit", "offset", "q"))));
+                {"type":"object","properties":{"limit":{"type":"integer","minimum":1,"maximum":100},"offset":{"type":"integer","minimum":0}},"additionalProperties":false}
+                """, (ctx, req) -> api.get(ctx, "/api/v1/articles", queryOf(args(req), "limit", "offset"))));
         tools.add(tool("get_article", "Get one article by id", """
                 {"type":"object","properties":{"articleId":{"type":"integer","minimum":1}},"required":["articleId"],"additionalProperties":false}
                 """, (ctx, req) -> api.get(ctx, "/api/v1/articles/" + longArg(args(req), "articleId"), null)));
@@ -134,8 +134,8 @@ public class StudioMcpTools {
 
         // Episodes
         tools.add(tool("list_episodes", "List episodes for the tenant", """
-                {"type":"object","properties":{"limit":{"type":"integer","minimum":1,"maximum":100},"offset":{"type":"integer","minimum":0},"seriesId":{"type":"integer","minimum":1},"q":{"type":"string","maxLength":200}},"additionalProperties":false}
-                """, (ctx, req) -> api.get(ctx, "/api/v1/episodes", queryOf(args(req), "limit", "offset", "seriesId", "q"))));
+                {"type":"object","properties":{"limit":{"type":"integer","minimum":1,"maximum":100},"offset":{"type":"integer","minimum":0}},"additionalProperties":false}
+                """, (ctx, req) -> api.get(ctx, "/api/v1/episodes", queryOf(args(req), "limit", "offset"))));
         tools.add(tool("get_episode", "Get one episode by id", """
                 {"type":"object","properties":{"episodeId":{"type":"integer","minimum":1}},"required":["episodeId"],"additionalProperties":false}
                 """, (ctx, req) -> api.get(ctx, "/api/v1/episodes/" + longArg(args(req), "episodeId"), null)));
@@ -297,8 +297,8 @@ public class StudioMcpTools {
 
         // Media
         tools.add(tool("list_media", "List media assets", """
-                {"type":"object","properties":{"limit":{"type":"integer","minimum":1,"maximum":100},"offset":{"type":"integer","minimum":0},"folderId":{"type":"integer","minimum":1},"q":{"type":"string","maxLength":200}},"additionalProperties":false}
-                """, (ctx, req) -> api.get(ctx, "/api/v1/media", queryOf(args(req), "limit", "offset", "folderId", "q"))));
+                {"type":"object","properties":{"limit":{"type":"integer","minimum":1,"maximum":100},"offset":{"type":"integer","minimum":0},"folderId":{"type":"integer","minimum":1}},"additionalProperties":false}
+                """, (ctx, req) -> api.get(ctx, "/api/v1/media", queryOf(args(req), "limit", "offset", "folderId"))));
         tools.add(tool("get_media", "Get one media asset", """
                 {"type":"object","properties":{"assetId":{"type":"integer","minimum":1}},"required":["assetId"],"additionalProperties":false}
                 """, (ctx, req) -> api.get(ctx, "/api/v1/media/" + longArg(args(req), "assetId"), null)));

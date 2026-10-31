@@ -65,7 +65,6 @@ export function createMcpServer(
     server.tool('list_articles', 'List articles for the tenant', {
         limit: optionalLimit,
         offset: optionalOffset,
-        q: z.string().max(200).optional(),
     }, async (args) => {
         try {
             return toolResult(await api('GET', 'api/v1/articles', undefined, args))
@@ -290,8 +289,6 @@ export function createMcpServer(
     server.tool('list_episodes', 'List episodes for the tenant', {
         limit: optionalLimit,
         offset: optionalOffset,
-        seriesId: idSchema.optional(),
-        q: z.string().max(200).optional(),
     }, async (args) => {
         try {
             return toolResult(await api('GET', 'api/v1/episodes', undefined, args))
@@ -686,7 +683,6 @@ export function createMcpServer(
         limit: optionalLimit,
         offset: optionalOffset,
         folderId: idSchema.optional(),
-        q: z.string().max(200).optional(),
     }, async (args) => {
         try {
             return toolResult(await api('GET', 'api/v1/media', undefined, args))

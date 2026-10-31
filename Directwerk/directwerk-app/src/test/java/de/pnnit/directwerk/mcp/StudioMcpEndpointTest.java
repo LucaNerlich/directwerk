@@ -8,6 +8,7 @@ import de.pnnit.directwerk.multitenancy.TenantContext;
 import de.pnnit.directwerk.security.DirectwerkUserPrincipal;
 import de.pnnit.directwerk.security.RoleConstants;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -96,6 +97,17 @@ class StudioMcpEndpointTest {
         );
         assertThat(names).doesNotContain("import_podcast_manifest");
         assertThat(names.size()).isGreaterThanOrEqualTo(63);
+
+        // List schemas must not advertise filters the REST controllers do not bind.
+        Map<String, Set<String>> listProps = studioMcpTools.specifications().stream()
+                .filter(spec -> Set.of("list_articles", "list_episodes", "list_media").contains(spec.tool().name()))
+                .collect(java.util.stream.Collectors.toMap(
+                        spec -> spec.tool().name(),
+                        spec -> spec.tool().inputSchema().properties().keySet()
+                ));
+        assertThat(listProps.get("list_articles")).containsExactlyInAnyOrder("limit", "offset");
+        assertThat(listProps.get("list_episodes")).containsExactlyInAnyOrder("limit", "offset");
+        assertThat(listProps.get("list_media")).containsExactlyInAnyOrder("limit", "offset", "folderId");
     }
 
     @Test
