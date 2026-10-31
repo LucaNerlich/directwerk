@@ -267,6 +267,9 @@ function parseArticleDetail(value: unknown): ArticleDetail | null {
                 : isPositiveSafeInteger(value.heroAssetId)
                   ? value.heroAssetId
                   : null,
+        heroImageUrl: isNullableString(value.heroImageUrl, 2048)
+            ? value.heroImageUrl
+            : null,
         requiredLevelSortOrder:
             value.requiredLevelSortOrder === null ||
             value.requiredLevelSortOrder === undefined

@@ -1,8 +1,9 @@
 package de.pnnit.directwerk.controller.newsletter;
 
+import de.pnnit.directwerk.api.PublicArticleViewMapper;
+import de.pnnit.directwerk.api.dto.ArticleView;
 import de.pnnit.directwerk.api.dto.ContentNotifyPreviewView;
 import de.pnnit.directwerk.api.dto.ContentTextLimits;
-import de.pnnit.directwerk.api.dto.CategoryView;
 import de.pnnit.directwerk.api.dto.BulkDeleteView;
 import de.pnnit.directwerk.api.dto.BulkIdsRequest;
 import de.pnnit.directwerk.api.dto.BulkPublishRequest;
@@ -16,8 +17,6 @@ import de.pnnit.directwerk.modules.digital.DigitalContentModule;
 import de.pnnit.directwerk.modules.digital.entity.AccessPolicy;
 import de.pnnit.directwerk.modules.email.content.ContentNotifyStudioService;
 import de.pnnit.directwerk.modules.newsletter.entity.Article;
-import de.pnnit.directwerk.modules.newsletter.entity.NewsletterList;
-import de.pnnit.directwerk.modules.digital.entity.Category;
 import de.pnnit.directwerk.modules.newsletter.service.ArticlePublicationWorkflowService;
 import de.pnnit.directwerk.modules.newsletter.service.ArticleService;
 import de.pnnit.directwerk.multitenancy.TenantContext;
@@ -32,7 +31,6 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import java.time.Instant;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
 import org.springframework.http.ResponseEntity;
@@ -58,15 +56,18 @@ public class ArticleController {
     private final ArticleService articleService;
     private final ArticlePublicationWorkflowService articlePublicationWorkflowService;
     private final ContentNotifyStudioService contentNotifyStudioService;
+    private final PublicArticleViewMapper publicArticleViewMapper;
 
     public ArticleController(
             ArticleService articleService,
             ArticlePublicationWorkflowService articlePublicationWorkflowService,
-            ContentNotifyStudioService contentNotifyStudioService
+            ContentNotifyStudioService contentNotifyStudioService,
+            PublicArticleViewMapper publicArticleViewMapper
     ) {
         this.articleService = articleService;
         this.articlePublicationWorkflowService = articlePublicationWorkflowService;
         this.contentNotifyStudioService = contentNotifyStudioService;
+        this.publicArticleViewMapper = publicArticleViewMapper;
     }
 
     @GetMapping
@@ -76,13 +77,13 @@ public class ArticleController {
     ) {
         Long tenantId = TenantContext.requireTenantId();
         return ContentEndpointSupport.okList(
-                articleService.listArticles(tenantId, limit, offset), ArticleController::toView);
+                articleService.listArticles(tenantId, limit, offset), publicArticleViewMapper::toStudioView);
     }
 
     @GetMapping("/{articleId}")
     ResponseEntity<Response<ArticleView>> getArticle(@PathVariable Long articleId) {
         Long tenantId = TenantContext.requireTenantId();
-        return ContentEndpointSupport.ok(articleService.requireArticle(tenantId, articleId), ArticleController::toView);
+        return ContentEndpointSupport.ok(articleService.requireArticle(tenantId, articleId), publicArticleViewMapper::toStudioView);
     }
 
     @ApiResponse(responseCode = "201", description = "Created")
@@ -101,7 +102,7 @@ public class ArticleController {
                 request.requiredLevelSortOrder(),
                 request.categoryIds()
         );
-        return ContentEndpointSupport.created(article, ArticleController::toView);
+        return ContentEndpointSupport.created(article, publicArticleViewMapper::toStudioView);
     }
 
     @PutMapping("/{articleId}")
@@ -123,7 +124,7 @@ public class ArticleController {
                 request.requiredLevelSortOrder(),
                 request.clearHeroAsset()
         );
-        return ContentEndpointSupport.ok(article, ArticleController::toView);
+        return ContentEndpointSupport.ok(article, publicArticleViewMapper::toStudioView);
     }
 
     @PutMapping("/{articleId}/categories")
@@ -134,7 +135,7 @@ public class ArticleController {
         Long tenantId = TenantContext.requireTenantId();
         return ContentEndpointSupport.ok(
                 articleService.replaceCategories(tenantId, articleId, request.categoryIds()),
-                ArticleController::toView
+                publicArticleViewMapper::toStudioView
         );
     }
 
@@ -146,7 +147,7 @@ public class ArticleController {
         Long tenantId = TenantContext.requireTenantId();
         return ContentEndpointSupport.ok(
                 articleService.replaceNewsletterLists(tenantId, articleId, request.newsletterListIds()),
-                ArticleController::toView
+                publicArticleViewMapper::toStudioView
         );
     }
 
@@ -160,7 +161,7 @@ public class ArticleController {
                 request,
                 (notifySubscribers, publishedAt) -> articlePublicationWorkflowService.publish(
                         tenantId, articleId, notifySubscribers, publishedAt),
-                ArticleController::toView
+                publicArticleViewMapper::toStudioView
         );
     }
 
@@ -180,7 +181,7 @@ public class ArticleController {
         Long tenantId = TenantContext.requireTenantId();
         return ContentEndpointSupport.ok(
                 contentNotifyStudioService.retryArticle(tenantId, articleId),
-                ArticleController::toView
+                publicArticleViewMapper::toStudioView
         );
     }
 
@@ -196,7 +197,7 @@ public class ArticleController {
                 request.scheduledAt(),
                 Boolean.TRUE.equals(request.notifySubscribers())
         );
-        return ContentEndpointSupport.ok(article, ArticleController::toView);
+        return ContentEndpointSupport.ok(article, publicArticleViewMapper::toStudioView);
     }
 
     @PostMapping("/{articleId}/cancel-schedule")
@@ -204,7 +205,7 @@ public class ArticleController {
         Long tenantId = TenantContext.requireTenantId();
         return ContentEndpointSupport.ok(
                 articlePublicationWorkflowService.cancelSchedule(tenantId, articleId),
-                ArticleController::toView
+                publicArticleViewMapper::toStudioView
         );
     }
 
@@ -213,7 +214,7 @@ public class ArticleController {
         Long tenantId = TenantContext.requireTenantId();
         return ContentEndpointSupport.ok(
                 articlePublicationWorkflowService.unpublish(tenantId, articleId),
-                ArticleController::toView
+                publicArticleViewMapper::toStudioView
         );
     }
 
@@ -222,7 +223,7 @@ public class ArticleController {
         Long tenantId = TenantContext.requireTenantId();
         return ContentEndpointSupport.ok(
                 articlePublicationWorkflowService.archive(tenantId, articleId),
-                ArticleController::toView
+                publicArticleViewMapper::toStudioView
         );
     }
 
@@ -231,7 +232,7 @@ public class ArticleController {
         Long tenantId = TenantContext.requireTenantId();
         return ContentEndpointSupport.ok(
                 articlePublicationWorkflowService.unarchive(tenantId, articleId),
-                ArticleController::toView
+                publicArticleViewMapper::toStudioView
         );
     }
 
@@ -257,7 +258,7 @@ public class ArticleController {
                         ContentEndpointSupport.notifySubscribers(request.notifySubscribers()),
                         request.publishedAt()
                 ),
-                ArticleController::toView
+                publicArticleViewMapper::toStudioView
         );
     }
 
@@ -278,7 +279,7 @@ public class ArticleController {
         Long tenantId = TenantContext.requireTenantId();
         return ContentEndpointSupport.okList(
                 articlePublicationWorkflowService.bulkUnpublish(tenantId, request.ids()),
-                ArticleController::toView
+                publicArticleViewMapper::toStudioView
         );
     }
 
@@ -321,36 +322,6 @@ public class ArticleController {
         return ResponseEntity.noContent().build();
     }
 
-    public static ArticleView toView(Article article) {
-        return new ArticleView(
-                article.getId(),
-                article.getSlug(),
-                article.getTitle(),
-                article.getBody(),
-                article.getExcerpt(),
-                article.getSeoDescription(),
-                article.getHeroAsset() != null ? article.getHeroAsset().getId() : null,
-                article.getAccessPolicy().name(),
-                article.getRequiredLevelSortOrder(),
-                article.getStatus().name(),
-                article.getPublishedAt(),
-                article.getScheduledAt(),
-                article.getEmailNotifiedAt(),
-                article.getCategories().stream()
-                        .sorted(CategoryView.DISPLAY_ORDER)
-                        .map(CategoryView::of)
-                        .toList(),
-                article.getNewsletterLists().stream()
-                        .sorted(Comparator.comparing(NewsletterList::getName, String.CASE_INSENSITIVE_ORDER)
-                                .thenComparing(NewsletterList::getId))
-                        .map(list -> new NewsletterListTag(list.getId(), list.getSlug(), list.getName()))
-                        .toList(),
-                article.getCreatedBy(),
-                article.getCreatedAt(),
-                article.getUpdatedAt()
-        );
-    }
-
     public record CreateArticleRequest(
             @NotBlank
             @Pattern(regexp = "^[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,62}[a-zA-Z0-9])?$")
@@ -384,30 +355,5 @@ public class ArticleController {
             @NotNull Instant scheduledAt,
             Boolean notifySubscribers
     ) {
-    }
-
-    public record ArticleView(
-            Long id,
-            String slug,
-            String title,
-            String body,
-            String excerpt,
-            String seoDescription,
-            Long heroAssetId,
-            String accessPolicy,
-            Integer requiredLevelSortOrder,
-            String status,
-            Instant publishedAt,
-            Instant scheduledAt,
-            Instant emailNotifiedAt,
-            List<CategoryView> categories,
-            List<NewsletterListTag> newsletterLists,
-            Long createdBy,
-            Instant createdAt,
-            Instant updatedAt
-    ) {
-    }
-
-    public record NewsletterListTag(Long id, String slug, String name) {
     }
 }

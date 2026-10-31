@@ -149,6 +149,8 @@ export interface ArticleDetail extends ArticleSummary {
     excerpt: string | null
     seoDescription: string | null
     heroAssetId: number | null
+    /** Public CDN hero URL; null while private or unset (same policy as episode coverImageUrl). */
+    heroImageUrl: string | null
     requiredLevelSortOrder: number | null
     scheduledAt: string | null
     /** When subscriber email notify was claimed for this article (ISO), if any. */

@@ -74,6 +74,7 @@ const mockArticles: ArticleDetail[] = [
         excerpt: null,
         seoDescription: null,
         heroAssetId: null,
+        heroImageUrl: null,
         requiredLevelSortOrder: null,
         scheduledAt: null, emailNotifiedAt: null, createdBy: null,
         categories: [{id: 11, slug: 'interview', name: 'Interview'}],
@@ -90,6 +91,7 @@ const mockArticles: ArticleDetail[] = [
         excerpt: null,
         seoDescription: null,
         heroAssetId: null,
+        heroImageUrl: null,
         requiredLevelSortOrder: null,
         scheduledAt: null, emailNotifiedAt: null, createdBy: null,
         categories: [{id: 12, slug: 'news', name: 'News'}],
@@ -106,6 +108,7 @@ const mockArticles: ArticleDetail[] = [
         excerpt: null,
         seoDescription: null,
         heroAssetId: null,
+        heroImageUrl: null,
         requiredLevelSortOrder: null,
         scheduledAt: '2026-09-01T12:00:00Z',
         emailNotifiedAt: null, createdBy: null,
@@ -123,6 +126,7 @@ const mockArticles: ArticleDetail[] = [
         excerpt: null,
         seoDescription: null,
         heroAssetId: null,
+        heroImageUrl: null,
         requiredLevelSortOrder: null,
         scheduledAt: null, emailNotifiedAt: null, createdBy: null,
         categories: [],
@@ -161,6 +165,31 @@ describe('ArticleListClient', () => {
         expect(
             screen.getByRole('checkbox', {name: '„Archived Post“ auswählen'}),
         ).toHaveAttribute('aria-disabled', 'true')
+    })
+
+    it('renders public hero thumbs the same way episode covers appear', async () => {
+        vi.mocked(listArticles).mockResolvedValue([
+            {
+                ...mockArticles[0],
+                heroAssetId: 9,
+                heroImageUrl: 'https://cdn.test/heroes/draft.jpg',
+            },
+            {
+                ...mockArticles[1],
+                heroAssetId: 10,
+                heroImageUrl: null,
+            },
+        ])
+
+        renderWithLocale(<ArticleListClient />)
+
+        await waitFor(() => {
+            expect(screen.getByText('Draft Post')).toBeInTheDocument()
+        })
+
+        const thumb = screen.getByRole('img', {name: 'Titelbild: Draft Post'})
+        expect(thumb).toHaveAttribute('src', 'https://cdn.test/heroes/draft.jpg')
+        expect(screen.queryByRole('img', {name: 'Titelbild: Published Post'})).toBeNull()
     })
 
     it('unpublishes a published article putting it back into draft', async () => {
