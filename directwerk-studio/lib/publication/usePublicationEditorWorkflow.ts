@@ -55,19 +55,20 @@ export function usePublicationEditorWorkflow<T extends {
     const publicationRef = useRef(publication)
     publicationRef.current = publication
 
-    const isDraftPublication = useCallback((): boolean => {
-        const current = publicationRef.current
-        return (current?.status ?? 'DRAFT') === 'DRAFT'
+    const isEditablePublication = useCallback((): boolean => {
+        const status = publicationRef.current?.status ?? 'DRAFT'
+        // DRAFT writes live columns; PUBLISHED stages a working-draft overlay.
+        return status === 'DRAFT' || status === 'PUBLISHED'
     }, [])
 
     const canAutosave = useCallback((): boolean => {
-        return publicationId !== undefined && isDraftPublication()
-    }, [publicationId, isDraftPublication])
+        return publicationId !== undefined && isEditablePublication()
+    }, [publicationId, isEditablePublication])
 
     const dirtyRevisionRef = useRef(0)
 
     const markDirty = useCallback(() => {
-        if (!isDraftPublication()) {
+        if (!isEditablePublication()) {
             return
         }
         setIsDirty(true)
@@ -76,7 +77,7 @@ export function usePublicationEditorWorkflow<T extends {
         dirtyRevisionRef.current += 1
         setDirtyRevision((current) => current + 1)
         setSaveHint('Ungespeicherte Änderungen')
-    }, [isDraftPublication])
+    }, [isEditablePublication])
 
     const save = useCallback(
         async (options?: {
@@ -88,7 +89,7 @@ export function usePublicationEditorWorkflow<T extends {
                 return null
             }
 
-            if (!isDraftPublication()) {
+            if (!isEditablePublication()) {
                 if (options?.autosave === true) {
                     setIsDirty(false)
                 }
@@ -132,7 +133,7 @@ export function usePublicationEditorWorkflow<T extends {
                 }
             }
         },
-        [authRedirect, isDraftPublication, loadError, saveImpl],
+        [authRedirect, isEditablePublication, loadError, saveImpl],
     )
 
     useDraftAutosave({
@@ -156,7 +157,11 @@ export function usePublicationEditorWorkflow<T extends {
             try {
                 const status = publicationRef.current?.status ?? 'DRAFT'
                 let current: T | null
-                if (publicationId === undefined || status === 'DRAFT') {
+                if (
+                    publicationId === undefined ||
+                    status === 'DRAFT' ||
+                    status === 'PUBLISHED'
+                ) {
                     current = await save({fromWorkflow: true})
                 } else {
                     current = publicationRef.current

@@ -175,3 +175,7 @@ Same names on API `/mcp` and this package (except stdio-only `import_podcast_man
 - **Media** — list/get, upload-url + confirm, `rename_media`, `get_media_preview_url`, `list_media_references`, `get_media_limits`, `get_media_storage_summary`, delete/move, folders CRUD
 
 Publish/schedule args match REST (`notifySubscribers`, `scheduledAt`, `publishedAt`). Newsletter **list** CRUD remains outside the API-key allowlist; attach uses article path only.
+
+### Draft-over-publish
+
+`update_*` / `set_*_categories` (and article newsletter lists / episode formats+audio) on a **PUBLISHED** item stage a `working_draft` overlay — status stays `PUBLISHED` and the public page stays up. Studio/MCP GET responses overlay draft fields and set `hasWorkingDraft: true`. Call `publish_*` again to apply the draft to live columns (over-publish). REST also exposes `POST …/discard-draft` to drop the overlay without changing live content.

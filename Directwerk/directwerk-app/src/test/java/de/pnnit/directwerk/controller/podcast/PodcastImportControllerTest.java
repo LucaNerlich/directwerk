@@ -190,7 +190,8 @@ class PodcastImportControllerTest {
                 List.of(),
                 null,
                 Instant.parse("2026-07-20T12:00:00Z"),
-                Instant.parse("2026-07-20T12:00:00Z")
+                Instant.parse("2026-07-20T12:00:00Z"),
+                false
         ));
 
         mockMvc.perform(post("/api/v1/podcast/import/episodes")

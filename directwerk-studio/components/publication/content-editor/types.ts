@@ -37,6 +37,7 @@ export interface ContentEditorApi<T> {
     unpublish: (id: number) => Promise<T>
     archive: (id: number) => Promise<T>
     unarchive: (id: number) => Promise<T>
+    discardDraft: (id: number) => Promise<T>
     delete: (id: number) => Promise<void>
 }
 
@@ -63,6 +64,7 @@ export interface ContentEditorModel<
         slug: string
         title: string
         createdBy?: number | null
+        hasWorkingDraft?: boolean
     },
 > {
     descriptor: ContentEditorDescriptor<T>

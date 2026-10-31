@@ -111,6 +111,12 @@ public class ArticlePublicationWorkflowService extends PublicationWorkflow<Artic
         return unarchiveContent(tenantId, articleId);
     }
 
+    @Transactional
+    @RequiresModule(ArticlesModule.KEY)
+    public Article discardWorkingDraft(Long tenantId, Long articleId) {
+        return discardWorkingDraftContent(tenantId, articleId);
+    }
+
     public int publishDueScheduled() {
         return publishDueScheduledContent();
     }
@@ -188,6 +194,11 @@ public class ArticlePublicationWorkflowService extends PublicationWorkflow<Artic
     @Override
     protected void requirePermission(ContentOperation operation, Article article) {
         permissionService.requireArticleAccess(operation, article.getCreatedBy());
+    }
+
+    @Override
+    protected void applyWorkingDraft(Long tenantId, Article article) {
+        articleService.applyWorkingDraft(tenantId, article);
     }
 
     @Override

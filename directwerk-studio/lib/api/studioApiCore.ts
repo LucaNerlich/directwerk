@@ -57,6 +57,7 @@ export interface PublicationWorkflowApi<T, TCreate, TUpdate> {
     unpublish(id: number): Promise<T>
     archive(id: number): Promise<T>
     unarchive(id: number): Promise<T>
+    discardDraft(id: number): Promise<T>
 }
 
 export function createPublicationWorkflowApi<T, TCreate extends object, TUpdate extends object>(config: {
@@ -150,6 +151,13 @@ export function createPublicationWorkflowApi<T, TCreate extends object, TUpdate 
             studioMutate(
                 `${basePath}/${id}/unarchive`,
                 
+                {method: 'POST'},
+                parseEnvelope,
+                messages.detail,
+            ),
+        discardDraft: (id: number): Promise<T> =>
+            studioMutate(
+                `${basePath}/${id}/discard-draft`,
                 {method: 'POST'},
                 parseEnvelope,
                 messages.detail,

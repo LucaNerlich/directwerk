@@ -8,12 +8,14 @@ import de.pnnit.directwerk.modules.core.content.BulkPublication;
 import de.pnnit.directwerk.modules.core.repository.TenantRepository;
 import de.pnnit.directwerk.modules.core.service.MembershipPermissionService;
 import de.pnnit.directwerk.modules.newsletter.ArticlesModule;
+import de.pnnit.directwerk.modules.content.WorkingDraftMaps;
 import de.pnnit.directwerk.modules.core.util.FieldConstraints;
 import de.pnnit.directwerk.modules.core.util.SlugNormalizer;
 import de.pnnit.directwerk.modules.core.util.TitleNormalizer;
 import de.pnnit.directwerk.modules.digital.api.MediaAssetQueryApi;
 import de.pnnit.directwerk.modules.digital.entity.AssetStatus;
 import de.pnnit.directwerk.modules.digital.entity.AssetType;
+import de.pnnit.directwerk.modules.digital.entity.Category;
 import de.pnnit.directwerk.modules.digital.entity.MediaAsset;
 import de.pnnit.directwerk.modules.digital.exception.MediaAssetNotFoundException;
 import de.pnnit.directwerk.modules.digital.entity.AccessPolicy;
@@ -32,7 +34,9 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.data.domain.PageRequest;
@@ -187,38 +191,36 @@ public class ArticleService {
             Integer requiredLevelSortOrder,
             Boolean clearHeroAsset
     ) {
-        Article article = requireDraftArticle(tenantId, articleId);
+        Article article = requireEditableArticle(tenantId, articleId);
         permissionService.requireArticleAccess(ContentOperation.UPDATE, article.getCreatedBy());
-        if (rawSlug != null) {
-            String slug = SlugNormalizer.normalize(rawSlug);
-            if (articleRepository.existsByTenantIdAndSlugAndIdNot(tenantId, slug, articleId)) {
-                throw new ConflictException(ConflictCodes.ARTICLE_SLUG_EXISTS, "Article slug already exists: " + slug);
-            }
-            article.setSlug(slug);
+        if (article.getStatus() == ArticleStatus.PUBLISHED) {
+            return patchWorkingDraft(
+                    tenantId,
+                    article,
+                    rawSlug,
+                    title,
+                    body,
+                    excerpt,
+                    seoDescription,
+                    heroAssetId,
+                    accessPolicy,
+                    requiredLevelSortOrder,
+                    clearHeroAsset,
+                    null,
+                    null);
         }
-        if (title != null) {
-            article.setTitle(TitleNormalizer.normalize(title, "Article"));
-        }
-        if (body != null) {
-            article.setBody(htmlSanitizer.sanitize(body));
-        }
-        if (excerpt != null) {
-            article.setExcerpt(normalizeOptionalText(excerpt));
-        }
-        if (seoDescription != null) {
-            article.setSeoDescription(normalizeSeoDescription(seoDescription));
-        }
-        if (Boolean.TRUE.equals(clearHeroAsset)) {
-            article.setHeroAsset(null);
-        } else if (heroAssetId != null) {
-            article.setHeroAsset(resolveHeroAsset(tenantId, heroAssetId));
-        }
-        if (accessPolicy != null) {
-            article.setAccessPolicy(accessPolicy);
-        }
-        if (requiredLevelSortOrder != null) {
-            article.setRequiredLevelSortOrder(FieldConstraints.requireNonNegative(requiredLevelSortOrder, "requiredLevelSortOrder"));
-        }
+        applyLiveFieldUpdates(
+                tenantId,
+                article,
+                rawSlug,
+                title,
+                body,
+                excerpt,
+                seoDescription,
+                heroAssetId,
+                accessPolicy,
+                requiredLevelSortOrder,
+                clearHeroAsset);
         articleRepository.save(article);
         return requireArticle(tenantId, articleId);
     }
@@ -226,11 +228,17 @@ public class ArticleService {
     @Transactional
     @RequiresModule(ArticlesModule.KEY)
     public Article replaceCategories(Long tenantId, Long articleId, Set<Long> categoryIds) {
-        Article article = requireDraftArticle(tenantId, articleId);
+        Article article = requireEditableArticle(tenantId, articleId);
         permissionService.requireArticleAccess(ContentOperation.UPDATE, article.getCreatedBy());
+        Set<Category> resolved = categoryService.resolveActiveCategories(tenantId, categoryIds,
+                id -> { throw new ArticleValidationException("Category is inactive: " + id); });
+        if (article.getStatus() == ArticleStatus.PUBLISHED) {
+            List<Long> ids = resolved.stream().map(Category::getId).sorted().toList();
+            return patchWorkingDraft(
+                    tenantId, article, null, null, null, null, null, null, null, null, null, ids, null);
+        }
         article.getCategories().clear();
-        article.getCategories().addAll(categoryService.resolveActiveCategories(tenantId, categoryIds,
-                id -> { throw new ArticleValidationException("Category is inactive: " + id); }));
+        article.getCategories().addAll(resolved);
         articleRepository.save(article);
         return requireArticle(tenantId, articleId);
     }
@@ -238,20 +246,81 @@ public class ArticleService {
     @Transactional
     @RequiresModule(ArticlesModule.KEY)
     public Article replaceNewsletterLists(Long tenantId, Long articleId, Set<Long> listIds) {
-        Article article = requireDraftArticle(tenantId, articleId);
+        Article article = requireEditableArticle(tenantId, articleId);
         permissionService.requireArticleAccess(ContentOperation.UPDATE, article.getCreatedBy());
-        article.getNewsletterLists().clear();
-        if (listIds != null) {
-            for (Long listId : listIds) {
-                NewsletterList list = newsletterListService.requireList(tenantId, listId);
-                if (list.getStatus() != NewsletterListStatus.ACTIVE) {
-                    throw new ArticleValidationException("Newsletter list is inactive: " + listId);
-                }
-                article.getNewsletterLists().add(list);
-            }
+        List<NewsletterList> resolved = resolveActiveNewsletterLists(tenantId, listIds);
+        if (article.getStatus() == ArticleStatus.PUBLISHED) {
+            List<Long> ids = resolved.stream().map(NewsletterList::getId).sorted().toList();
+            return patchWorkingDraft(
+                    tenantId, article, null, null, null, null, null, null, null, null, null, null, ids);
         }
+        article.getNewsletterLists().clear();
+        article.getNewsletterLists().addAll(resolved);
         articleRepository.save(article);
         return requireArticle(tenantId, articleId);
+    }
+
+    /**
+     * Applies a working-draft overlay onto live columns and join tables. Used by over-publish
+     * and by unpublish (so staged edits are not discarded when withdrawing).
+     */
+    @Transactional
+    @RequiresModule(ArticlesModule.KEY)
+    public void applyWorkingDraft(Long tenantId, Article article) {
+        Map<String, Object> draft = article.getWorkingDraft();
+        if (!WorkingDraftMaps.isPresent(draft)) {
+            return;
+        }
+        if (WorkingDraftMaps.containsKey(draft, WorkingDraftMaps.SLUG)) {
+            String slug = SlugNormalizer.normalize(WorkingDraftMaps.getString(draft, WorkingDraftMaps.SLUG));
+            if (articleRepository.existsByTenantIdAndSlugAndIdNot(tenantId, slug, article.getId())) {
+                throw new ConflictException(ConflictCodes.ARTICLE_SLUG_EXISTS, "Article slug already exists: " + slug);
+            }
+            article.setSlug(slug);
+        }
+        if (WorkingDraftMaps.containsKey(draft, WorkingDraftMaps.TITLE)) {
+            article.setTitle(TitleNormalizer.normalize(
+                    WorkingDraftMaps.getString(draft, WorkingDraftMaps.TITLE), "Article"));
+        }
+        if (WorkingDraftMaps.containsKey(draft, WorkingDraftMaps.BODY)) {
+            article.setBody(htmlSanitizer.sanitize(WorkingDraftMaps.getString(draft, WorkingDraftMaps.BODY)));
+        }
+        if (WorkingDraftMaps.containsKey(draft, WorkingDraftMaps.EXCERPT)) {
+            article.setExcerpt(normalizeOptionalText(WorkingDraftMaps.getString(draft, WorkingDraftMaps.EXCERPT)));
+        }
+        if (WorkingDraftMaps.containsKey(draft, WorkingDraftMaps.SEO_DESCRIPTION)) {
+            article.setSeoDescription(normalizeSeoDescription(
+                    WorkingDraftMaps.getString(draft, WorkingDraftMaps.SEO_DESCRIPTION)));
+        }
+        if (WorkingDraftMaps.getBoolean(draft, WorkingDraftMaps.CLEAR_HERO_ASSET, false)) {
+            article.setHeroAsset(null);
+        } else if (WorkingDraftMaps.containsKey(draft, WorkingDraftMaps.HERO_ASSET_ID)) {
+            article.setHeroAsset(resolveHeroAsset(
+                    tenantId, WorkingDraftMaps.getLong(draft, WorkingDraftMaps.HERO_ASSET_ID)));
+        }
+        if (WorkingDraftMaps.containsKey(draft, WorkingDraftMaps.ACCESS_POLICY)) {
+            article.setAccessPolicy(AccessPolicy.valueOf(
+                    WorkingDraftMaps.getString(draft, WorkingDraftMaps.ACCESS_POLICY)));
+        }
+        if (WorkingDraftMaps.containsKey(draft, WorkingDraftMaps.REQUIRED_LEVEL_SORT_ORDER)) {
+            article.setRequiredLevelSortOrder(FieldConstraints.requireNonNegative(
+                    WorkingDraftMaps.getInteger(draft, WorkingDraftMaps.REQUIRED_LEVEL_SORT_ORDER),
+                    "requiredLevelSortOrder"));
+        }
+        if (WorkingDraftMaps.containsKey(draft, WorkingDraftMaps.CATEGORY_IDS)) {
+            Set<Long> categoryIds = new LinkedHashSet<>(
+                    WorkingDraftMaps.getLongList(draft, WorkingDraftMaps.CATEGORY_IDS));
+            article.getCategories().clear();
+            article.getCategories().addAll(categoryService.resolveActiveCategories(tenantId, categoryIds,
+                    id -> { throw new ArticleValidationException("Category is inactive: " + id); }));
+        }
+        if (WorkingDraftMaps.containsKey(draft, WorkingDraftMaps.NEWSLETTER_LIST_IDS)) {
+            article.getNewsletterLists().clear();
+            article.getNewsletterLists().addAll(resolveActiveNewsletterLists(
+                    tenantId,
+                    new LinkedHashSet<>(WorkingDraftMaps.getLongList(draft, WorkingDraftMaps.NEWSLETTER_LIST_IDS))));
+        }
+        article.setWorkingDraft(null);
     }
 
     /**
@@ -307,12 +376,171 @@ public class ArticleService {
         return deleted;
     }
 
-    private Article requireDraftArticle(Long tenantId, Long articleId) {
+    private Article requireEditableArticle(Long tenantId, Long articleId) {
         Article article = requireArticle(tenantId, articleId);
-        if (article.getStatus() != ArticleStatus.DRAFT) {
-            throw new ArticleValidationException("Only DRAFT articles can be edited");
+        ArticleStatus status = article.getStatus();
+        if (status != ArticleStatus.DRAFT && status != ArticleStatus.PUBLISHED) {
+            throw new ArticleValidationException(
+                    "Only DRAFT or PUBLISHED articles can be edited");
         }
         return article;
+    }
+
+    private Article patchWorkingDraft(
+            Long tenantId,
+            Article article,
+            String rawSlug,
+            String title,
+            String body,
+            String excerpt,
+            String seoDescription,
+            Long heroAssetId,
+            AccessPolicy accessPolicy,
+            Integer requiredLevelSortOrder,
+            Boolean clearHeroAsset,
+            List<Long> categoryIds,
+            List<Long> newsletterListIds
+    ) {
+        Map<String, Object> draft = WorkingDraftMaps.isPresent(article.getWorkingDraft())
+                ? WorkingDraftMaps.mutableCopy(article.getWorkingDraft())
+                : seedWorkingDraft(article);
+        if (rawSlug != null) {
+            String slug = SlugNormalizer.normalize(rawSlug);
+            if (articleRepository.existsByTenantIdAndSlugAndIdNot(tenantId, slug, article.getId())) {
+                throw new ConflictException(ConflictCodes.ARTICLE_SLUG_EXISTS, "Article slug already exists: " + slug);
+            }
+            WorkingDraftMaps.putString(draft, WorkingDraftMaps.SLUG, slug);
+        }
+        if (title != null) {
+            WorkingDraftMaps.putString(
+                    draft, WorkingDraftMaps.TITLE, TitleNormalizer.normalize(title, "Article"));
+        }
+        if (body != null) {
+            WorkingDraftMaps.putString(draft, WorkingDraftMaps.BODY, htmlSanitizer.sanitize(body));
+        }
+        if (excerpt != null) {
+            WorkingDraftMaps.putString(draft, WorkingDraftMaps.EXCERPT, normalizeOptionalText(excerpt));
+        }
+        if (seoDescription != null) {
+            WorkingDraftMaps.putString(
+                    draft, WorkingDraftMaps.SEO_DESCRIPTION, normalizeSeoDescription(seoDescription));
+        }
+        if (Boolean.TRUE.equals(clearHeroAsset)) {
+            WorkingDraftMaps.putBoolean(draft, WorkingDraftMaps.CLEAR_HERO_ASSET, true);
+            WorkingDraftMaps.putNullableLong(draft, WorkingDraftMaps.HERO_ASSET_ID, null);
+        } else if (heroAssetId != null) {
+            resolveHeroAsset(tenantId, heroAssetId);
+            WorkingDraftMaps.putBoolean(draft, WorkingDraftMaps.CLEAR_HERO_ASSET, false);
+            WorkingDraftMaps.putNullableLong(draft, WorkingDraftMaps.HERO_ASSET_ID, heroAssetId);
+        }
+        if (accessPolicy != null) {
+            WorkingDraftMaps.putString(draft, WorkingDraftMaps.ACCESS_POLICY, accessPolicy.name());
+        }
+        if (requiredLevelSortOrder != null) {
+            WorkingDraftMaps.putInteger(
+                    draft,
+                    WorkingDraftMaps.REQUIRED_LEVEL_SORT_ORDER,
+                    FieldConstraints.requireNonNegative(requiredLevelSortOrder, "requiredLevelSortOrder"));
+        }
+        if (categoryIds != null) {
+            WorkingDraftMaps.putLongList(draft, WorkingDraftMaps.CATEGORY_IDS, categoryIds);
+        }
+        if (newsletterListIds != null) {
+            WorkingDraftMaps.putLongList(draft, WorkingDraftMaps.NEWSLETTER_LIST_IDS, newsletterListIds);
+        }
+        article.setWorkingDraft(draft);
+        articleRepository.save(article);
+        return requireArticle(tenantId, article.getId());
+    }
+
+    private Map<String, Object> seedWorkingDraft(Article article) {
+        Map<String, Object> draft = WorkingDraftMaps.mutableCopy(null);
+        WorkingDraftMaps.putString(draft, WorkingDraftMaps.SLUG, article.getSlug());
+        WorkingDraftMaps.putString(draft, WorkingDraftMaps.TITLE, article.getTitle());
+        WorkingDraftMaps.putString(draft, WorkingDraftMaps.BODY, article.getBody());
+        WorkingDraftMaps.putString(draft, WorkingDraftMaps.EXCERPT, article.getExcerpt());
+        WorkingDraftMaps.putString(draft, WorkingDraftMaps.SEO_DESCRIPTION, article.getSeoDescription());
+        WorkingDraftMaps.putNullableLong(
+                draft,
+                WorkingDraftMaps.HERO_ASSET_ID,
+                article.getHeroAsset() != null ? article.getHeroAsset().getId() : null);
+        WorkingDraftMaps.putBoolean(draft, WorkingDraftMaps.CLEAR_HERO_ASSET, false);
+        WorkingDraftMaps.putString(draft, WorkingDraftMaps.ACCESS_POLICY, article.getAccessPolicy().name());
+        WorkingDraftMaps.putInteger(
+                draft, WorkingDraftMaps.REQUIRED_LEVEL_SORT_ORDER, article.getRequiredLevelSortOrder());
+        WorkingDraftMaps.putLongList(
+                draft,
+                WorkingDraftMaps.CATEGORY_IDS,
+                article.getCategories().stream().map(Category::getId).sorted().collect(Collectors.toList()));
+        WorkingDraftMaps.putLongList(
+                draft,
+                WorkingDraftMaps.NEWSLETTER_LIST_IDS,
+                article.getNewsletterLists().stream()
+                        .map(NewsletterList::getId)
+                        .sorted()
+                        .collect(Collectors.toList()));
+        return draft;
+    }
+
+    private void applyLiveFieldUpdates(
+            Long tenantId,
+            Article article,
+            String rawSlug,
+            String title,
+            String body,
+            String excerpt,
+            String seoDescription,
+            Long heroAssetId,
+            AccessPolicy accessPolicy,
+            Integer requiredLevelSortOrder,
+            Boolean clearHeroAsset
+    ) {
+        if (rawSlug != null) {
+            String slug = SlugNormalizer.normalize(rawSlug);
+            if (articleRepository.existsByTenantIdAndSlugAndIdNot(tenantId, slug, article.getId())) {
+                throw new ConflictException(ConflictCodes.ARTICLE_SLUG_EXISTS, "Article slug already exists: " + slug);
+            }
+            article.setSlug(slug);
+        }
+        if (title != null) {
+            article.setTitle(TitleNormalizer.normalize(title, "Article"));
+        }
+        if (body != null) {
+            article.setBody(htmlSanitizer.sanitize(body));
+        }
+        if (excerpt != null) {
+            article.setExcerpt(normalizeOptionalText(excerpt));
+        }
+        if (seoDescription != null) {
+            article.setSeoDescription(normalizeSeoDescription(seoDescription));
+        }
+        if (Boolean.TRUE.equals(clearHeroAsset)) {
+            article.setHeroAsset(null);
+        } else if (heroAssetId != null) {
+            article.setHeroAsset(resolveHeroAsset(tenantId, heroAssetId));
+        }
+        if (accessPolicy != null) {
+            article.setAccessPolicy(accessPolicy);
+        }
+        if (requiredLevelSortOrder != null) {
+            article.setRequiredLevelSortOrder(
+                    FieldConstraints.requireNonNegative(requiredLevelSortOrder, "requiredLevelSortOrder"));
+        }
+    }
+
+    private List<NewsletterList> resolveActiveNewsletterLists(Long tenantId, Set<Long> listIds) {
+        List<NewsletterList> resolved = new ArrayList<>();
+        if (listIds == null) {
+            return resolved;
+        }
+        for (Long listId : listIds) {
+            NewsletterList list = newsletterListService.requireList(tenantId, listId);
+            if (list.getStatus() != NewsletterListStatus.ACTIVE) {
+                throw new ArticleValidationException("Newsletter list is inactive: " + listId);
+            }
+            resolved.add(list);
+        }
+        return resolved;
     }
 
     private MediaAsset resolveHeroAsset(Long tenantId, Long heroAssetId) {

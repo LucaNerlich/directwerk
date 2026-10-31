@@ -7,10 +7,12 @@ import de.pnnit.directwerk.api.dto.EpisodeView;
 import de.pnnit.directwerk.modules.digital.api.EpisodeMediaApi;
 import de.pnnit.directwerk.modules.digital.entity.AccessPolicy;
 import de.pnnit.directwerk.modules.digital.entity.MediaAsset;
+import de.pnnit.directwerk.modules.digital.service.CategoryService;
 import de.pnnit.directwerk.modules.podcast.entity.Episode;
 import de.pnnit.directwerk.modules.podcast.entity.EpisodeStatus;
 import de.pnnit.directwerk.modules.podcast.entity.Format;
 import de.pnnit.directwerk.modules.podcast.entity.PodcastSeries;
+import de.pnnit.directwerk.modules.podcast.repository.FormatRepository;
 import de.pnnit.directwerk.modules.podcast.service.EpisodeCoverResolver;
 import java.net.URI;
 import java.util.Optional;
@@ -32,6 +34,12 @@ class PublicEpisodeViewMapperTest {
 
     @Mock
     private EpisodeMediaApi episodeMediaApi;
+
+    @Mock
+    private CategoryService categoryService;
+
+    @Mock
+    private FormatRepository formatRepository;
 
     @Spy
     private EpisodeCoverResolver episodeCoverResolver = new EpisodeCoverResolver();
@@ -142,6 +150,7 @@ class PublicEpisodeViewMapperTest {
         when(episode.getScheduledAt()).thenReturn(null);
         when(episode.getFormats()).thenReturn(formats);
         when(episode.getCategories()).thenReturn(Set.of());
+        when(episode.getWorkingDraft()).thenReturn(null);
         return episode;
     }
 }

@@ -142,6 +142,11 @@ export interface EpisodeDetail extends EpisodeSummary {
     createdBy: number | null
     formats: FormatTag[]
     categories: CategoryTag[]
+    /**
+     * True when a draft-over-publish overlay is staged on a PUBLISHED episode.
+     * Studio fields already reflect the overlay; public/RSS still show live columns.
+     */
+    hasWorkingDraft?: boolean
 }
 
 export interface ArticleDetail extends ArticleSummary {
@@ -159,6 +164,11 @@ export interface ArticleDetail extends ArticleSummary {
     createdBy: number | null
     categories: CategoryTag[]
     newsletterLists: NewsletterListTag[]
+    /**
+     * True when a draft-over-publish overlay is staged on a PUBLISHED article.
+     * Studio fields already reflect the overlay; public/RSS still show live columns.
+     */
+    hasWorkingDraft?: boolean
 }
 
 /** Studio EMAIL_NOTIFY preview for publish checkbox / failure recovery. */

@@ -46,6 +46,7 @@ export const cancelScheduleEpisode = episodeApi.cancelSchedule
 export const unpublishEpisode = episodeApi.unpublish
 export const archiveEpisode = episodeApi.archive
 export const unarchiveEpisode = episodeApi.unarchive
+export const discardEpisodeDraft = episodeApi.discardDraft
 
 const invalidEpisodeMessage = 'Der Server hat eine ungültige Folge gesendet.'
 const invalidBulkDeleteMessage = 'Der Server hat eine ungültige Löschantwort gesendet.'

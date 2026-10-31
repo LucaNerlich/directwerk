@@ -127,6 +127,12 @@ public class PublicationWorkflowService extends PublicationWorkflow<Episode, Epi
         return unarchiveContent(tenantId, episodeId);
     }
 
+    @Transactional
+    @RequiresModule(PodcastModule.KEY)
+    public Episode discardWorkingDraft(Long tenantId, Long episodeId) {
+        return discardWorkingDraftContent(tenantId, episodeId);
+    }
+
     public int publishDueScheduled() {
         return publishDueScheduledContent();
     }
@@ -204,6 +210,11 @@ public class PublicationWorkflowService extends PublicationWorkflow<Episode, Epi
     @Override
     protected void requirePermission(ContentOperation operation, Episode episode) {
         permissionService.requireEpisodeAccess(operation, episode.getCreatedBy());
+    }
+
+    @Override
+    protected void applyWorkingDraft(Long tenantId, Episode episode) {
+        episodeService.applyWorkingDraft(tenantId, episode);
     }
 
     @Override

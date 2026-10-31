@@ -72,4 +72,22 @@ public final class PublicationTransitions {
                     "Only DRAFT or SCHEDULED " + entityLabel + " can be published");
         }
     }
+
+    /**
+     * Over-publish: a {@code PUBLISHED} item may be published again only when a working draft
+     * overlay is present (draft-over-publish).
+     */
+    public static void requireWorkingDraftForRepublish(boolean hasWorkingDraft, String entityLabel) {
+        if (!hasWorkingDraft) {
+            throw new InvalidPublicationTransitionException(
+                    "Only PUBLISHED " + entityLabel + " with a working draft can be re-published");
+        }
+    }
+
+    public static void requireNoWorkingDraft(boolean hasWorkingDraft, String entityLabel, String action) {
+        if (hasWorkingDraft) {
+            throw new InvalidPublicationTransitionException(
+                    "Discard or publish the working draft before " + action + " " + entityLabel);
+        }
+    }
 }

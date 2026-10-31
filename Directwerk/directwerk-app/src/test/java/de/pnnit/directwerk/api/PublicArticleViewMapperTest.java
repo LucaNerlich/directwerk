@@ -7,9 +7,11 @@ import de.pnnit.directwerk.api.dto.ArticleView;
 import de.pnnit.directwerk.api.dto.PublicArticleView;
 import de.pnnit.directwerk.modules.digital.entity.AccessPolicy;
 import de.pnnit.directwerk.modules.digital.entity.MediaAsset;
+import de.pnnit.directwerk.modules.digital.service.CategoryService;
 import de.pnnit.directwerk.modules.digital.service.PublicCdnUrlResolver;
 import de.pnnit.directwerk.modules.newsletter.entity.Article;
 import de.pnnit.directwerk.modules.newsletter.entity.ArticleStatus;
+import de.pnnit.directwerk.modules.newsletter.service.NewsletterListService;
 import java.net.URI;
 import java.time.Instant;
 import java.util.Optional;
@@ -25,6 +27,12 @@ class PublicArticleViewMapperTest {
 
     @Mock
     private PublicCdnUrlResolver publicCdnUrlResolver;
+
+    @Mock
+    private CategoryService categoryService;
+
+    @Mock
+    private NewsletterListService newsletterListService;
 
     @InjectMocks
     private PublicArticleViewMapper mapper;
@@ -96,6 +104,7 @@ class PublicArticleViewMapperTest {
         org.mockito.Mockito.lenient()
                 .when(article.getUpdatedAt())
                 .thenReturn(Instant.parse("2026-01-01T00:00:00Z"));
+        org.mockito.Mockito.lenient().when(article.getWorkingDraft()).thenReturn(null);
         return article;
     }
 }

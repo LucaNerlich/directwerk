@@ -1,0 +1,32 @@
+info:
+  name: 9b - Discard Episode Working Draft
+  type: http
+  seq: 9.5
+
+http:
+  method: POST
+  url: "{{baseUrl}}/api/v1/episodes/{{episodeId}}/discard-draft"
+  body:
+    type: json
+    data: "{}"
+  auth: inherit
+
+docs: |
+  Clears a draft-over-publish overlay on a PUBLISHED episode. Live columns stay unchanged.
+  Expect 200 when a working draft exists; 409 when none / not published.
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("returns expected status", function() {
+          const status = res.getStatus();
+          expect(status === 200 || status === 404 || status === 409).to.equal(true);
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true

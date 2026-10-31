@@ -263,6 +263,20 @@ public class EpisodeController {
     }
 
     @Operation(
+            summary = "Discard working draft",
+            description = "Clears the draft-over-publish overlay on a PUBLISHED episode. "
+                    + "Live columns stay unchanged; the public page and feeds are unaffected."
+    )
+    @PostMapping("/{episodeId}/discard-draft")
+    ResponseEntity<Response<EpisodeView>> discardWorkingDraft(@PathVariable Long episodeId) {
+        Long tenantId = TenantContext.requireTenantId();
+        return ContentEndpointSupport.ok(
+                publicationWorkflowService.discardWorkingDraft(tenantId, episodeId),
+                publicEpisodeViewMapper::toStudioView
+        );
+    }
+
+    @Operation(
             summary = "Publish multiple episodes",
             description = "Publishes every id in a single transaction with a single RSS refresh. "
                     + "Atomic: the first failure rolls back all changes. Duplicate ids are "

@@ -3,6 +3,10 @@ package de.pnnit.directwerk.api.dto;
 import java.time.Instant;
 import java.util.List;
 
+/**
+ * Studio episode projection. When {@code hasWorkingDraft} is true, editable fields and
+ * taxonomy tags reflect the working-draft overlay. Public/RSS ignore the draft.
+ */
 public record EpisodeView(
         Long id,
         Long seriesId,
@@ -26,6 +30,7 @@ public record EpisodeView(
         List<CategoryView> categories,
         Long createdBy,
         Instant createdAt,
-        Instant updatedAt
+        Instant updatedAt,
+        boolean hasWorkingDraft
 ) {
 }

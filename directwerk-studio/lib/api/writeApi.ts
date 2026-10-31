@@ -40,6 +40,7 @@ export const cancelScheduleArticle = articleApi.cancelSchedule
 export const unpublishArticle = articleApi.unpublish
 export const archiveArticle = articleApi.archive
 export const unarchiveArticle = articleApi.unarchive
+export const discardArticleDraft = articleApi.discardDraft
 
 const invalidArticleMessage = 'Der Server hat einen ungültigen Beitrag gesendet.'
 const invalidBulkDeleteMessage = 'Der Server hat eine ungültige Löschantwort gesendet.'
