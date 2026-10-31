@@ -80,7 +80,16 @@ public class StripeWebhookService {
             }
         });
         if (refused.get() != null) {
-            cancelOrphanStripeSubscription(event, refused.get());
+            try {
+                cancelOrphanStripeSubscription(event, refused.get());
+            } catch (RuntimeException cancelFailure) {
+                // Cancel runs after the processed-event commit. If Stripe fails, drop the
+                // marker so the next job attempt re-enters the refuse path and retries cancel
+                // instead of insertIfAbsent==0 returning with refused unset.
+                new TransactionTemplate(transactionManager).executeWithoutResult(status ->
+                        processedWebhookEventRepository.deleteByEventId(event.eventId()));
+                throw cancelFailure;
+            }
         }
     }
 

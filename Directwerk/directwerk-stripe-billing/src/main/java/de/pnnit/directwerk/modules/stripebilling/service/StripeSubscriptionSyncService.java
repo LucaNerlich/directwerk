@@ -43,7 +43,10 @@ public class StripeSubscriptionSyncService {
         this.eventPublisher = eventPublisher;
     }
 
-    @Transactional
+    // noRollbackFor: callers (webhook write TX) catch rebind-refuse and still commit the
+    // processed-event insert, then cancel the orphan outside the TX (#944 review). Without this,
+    // REQUIRED nested @Transactional marks the shared TX rollback-only before rethrowing.
+    @Transactional(noRollbackFor = StripeSubscriptionRebindRefusedException.class)
     public Subscription upsertStripeSubscription(
             Long tenantId,
             Long userId,

@@ -26,4 +26,13 @@ public interface ProcessedWebhookEventRepository extends JpaRepository<Processed
             @Param("eventType") String eventType,
             @Param("stripeAccountId") String stripeAccountId
     );
+
+    /**
+     * Drops a processed marker so a webhook job can retry. Used when orphan cancel fails after
+     * a rebind refuse was recorded as processed — without this, {@code insertIfAbsent == 0}
+     * skips cancel forever.
+     */
+    @Modifying(clearAutomatically = true)
+    @Query("DELETE FROM ProcessedWebhookEvent e WHERE e.eventId = :eventId")
+    int deleteByEventId(@Param("eventId") String eventId);
 }

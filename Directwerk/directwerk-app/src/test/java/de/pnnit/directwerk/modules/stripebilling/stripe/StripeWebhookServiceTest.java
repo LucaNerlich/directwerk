@@ -1,9 +1,11 @@
 package de.pnnit.directwerk.modules.stripebilling.stripe;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
@@ -778,6 +780,60 @@ class StripeWebhookServiceTest {
 
         verify(stripeOperations).cancelSubscription("acct_1", "sub_orphan");
         verify(transactionManager).commit(any());
+        verify(processedWebhookEventRepository, never()).deleteByEventId(any());
+    }
+
+    @Test
+    void checkoutCompletedUnmarksProcessedWhenOrphanCancelFails() {
+        // After processed commit, a Stripe cancel failure must drop the marker so the next
+        // job attempt re-enters the refuse path instead of insertIfAbsent==0 skipping cancel.
+        StripeOperations.StripeWebhookPayload payload = new StripeOperations.StripeWebhookPayload(
+                "evt_rebind_cancel_fail",
+                "checkout.session.completed",
+                "acct_1",
+                "cus_1",
+                "sub_orphan",
+                "price_1",
+                Instant.parse("2026-09-01T00:00:00Z"),
+                "active",
+                true,
+                true,
+                true,
+                Map.of("tenant_id", "7", "user_id", "3", "product_id", "11"),
+                "pi_1",
+                false,
+                "paid",
+                true
+        );
+        when(stripeOperations.parseWebhook("{}", "sig")).thenReturn(payload);
+        when(processedWebhookEventRepository.insertIfAbsent(
+                        "evt_rebind_cancel_fail", "checkout.session.completed", "acct_1"))
+                .thenReturn(1);
+        TenantStripeAccount account = account(7L, "acct_1");
+        when(stripeConnectService.findByStripeAccountId("acct_1")).thenReturn(account);
+        SubscriptionProduct product = new SubscriptionProduct();
+        product.setId(11L);
+        when(subscriptionProductRepository.findByIdAndTenantId(11L, 7L)).thenReturn(Optional.of(product));
+        when(stripeSubscriptionSyncService.upsertStripeSubscription(
+                7L,
+                3L,
+                11L,
+                "sub_orphan",
+                "cus_1",
+                SubscriptionStatus.ACTIVE,
+                Instant.parse("2026-09-01T00:00:00Z"),
+                "pi_1"
+        )).thenThrow(new StripeSubscriptionRebindRefusedException(7L, 99L, "sub_old", "sub_orphan"));
+        when(stripeOperations.isConfigured()).thenReturn(true);
+        doThrow(new IllegalStateException("stripe down"))
+                .when(stripeOperations)
+                .cancelSubscription("acct_1", "sub_orphan");
+
+        assertThatThrownBy(() -> service.applyParsedEvent(service.parseAndValidate("{}", "sig")))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("stripe down");
+
+        verify(processedWebhookEventRepository).deleteByEventId("evt_rebind_cancel_fail");
     }
 
     private static TenantStripeAccount account(Long tenantId, String stripeAccountId) {
