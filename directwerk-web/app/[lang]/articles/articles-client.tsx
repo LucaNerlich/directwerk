@@ -7,7 +7,6 @@ import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
 import {Button} from '@directwerk/ui/components/button'
 import EmptyState from '@directwerk/ui/components/empty-state'
 import FeatureCard from '@directwerk/ui/components/feature-card'
-import ListPanel from '@directwerk/ui/components/list-panel'
 import PageHeader from '@directwerk/ui/components/page-header'
 import PageStack from '@directwerk/ui/components/page-stack'
 import SectionHeader from '@directwerk/ui/components/section-header'
@@ -15,8 +14,8 @@ import SectionHeader from '@directwerk/ui/components/section-header'
 import AccessPolicyBadge from '@/components/AccessPolicyBadge'
 import CatalogBrowseControls from '@/components/CatalogBrowseControls'
 import CatalogMediaThumb from '@/components/CatalogMediaThumb'
-import CatalogRow, {LockedCatalogAction} from '@/components/CatalogRow'
-import {ListPanelSkeleton} from '@/components/ContentLoadingSkeleton'
+import CatalogRow, {CATALOG_GRID_CLASSNAME, LockedCatalogAction} from '@/components/CatalogRow'
+import {CardGridSkeleton} from '@/components/ContentLoadingSkeleton'
 import {PublicFeedStrip} from '@/components/PublicFeedFooter'
 import SubscriberContextBanner from '@/components/SubscriberContextBanner'
 import {usePublicCatalog} from '@/lib/catalog/usePublicCatalog'
@@ -117,7 +116,7 @@ export default function ArticlesClient({
             ) : null}
             <SubscriberContextBanner showWhenAuthenticated={false} />
 
-            {isLoading ? <ListPanelSkeleton rows={5} /> : null}
+            {isLoading ? <CardGridSkeleton cards={6} columns={3} /> : null}
             {errorMessage !== null ? (
                 <Alert variant="destructive">
                     <AlertDescription>{errorMessage}</AlertDescription>
@@ -265,7 +264,7 @@ export default function ArticlesClient({
                                           {group.label}
                                       </h3>
                                   ) : null}
-                                  <ListPanel>
+                                  <ul className={CATALOG_GRID_CLASSNAME}>
                                       {group.items.map((article) => {
                                           const href = localizedPath(
                                               lang,
@@ -320,7 +319,7 @@ export default function ArticlesClient({
                                                               unlockHref={unlockTarget}
                                                           />
                                                       ) : (
-                                                          <span className="max-w-32 text-right text-xs text-muted-foreground">
+                                                          <span className="text-xs text-muted-foreground">
                                                               {catalog.noText}
                                                           </span>
                                                       )
@@ -328,7 +327,7 @@ export default function ArticlesClient({
                                               />
                                           )
                                       })}
-                                  </ListPanel>
+                                  </ul>
                               </div>
                           ))
                         : null}
