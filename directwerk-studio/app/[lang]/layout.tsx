@@ -7,6 +7,8 @@ import UmamiAnalytics from '@directwerk/ui/components/umami-analytics'
 import {LocaleProvider} from '@/components/i18n/LocaleProvider'
 import {ThemeProvider} from '@/components/theme-provider'
 import {assertLocale, getDictionary, locales} from '@/lib/i18n'
+import {resolveStudioSiteContext} from '@/lib/site/requireSiteConfig'
+import {tenantBrandImageSrc} from '@/lib/site/tenantBrandImageSrc'
 import {themeInitScript} from '@/lib/studio/theme-init-script'
 
 export async function generateStaticParams() {
@@ -20,6 +22,11 @@ export async function generateMetadata({
 }): Promise<Metadata> {
     const {lang} = await params
     const dictionary = await getDictionary(lang)
+    const {config} = await resolveStudioSiteContext()
+    const brandIcon = tenantBrandImageSrc(
+        config.branding.faviconUrl,
+        config.branding.logoUrl,
+    )
     return {
         title: dictionary.meta.productName,
         description:
@@ -32,6 +39,7 @@ export async function generateMetadata({
                 en: '/en',
             },
         },
+        ...(brandIcon !== null ? {icons: {icon: brandIcon}} : {}),
     }
 }
 
