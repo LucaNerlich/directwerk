@@ -157,6 +157,29 @@ describe('SideNav', () => {
         expect(screen.getByRole('link', {name: 'Formate'})).toBeInTheDocument()
     })
 
+    it('keeps the mobile sidebar open when SideNav remounts on the same route', async () => {
+        // Mirrors the mobile Sheet: content mounts only while open, so SideNav
+        // remounts after hamburger open without a pathname change.
+        function tree(mounted: boolean): React.JSX.Element {
+            return (
+                <SidebarProvider>
+                    <MobileOpenProbe />
+                    {mounted ? <SideNav config={config()} /> : null}
+                </SidebarProvider>
+            )
+        }
+
+        const {rerender} = renderWithLocale(tree(false))
+        fireEvent.click(screen.getByRole('button', {name: 'open-mobile'}))
+        expect(screen.getByTestId('mobile-open')).toHaveTextContent('yes')
+
+        rerender(tree(true))
+        await waitFor(() => {
+            expect(screen.getByRole('navigation')).toBeInTheDocument()
+        })
+        expect(screen.getByTestId('mobile-open')).toHaveTextContent('yes')
+    })
+
     it('tucks Formate under Mehr… for the Podcast desk', () => {
         renderNavigation(<SideNav config={config()} />)
         const more = screen.getByRole('button', {name: 'Mehr…'})
