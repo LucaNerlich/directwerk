@@ -9,6 +9,7 @@ import de.pnnit.directwerk.modules.email.EmailJobProducer;
 import de.pnnit.directwerk.modules.email.repository.ContentNotificationMarkerRepository;
 import de.pnnit.directwerk.modules.email.EmailTemplate;
 import de.pnnit.directwerk.modules.email.content.TenantContentBrandingResolver;
+import de.pnnit.directwerk.modules.newsletter.entity.Article;
 import de.pnnit.directwerk.modules.newsletter.entity.NewsletterList;
 import de.pnnit.directwerk.modules.newsletter.entity.NewsletterListStatus;
 import de.pnnit.directwerk.modules.newsletter.entity.NewsletterSubscription;
@@ -44,6 +45,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class NewsletterNotificationService implements NewsletterNotificationApi {
 
     private final ArticleRepository articleRepository;
+    private final NewsletterListService newsletterListService;
     private final NewsletterSubscriptionRepository subscriptionRepository;
     private final FeedTokenProtector feedTokenProtector;
     private final PublicContentUrlResolver publicContentUrlResolver;
@@ -57,10 +59,7 @@ public class NewsletterNotificationService implements NewsletterNotificationApi 
         // Preview only needs a deduped count — do not decrypt unsubscribe tokens.
         return articleRepository.findByIdAndTenantId(articleId, tenantId)
                 .map(article -> {
-                    Set<Long> listIds = article.getNewsletterLists().stream()
-                            .filter(list -> list.getStatus() == NewsletterListStatus.ACTIVE)
-                            .map(NewsletterList::getId)
-                            .collect(Collectors.toCollection(LinkedHashSet::new));
+                    Set<Long> listIds = activeEffectiveListIds(tenantId, article);
                     if (listIds.isEmpty()) {
                         return 0L;
                     }
@@ -70,6 +69,14 @@ public class NewsletterNotificationService implements NewsletterNotificationApi 
                             .count();
                 })
                 .orElse(0L);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public boolean hasActiveArticleAudience(Long tenantId, Long articleId) {
+        return articleRepository.findByIdAndTenantId(articleId, tenantId)
+                .map(article -> !activeEffectiveListIds(tenantId, article).isEmpty())
+                .orElse(false);
     }
 
     @Override
@@ -106,17 +113,14 @@ public class NewsletterNotificationService implements NewsletterNotificationApi 
     }
 
     /**
-     * ACTIVE subscriptions on the article's ACTIVE lists, deduped by email.
-     * The unsubscribe token of any one subscription is enough — unsubscribing
-     * removes the address from every list in the tenant.
+     * ACTIVE subscriptions on the article's effective ACTIVE lists (draft overlay when
+     * present), deduped by email. The unsubscribe token of any one subscription is enough —
+     * unsubscribing removes the address from every list in the tenant.
      */
     private List<Recipient> resolveRecipients(Long tenantId, Long articleId) {
         return articleRepository.findByIdAndTenantId(articleId, tenantId)
                 .map(article -> {
-                    Set<Long> listIds = article.getNewsletterLists().stream()
-                            .filter(list -> list.getStatus() == NewsletterListStatus.ACTIVE)
-                            .map(NewsletterList::getId)
-                            .collect(Collectors.toCollection(LinkedHashSet::new));
+                    Set<Long> listIds = activeEffectiveListIds(tenantId, article);
                     if (listIds.isEmpty()) {
                         return List.<Recipient>of();
                     }
@@ -132,6 +136,30 @@ public class NewsletterNotificationService implements NewsletterNotificationApi 
                     return new ArrayList<>(byEmail.values());
                 })
                 .orElse(List.of());
+    }
+
+    /**
+     * ACTIVE list ids from the draft-overlaid set Studio shows, falling back to live joins.
+     * Unknown or non-ACTIVE draft ids are skipped (same fail-soft as live ARCHIVED filters).
+     */
+    private Set<Long> activeEffectiveListIds(Long tenantId, Article article) {
+        Set<Long> effectiveIds = ArticleNewsletterAudience.effectiveListIds(article);
+        if (effectiveIds.isEmpty()) {
+            return Set.of();
+        }
+        if (!ArticleNewsletterAudience.hasDraftListOverlay(article)) {
+            return article.getNewsletterLists().stream()
+                    .filter(list -> list.getStatus() == NewsletterListStatus.ACTIVE)
+                    .map(NewsletterList::getId)
+                    .collect(Collectors.toCollection(LinkedHashSet::new));
+        }
+        Set<Long> active = new LinkedHashSet<>();
+        for (Long listId : effectiveIds) {
+            newsletterListService.findList(tenantId, listId)
+                    .filter(list -> list.getStatus() == NewsletterListStatus.ACTIVE)
+                    .ifPresent(list -> active.add(list.getId()));
+        }
+        return active;
     }
 
     private static Map<String, String> variables(

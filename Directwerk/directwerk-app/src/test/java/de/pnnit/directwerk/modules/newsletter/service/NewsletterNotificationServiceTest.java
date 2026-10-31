@@ -17,12 +17,14 @@ import de.pnnit.directwerk.modules.email.EmailJobProducer;
 import de.pnnit.directwerk.modules.email.EmailTemplate;
 import de.pnnit.directwerk.modules.email.repository.ContentNotificationMarkerRepository;
 import de.pnnit.directwerk.modules.email.content.TenantContentBrandingResolver;
+import de.pnnit.directwerk.modules.content.WorkingDraftMaps;
 import de.pnnit.directwerk.modules.newsletter.entity.Article;
 import de.pnnit.directwerk.modules.newsletter.entity.NewsletterList;
 import de.pnnit.directwerk.modules.newsletter.entity.NewsletterListStatus;
 import de.pnnit.directwerk.modules.newsletter.entity.NewsletterSubscription;
 import de.pnnit.directwerk.modules.newsletter.repository.ArticleRepository;
 import de.pnnit.directwerk.modules.newsletter.repository.NewsletterSubscriptionRepository;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -43,6 +45,8 @@ class NewsletterNotificationServiceTest {
     @Mock
     private ArticleRepository articleRepository;
     @Mock
+    private NewsletterListService newsletterListService;
+    @Mock
     private NewsletterSubscriptionRepository subscriptionRepository;
     @Mock
     private FeedTokenProtector feedTokenProtector;
@@ -61,6 +65,7 @@ class NewsletterNotificationServiceTest {
     void setUp() {
         service = new NewsletterNotificationService(
                 articleRepository,
+                newsletterListService,
                 subscriptionRepository,
                 feedTokenProtector,
                 publicContentUrlResolver,
@@ -168,6 +173,54 @@ class NewsletterNotificationServiceTest {
         service.notifyArticlePublished(event());
 
         verify(emailJobProducer, never()).enqueueContentNotification(any(), any(), any(), any(), any());
+    }
+
+    @Test
+    void draftOverlayClearingListsYieldsEmptyAudienceDespiteLiveJoins() {
+        Article article = new Article();
+        article.getNewsletterLists().add(newsletterList(1L, NewsletterListStatus.ACTIVE));
+        Map<String, Object> draft = new HashMap<>();
+        WorkingDraftMaps.putLongList(draft, WorkingDraftMaps.NEWSLETTER_LIST_IDS, List.of());
+        article.setWorkingDraft(draft);
+        when(articleRepository.findByIdAndTenantId(ARTICLE_ID, TENANT_ID)).thenReturn(Optional.of(article));
+
+        assertThat(service.countArticleRecipients(TENANT_ID, ARTICLE_ID)).isZero();
+        assertThat(service.hasActiveArticleAudience(TENANT_ID, ARTICLE_ID)).isFalse();
+        service.notifyArticlePublished(event());
+
+        verify(subscriptionRepository, never()).findActiveByTenantIdAndListIdIn(any(), any());
+        verify(emailJobProducer, never()).enqueueTokenizedContentNotification(
+                any(), any(), any(), any(), any(), any());
+    }
+
+    @Test
+    void draftOverlayAttachedListsAreUsedWithoutRepublish() {
+        Article article = new Article();
+        // Live joins empty; draft attaches list 9.
+        Map<String, Object> draft = new HashMap<>();
+        WorkingDraftMaps.putLongList(draft, WorkingDraftMaps.NEWSLETTER_LIST_IDS, List.of(9L));
+        article.setWorkingDraft(draft);
+        when(articleRepository.findByIdAndTenantId(ARTICLE_ID, TENANT_ID)).thenReturn(Optional.of(article));
+        when(newsletterListService.findList(TENANT_ID, 9L))
+                .thenReturn(Optional.of(newsletterList(9L, NewsletterListStatus.ACTIVE)));
+        when(subscriptionRepository.findActiveByTenantIdAndListIdIn(TENANT_ID, Set.of(9L))).thenReturn(List.of(
+                subscription("draft@example.com", "enc-draft")
+        ));
+        when(feedTokenProtector.reveal(anyString())).thenReturn("raw-enc-draft");
+        when(contentNotificationMarkerRepository.claimNewsletterRecipient(TENANT_ID, ARTICLE_ID, "draft@example.com"))
+                .thenReturn(true);
+        when(tenantContentBrandingResolver.resolve(TENANT_ID))
+                .thenReturn(new TenantContentBrandingResolver.BrandingContext("Acme", "Acme Magazine", "#123456"));
+        when(publicContentUrlResolver.contentPageUrl(TENANT_ID, ContentType.ARTICLE, "hello-world"))
+                .thenReturn("https://tenant.example/de/articles/hello-world");
+
+        assertThat(service.hasActiveArticleAudience(TENANT_ID, ARTICLE_ID)).isTrue();
+        assertThat(service.countArticleRecipients(TENANT_ID, ARTICLE_ID)).isEqualTo(1L);
+        service.notifyArticlePublished(event());
+
+        verify(emailJobProducer).enqueueTokenizedContentNotification(
+                eq(TENANT_ID), eq("draft@example.com"), eq(EmailTemplate.NEWSLETTER_ARTICLE_PUBLISHED),
+                any(), any(), any());
     }
 
     private static ContentPublishedEvent event() {
