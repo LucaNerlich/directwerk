@@ -11,12 +11,14 @@ import de.pnnit.directwerk.modules.content.TenantEntitlementsChangedEvent;
 import de.pnnit.directwerk.modules.core.entity.User;
 import de.pnnit.directwerk.modules.core.repository.TenantRepository;
 import de.pnnit.directwerk.modules.core.repository.UserRepository;
+import de.pnnit.directwerk.modules.stripebilling.exception.StripeSubscriptionRebindRefusedException;
 import de.pnnit.directwerk.modules.subscription.entity.Subscription;
 import de.pnnit.directwerk.modules.subscription.entity.SubscriptionProduct;
 import de.pnnit.directwerk.modules.subscription.entity.SubscriptionSource;
 import de.pnnit.directwerk.modules.subscription.entity.SubscriptionStatus;
 import de.pnnit.directwerk.modules.subscription.repository.SubscriptionRepository;
 import de.pnnit.directwerk.modules.subscription.service.SubscriptionProductService;
+import java.lang.reflect.Method;
 import java.time.Instant;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
@@ -25,6 +27,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.transaction.annotation.Transactional;
 
 @ExtendWith(MockitoExtension.class)
 class StripeSubscriptionSyncServiceTest {
@@ -112,8 +115,14 @@ class StripeSubscriptionSyncServiceTest {
                 null,
                 null
         ))
-                .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("Refusing to rebind");
+                .isInstanceOf(StripeSubscriptionRebindRefusedException.class)
+                .hasMessageContaining("Refusing to rebind")
+                .satisfies(ex -> {
+                    StripeSubscriptionRebindRefusedException refused =
+                            (StripeSubscriptionRebindRefusedException) ex;
+                    assertThat(refused.getTenantId()).isEqualTo(TENANT_ID);
+                    assertThat(refused.getRefusedExternalSubscriptionId()).isEqualTo("sub_new");
+                });
 
         assertThat(existing.getExternalSubscriptionId()).isEqualTo("sub_old");
     }
@@ -294,4 +303,24 @@ class StripeSubscriptionSyncServiceTest {
         subscription.setStatus(status);
         return subscription;
     }
+    @Test
+    void upsertDeclaresNoRollbackForRebindRefuse() throws Exception {
+        // Guards the webhook write-TX commit path: nested REQUIRED must not mark rollback-only
+        // when StripeSubscriptionRebindRefusedException is thrown (#944 review).
+        Method method = StripeSubscriptionSyncService.class.getMethod(
+                "upsertStripeSubscription",
+                Long.class,
+                Long.class,
+                Long.class,
+                String.class,
+                String.class,
+                SubscriptionStatus.class,
+                Instant.class,
+                String.class);
+        Transactional transactional = method.getAnnotation(Transactional.class);
+        assertThat(transactional).isNotNull();
+        assertThat(transactional.noRollbackFor())
+                .containsExactly(StripeSubscriptionRebindRefusedException.class);
+    }
+
 }

@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -34,6 +35,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.SimpleTransactionStatus;
 
 @ExtendWith(MockitoExtension.class)
 class StripeCheckoutServiceTest {
@@ -68,10 +71,14 @@ class StripeCheckoutServiceTest {
     @Mock
     private BillingRedirectUrlValidator redirectUrlValidator;
 
+    @Mock
+    private PlatformTransactionManager transactionManager;
+
     private StripeCheckoutService service;
 
     @BeforeEach
     void setUp() {
+        lenient().when(transactionManager.getTransaction(any())).thenReturn(new SimpleTransactionStatus());
         service = new StripeCheckoutService(
                 stripeOperations,
                 stripeConnectService,
@@ -81,7 +88,8 @@ class StripeCheckoutServiceTest {
                 stripeCustomerRepository,
                 tenantRepository,
                 userRepository,
-                redirectUrlValidator
+                redirectUrlValidator,
+                transactionManager
         );
     }
 
@@ -126,7 +134,7 @@ class StripeCheckoutServiceTest {
 
         Subscription active = new Subscription();
         active.setStatus(SubscriptionStatus.ACTIVE);
-        when(subscriptionRepository.findByTenantIdAndUserIdAndProductId(
+        when(subscriptionRepository.findByTenantIdAndUserIdAndProductIdForUpdate(
                 TENANT_ID, USER_ID, product.getId())).thenReturn(java.util.Optional.of(active));
 
         assertThatThrownBy(() -> service.createCheckoutSession(TENANT_ID, USER_ID, "premium", null, null))
@@ -148,7 +156,7 @@ class StripeCheckoutServiceTest {
         pastDue.setStatus(SubscriptionStatus.PAST_DUE);
         pastDue.setSource(de.pnnit.directwerk.modules.subscription.entity.SubscriptionSource.STRIPE);
         pastDue.setExternalSubscriptionId("sub_old");
-        when(subscriptionRepository.findByTenantIdAndUserIdAndProductId(
+        when(subscriptionRepository.findByTenantIdAndUserIdAndProductIdForUpdate(
                 TENANT_ID, USER_ID, product.getId())).thenReturn(java.util.Optional.of(pastDue));
 
         assertThatThrownBy(() -> service.createCheckoutSession(TENANT_ID, USER_ID, "premium", null, null))

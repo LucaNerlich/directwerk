@@ -17,6 +17,8 @@ import de.pnnit.directwerk.modules.subscription.service.SubscriptionProductServi
 import java.util.Map;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 
 @Service
 public class StripeCheckoutService {
@@ -30,6 +32,7 @@ public class StripeCheckoutService {
     private final TenantRepository tenantRepository;
     private final UserRepository userRepository;
     private final BillingRedirectUrlValidator redirectUrlValidator;
+    private final PlatformTransactionManager transactionManager;
 
     public StripeCheckoutService(
             StripeOperations stripeOperations,
@@ -40,7 +43,8 @@ public class StripeCheckoutService {
             StripeCustomerRepository stripeCustomerRepository,
             TenantRepository tenantRepository,
             UserRepository userRepository,
-            BillingRedirectUrlValidator redirectUrlValidator
+            BillingRedirectUrlValidator redirectUrlValidator,
+            PlatformTransactionManager transactionManager
     ) {
         this.stripeOperations = stripeOperations;
         this.stripeConnectService = stripeConnectService;
@@ -51,6 +55,7 @@ public class StripeCheckoutService {
         this.tenantRepository = tenantRepository;
         this.userRepository = userRepository;
         this.redirectUrlValidator = redirectUrlValidator;
+        this.transactionManager = transactionManager;
     }
 
     // Deliberately not @Transactional: this method spans up to three remote Stripe HTTP
@@ -78,17 +83,10 @@ public class StripeCheckoutService {
         if (product.getPriceCents() == null || product.getPriceCents() <= 0) {
             throw new IllegalArgumentException("Product is not priced for checkout");
         }
-        // #534: a second checkout for a product the buyer already holds rebinds the single
-        // (tenant, user, product) row to the new Stripe subscription, orphaning the first one —
-        // which keeps billing with no local row left to cancel it. Refuse before Stripe is called.
-        subscriptionRepository.findByTenantIdAndUserIdAndProductId(tenantId, userId, product.getId())
-                .filter(existing -> isOpenSubscription(existing))
-                .ifPresent(existing -> {
-                    throw new IllegalArgumentException(existing.getStatus() == SubscriptionStatus.ACTIVE
-                            ? "An active subscription already exists for this product"
-                            : "An open Stripe subscription still exists for this product; cancel it"
-                                    + " before starting a new checkout");
-                });
+        // #534 / #944: lock the (tenant, user, product) row while checking for an open
+        // subscription so concurrent checkouts cannot both pass a non-locking read and create
+        // Stripe sessions. Keep the lock in a short transaction — do not hold it across Stripe HTTP.
+        refuseIfOpenSubscriptionLocked(tenantId, userId, product.getId());
         TenantStripeAccount account = stripeConnectService.requireChargeableAccount(tenantId);
         if (product.getStripePriceId() == null || product.getStripePriceId().isBlank()) {
             product = stripeCatalogSyncService.syncProduct(tenantId, product.getId());
@@ -113,6 +111,20 @@ public class StripeCheckoutService {
                 )
         );
         return session.url();
+    }
+
+    private void refuseIfOpenSubscriptionLocked(Long tenantId, Long userId, Long productId) {
+        new TransactionTemplate(transactionManager).executeWithoutResult(status ->
+                subscriptionRepository
+                        .findByTenantIdAndUserIdAndProductIdForUpdate(tenantId, userId, productId)
+                        .filter(StripeCheckoutService::isOpenSubscription)
+                        .ifPresent(existing -> {
+                            throw new IllegalArgumentException(
+                                    existing.getStatus() == SubscriptionStatus.ACTIVE
+                                            ? "An active subscription already exists for this product"
+                                            : "An open Stripe subscription still exists for this product; cancel it"
+                                                    + " before starting a new checkout");
+                        }));
     }
 
     /**
