@@ -9,6 +9,7 @@ import {
     SidebarMenu,
     SidebarMenuItem,
     SidebarSeparator,
+    useSidebar,
 } from '@directwerk/ui/components/sidebar'
 
 import LocaleLink from '@/components/i18n/LocaleLink'
@@ -68,14 +69,44 @@ function isActivePath(pathname: string, href: string): boolean {
     return path === href || path.startsWith(`${href}/`)
 }
 
+function NavLink({
+    href,
+    label,
+    active,
+    onNavigate,
+}: {
+    href: string
+    label: string
+    active: boolean
+    onNavigate: () => void
+}): React.JSX.Element {
+    return (
+        <LocaleLink
+            aria-current={active ? 'page' : undefined}
+            className={linkClassName(active)}
+            href={href}
+            onClick={onNavigate}
+            title={label}
+        >
+            <span className="truncate group-data-[collapsible=icon]:sr-only">{label}</span>
+            <span
+                aria-hidden="true"
+                className="hidden size-2 rounded-full bg-current group-data-[collapsible=icon]:block"
+            />
+        </LocaleLink>
+    )
+}
+
 function NavigationGroup({
     label,
     items,
     pathname,
+    onNavigate,
 }: {
     label?: string
     items: NavigationItem[]
     pathname: string
+    onNavigate: () => void
 }): React.JSX.Element {
     return (
         <SidebarGroup>
@@ -86,20 +117,12 @@ function NavigationGroup({
                         const active = isActivePath(pathname, item.href)
                         return (
                             <SidebarMenuItem key={`${item.href}-${item.label}`}>
-                                <LocaleLink
-                                    aria-current={active ? 'page' : undefined}
-                                    className={linkClassName(active)}
+                                <NavLink
+                                    active={active}
                                     href={item.href}
-                                    title={item.label}
-                                >
-                                    <span className="truncate group-data-[collapsible=icon]:sr-only">
-                                        {item.label}
-                                    </span>
-                                    <span
-                                        aria-hidden="true"
-                                        className="hidden size-2 rounded-full bg-current group-data-[collapsible=icon]:block"
-                                    />
-                                </LocaleLink>
+                                    label={item.label}
+                                    onNavigate={onNavigate}
+                                />
                             </SidebarMenuItem>
                         )
                     })}
@@ -115,11 +138,13 @@ function isSecondaryActive(pathname: string, items: NavigationItem[]): boolean {
 
 export default function SideNav({config}: {config: SiteConfig}) {
     const pathname = usePathname()
+    const {setOpenMobile} = useSidebar()
     const me = useOptionalMe()
     const dict = useDictionary()
     const activeDesk = useActiveDesk(config)
     const verwaltungSections = buildVerwaltungSections(config, me, dict)
     const path = stripLangPrefix(pathname)
+    const dismissMobileNav = () => setOpenMobile(false)
 
     const writeNav = buildWriteDeskNav(config, dict, {collapseSecondary: true})
     const podcastNav = buildPodcastDeskNav(config, dict, {collapseSecondary: true})
@@ -128,6 +153,10 @@ export default function SideNav({config}: {config: SiteConfig}) {
     const podcastSecondaryOpen = isSecondaryActive(path, podcastNav.secondary)
     const [writeMoreOpen, setWriteMoreOpen] = useState(writeSecondaryOpen)
     const [podcastMoreOpen, setPodcastMoreOpen] = useState(podcastSecondaryOpen)
+
+    useEffect(() => {
+        setOpenMobile(false)
+    }, [pathname, setOpenMobile])
 
     useEffect(() => {
         if (writeSecondaryOpen) {
@@ -151,6 +180,7 @@ export default function SideNav({config}: {config: SiteConfig}) {
                     <NavigationGroup
                         label={dict.nav.write.label}
                         items={writeNav.primary}
+                        onNavigate={dismissMobileNav}
                         pathname={pathname}
                     />
                     {writeNav.secondary.length > 0 ? (
@@ -176,27 +206,16 @@ export default function SideNav({config}: {config: SiteConfig}) {
                                         </button>
                                     </SidebarMenuItem>
                                     {writeMoreOpen
-                                        ? writeNav.secondary.map((item) => {
-                                              const active = isActivePath(pathname, item.href)
-                                              return (
-                                                  <SidebarMenuItem key={item.href}>
-                                                      <LocaleLink
-                                                          aria-current={active ? 'page' : undefined}
-                                                          className={linkClassName(active)}
-                                                          href={item.href}
-                                                          title={item.label}
-                                                      >
-                                                          <span className="truncate group-data-[collapsible=icon]:sr-only">
-                                                              {item.label}
-                                                          </span>
-                                                          <span
-                                                              aria-hidden="true"
-                                                              className="hidden size-2 rounded-full bg-current group-data-[collapsible=icon]:block"
-                                                          />
-                                                      </LocaleLink>
-                                                  </SidebarMenuItem>
-                                              )
-                                          })
+                                        ? writeNav.secondary.map((item) => (
+                                              <SidebarMenuItem key={item.href}>
+                                                  <NavLink
+                                                      active={isActivePath(pathname, item.href)}
+                                                      href={item.href}
+                                                      label={item.label}
+                                                      onNavigate={dismissMobileNav}
+                                                  />
+                                              </SidebarMenuItem>
+                                          ))
                                         : null}
                                 </SidebarMenu>
                             </SidebarGroupContent>
@@ -209,6 +228,7 @@ export default function SideNav({config}: {config: SiteConfig}) {
                     <NavigationGroup
                         label={dict.nav.podcast.label}
                         items={podcastNav.primary}
+                        onNavigate={dismissMobileNav}
                         pathname={pathname}
                     />
                     {podcastNav.secondary.length > 0 ? (
@@ -234,27 +254,16 @@ export default function SideNav({config}: {config: SiteConfig}) {
                                         </button>
                                     </SidebarMenuItem>
                                     {podcastMoreOpen
-                                        ? podcastNav.secondary.map((item) => {
-                                              const active = isActivePath(pathname, item.href)
-                                              return (
-                                                  <SidebarMenuItem key={item.href}>
-                                                      <LocaleLink
-                                                          aria-current={active ? 'page' : undefined}
-                                                          className={linkClassName(active)}
-                                                          href={item.href}
-                                                          title={item.label}
-                                                      >
-                                                          <span className="truncate group-data-[collapsible=icon]:sr-only">
-                                                              {item.label}
-                                                          </span>
-                                                          <span
-                                                              aria-hidden="true"
-                                                              className="hidden size-2 rounded-full bg-current group-data-[collapsible=icon]:block"
-                                                          />
-                                                      </LocaleLink>
-                                                  </SidebarMenuItem>
-                                              )
-                                          })
+                                        ? podcastNav.secondary.map((item) => (
+                                              <SidebarMenuItem key={item.href}>
+                                                  <NavLink
+                                                      active={isActivePath(pathname, item.href)}
+                                                      href={item.href}
+                                                      label={item.label}
+                                                      onNavigate={dismissMobileNav}
+                                                  />
+                                              </SidebarMenuItem>
+                                          ))
                                         : null}
                                 </SidebarMenu>
                             </SidebarGroupContent>
@@ -271,6 +280,7 @@ export default function SideNav({config}: {config: SiteConfig}) {
                           key={section.label ?? section.items[0]?.href}
                           label={section.label}
                           items={section.items}
+                          onNavigate={dismissMobileNav}
                           pathname={pathname}
                       />
                   ))
