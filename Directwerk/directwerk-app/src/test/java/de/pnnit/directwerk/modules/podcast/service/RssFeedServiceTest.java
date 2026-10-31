@@ -40,9 +40,6 @@ class RssFeedServiceTest {
     private PublicPodcastQueryService publicPodcastQueryService;
 
     @Mock
-    private SubscriberEpisodeService subscriberEpisodeService;
-
-    @Mock
     private SubscriberFeedAccess subscriberFeedAccess;
 
     @Mock
@@ -60,7 +57,6 @@ class RssFeedServiceTest {
     void setUp() {
         rssFeedService = new RssFeedService(
                 publicPodcastQueryService,
-                subscriberEpisodeService,
                 subscriberFeedAccess,
                 new RssXmlBuilder(new HtmlSanitizer()),
                 episodeDownloadAnalyticsService,
