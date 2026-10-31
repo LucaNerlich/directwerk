@@ -53,4 +53,24 @@
     .content-prose :where(figcaption) {
         @apply mt-2 text-sm text-muted-foreground;
     }
+
+    .content-prose :where(table) {
+        @apply my-4 w-full border-collapse text-sm;
+    }
+
+    .content-prose :where(th, td) {
+        @apply border border-border px-3 py-2 text-left align-top;
+    }
+
+    .content-prose :where(th) {
+        @apply bg-muted/40 font-semibold;
+    }
+
+    .content-prose :where(th[align='center'], td[align='center']) {
+        text-align: center;
+    }
+
+    .content-prose :where(th[align='right'], td[align='right']) {
+        text-align: right;
+    }
 }

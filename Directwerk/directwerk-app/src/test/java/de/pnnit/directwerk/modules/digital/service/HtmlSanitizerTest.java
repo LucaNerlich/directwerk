@@ -147,4 +147,51 @@ class HtmlSanitizerTest {
         assertThat(sanitized).contains("<h2>ok</h2>");
         assertThat(sanitized).doesNotContain("# ok");
     }
+
+    @Test
+    void convertsGfmMarkdownTablesToHtml() {
+        String sanitized = htmlSanitizer.sanitize("""
+                ## Quests
+
+                | Quest | Where | Faction |
+                |---|---|---|
+                | The Defias Brotherhood | Westfall | Alliance |
+                | Red Silk Bandanas | Westfall | Alliance |
+                """);
+
+        assertThat(sanitized).contains("<h2>Quests</h2>");
+        assertThat(sanitized).contains("<table>");
+        assertThat(sanitized).contains("<thead>");
+        assertThat(sanitized).contains("<th>Quest</th>");
+        assertThat(sanitized).contains("<td>The Defias Brotherhood</td>");
+        assertThat(sanitized).doesNotContain("| Quest |");
+        assertThat(sanitized).doesNotContain("|---|");
+    }
+
+    @Test
+    void preservesAlignedTableCells() {
+        String sanitized = htmlSanitizer.sanitize("""
+                | L | C | R |
+                |:---|:---:|---:|
+                | a | b | c |
+                """);
+
+        assertThat(sanitized).contains("<table>");
+        assertThat(sanitized).contains("align=\"left\"");
+        assertThat(sanitized).contains("align=\"center\"");
+        assertThat(sanitized).contains("align=\"right\"");
+    }
+
+    @Test
+    void allowsPreRenderedTableHtml() {
+        String sanitized = htmlSanitizer.sanitize("""
+                <h2>Quests</h2>
+                <table><thead><tr><th>Quest</th><th>Where</th></tr></thead>
+                <tbody><tr><td>Defias</td><td>Westfall</td></tr></tbody></table>
+                """);
+
+        assertThat(sanitized).contains("<table>");
+        assertThat(sanitized).contains("<th>Quest</th>");
+        assertThat(sanitized).contains("<td>Defias</td>");
+    }
 }

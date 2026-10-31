@@ -83,4 +83,33 @@ describe('renderContentHtml', () => {
         expect(rendered).toContain('<h2>ok</h2>')
         expect(rendered).not.toContain('# ok')
     })
+
+    it('renders GFM Markdown tables to HTML', () => {
+        const md = [
+            '## Quests',
+            '',
+            '| Quest | Where | Faction |',
+            '|---|---|---|',
+            '| The Defias Brotherhood | Westfall | Alliance |',
+            '| Red Silk Bandanas | Westfall | Alliance |',
+        ].join('\n')
+
+        const rendered = renderContentHtml(md)
+        expect(rendered).toContain('<h2>Quests</h2>')
+        expect(rendered).toContain('<table>')
+        expect(rendered).toContain('<th>Quest</th>')
+        expect(rendered).toContain('<td>The Defias Brotherhood</td>')
+        expect(rendered).not.toContain('| Quest |')
+        expect(rendered).not.toContain('|---|')
+    })
+
+    it('preserves pre-rendered table HTML', () => {
+        const html =
+            '<h2>Quests</h2><table><thead><tr><th>Quest</th></tr></thead>' +
+            '<tbody><tr><td>Defias</td></tr></tbody></table>'
+        const rendered = renderContentHtml(html)
+        expect(rendered).toContain('<table>')
+        expect(rendered).toContain('<th>Quest</th>')
+        expect(rendered).toContain('<td>Defias</td>')
+    })
 })

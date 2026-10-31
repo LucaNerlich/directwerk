@@ -1,5 +1,6 @@
 package de.pnnit.directwerk.modules.digital.service;
 
+import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -7,6 +8,7 @@ import org.owasp.html.HtmlPolicyBuilder;
 import org.owasp.html.PolicyFactory;
 import org.springframework.stereotype.Component;
 
+import com.vladsch.flexmark.ext.tables.TablesExtension;
 import com.vladsch.flexmark.html.HtmlRenderer;
 import com.vladsch.flexmark.parser.Parser;
 import com.vladsch.flexmark.util.data.MutableDataSet;
@@ -29,11 +31,13 @@ public class HtmlSanitizer {
 
     private static final PolicyFactory POLICY = new HtmlPolicyBuilder()
             .allowElements("p", "br", "strong", "em", "s", "a", "ul", "ol", "li", "h2", "h3",
-                    "blockquote", "hr", "img", "figure", "figcaption")
+                    "blockquote", "hr", "img", "figure", "figcaption",
+                    "table", "thead", "tbody", "tr", "th", "td")
             .allowUrlProtocols("https", "http", "mailto", "tel")
             .allowAttributes("href").onElements("a")
             .allowAttributes("src").matching(HTTPS_URL).onElements("img")
             .allowAttributes("alt", "title").onElements("img")
+            .allowAttributes("align").onElements("th", "td")
             .toFactory();
 
     private static final Parser MARKDOWN_PARSER;
@@ -41,6 +45,7 @@ public class HtmlSanitizer {
 
     static {
         MutableDataSet options = new MutableDataSet();
+        options.set(Parser.EXTENSIONS, List.of(TablesExtension.create()));
         MARKDOWN_PARSER = Parser.builder(options).build();
         MARKDOWN_RENDERER = HtmlRenderer.builder(options).build();
     }
