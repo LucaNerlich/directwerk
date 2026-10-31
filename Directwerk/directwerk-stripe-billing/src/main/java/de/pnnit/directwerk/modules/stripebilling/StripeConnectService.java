@@ -8,6 +8,7 @@ import de.pnnit.directwerk.modules.stripebilling.exception.StripeConnectNotReady
 import de.pnnit.directwerk.modules.stripebilling.exception.StripeNotConfiguredException;
 import de.pnnit.directwerk.modules.stripebilling.repository.TenantStripeAccountRepository;
 import java.util.Map;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -71,17 +72,28 @@ public class StripeConnectService {
         String safeRefresh = redirectUrlValidator.requireAllowedUrl(tenantId, refreshUrl, "refreshUrl");
         TenantStripeAccount account = tenantStripeAccountRepository.findByTenantId(tenantId).orElse(null);
         if (account == null) {
-            StripeOperations.ConnectedAccount created = stripeOperations.createExpressAccount(
-                    "DE",
-                    Map.of("tenant_id", tenantId.toString())
-            );
-            account = new TenantStripeAccount();
-            account.setTenant(tenantRepository.getReferenceById(tenantId));
-            account.setStripeAccountId(created.accountId());
-            applyCapabilities(account, created);
-            account = tenantStripeAccountRepository.save(account);
+            account = createTenantStripeAccountRow(tenantId);
         }
         return stripeOperations.createAccountLink(account.getStripeAccountId(), safeRefresh, safeReturn);
+    }
+
+    private TenantStripeAccount createTenantStripeAccountRow(Long tenantId) {
+        StripeOperations.ConnectedAccount created = stripeOperations.createExpressAccount(
+                "DE",
+                Map.of("tenant_id", tenantId.toString())
+        );
+        TenantStripeAccount account = new TenantStripeAccount();
+        account.setTenant(tenantRepository.getReferenceById(tenantId));
+        account.setStripeAccountId(created.accountId());
+        applyCapabilities(account, created);
+        try {
+            return tenantStripeAccountRepository.save(account);
+        } catch (DataIntegrityViolationException ex) {
+            // Concurrent first onboard for the same tenant: the unique tenant_id row was
+            // inserted by another request after our initial find. Reuse the winner's
+            // Express account for the AccountLink (mirrors createCustomerRow).
+            return tenantStripeAccountRepository.findByTenantId(tenantId).orElseThrow(() -> ex);
+        }
     }
 
     // Deliberately not @Transactional (issue #307): refreshFromStripe below makes a remote Stripe
