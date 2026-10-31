@@ -3,6 +3,7 @@ package de.pnnit.directwerk.modules.newsletter.importrss;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import de.pnnit.directwerk.modules.digital.importing.ImportedTextLimits;
 import de.pnnit.directwerk.modules.newsletter.exception.ArticleRssImportException;
 import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
@@ -134,5 +135,31 @@ class ArticleRssFeedParserTest {
         assertThat(feed.items().get(2).guid()).isNotEqualTo(feed.items().get(3).guid());
         assertThat(feed.items().stream().map(ParsedArticleRssFeed.Item::guid).distinct())
                 .hasSize(4);
+    }
+
+    @Test
+    void truncatesOversizedContentEncodedBodyAtBodyMax() {
+        String oversized = "x".repeat(ImportedTextLimits.BODY_MAX + 50_000);
+        String xml = """
+                <?xml version="1.0" encoding="UTF-8"?>
+                <rss version="2.0" xmlns:content="http://purl.org/rss/1.0/modules/content/">
+                  <channel>
+                    <title>Blog</title>
+                    <item>
+                      <title>Huge</title>
+                      <guid>guid-huge</guid>
+                      <content:encoded><![CDATA[%s]]></content:encoded>
+                    </item>
+                  </channel>
+                </rss>
+                """.formatted(oversized);
+
+        ParsedArticleRssFeed feed = parser.parse(
+                "https://example.com/feed.xml",
+                new ByteArrayInputStream(xml.getBytes(StandardCharsets.UTF_8))
+        );
+
+        assertThat(feed.items()).hasSize(1);
+        assertThat(feed.items().getFirst().bodyHtml()).hasSize(ImportedTextLimits.BODY_MAX);
     }
 }

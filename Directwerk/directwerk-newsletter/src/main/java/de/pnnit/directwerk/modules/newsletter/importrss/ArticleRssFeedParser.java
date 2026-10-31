@@ -9,6 +9,7 @@ import static de.pnnit.directwerk.modules.digital.importing.RssFeedSupport.sha25
 import static de.pnnit.directwerk.modules.digital.importing.RssFeedSupport.truncate;
 
 import de.pnnit.directwerk.modules.digital.exception.RssFeedImportException;
+import de.pnnit.directwerk.modules.digital.importing.ImportedTextLimits;
 import de.pnnit.directwerk.modules.digital.importing.ParsedRssDocument;
 import de.pnnit.directwerk.modules.digital.importing.RssFeedReader;
 import de.pnnit.directwerk.modules.newsletter.exception.ArticleRssImportException;
@@ -87,7 +88,7 @@ public class ArticleRssFeedParser {
         return new ParsedArticleRssFeed.Item(
                 boundedGuid(resolvedGuid),
                 resolvedTitle,
-                truncate(blankToNull(body), 512_000),
+                truncate(blankToNull(body), ImportedTextLimits.BODY_MAX),
                 excerpt,
                 parsed.publishedAt(),
                 resolveHttpUrl(feedUrl, resolvedImage)
