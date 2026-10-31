@@ -20,8 +20,10 @@ import {resolveTenantOrigin} from '@/lib/site/siteOrigin'
 import {SiteConfigProvider} from '@/lib/site/SiteConfigProvider'
 import type {PublicSiteConfig} from '@directwerk/api/types'
 
-// Matches the light `--background` token in `@directwerk/ui/theme.css`.
-const FALLBACK_THEME_COLOR = '#fcfbf8'
+// Matches light / dark `--background` tokens in `@directwerk/ui/theme.css`
+// (`oklch(0.99 0.004 95)` / `oklch(0.21 0.012 70)` → sRGB).
+const FALLBACK_THEME_COLOR_LIGHT = '#fcfcf9'
+const FALLBACK_THEME_COLOR_DARK = '#1c1712'
 
 export function generateStaticParams(): Array<{lang: Locale}> {
     return locales.map((lang) => ({lang}))
@@ -145,9 +147,17 @@ export async function generateMetadata({
 
 export async function generateViewport(): Promise<Viewport> {
     // Viewport is locale-agnostic; reuse DE SEO fetch for branding color only.
+    // When a tenant primary is set, use it for both schemes (brand chrome).
+    // Otherwise expose the shared light/dark background tokens for browser chrome.
     const seo = await resolveTenantSeo('de')
+    if (seo.primaryColor !== null) {
+        return {themeColor: seo.primaryColor}
+    }
     return {
-        themeColor: seo.primaryColor ?? FALLBACK_THEME_COLOR,
+        themeColor: [
+            {media: '(prefers-color-scheme: light)', color: FALLBACK_THEME_COLOR_LIGHT},
+            {media: '(prefers-color-scheme: dark)', color: FALLBACK_THEME_COLOR_DARK},
+        ],
     }
 }
 

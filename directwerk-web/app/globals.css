@@ -88,6 +88,19 @@
     padding-bottom: max(0.625rem, env(safe-area-inset-bottom));
 }
 
+/* Dark: keep warm brand wash; soften light-mode “white edge” highlights. */
+.dark .dw-web-shell > header {
+    box-shadow: 0 1px 0 color-mix(in oklab, white 10%, transparent);
+}
+
+.dark .dw-mini-player {
+    box-shadow: 0 -1px 0 color-mix(in oklab, white 10%, transparent);
+}
+
+.dark .dw-home-hero::before {
+    opacity: 0.72;
+}
+
 body:has([data-dw-mini-player]) main {
     padding-bottom: 5.75rem;
 }
