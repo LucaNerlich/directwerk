@@ -19,10 +19,18 @@ const CONTENT_HTML_OPTIONS: sanitizeHtml.IOptions = {
         'img',
         'figure',
         'figcaption',
+        'table',
+        'thead',
+        'tbody',
+        'tr',
+        'th',
+        'td',
     ],
     allowedAttributes: {
         a: ['href'],
         img: ['src', 'alt', 'title'],
+        th: ['align'],
+        td: ['align'],
     },
     allowedSchemes: ['http', 'https', 'mailto', 'tel'],
     allowedSchemesByTag: {
