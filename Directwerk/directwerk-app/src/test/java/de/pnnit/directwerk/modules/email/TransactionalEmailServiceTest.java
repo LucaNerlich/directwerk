@@ -201,6 +201,31 @@ class TransactionalEmailServiceTest {
     }
 
     @Test
+    void sendFromPayloadDoesNotReleaseClaimWhenOutboundSucceededButFinalizeThrows() {
+        // #948: post-send finalize failure must not releaseClaim (that causes duplicate sends).
+        when(directwerkConfig.isEmailEnabled()).thenReturn(true);
+        when(emailSender.isReady()).thenReturn(true);
+        when(emailDeliveryGuard.tryClaimDelivery(JOB_ID)).thenReturn(Optional.of(CLAIM));
+        when(directwerkConfig.email()).thenReturn(sampleEmailConfig());
+        when(emailSender.providerId()).thenReturn("smtp");
+        when(emailDeliveryGuard.finalizeClaim(eq(CLAIM), any(Runnable.class))).thenAnswer(invocation -> {
+            invocation.<Runnable>getArgument(1).run();
+            throw new RuntimeException("finalize TX failed");
+        });
+
+        assertThatThrownBy(() -> transactionalEmailService.sendFromPayload(
+                JOB_ID,
+                null,
+                "user@example.com",
+                EmailTemplate.PASSWORD_RESET,
+                Map.of("resetUrl", "http://localhost/reset", "expiresIn", "1 hour")
+        )).isInstanceOf(RuntimeException.class).hasMessageContaining("finalize TX failed");
+
+        verify(emailSender).send(any());
+        verify(emailDeliveryGuard, never()).releaseClaim(CLAIM);
+    }
+
+    @Test
     void sendAddsListUnsubscribeForNotificationTemplates() {
         when(directwerkConfig.isEmailEnabled()).thenReturn(true);
         when(emailSender.isReady()).thenReturn(true);

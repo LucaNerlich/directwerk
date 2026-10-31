@@ -104,6 +104,22 @@ class EmailDeliveryGuardTest {
     }
 
     @Test
+    void finalizeClaimKeepsClaimWhenPostSendFinalizeFails() {
+        // #948: outbound already ran — treat as success so callers do not releaseClaim.
+        UUID token = UUID.randomUUID();
+        Runnable submission = org.mockito.Mockito.mock(Runnable.class);
+        when(emailDeliveryRepository.findOwnedClaimForUpdate(JOB_ID, token))
+                .thenReturn(Optional.of(new EmailDelivery()));
+        when(emailDeliveryRepository.finalizeClaim(JOB_ID, token, NOW))
+                .thenThrow(new RuntimeException("sent_at write failed"));
+
+        assertThat(guard.finalizeClaim(
+                new EmailDeliveryGuard.DeliveryClaim(JOB_ID, token), submission)).isTrue();
+
+        verify(submission).run();
+    }
+
+    @Test
     void staleOwnerCannotSubmitAfterClaimWasReplaced() {
         UUID token = UUID.randomUUID();
         Runnable submission = org.mockito.Mockito.mock(Runnable.class);

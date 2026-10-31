@@ -10,6 +10,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicBoolean;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -93,6 +94,7 @@ public class TransactionalEmailService {
         if (unsubscribeTarget != null) {
             headers.put("List-Unsubscribe", "<" + unsubscribeTarget + ">");
         }
+        AtomicBoolean outboundCompleted = new AtomicBoolean(false);
         try {
             OutboundEmail outbound = new OutboundEmail(
                     to,
@@ -118,13 +120,24 @@ public class TransactionalEmailService {
                     log.info("Sent email template={} job={} provider={}",
                             template.name(), jobId, emailSender.providerId());
                 }
+                outboundCompleted.set(true);
             });
             if (!sent) {
                 log.info("Skipping email delivery after claim ownership changed for job={} template={}",
                         jobId, template.name());
             }
         } catch (RuntimeException ex) {
-            emailDeliveryGuard.releaseClaim(claimed.get());
+            // #948: only release when outbound never completed; releasing after a successful
+            // send deletes the provisional row and causes a duplicate on retry.
+            if (!outboundCompleted.get()) {
+                emailDeliveryGuard.releaseClaim(claimed.get());
+            } else {
+                log.error(
+                        "Email outbound succeeded but post-send failed for job={} template={}; keeping claim",
+                        jobId,
+                        template.name(),
+                        ex);
+            }
             throw ex;
         }
     }
