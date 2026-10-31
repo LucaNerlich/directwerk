@@ -245,6 +245,10 @@ public class PublicationWorkflowService extends PublicationWorkflow<Episode, Epi
         if (episode.getAccessPolicy() == AccessPolicy.FREE) {
             MediaAsset publicAudio = episodeMediaApi.promoteToPublic(readyAudio.getId());
             episode.setAudioAsset(publicAudio);
+        } else if (readyAudio.getVisibility() == AssetVisibility.PUBLIC) {
+            // Over-publish FREE→PAID (or PAID with a still-public asset) must demote;
+            // unpublish used to be the only path that called demoteToPrivate.
+            episode.setAudioAsset(episodeMediaApi.demoteToPrivate(readyAudio.getId()));
         } else {
             episode.setAudioAsset(readyAudio);
         }

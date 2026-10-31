@@ -419,6 +419,91 @@ class ArticlePublicationWorkflowServiceTest {
         verify(articleRssFeedRefreshScheduler, times(1)).requestRefreshAfterCommit(10L);
     }
 
+    @Test
+    void overPublishAppliesWorkingDraftAndClearsIt() {
+        Article article = draftArticle();
+        article.setStatus(ArticleStatus.PUBLISHED);
+        article.setPublishedAt(Instant.parse("2026-01-01T00:00:00Z"));
+        article.setWorkingDraft(java.util.Map.of(
+                "title", "Draft title",
+                "body", "<p>Draft body</p>"));
+        when(articleService.requireArticle(10L, 7L)).thenReturn(article);
+        org.mockito.Mockito.doAnswer(invocation -> {
+            Article target = invocation.getArgument(1);
+            target.setTitle("Draft title");
+            target.setBody("<p>Draft body</p>");
+            target.setWorkingDraft(null);
+            return null;
+        }).when(articleService).applyWorkingDraft(eq(10L), eq(article));
+
+        Article published = articlePublicationWorkflowService.publish(10L, 7L);
+
+        assertThat(published.getStatus()).isEqualTo(ArticleStatus.PUBLISHED);
+        assertThat(published.getTitle()).isEqualTo("Draft title");
+        assertThat(published.getWorkingDraft()).isNull();
+        verify(articleService).applyWorkingDraft(10L, article);
+        verify(articleRssFeedRefreshScheduler).requestRefreshAfterCommit(10L);
+    }
+
+    @Test
+    void publishPublishedWithoutWorkingDraftFails() {
+        Article article = draftArticle();
+        article.setStatus(ArticleStatus.PUBLISHED);
+        when(articleService.requireArticle(10L, 7L)).thenReturn(article);
+
+        assertThatThrownBy(() -> articlePublicationWorkflowService.publish(10L, 7L))
+                .isInstanceOf(InvalidPublicationTransitionException.class)
+                .hasMessageContaining("working draft");
+    }
+
+    @Test
+    void unpublishAppliesWorkingDraftBeforeReturningToDraft() {
+        Article article = draftArticle();
+        article.setStatus(ArticleStatus.PUBLISHED);
+        article.setPublishedAt(Instant.parse("2026-01-01T00:00:00Z"));
+        article.setWorkingDraft(java.util.Map.of("title", "Staged title"));
+        when(articleService.requireArticle(10L, 7L)).thenReturn(article);
+        org.mockito.Mockito.doAnswer(invocation -> {
+            Article target = invocation.getArgument(1);
+            target.setTitle("Staged title");
+            target.setWorkingDraft(null);
+            return null;
+        }).when(articleService).applyWorkingDraft(eq(10L), eq(article));
+
+        Article unpublished = articlePublicationWorkflowService.unpublish(10L, 7L);
+
+        assertThat(unpublished.getStatus()).isEqualTo(ArticleStatus.DRAFT);
+        assertThat(unpublished.getTitle()).isEqualTo("Staged title");
+        assertThat(unpublished.getWorkingDraft()).isNull();
+        verify(articleService).applyWorkingDraft(10L, article);
+    }
+
+    @Test
+    void archiveRejectsWhenWorkingDraftPresent() {
+        Article article = draftArticle();
+        article.setStatus(ArticleStatus.PUBLISHED);
+        article.setWorkingDraft(java.util.Map.of("title", "Staged"));
+        when(articleService.requireArticle(10L, 7L)).thenReturn(article);
+
+        assertThatThrownBy(() -> articlePublicationWorkflowService.archive(10L, 7L))
+                .isInstanceOf(InvalidPublicationTransitionException.class)
+                .hasMessageContaining("working draft");
+    }
+
+    @Test
+    void discardWorkingDraftClearsOverlay() {
+        Article article = draftArticle();
+        article.setStatus(ArticleStatus.PUBLISHED);
+        article.setWorkingDraft(java.util.Map.of("title", "Staged"));
+        when(articleService.requireArticle(10L, 7L)).thenReturn(article);
+
+        Article cleared = articlePublicationWorkflowService.discardWorkingDraft(10L, 7L);
+
+        assertThat(cleared.getWorkingDraft()).isNull();
+        assertThat(cleared.getStatus()).isEqualTo(ArticleStatus.PUBLISHED);
+        assertThat(cleared.getTitle()).isEqualTo("Hello world");
+    }
+
     private static void authenticate(Long userId, Role... roles) {        List<SimpleGrantedAuthority> authorities = Arrays.stream(roles)
                 .map(role -> new SimpleGrantedAuthority("ROLE_" + role.name()))
                 .toList();

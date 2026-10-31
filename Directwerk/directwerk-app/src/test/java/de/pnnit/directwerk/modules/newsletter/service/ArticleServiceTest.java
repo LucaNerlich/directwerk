@@ -265,6 +265,23 @@ class ArticleServiceTest {
     }
 
     @Test
+    void applyWorkingDraftCopiesOverlayOntoLiveColumns() {
+        Article published = draftArticle();
+        published.setStatus(ArticleStatus.PUBLISHED);
+        published.setTitle("Live title");
+        published.setBody("<p>Live</p>");
+        published.setWorkingDraft(java.util.Map.of(
+                "title", "Draft title",
+                "body", "<p>Draft body</p>"));
+
+        articleService.applyWorkingDraft(TENANT_ID, published);
+
+        assertThat(published.getTitle()).isEqualTo("Draft title");
+        assertThat(published.getBody()).contains("Draft body");
+        assertThat(published.getWorkingDraft()).isNull();
+    }
+
+    @Test
     void updateDraftRejectsScheduledArticle() {
         Article scheduled = draftArticle();
         scheduled.setStatus(ArticleStatus.SCHEDULED);

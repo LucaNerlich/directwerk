@@ -12,6 +12,7 @@ import de.pnnit.directwerk.modules.core.util.FieldConstraints;
 import de.pnnit.directwerk.modules.core.util.SlugNormalizer;
 import de.pnnit.directwerk.modules.core.util.TitleNormalizer;
 import de.pnnit.directwerk.modules.digital.api.EpisodeMediaApi;
+import de.pnnit.directwerk.modules.digital.entity.AssetVisibility;
 import de.pnnit.directwerk.modules.digital.entity.Category;
 import de.pnnit.directwerk.modules.digital.entity.MediaAsset;
 import de.pnnit.directwerk.modules.podcast.PodcastModule;
@@ -406,9 +407,16 @@ public class EpisodeService {
         }
         if (WorkingDraftMaps.containsKey(draft, WorkingDraftMaps.AUDIO_ASSET_ID)) {
             Long audioAssetId = WorkingDraftMaps.getLong(draft, WorkingDraftMaps.AUDIO_ASSET_ID);
+            MediaAsset previous = episode.getAudioAsset();
             MediaAsset audio = episodeMediaApi.requireReadyAudio(audioAssetId);
             episode.setAudioAsset(audio);
             episodeMediaApi.attachEpisode(audioAssetId, episode.getId());
+            if (previous != null
+                    && previous.getId() != null
+                    && !previous.getId().equals(audioAssetId)
+                    && previous.getVisibility() == AssetVisibility.PUBLIC) {
+                episodeMediaApi.demoteToPrivate(previous.getId());
+            }
         }
         episode.setWorkingDraft(null);
     }
