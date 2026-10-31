@@ -32,6 +32,17 @@ export async function selectTenantHost(host: string): Promise<void> {
     await postJson('/api/tenant/select', null, {host})
 }
 
+/** Clears the studio tenant-host cookie so login rediscovers workspaces. */
+export async function clearSelectedTenantHost(): Promise<void> {
+    const response = await fetch('/api/tenant/select', {
+        method: 'DELETE',
+        cache: 'no-store',
+    })
+    if (!response.ok) {
+        throw new Error('tenant-host-clear-failed')
+    }
+}
+
 export async function login(
     tenantHost: string,
     input: LoginInput,

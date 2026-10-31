@@ -115,7 +115,7 @@ export default function StudioShell({
                         </div>
                     }
                     navigation={<SideNav config={config} />}
-                    footer={<LogoutButton />}
+                    footer={<LogoutButton publicSiteUrl={config.publicSiteUrl} />}
                     mobileTitle={mobile.title}
                     mobilePrimaryAction={
                         mobile.primaryHref !== null && mobile.primaryLabel !== null ? (

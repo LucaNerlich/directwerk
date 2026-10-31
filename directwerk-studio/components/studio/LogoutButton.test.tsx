@@ -4,22 +4,35 @@ import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest'
 import LogoutButton from '@/components/studio/LogoutButton'
 import {renderWithLocale} from '@/lib/i18n/testUtils'
 
-const {push, clearSessionTokens, clearAllCachedTenantData} = vi.hoisted(() => ({
+const {
+    push,
+    clearSessionTokens,
+    clearAllCachedTenantData,
+    clearSelectedTenantHost,
+    clearTenantHostCookieInDocument,
+} = vi.hoisted(() => ({
     push: vi.fn(),
     clearSessionTokens: vi.fn(),
     clearAllCachedTenantData: vi.fn(),
+    clearSelectedTenantHost: vi.fn(),
+    clearTenantHostCookieInDocument: vi.fn(),
 }))
 
 vi.mock('next/navigation', () => ({useRouter: () => ({push})}))
 vi.mock('@/lib/auth/MeProvider', () => ({useOptionalMe: () => null}))
 vi.mock('@/lib/auth/session', () => ({clearSessionTokens}))
 vi.mock('@directwerk/api/client/useCachedTenantQuery', () => ({clearAllCachedTenantData}))
-vi.mock('@directwerk/api/tenant', () => ({getClientTenantHost: () => 'tenant.test'}))
+vi.mock('@directwerk/api/tenant', () => ({
+    getClientTenantHost: () => 'tenant.test',
+    clearTenantHostCookieInDocument,
+}))
+vi.mock('@/lib/api/authApi', () => ({clearSelectedTenantHost}))
 
 describe('LogoutButton', () => {
     beforeEach(() => {
         vi.clearAllMocks()
         vi.stubGlobal('fetch', vi.fn())
+        clearSelectedTenantHost.mockResolvedValue(undefined)
     })
 
     afterEach(() => {
@@ -36,6 +49,7 @@ describe('LogoutButton', () => {
         await waitFor(() => expect(push).toHaveBeenCalledWith('/de/login'))
         expect(clearSessionTokens).toHaveBeenCalledOnce()
         expect(clearAllCachedTenantData).toHaveBeenCalledOnce()
+        expect(clearSelectedTenantHost).not.toHaveBeenCalled()
         expect(fetch).toHaveBeenCalledWith(
             '/api/auth/logout',
             expect.objectContaining({
@@ -58,5 +72,38 @@ describe('LogoutButton', () => {
         expect(clearSessionTokens).not.toHaveBeenCalled()
         expect(clearAllCachedTenantData).not.toHaveBeenCalled()
         expect(push).not.toHaveBeenCalled()
+    })
+
+    it('switches workspace via logout + tenant-host clear, then login', async () => {
+        vi.mocked(fetch).mockResolvedValue(new Response(null, {status: 204}))
+
+        renderWithLocale(<LogoutButton publicSiteUrl="https://demo.example" />)
+        fireEvent.click(screen.getByRole('button', {name: 'Workspace wechseln'}))
+
+        await waitFor(() => expect(push).toHaveBeenCalledWith('/de/login'))
+        expect(clearSelectedTenantHost).toHaveBeenCalledOnce()
+        expect(clearTenantHostCookieInDocument).toHaveBeenCalledOnce()
+        expect(clearSessionTokens).toHaveBeenCalledOnce()
+        expect(clearAllCachedTenantData).toHaveBeenCalledOnce()
+    })
+
+    it('links to the tenant public site when configured', () => {
+        renderWithLocale(<LogoutButton publicSiteUrl="https://demo.example/" />)
+
+        // Base UI Button with render=<a> keeps role="button" while remaining an anchor.
+        const link = screen.getByRole('button', {name: 'Öffentliche Seite öffnen'})
+        expect(link.tagName).toBe('A')
+        expect(link).toHaveAttribute('href', 'https://demo.example')
+        expect(link).toHaveAttribute('target', '_blank')
+        expect(link).toHaveAttribute('rel', 'noopener noreferrer')
+    })
+
+    it('disables the public site control when no URL is configured', () => {
+        renderWithLocale(<LogoutButton publicSiteUrl={null} />)
+
+        expect(
+            screen.getByRole('button', {name: 'Öffentliche Site-URL ist noch nicht konfiguriert'}),
+        ).toBeDisabled()
+        expect(screen.queryByRole('button', {name: 'Öffentliche Seite öffnen'})).toBeNull()
     })
 })
