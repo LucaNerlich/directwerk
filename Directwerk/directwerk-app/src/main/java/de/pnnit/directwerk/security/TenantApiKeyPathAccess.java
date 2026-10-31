@@ -18,6 +18,7 @@ public final class TenantApiKeyPathAccess {
      * also covers deferred MCP surfaces.
      */
     private static final List<String> ALLOWED_BASES = List.of(
+            "/mcp",
             "/api/v1/articles",
             "/api/v1/episodes",
             "/api/v1/series",

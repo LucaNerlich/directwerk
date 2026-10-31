@@ -1,0 +1,47 @@
+info:
+  name: 2 - Tools List
+  type: http
+  seq: 2
+
+http:
+  method: POST
+  url: "{{baseUrl}}/mcp"
+  body:
+    type: json
+    data: |-
+      {
+        "jsonrpc": "2.0",
+        "id": 2,
+        "method": "tools/list",
+        "params": {}
+      }
+  headers:
+    - name: Authorization
+      value: "Bearer {{tenantApiKeySecret}}"
+    - name: Accept
+      value: "application/json, text/event-stream"
+    - name: Content-Type
+      value: application/json
+  auth:
+    type: none
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("MCP tools/list returns tools", function() {
+          expect(res.getStatus() === 200).to.equal(true);
+          const body = res.getBody();
+          expect(Array.isArray(body.result.tools)).to.equal(true);
+          expect(body.result.tools.length >= 40).to.equal(true);
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false
+
+docs: |-
+  Lists hosted Studio content MCP tools (parity with packages/mcp-studio minus import_podcast_manifest).

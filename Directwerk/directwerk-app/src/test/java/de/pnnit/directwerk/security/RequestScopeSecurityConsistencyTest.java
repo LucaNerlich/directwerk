@@ -45,6 +45,14 @@ class RequestScopeSecurityConsistencyTest {
     }
 
     @Test
+    void hostedMcpEndpointIsEditorContent() {
+        for (String path : List.of("/mcp", "/mcp/")) {
+            assertThat(RequestScope.of(path)).isEqualTo(RequestScope.EDITOR_CONTENT);
+            assertThat(decisionFor(path)).isEqualTo(SecurityConfig.ApiAccess.EDITOR_OR_TENANT_ADMIN);
+        }
+    }
+
+    @Test
     void tenantAdminContentBasesStayTenantAdminForMembershipButAllowContentApiKeysAtJwt() {
         for (String base : RequestScope.tenantAdminContentBases()) {
             for (String path : List.of(base, base + "/7")) {

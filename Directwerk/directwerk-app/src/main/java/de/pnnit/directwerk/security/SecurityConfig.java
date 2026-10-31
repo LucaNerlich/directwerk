@@ -245,6 +245,9 @@ public class SecurityConfig {
         List<String> editorPatterns =
                 new java.util.ArrayList<>(RequestScope.antPatterns(RequestScope.editorContentBases()));
         editorPatterns.add("/api/v1/probes/**");
+        // Hosted Studio MCP (stateless Streamable HTTP) — same editor/content-key gate.
+        editorPatterns.add("/mcp");
+        editorPatterns.add("/mcp/**");
         rules.add(new ApiAuthorizationRule(ApiAccess.EDITOR_OR_TENANT_ADMIN, List.copyOf(editorPatterns)));
         rules.add(new ApiAuthorizationRule(ApiAccess.AUTHENTICATED,
                 List.of("/api/v1/security/**", "/api/v1/me/**")));

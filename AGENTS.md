@@ -73,14 +73,16 @@ docker compose --profile stack up --build
 - Directwerk admin / example FE: `http://localhost:3001` / `http://localhost:3000`
 - Docs site: `http://localhost:5173` (`pnpm --filter directwerk-docs dev`)
 
-## MCP tooling (OpenCode)
+## MCP tooling (Studio content)
 
-[`packages/mcp-studio`](packages/mcp-studio/README.md) is a stdio MCP server that manages Studio
-content (articles, episodes, series, formats, categories, media) through the public REST API. The
-root [`opencode.json`](opencode.json) registers it for every session in the monorepo. It contains
-**no secrets**: the tenant key is substituted from the environment via `{env:DIRECTWERK_API_KEY}`
-(export it in `~/.bashrc`); the `bash -ic` wrapper is required because OpenCode's background service
-keeps its startup environment.
+**Hosted (preferred):** Streamable HTTP on the API at `{API}/mcp`, authenticated with
+`Authorization: Bearer dwk_…` and tenant `Host` / `X-Tenant-Host`. Studio → Settings → API keys
+shows a copy-paste remote config. OpenCode remote entries should set `oauth: false`.
+
+**Local stdio:** [`packages/mcp-studio`](packages/mcp-studio/README.md) for monorepo developers
+(and filesystem bulk import). The root [`opencode.json`](opencode.json) registers stdio for every
+session. It contains **no secrets**: `{env:DIRECTWERK_API_KEY}` (export in `~/.bashrc`); the
+`bash -ic` wrapper is required because OpenCode's background service keeps its startup environment.
 
 ```sh
 pnpm --filter @directwerk/mcp-studio build   # after changing src/

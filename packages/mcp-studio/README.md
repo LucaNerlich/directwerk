@@ -1,16 +1,65 @@
 # `@directwerk/mcp-studio`
 
-stdio MCP server that manages Directwerk Studio content (articles, episodes, series, categories, formats, media) via the public REST API and a tenant API key.
+MCP server that manages Directwerk Studio content (articles, episodes, series, categories, formats, media) via the public REST API and a tenant API key.
 
-## Environment
+**Preferred install:** use the **API-hosted** Streamable HTTP endpoint (`{API}/mcp`) — URL + API key, no local package path. This package remains the **stdio** (and optional local HTTP) implementation for monorepo developers; tool handlers are shared between `index.ts` (stdio) and `http.ts` (local Streamable HTTP).
+
+## Hosted remote MCP (recommended)
+
+Endpoint: `POST/GET https://api.example.com/mcp`  
+Auth: `Authorization: Bearer dwk_…` plus tenant `Host` or `X-Tenant-Host`.
+
+Cursor:
+
+```json
+{
+  "mcpServers": {
+    "directwerk-studio": {
+      "url": "https://api.example.com/mcp",
+      "headers": {
+        "Authorization": "Bearer dwk_…",
+        "X-Tenant-Host": "your-tenant.example.com"
+      }
+    }
+  }
+}
+```
+
+OpenCode (set `oauth: false` so the API key is used instead of OAuth discovery on the API host):
+
+```json
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "servers": {
+      "directwerk-studio": {
+        "type": "remote",
+        "url": "https://api.example.com/mcp",
+        "oauth": false,
+        "headers": {
+          "Authorization": "Bearer {env:DIRECTWERK_API_KEY}",
+          "X-Tenant-Host": "your-tenant.example.com"
+        }
+      }
+    }
+  }
+}
+```
+
+Studio → **Settings → API keys** shows a copy-paste remote snippet for the current platform API URL.
+
+`import_podcast_manifest` (local filesystem bulk import) stays **stdio-only**.
+
+## Environment (stdio / local HTTP)
 
 | Variable | Purpose |
 |----------|---------|
 | `DIRECTWERK_API_BASE_URL` | API origin, e.g. `https://api.example.com` or `http://localhost:8080` |
 | `DIRECTWERK_API_KEY` | Tenant API key (`dwk_…`) from Studio → Settings → API keys |
 | `DIRECTWERK_TENANT_HOST` | Verified tenant hostname (sent as `X-Tenant-Host` for multi-tenancy) |
+| `PORT` / `DIRECTWERK_MCP_PORT` | Local HTTP listen port (default `3100`, `start:http` only) |
 
-## Cursor install
+## Cursor install (stdio)
 
 1. In Studio (tenant admin): **Settings → API keys** → create a key with `content:write` (includes read).
 2. Copy the secret once.
@@ -34,7 +83,9 @@ stdio MCP server that manages Directwerk Studio content (articles, episodes, ser
 
 Or after `pnpm --filter @directwerk/mcp-studio build`, point `command` at `node` and `args` at the absolute `dist/index.js` path.
 
-## OpenCode install
+Local Streamable HTTP (same tools, for debugging): `pnpm --filter @directwerk/mcp-studio start:http` → `http://127.0.0.1:3100/mcp`.
+
+## OpenCode install (stdio)
 
 OpenCode (V2) reads MCP servers from `opencode.json` (or `.opencode/opencode.json`) under `mcp.servers`. Add this once to the **repository root** so every session in the monorepo picks it up:
 

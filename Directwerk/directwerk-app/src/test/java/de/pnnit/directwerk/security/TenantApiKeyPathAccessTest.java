@@ -10,6 +10,8 @@ class TenantApiKeyPathAccessTest {
 
     @Test
     void allowsEditorContentAndTaxonomyPaths() {
+        assertThat(TenantApiKeyPathAccess.isAllowedPath("/mcp")).isTrue();
+        assertThat(TenantApiKeyPathAccess.isAllowedPath("/mcp/")).isTrue();
         assertThat(TenantApiKeyPathAccess.isAllowedPath("/api/v1/articles")).isTrue();
         assertThat(TenantApiKeyPathAccess.isAllowedPath("/api/v1/articles/1")).isTrue();
         assertThat(TenantApiKeyPathAccess.isAllowedPath("/api/v1/articles/1/categories")).isTrue();
