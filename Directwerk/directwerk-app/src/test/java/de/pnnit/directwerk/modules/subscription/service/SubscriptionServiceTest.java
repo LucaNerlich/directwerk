@@ -126,6 +126,28 @@ class SubscriptionServiceTest {
     }
 
     @Test
+    void grantManualSubscriptionRejectsHybridManualRowWithLiveStripeIds() {
+        mockUserAndMembership();
+        SubscriptionProduct product = product();
+        when(subscriptionProductService.requireProduct(TENANT_ID, PRODUCT_ID)).thenReturn(product);
+        Subscription hybrid = subscription(SubscriptionSource.MANUAL, SubscriptionStatus.ACTIVE);
+        hybrid.setExternalSubscriptionId("sub_hybrid");
+        hybrid.setExternalPaymentId("in_hybrid");
+        when(subscriptionRepository.findByTenantIdAndUserIdAndProductIdForUpdate(TENANT_ID, USER_ID, PRODUCT_ID))
+                .thenReturn(Optional.of(hybrid));
+
+        assertThatThrownBy(() -> service.grantManualSubscription(TENANT_ID, "user@example.com", PRODUCT_ID))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("cancel it before granting manual access");
+
+        assertThat(hybrid.getExternalSubscriptionId()).isEqualTo("sub_hybrid");
+        assertThat(hybrid.getExternalPaymentId()).isEqualTo("in_hybrid");
+        assertThat(hybrid.getSource()).isEqualTo(SubscriptionSource.MANUAL);
+        verify(subscriptionRepository, never()).save(any());
+        verify(eventPublisher, never()).publishEvent(any());
+    }
+
+    @Test
     void revokeSubscriptionCallsTheProviderBeforeTheLocalWrite() {
         Subscription stripe = subscription(SubscriptionSource.STRIPE, SubscriptionStatus.ACTIVE);
         stripe.setId(99L);

@@ -70,23 +70,25 @@ public class SubscriptionService {
         Subscription existing = subscriptionRepository
                 .findByTenantIdAndUserIdAndProductIdForUpdate(tenantId, user.getId(), productId)
                 .orElse(null);
-        if (existing != null && existing.getSource() == SubscriptionSource.STRIPE) {
-            if (existing.getStatus() == SubscriptionStatus.ACTIVE) {
+        if (existing != null) {
+            if (existing.getSource() == SubscriptionSource.STRIPE
+                    && existing.getStatus() == SubscriptionStatus.ACTIVE) {
                 throw new IllegalArgumentException(
                         "User already has an active Stripe subscription for this product; revoke it before granting manual access");
             }
+            // Live Stripe ids may sit on MANUAL rows after checkout/webhook helpers
+            // (recordExternalBillingOnManualGrant). Clearing them while Stripe still bills
+            // orphans the provider subscription — refuse regardless of source.
             if (hasStripeIdentifiers(existing)
                     && existing.getStatus() != SubscriptionStatus.CANCELED) {
-                // A PAST_DUE/INCOMPLETE Stripe subscription may still be live; converting the
-                // row to MANUAL and clearing its ids would orphan it, so its renewal /
-                // cancellation webhooks could no longer match the row. Refuse instead.
                 throw new IllegalArgumentException(
                         "User has a Stripe billing relationship for this product; cancel it before granting manual access");
             }
-        }
-        if (existing != null) {
-            existing.setExternalSubscriptionId(null);
-            existing.setExternalPaymentId(null);
+            // Safe to clear only when converting a terminal CANCELED row.
+            if (existing.getStatus() == SubscriptionStatus.CANCELED) {
+                existing.setExternalSubscriptionId(null);
+                existing.setExternalPaymentId(null);
+            }
         }
 
         Subscription subscription = existing != null
