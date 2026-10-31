@@ -6,10 +6,11 @@ import {useEffect, useState} from 'react'
 import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
 import {Button} from '@directwerk/ui/components/button'
 import {AUTH_REQUIRED} from '@directwerk/api/constants'
+import {loginHref} from '@/lib/auth/loginHref'
 import {ensureAuthenticated} from '@/lib/auth/session'
 import {defaultLocale} from '@/lib/i18n/config'
 import {useDictionary, useLocale} from '@/lib/i18n/LocaleProvider'
-import {localeFromPathname, localizedPath, stripLocalePrefix} from '@/lib/i18n/paths'
+import {localeFromPathname, stripLocalePrefix} from '@/lib/i18n/paths'
 
 // Issue #554: only these paths require a session. Everything else — including unknown URLs
 // (the branded 404) and routes added later — renders without a login redirect.
@@ -60,7 +61,7 @@ export default function AuthBootstrap({
                 }
                 if (error instanceof Error && error.message === AUTH_REQUIRED) {
                     setReadyPathname(null)
-                    router.replace(localizedPath(pathLang, '/login'))
+                    router.replace(loginHref(pathLang, pathname))
                     return
                 }
                 // Transient failures (e.g. `AUTH_TRANSIENT` upstream outages)

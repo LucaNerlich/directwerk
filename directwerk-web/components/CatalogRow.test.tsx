@@ -1,5 +1,9 @@
 import {cleanup, render, screen} from '@testing-library/react'
-import {afterEach, describe, expect, it} from 'vitest'
+import {afterEach, describe, expect, it, vi} from 'vitest'
+
+vi.mock('next/navigation', () => ({
+    usePathname: () => '/de/episodes',
+}))
 
 import AccessPolicyBadge from '@/components/AccessPolicyBadge'
 import CatalogRow, {LockedCatalogAction} from '@/components/CatalogRow'
@@ -51,7 +55,7 @@ describe('CatalogRow', () => {
 
         expect(screen.getByRole('link', {name: 'Anmelden'})).toHaveAttribute(
             'href',
-            '/de/login',
+            '/de/login?returnTo=%2Fde%2Fepisodes',
         )
     })
 

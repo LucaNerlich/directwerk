@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import {usePathname} from 'next/navigation'
 import type {ReactNode} from 'react'
 
 import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
@@ -10,8 +11,8 @@ import PageStack from '@directwerk/ui/components/page-stack'
 import SectionHeader from '@directwerk/ui/components/section-header'
 
 import {DetailSkeleton} from '@/components/ContentLoadingSkeleton'
+import {loginHref} from '@/lib/auth/loginHref'
 import {useDictionary, useLocale} from '@/lib/i18n/LocaleProvider'
-import {localizedPath} from '@/lib/i18n/paths'
 
 export interface DetailNotFound {
     title: string
@@ -35,6 +36,7 @@ export function DetailLockedPanel({
     unlockHref: string
 }): React.JSX.Element {
     const lang = useLocale()
+    const pathname = usePathname()
     const {common, nav} = useDictionary()
     return (
         <section className="flex flex-col gap-3 rounded-xl border bg-card p-5">
@@ -44,7 +46,7 @@ export function DetailLockedPanel({
             ) : null}
             <div className="flex flex-wrap gap-2">
                 {!isAuthenticated ? (
-                    <Button nativeButton={false} render={<Link href={localizedPath(lang, '/login')} />}>
+                    <Button nativeButton={false} render={<Link href={loginHref(lang, pathname)} />}>
                         {nav.login}
                     </Button>
                 ) : null}
@@ -87,6 +89,7 @@ export default function DetailShell({
     children?: ReactNode
 }): React.JSX.Element {
     const lang = useLocale()
+    const pathname = usePathname()
     const {common, nav} = useDictionary()
     return (
         <PageStack className="page-container">
@@ -116,7 +119,7 @@ export default function DetailShell({
                     action={
                         <div className="flex flex-wrap items-center justify-center gap-2">
                             {!isAuthenticated ? (
-                                <Link className={buttonVariants()} href={localizedPath(lang, '/login')}>
+                                <Link className={buttonVariants()} href={loginHref(lang, pathname)}>
                                     {nav.login}
                                 </Link>
                             ) : null}

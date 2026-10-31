@@ -1,14 +1,15 @@
 'use client'
 
 import Link from 'next/link'
+import {usePathname} from 'next/navigation'
 import type {ReactNode} from 'react'
 
 import {buttonVariants} from '@directwerk/ui/components/button'
 
 import CatalogMediaThumb from '@/components/CatalogMediaThumb'
 import ContentMetaLine from '@/components/ContentMetaLine'
+import {loginHref} from '@/lib/auth/loginHref'
 import {useDictionary, useLocale} from '@/lib/i18n/LocaleProvider'
-import {localizedPath} from '@/lib/i18n/paths'
 
 /** Responsive catalog grid: 1 → 2 → 3 columns (matches downloads/pricing density). */
 export const CATALOG_GRID_CLASSNAME = 'grid gap-4 sm:grid-cols-2 lg:grid-cols-3'
@@ -26,10 +27,11 @@ export function LockedCatalogAction({
     unlockHref: string
 }): React.JSX.Element {
     const lang = useLocale()
+    const pathname = usePathname()
     const {common, nav} = useDictionary()
     if (!isAuthenticated) {
         return (
-            <Link className={buttonVariants({size: 'sm'})} href={localizedPath(lang, '/login')}>
+            <Link className={buttonVariants({size: 'sm'})} href={loginHref(lang, pathname)}>
                 {nav.login}
             </Link>
         )

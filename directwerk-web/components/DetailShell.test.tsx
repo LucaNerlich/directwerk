@@ -1,6 +1,10 @@
 import {cleanup, fireEvent, render, screen} from '@testing-library/react'
 import {afterEach, describe, expect, it, vi} from 'vitest'
 
+vi.mock('next/navigation', () => ({
+    usePathname: () => '/de/articles/mein-beitrag',
+}))
+
 import DetailShell from '@/components/DetailShell'
 import {TestLocale} from '@/lib/i18n/testWrapper'
 
@@ -47,7 +51,7 @@ describe('DetailShell', () => {
         ).toBeInTheDocument()
         expect(screen.getByRole('link', {name: 'Anmelden'})).toHaveAttribute(
             'href',
-            '/de/login',
+            '/de/login?returnTo=%2Fde%2Farticles%2Fmein-beitrag',
         )
         expect(
             screen.getByRole('link', {name: 'Mitgliedschaft ansehen'}),
