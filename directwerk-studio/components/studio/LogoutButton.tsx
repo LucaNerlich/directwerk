@@ -1,6 +1,6 @@
 'use client'
 
-import {ArrowLeftRightIcon, ExternalLinkIcon} from 'lucide-react'
+import {ExternalLinkIcon} from 'lucide-react'
 import {useRouter} from 'next/navigation'
 import {useState} from 'react'
 
@@ -9,14 +9,11 @@ import {Button} from '@directwerk/ui/components/button'
 import {ButtonGroup} from '@directwerk/ui/components/button-group'
 import {clearAllCachedTenantData} from '@directwerk/api/client/useCachedTenantQuery'
 import {publicSiteOrigin} from '@directwerk/api/urls/publicContentUrls'
-import {
-    clearTenantHostCookieInDocument,
-    getClientTenantHost,
-} from '@directwerk/api/tenant'
+import {getClientTenantHost} from '@directwerk/api/tenant'
 
 import {useDictionary} from '@/components/i18n/LocaleProvider'
 import {useLocalizedPath} from '@/components/i18n/useLocalizedPath'
-import {clearSelectedTenantHost} from '@/lib/api/authApi'
+import ModeToggle from '@/components/mode-toggle'
 import {t} from '@/lib/i18n/dictionary'
 import {useOptionalMe} from '@/lib/auth/MeProvider'
 import {clearSessionTokens} from '@/lib/auth/session'
@@ -69,35 +66,7 @@ export default function LogoutButton({
                     aria-label={dict.shell.accountActionsAria}
                     className="min-w-0 flex-1"
                 >
-                    <Button
-                        type="button"
-                        className="min-w-0 flex-1"
-                        size="icon-sm"
-                        title={dict.shell.switchWorkspace}
-                        variant="outline"
-                        aria-label={dict.shell.switchWorkspace}
-                        onClick={() => {
-                            void (async () => {
-                                setActionError(null)
-                                const loggedOut = await endStudioSession()
-                                if (!loggedOut) {
-                                    setActionError(dict.shell.switchWorkspaceFailed)
-                                    return
-                                }
-                                try {
-                                    await clearSelectedTenantHost()
-                                } catch {
-                                    // Cookie clear via document below is enough for the login picker.
-                                }
-                                clearTenantHostCookieInDocument()
-                                clearSessionTokens()
-                                clearAllCachedTenantData()
-                                router.push(localize('/login'))
-                            })()
-                        }}
-                    >
-                        <ArrowLeftRightIcon />
-                    </Button>
+                    <ModeToggle />
                     {publicHref !== null ? (
                         <Button
                             className="min-w-0 flex-1"

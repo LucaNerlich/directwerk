@@ -4,18 +4,10 @@ import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest'
 import LogoutButton from '@/components/studio/LogoutButton'
 import {renderWithLocale} from '@/lib/i18n/testUtils'
 
-const {
-    push,
-    clearSessionTokens,
-    clearAllCachedTenantData,
-    clearSelectedTenantHost,
-    clearTenantHostCookieInDocument,
-} = vi.hoisted(() => ({
+const {push, clearSessionTokens, clearAllCachedTenantData} = vi.hoisted(() => ({
     push: vi.fn(),
     clearSessionTokens: vi.fn(),
     clearAllCachedTenantData: vi.fn(),
-    clearSelectedTenantHost: vi.fn(),
-    clearTenantHostCookieInDocument: vi.fn(),
 }))
 
 vi.mock('next/navigation', () => ({useRouter: () => ({push})}))
@@ -24,15 +16,14 @@ vi.mock('@/lib/auth/session', () => ({clearSessionTokens}))
 vi.mock('@directwerk/api/client/useCachedTenantQuery', () => ({clearAllCachedTenantData}))
 vi.mock('@directwerk/api/tenant', () => ({
     getClientTenantHost: () => 'tenant.test',
-    clearTenantHostCookieInDocument,
 }))
-vi.mock('@/lib/api/authApi', () => ({clearSelectedTenantHost}))
 
 describe('LogoutButton', () => {
     beforeEach(() => {
         vi.clearAllMocks()
         vi.stubGlobal('fetch', vi.fn())
-        clearSelectedTenantHost.mockResolvedValue(undefined)
+        window.localStorage.clear()
+        document.documentElement.classList.remove('light', 'dark')
     })
 
     afterEach(() => {
@@ -49,7 +40,6 @@ describe('LogoutButton', () => {
         await waitFor(() => expect(push).toHaveBeenCalledWith('/de/login'))
         expect(clearSessionTokens).toHaveBeenCalledOnce()
         expect(clearAllCachedTenantData).toHaveBeenCalledOnce()
-        expect(clearSelectedTenantHost).not.toHaveBeenCalled()
         expect(fetch).toHaveBeenCalledWith(
             '/api/auth/logout',
             expect.objectContaining({
@@ -74,17 +64,19 @@ describe('LogoutButton', () => {
         expect(push).not.toHaveBeenCalled()
     })
 
-    it('switches workspace via logout + tenant-host clear, then login', async () => {
-        vi.mocked(fetch).mockResolvedValue(new Response(null, {status: 204}))
-
+    it('toggles light/dark theme from the footer control', () => {
+        document.documentElement.classList.add('light')
         renderWithLocale(<LogoutButton publicSiteUrl="https://demo.example" />)
-        fireEvent.click(screen.getByRole('button', {name: 'Workspace wechseln'}))
 
-        await waitFor(() => expect(push).toHaveBeenCalledWith('/de/login'))
-        expect(clearSelectedTenantHost).toHaveBeenCalledOnce()
-        expect(clearTenantHostCookieInDocument).toHaveBeenCalledOnce()
-        expect(clearSessionTokens).toHaveBeenCalledOnce()
-        expect(clearAllCachedTenantData).toHaveBeenCalledOnce()
+        fireEvent.click(screen.getByRole('button', {name: 'Zum dunklen Modus wechseln'}))
+
+        expect(document.documentElement.classList.contains('dark')).toBe(true)
+        expect(window.localStorage.getItem('dw.studio.theme')).toBe('dark')
+
+        fireEvent.click(screen.getByRole('button', {name: 'Zum hellen Modus wechseln'}))
+
+        expect(document.documentElement.classList.contains('light')).toBe(true)
+        expect(window.localStorage.getItem('dw.studio.theme')).toBe('light')
     })
 
     it('links to the tenant public site when configured', () => {

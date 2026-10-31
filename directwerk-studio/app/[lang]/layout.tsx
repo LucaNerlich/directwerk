@@ -1,9 +1,11 @@
 import type {Metadata} from 'next'
+import Script from 'next/script'
 import {connection} from 'next/server'
 
 import UmamiAnalytics from '@directwerk/ui/components/umami-analytics'
 
 import {LocaleProvider} from '@/components/i18n/LocaleProvider'
+import {ThemeProvider, themeInitScript} from '@/components/theme-provider'
 import {assertLocale, getDictionary, locales} from '@/lib/i18n'
 
 export async function generateStaticParams() {
@@ -45,12 +47,19 @@ export default async function LangLayout({
     const dictionary = await getDictionary(lang)
 
     return (
-        <html lang={lang}>
+        <html lang={lang} suppressHydrationWarning>
             <body className="min-h-svh bg-background text-foreground antialiased">
+                <Script
+                    id="dw-studio-theme"
+                    strategy="beforeInteractive"
+                    dangerouslySetInnerHTML={{__html: themeInitScript()}}
+                />
                 <UmamiAnalytics />
-                <LocaleProvider dictionary={dictionary} lang={lang}>
-                    {children}
-                </LocaleProvider>
+                <ThemeProvider>
+                    <LocaleProvider dictionary={dictionary} lang={lang}>
+                        {children}
+                    </LocaleProvider>
+                </ThemeProvider>
             </body>
         </html>
     )
