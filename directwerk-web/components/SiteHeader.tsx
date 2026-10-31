@@ -9,6 +9,7 @@ import SiteShell from '@directwerk/ui/components/layout/site-shell'
 
 import BrandLogo from '@/components/BrandLogo'
 import LanguageSwitcher from '@/components/LanguageSwitcher'
+import ModeToggle from '@/components/mode-toggle'
 import SiteFooter from '@/components/SiteFooter'
 import {clearSessionTokens} from '@/lib/auth/session'
 import {useSubscriberAuth} from '@/lib/auth/useSubscriberAuth'
@@ -118,6 +119,7 @@ export default function SiteHeader({
     })
     const actions = (
         <>
+            <ModeToggle />
             <LanguageSwitcher />
             {isAuthenticated ? (
                 <>
