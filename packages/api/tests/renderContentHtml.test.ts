@@ -1,11 +1,14 @@
 import {describe, expect, it} from 'vitest'
 
-import {looksLikeContentHtml, renderContentHtml} from '../src/content/renderContentHtml'
+import {looksLikeTipTapHtml, renderContentHtml} from '../src/content/renderContentHtml'
 
 describe('renderContentHtml', () => {
-    it('detects TipTap/HTML bodies', () => {
-        expect(looksLikeContentHtml('<p>Hello</p>')).toBe(true)
-        expect(looksLikeContentHtml('# Heading\n\n**bold**')).toBe(false)
+    it('detects TipTap-shaped HTML bodies', () => {
+        expect(looksLikeTipTapHtml('<p>Hello</p>')).toBe(true)
+        expect(looksLikeTipTapHtml('# Heading\n\n**bold**')).toBe(false)
+        expect(
+            looksLikeTipTapHtml('# Title\n\nSee <a href="https://x.test">x</a> for **y**.'),
+        ).toBe(false)
     })
 
     it('passes through sanitized HTML from TipTap', () => {
@@ -62,5 +65,22 @@ describe('renderContentHtml', () => {
         expect(rendered).toContain('<strong>there</strong>')
         expect(rendered).not.toContain('<script>')
         expect(rendered).not.toContain('alert')
+    })
+
+    it('converts Markdown that embeds inline HTML', () => {
+        const rendered = renderContentHtml(
+            '# Title\n\nSee <a href="https://x.test">x</a> for **y**.',
+        )
+        expect(rendered).toContain('<h2>Title</h2>')
+        expect(rendered).toContain('<strong>y</strong>')
+        expect(rendered).toContain('href="https://x.test"')
+        expect(rendered).not.toContain('# Title')
+        expect(rendered).not.toContain('**y**')
+    })
+
+    it('does not throw on invalid numeric entities', () => {
+        const rendered = renderContentHtml('# ok\n\n&#x110000;\n\n&#999999999;')
+        expect(rendered).toContain('<h2>ok</h2>')
+        expect(rendered).not.toContain('# ok')
     })
 })

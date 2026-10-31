@@ -124,4 +124,27 @@ class HtmlSanitizerTest {
         assertThat(sanitized).doesNotContain("<script>");
         assertThat(sanitized).doesNotContain("alert");
     }
+
+    @Test
+    void convertsMarkdownThatEmbedsInlineHtml() {
+        String sanitized = htmlSanitizer.sanitize("""
+                # Title
+
+                See <a href="https://x.test">x</a> for **y**.
+                """);
+
+        assertThat(sanitized).contains("<h2>Title</h2>");
+        assertThat(sanitized).contains("<strong>y</strong>");
+        assertThat(sanitized).contains("href=\"https://x.test\"");
+        assertThat(sanitized).doesNotContain("# Title");
+        assertThat(sanitized).doesNotContain("**y**");
+    }
+
+    @Test
+    void invalidNumericEntitiesDoNotThrow() {
+        String sanitized = htmlSanitizer.sanitize("# ok\n\n&#x110000;\n\n&#999999999;");
+
+        assertThat(sanitized).contains("<h2>ok</h2>");
+        assertThat(sanitized).doesNotContain("# ok");
+    }
 }

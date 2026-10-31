@@ -14,19 +14,15 @@ import com.vladsch.flexmark.util.data.MutableDataSet;
 /**
  * Normalizes publication body / show-notes input to the shared content HTML allowlist.
  *
- * <p>Studio TipTap writers send HTML. MCP and Markdown importers often send CommonMark.
- * Non-HTML input is converted with Flexmark, then sanitized. Stored rows and RSS/email
+ * <p>Studio TipTap writers send HTML (documents start with a tag). MCP and Markdown
+ * importers often send CommonMark, sometimes with inline HTML. Non-TipTap-shaped
+ * input is converted with Flexmark, then sanitized. Stored rows and RSS/email
  * therefore see HTML without depending on a client fallback.
  */
 @Component
 public class HtmlSanitizer {
 
     private static final Pattern HTTPS_URL = Pattern.compile("^https://[^\\s\"<>`]+$");
-
-    /** Tags TipTap and the allowlist emit — presence means treat as HTML, not Markdown. */
-    private static final Pattern CONTENT_HTML_TAG = Pattern.compile(
-            "</?(?:p|br|strong|em|s|a|ul|ol|li|h[1-6]|blockquote|hr|img|figure|figcaption)\\b",
-            Pattern.CASE_INSENSITIVE);
 
     private static final Pattern DECIMAL_ENTITY = Pattern.compile("&#(\\d+);");
     private static final Pattern HEX_ENTITY = Pattern.compile("&#x([0-9a-fA-F]+);");
@@ -56,7 +52,7 @@ public class HtmlSanitizer {
         if (htmlOrMarkdown == null || htmlOrMarkdown.isEmpty()) {
             return "";
         }
-        if (looksLikeContentHtml(htmlOrMarkdown)) {
+        if (looksLikeTipTapHtml(htmlOrMarkdown)) {
             return POLICY.sanitize(htmlOrMarkdown);
         }
         String markdown = decodeBasicEntities(htmlOrMarkdown);
@@ -64,8 +60,12 @@ public class HtmlSanitizer {
         return POLICY.sanitize(normalizeHeadingLevels(rendered));
     }
 
-    static boolean looksLikeContentHtml(String value) {
-        return CONTENT_HTML_TAG.matcher(value).find();
+    /**
+     * TipTap documents start with a tag ({@code <p>}, {@code <h2>}, …). CommonMark
+     * that embeds inline HTML mid-body must still go through Flexmark.
+     */
+    static boolean looksLikeTipTapHtml(String value) {
+        return value.trim().startsWith("<");
     }
 
     /**
@@ -86,19 +86,41 @@ public class HtmlSanitizer {
         Matcher hex = HEX_ENTITY.matcher(value);
         StringBuffer hexOut = new StringBuffer();
         while (hex.find()) {
-            hex.appendReplacement(hexOut, Matcher.quoteReplacement(
-                    new String(Character.toChars(Integer.parseInt(hex.group(1), 16)))));
+            String replacement = codePointOrOriginal(hex.group(0), Integer.parseInt(hex.group(1), 16));
+            hex.appendReplacement(hexOut, Matcher.quoteReplacement(replacement));
         }
         hex.appendTail(hexOut);
 
         Matcher dec = DECIMAL_ENTITY.matcher(hexOut.toString());
         StringBuffer decOut = new StringBuffer();
         while (dec.find()) {
-            dec.appendReplacement(decOut, Matcher.quoteReplacement(
-                    new String(Character.toChars(Integer.parseInt(dec.group(1), 10)))));
+            long parsed;
+            try {
+                parsed = Long.parseLong(dec.group(1), 10);
+            } catch (NumberFormatException ex) {
+                dec.appendReplacement(decOut, Matcher.quoteReplacement(dec.group(0)));
+                continue;
+            }
+            if (parsed > Integer.MAX_VALUE) {
+                dec.appendReplacement(decOut, Matcher.quoteReplacement(dec.group(0)));
+                continue;
+            }
+            String replacement = codePointOrOriginal(dec.group(0), (int) parsed);
+            dec.appendReplacement(decOut, Matcher.quoteReplacement(replacement));
         }
         dec.appendTail(decOut);
         return decOut.toString();
+    }
+
+    private static String codePointOrOriginal(String original, int codePoint) {
+        if (!Character.isValidCodePoint(codePoint)) {
+            return original;
+        }
+        try {
+            return new String(Character.toChars(codePoint));
+        } catch (IllegalArgumentException ex) {
+            return original;
+        }
     }
 
     /** TipTap only offers h2/h3; Markdown {@code #} becomes h1 — remap so sanitize keeps headings. */
