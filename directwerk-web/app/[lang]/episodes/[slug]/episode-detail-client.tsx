@@ -13,7 +13,7 @@ import DetailShell, {DetailLockedPanel} from '@/components/DetailShell'
 import EpisodeAudioPlayer from '@/components/EpisodeAudioPlayer'
 import {listMyEpisodes} from '@/lib/api/client'
 import {playerTrackFromEpisode} from '@/lib/player/playerTrack'
-import {sanitizeContentHtml} from '@/lib/sanitizeContentHtml'
+import {renderContentHtml} from '@/lib/renderContentHtml'
 import {
     getAccessToken,
     subscribeToTokenStore,
@@ -190,10 +190,9 @@ export default function EpisodeDetailClient({
                     {episode.description !== null && episode.description.length > 0 ? (
                         <div
                             className="content-prose"
-                            // Defense-in-depth: the API sanitizes on write, but
-                            // stored HTML is re-sanitized here so a compromised
-                            // or bypassed record cannot XSS the public site.
-                            dangerouslySetInnerHTML={{__html: sanitizeContentHtml(episode.description)}}
+                            // TipTap stores HTML; MCP/Markdown may store CommonMark.
+                            // renderContentHtml converts when needed, then sanitizes.
+                            dangerouslySetInnerHTML={{__html: renderContentHtml(episode.description)}}
                         />
                     ) : null}
                 </article>

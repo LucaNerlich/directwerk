@@ -76,7 +76,12 @@ export function createMcpServer(client: DirectwerkClient): McpServer {
     server.tool('create_article', 'Create an article', {
         slug: z.string().min(1).max(120),
         title: z.string().min(1).max(500),
-        body: z.string().optional(),
+        body: z
+            .string()
+            .optional()
+            .describe(
+                'Article body: TipTap-shaped HTML preferred (p/h2/h3/lists/…); CommonMark also accepted. API converts Markdown to sanitized HTML on write.',
+            ),
         excerpt: z.string().optional(),
         seoDescription: z.string().optional(),
         accessPolicy: z.enum(['FREE', 'PAID']),
@@ -94,7 +99,12 @@ export function createMcpServer(client: DirectwerkClient): McpServer {
         articleId: idSchema,
         slug: z.string().min(1).max(120).optional(),
         title: z.string().min(1).max(500).optional(),
-        body: z.string().optional(),
+        body: z
+            .string()
+            .optional()
+            .describe(
+                'Article body: TipTap-shaped HTML preferred (p/h2/h3/lists/…); CommonMark also accepted. API converts Markdown to sanitized HTML on write.',
+            ),
         excerpt: z.string().optional(),
         seoDescription: z.string().optional(),
         accessPolicy: z.enum(['FREE', 'PAID']).optional(),
@@ -293,7 +303,12 @@ export function createMcpServer(client: DirectwerkClient): McpServer {
         seriesId: idSchema,
         slug: z.string().min(1).max(120),
         title: z.string().min(1).max(500),
-        description: z.string().optional(),
+        description: z
+            .string()
+            .optional()
+            .describe(
+                'Show notes: TipTap-shaped HTML preferred; CommonMark also accepted. API converts Markdown to sanitized HTML on write.',
+            ),
         accessPolicy: z.enum(['FREE', 'PAID']),
         episodeNumber: z.coerce.number().int().optional(),
         requiredLevelSortOrder: z.coerce.number().int().optional(),
@@ -310,7 +325,12 @@ export function createMcpServer(client: DirectwerkClient): McpServer {
         episodeId: idSchema,
         slug: z.string().min(1).max(120).optional(),
         title: z.string().min(1).max(500).optional(),
-        description: z.string().optional(),
+        description: z
+            .string()
+            .optional()
+            .describe(
+                'Show notes: TipTap-shaped HTML preferred; CommonMark also accepted. API converts Markdown to sanitized HTML on write.',
+            ),
         accessPolicy: z.enum(['FREE', 'PAID']).optional(),
         episodeNumber: z.coerce.number().int().optional(),
         requiredLevelSortOrder: z.coerce.number().int().optional(),

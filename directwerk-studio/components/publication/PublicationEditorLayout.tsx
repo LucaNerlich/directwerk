@@ -23,7 +23,7 @@ import {ShowNotesEditor} from '@/lib/dynamic/ShowNotesEditor'
 import {rbacErrorMessage} from '@/lib/rbac/access'
 import {safeLinkHref} from '@/lib/url/safeUrl'
 import type {AccessPolicy, ContentNotifyPreview, PublicationStatus} from '@directwerk/api/types'
-import {sanitizeContentHtml} from '@directwerk/api/content/sanitizeContentHtml'
+import {renderContentHtml} from '@directwerk/api/content/renderContentHtml'
 import {useDictionary} from '@/components/i18n/LocaleProvider'
 
 interface PublicationEditorLayoutProps {
@@ -182,8 +182,9 @@ export default function PublicationEditorLayout({
     const isPublished = status === 'PUBLISHED'
     const isArchived = status === 'ARCHIVED'
     const previewLink = previewUrl !== null ? safeLinkHref(previewUrl) : null
-    // Only sanitize when Preview is shown — Write tab typing must not pay this cost.
-    const sanitizedBody = activeTab === 'preview' ? sanitizeContentHtml(body) : ''
+    // Only render when Preview is shown — Write tab typing must not pay this cost.
+    // TipTap bodies are HTML; Markdown (MCP/import) is converted then sanitized.
+    const sanitizedBody = activeTab === 'preview' ? renderContentHtml(body) : ''
 
     const handleTabKeyDown = (
         event: KeyboardEvent<HTMLButtonElement>,
