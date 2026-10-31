@@ -16,11 +16,13 @@ const listSeriesMock = vi.fn()
 const getBillingDashboardMock = vi.fn()
 const getUmamiStatsMock = vi.fn()
 
-vi.mock('@/lib/api/writeApi', () => ({
-    listArticles: (...args: unknown[]) => listArticlesMock(...args),
+vi.mock('@/lib/api/listAllArticles', () => ({
+    listAllArticles: (...args: unknown[]) => listArticlesMock(...args),
+}))
+vi.mock('@/lib/api/listAllEpisodes', () => ({
+    listAllEpisodes: (...args: unknown[]) => listEpisodesMock(...args),
 }))
 vi.mock('@/lib/api/podcastApi', () => ({
-    listEpisodes: (...args: unknown[]) => listEpisodesMock(...args),
     listSeries: (...args: unknown[]) => listSeriesMock(...args),
 }))
 vi.mock('@/lib/api/subscriptionApi', () => ({

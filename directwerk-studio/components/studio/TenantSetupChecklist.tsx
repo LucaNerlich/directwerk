@@ -10,9 +10,9 @@ import SetupChecklist from '@/components/studio/SetupChecklist'
 import {useDictionary} from '@/components/i18n/LocaleProvider'
 import {hasDesk, hasModule} from '@/lib/api/client'
 import {getIntegrationsStatus} from '@/lib/api/integrationsApi'
-import {listEpisodes} from '@/lib/api/podcastApi'
+import {listAllArticles} from '@/lib/api/listAllArticles'
+import {listAllEpisodes} from '@/lib/api/listAllEpisodes'
 import {listDomains} from '@/lib/api/tenantSettingsApi'
-import {listArticles} from '@/lib/api/writeApi'
 import {isTenantAdminRole} from '@/lib/api/studioHelpers'
 import {useOptionalMe} from '@/lib/auth/MeProvider'
 import {t} from '@/lib/i18n/dictionary'
@@ -74,14 +74,14 @@ export default function TenantSetupChecklist({
             const tasks: Promise<boolean>[] = []
             if (hasDesk(config, 'WRITE')) {
                 tasks.push(
-                    listArticles().then((articles) =>
+                    listAllArticles().then((articles) =>
                         articles.some((article) => article.status === 'PUBLISHED'),
                     ),
                 )
             }
             if (hasDesk(config, 'PODCAST')) {
                 tasks.push(
-                    listEpisodes().then((episodes) =>
+                    listAllEpisodes().then((episodes) =>
                         episodes.some((episode) => episode.status === 'PUBLISHED'),
                     ),
                 )

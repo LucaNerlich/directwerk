@@ -22,11 +22,11 @@ import {
 } from '@/lib/api/catalogApi'
 import {getMedia, getMediaPreviewUrl} from '@/lib/api/mediaApi'
 import {useDeskAccess} from '@/lib/rbac/useDeskAccess'
+import {listAllEpisodes} from '@/lib/api/listAllEpisodes'
 import {
     attachEpisodeAudio,
     createEpisode,
     getEpisode,
-    listEpisodes,
     listSeries,
     setEpisodeEnclosureEnabled,
     updateEpisode,
@@ -480,7 +480,7 @@ export function useEpisodeContentEditor(
         let timeoutHandle: ReturnType<typeof setTimeout> | undefined
 
         const loadSlugIndex = (): void => {
-            void listEpisodes()
+            void listAllEpisodes()
                 .then((loaded) => {
                     if (active) {
                         setSlugIndex(toSlugEntries(loaded))

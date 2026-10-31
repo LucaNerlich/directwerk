@@ -19,7 +19,9 @@ import SectionHeader from '@directwerk/ui/components/section-header'
 import {Skeleton} from '@directwerk/ui/components/skeleton'
 import StatCard from '@directwerk/ui/components/stat-card'
 
-import {listEpisodes, listSeries} from '@/lib/api/podcastApi'
+import {listAllArticles} from '@/lib/api/listAllArticles'
+import {listAllEpisodes} from '@/lib/api/listAllEpisodes'
+import {listSeries} from '@/lib/api/podcastApi'
 import {getBillingDashboard} from '@/lib/api/subscriptionApi'
 import type {BillingDashboard} from '@directwerk/api/types'
 import {
@@ -29,7 +31,6 @@ import {
     type UmamiRange,
     type UmamiStats,
 } from '@/lib/api/umamiApi'
-import {listArticles} from '@/lib/api/writeApi'
 import {useDictionary} from '@/components/i18n/LocaleProvider'
 
 interface AnalyticsDashboardProps {
@@ -226,8 +227,8 @@ export default function AnalyticsDashboardClient({
             setIsLoading(true)
             try {
                 const [loadedArticles, loadedEpisodes, loadedSeries] = await Promise.all([
-                    showWrite ? listArticles() : Promise.resolve([]),
-                    showPodcast ? listEpisodes() : Promise.resolve([]),
+                    showWrite ? listAllArticles() : Promise.resolve([]),
+                    showPodcast ? listAllEpisodes() : Promise.resolve([]),
                     showPodcast ? listSeries() : Promise.resolve([]),
                 ])
                 if (!active) {
