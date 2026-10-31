@@ -16,6 +16,7 @@
         "./validation": "./src/validation/index.ts",
         "./generated/openapi": "./src/generated/openapi.ts",
         "./content/sanitizeContentHtml": "./src/content/sanitizeContentHtml.ts",
+        "./content/renderContentHtml": "./src/content/renderContentHtml.ts",
         "./auth/*": "./src/auth/*.ts",
         "./client/*": "./src/client/*.ts",
         "./datetime/*": "./src/datetime/*.ts",
@@ -33,6 +34,7 @@
         "check:openapi": "pnpm generate:openapi && git diff --exit-code -- src/generated/openapi.ts"
     },
     "dependencies": {
+        "marked": "^18.1.2",
         "sanitize-html": "2.17.5",
         "server-only": "^0.0.1"
     },

@@ -9,7 +9,7 @@ import AccessPolicyBadge from '@/components/AccessPolicyBadge'
 import CatalogMediaThumb from '@/components/CatalogMediaThumb'
 import ContentMetaLine from '@/components/ContentMetaLine'
 import DetailShell, {DetailLockedPanel} from '@/components/DetailShell'
-import {sanitizeContentHtml} from '@/lib/sanitizeContentHtml'
+import {renderContentHtml} from '@/lib/renderContentHtml'
 import {
     getAccessToken,
     subscribeToTokenStore,
@@ -156,10 +156,10 @@ export default function ArticleDetailClient({
                     ) : article.body !== null && article.body.length > 0 ? (
                         <div
                             className="content-prose"
-                            // Defense-in-depth: the API sanitizes on write, but
-                            // stored HTML is re-sanitized here so a compromised
-                            // or bypassed record cannot XSS the public site.
-                            dangerouslySetInnerHTML={{__html: sanitizeContentHtml(article.body)}}
+                            // TipTap stores HTML; MCP/Markdown imports often store
+                            // CommonMark (sometimes OWASP-escaped). renderContentHtml
+                            // converts MD when needed, then re-sanitizes.
+                            dangerouslySetInnerHTML={{__html: renderContentHtml(article.body)}}
                         />
                     ) : (
                         <p className="text-sm text-muted-foreground">
