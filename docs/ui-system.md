@@ -56,9 +56,11 @@ Tenant branding overrides `--primary` and `--ring` at runtime via `BrandTheme`
 (web layout, studio shell). Fallback primary is defined in `:root`.
 
 Put `className="dw-brand"` on `BrandTheme` to enable brand-token atmosphere
-(gradients, glass chrome, soft neumorphic panels). Surfaces opt in with
-`data-dw-surface="panel|empty|auth"`. Do not hardcode purple SaaS palettes —
-drive from `--primary` / `--secondary`.
+(gradients, glass chrome, soft centered panel depth). Surfaces opt in with
+`data-dw-surface="panel|empty|auth"`. Shadow tokens (`--dw-panel-shadow`,
+`--dw-surface-shadow`, `--dw-glass-shadow`, `--dw-edge-highlight`) stay even
+and muted under `.dark` — no top-left highlight / bright glow. Do not hardcode
+purple SaaS palettes — drive from `--primary` / `--secondary`.
 
 ### Layout and content utilities
 

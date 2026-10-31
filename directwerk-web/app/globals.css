@@ -84,19 +84,12 @@
     border-color: var(--dw-brand-glass-border, var(--border));
     background: color-mix(in oklab, var(--primary) 10%, var(--dw-brand-glass, var(--background)));
     backdrop-filter: blur(18px) saturate(1.15);
-    box-shadow: 0 -1px 0 color-mix(in oklab, white 40%, transparent);
+    /* --dw-edge-highlight softens under .dark (brand-atmosphere). */
+    box-shadow: 0 -1px 0 var(--dw-edge-highlight, color-mix(in oklab, white 40%, transparent));
     padding-bottom: max(0.625rem, env(safe-area-inset-bottom));
 }
 
-/* Dark: keep warm brand wash; soften light-mode “white edge” highlights. */
-.dark .dw-web-shell > header {
-    box-shadow: 0 1px 0 color-mix(in oklab, white 10%, transparent);
-}
-
-.dark .dw-mini-player {
-    box-shadow: 0 -1px 0 color-mix(in oklab, white 10%, transparent);
-}
-
+/* Dark: keep warm brand wash; dial back hero wash intensity. */
 .dark .dw-home-hero::before {
     opacity: 0.72;
 }
