@@ -157,11 +157,54 @@ class QueueWorkerTest {
         when(queueService.renew(eq(job.id()), anyString(), eq(60L))).thenReturn(Optional.empty());
         QueueWorker worker = new QueueWorker(queueService, config, mock(JobHandlerRegistry.class));
 
-        // Throwing is how the scheduled executor suppresses further firings; if the call site
-        // ever discards renewLeaseOnce's result again, this fails.
-        assertThatThrownBy(() -> worker.heartbeatTick(job, 60L))
-                .isInstanceOf(IllegalStateException.class)
-                .hasMessage("lease lost");
+        try (JobLeaseCancel.Scope cancel = JobLeaseCancel.open()) {
+            // Throwing is how the scheduled executor suppresses further firings; if the call site
+            // ever discards renewLeaseOnce's result again, this fails.
+            assertThatThrownBy(() -> worker.heartbeatTick(job, 60L, cancel))
+                    .isInstanceOf(IllegalStateException.class)
+                    .hasMessage("lease lost");
+            assertThat(cancel.isLost()).isTrue();
+            assertThat(JobLeaseCancel.isCancelled()).isTrue();
+        }
+    }
+
+    @Test
+    void abandonsJobWithoutCompleteOrFailWhenLeaseLostMidHandle() {
+        QueueService queueService = mock(QueueService.class);
+        JobHandlerRegistry registry = mock(JobHandlerRegistry.class);
+        DirectwerkConfig config = configWithQueueEnabled(true);
+        UUID jobId = UUID.randomUUID();
+        Instant now = Instant.now();
+        QueueJob job = new QueueJob(
+                jobId, "email", null, 0, JobStatus.PROCESSING, now, 1, 5,
+                "test-worker", now.plusSeconds(60), null, 1L, null, null, now, now);
+        JobHandler handler = new JobHandler() {
+            @Override
+            public String queueName() {
+                return "email";
+            }
+
+            @Override
+            public void handle(QueueJob running) {
+                assertThat(JobLeaseCancel.isCancelled()).isFalse();
+                JobLeaseCancel.markLostForCurrentJob();
+                assertThat(JobLeaseCancel.isCancelled()).isTrue();
+            }
+
+            @Override
+            public boolean requiresTenant() {
+                return false;
+            }
+        };
+        when(registry.handlerFor("email")).thenReturn(handler);
+        when(queueService.claim(eq("email"), anyString(), anyInt(), anyLong())).thenReturn(List.of(job));
+        when(queueService.resolveLeaseSeconds(eq("email"), anyLong())).thenReturn(60L);
+        when(queueService.renew(eq(jobId), anyString(), anyLong())).thenReturn(Optional.of(job));
+
+        new QueueWorker(queueService, config, registry).poll("email");
+
+        verify(queueService, never()).complete(any(), anyString());
+        verify(queueService, never()).fail(any(QueueJob.class), anyString(), anyString(), anyLong());
     }
 
     private static DirectwerkConfig configWithQueueEnabled(boolean enabled) {
