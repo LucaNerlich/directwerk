@@ -12,6 +12,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import de.pnnit.directwerk.modules.digital.entity.AccessPolicy;
+import de.pnnit.directwerk.modules.digital.exception.UploadValidationException;
 import de.pnnit.directwerk.modules.email.EmailTemplate;
 import de.pnnit.directwerk.modules.email.TransactionalEmailService;
 import de.pnnit.directwerk.modules.podcast.entity.Episode;
@@ -54,7 +55,7 @@ class RssBulkImportJobHandlerTest {
         when(podcastImportService.importEpisode(any())).thenAnswer(invocation -> new PodcastImportService.ImportedEpisode(
                 mock(Episode.class), false));
         when(podcastImportService.importEpisode(argThat(cmd -> "guid-fails".equals(cmd.guid()))))
-                .thenThrow(new RuntimeException("boom"));
+                .thenThrow(new RssImportException(400, "RSS_ITEM_INVALID", "boom"));
 
         handler.handle(job(new RssBulkImportPayload(
                 3L,
@@ -96,8 +97,70 @@ class RssBulkImportJobHandlerTest {
     }
 
     @Test
+    void unexpectedRuntimeExceptionPropagatesForJobRetry() {
+        when(podcastImportService.preview("https://example.com/feed.xml")).thenReturn(preview());
+        when(podcastImportService.importEpisode(any()))
+                .thenThrow(new IllegalStateException("storage down"));
+
+        assertThatThrownBy(() -> handler.handle(job(new RssBulkImportPayload(
+                3L,
+                "https://example.com/feed.xml",
+                Set.of(),
+                AccessPolicy.FREE,
+                null,
+                true,
+                true,
+                "editor@example.com",
+                "Eddie",
+                7L
+        )))).isInstanceOf(IllegalStateException.class)
+                .hasMessage("storage down");
+    }
+
+    @Test
+    void aFailingRemoteAssetIsCountedInsteadOfAbortingTheRun() {
+        when(podcastImportService.preview("https://example.com/feed.xml")).thenReturn(preview());
+        when(podcastImportService.importEpisode(any())).thenAnswer(invocation -> {
+            PodcastImportService.ImportEpisodeCommand cmd = invocation.getArgument(0);
+            if ("guid-new".equals(cmd.guid())) {
+                throw new UploadValidationException("REMOTE_ASSET_FAILED", "Could not stream remote asset");
+            }
+            return new PodcastImportService.ImportedEpisode(mock(Episode.class), false);
+        });
+
+        handler.handle(job(new RssBulkImportPayload(
+                3L,
+                "https://example.com/feed.xml",
+                Set.of(),
+                AccessPolicy.FREE,
+                null,
+                true,
+                true,
+                "editor@example.com",
+                "Eddie",
+                7L
+        )));
+
+        @SuppressWarnings("unchecked")
+        var emailVars = ArgumentCaptor.forClass(Map.class);
+        verify(emailService).sendFromPayload(
+                any(UUID.class),
+                eq(10L),
+                eq("editor@example.com"),
+                eq(EmailTemplate.RSS_BULK_IMPORT_FINISHED),
+                emailVars.capture()
+        );
+        assertThat(emailVars.getValue())
+                .containsEntry("importedCount", "1")
+                .containsEntry("skippedCount", "1")
+                .containsEntry("failedCount", "1");
+    }
+
+    @Test
     void honorsAudioAndImageFlags() {
         when(podcastImportService.preview("https://example.com/feed.xml")).thenReturn(preview());
+        when(podcastImportService.importEpisode(any()))
+                .thenReturn(new PodcastImportService.ImportedEpisode(mock(Episode.class), false));
 
         handler.handle(job(new RssBulkImportPayload(
                 3L,
