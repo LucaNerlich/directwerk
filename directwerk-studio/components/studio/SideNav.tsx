@@ -1,6 +1,6 @@
 'use client'
 
-import {useEffect, useState} from 'react'
+import {useEffect, useRef, useState} from 'react'
 
 import {
     SidebarGroup,
@@ -153,8 +153,15 @@ export default function SideNav({config}: {config: SiteConfig}) {
     const podcastSecondaryOpen = isSecondaryActive(path, podcastNav.secondary)
     const [writeMoreOpen, setWriteMoreOpen] = useState(writeSecondaryOpen)
     const [podcastMoreOpen, setPodcastMoreOpen] = useState(podcastSecondaryOpen)
+    // Mobile Sheet unmounts SideNav while closed; skip mount so hamburger open is not
+    // immediately undone by this effect (pathname alone would fire on every remount).
+    const previousPathname = useRef(pathname)
 
     useEffect(() => {
+        if (previousPathname.current === pathname) {
+            return
+        }
+        previousPathname.current = pathname
         setOpenMobile(false)
     }, [pathname, setOpenMobile])
 
