@@ -51,8 +51,11 @@ function MoonGlyph({className}: {className?: string}): React.JSX.Element {
  */
 export default function ModeToggle({
     className,
+    showLabel = false,
 }: {
     className?: string
+    /** Full-width labeled row for the mobile sheet. */
+    showLabel?: boolean
 }): React.JSX.Element {
     const dictionary = useDictionary()
     const {resolvedTheme, setTheme} = useTheme()
@@ -62,8 +65,12 @@ export default function ModeToggle({
     return (
         <Button
             type="button"
-            className={cn('relative', className)}
-            size="icon-sm"
+            className={cn(
+                'relative',
+                showLabel && 'min-h-11 w-full justify-start gap-2',
+                className,
+            )}
+            size={showLabel ? 'default' : 'icon-sm'}
             title={label}
             variant="ghost"
             aria-label={label}
@@ -71,8 +78,11 @@ export default function ModeToggle({
                 setTheme(isDark ? 'light' : 'dark')
             }}
         >
-            <SunGlyph className="size-4 scale-100 rotate-0 transition-transform dark:scale-0 dark:-rotate-90" />
-            <MoonGlyph className="absolute size-4 scale-0 rotate-90 transition-transform dark:scale-100 dark:rotate-0" />
+            <span className="relative flex size-4 shrink-0 items-center justify-center">
+                <SunGlyph className="size-4 scale-100 rotate-0 transition-transform dark:scale-0 dark:-rotate-90" />
+                <MoonGlyph className="absolute size-4 scale-0 rotate-90 transition-transform dark:scale-100 dark:rotate-0" />
+            </span>
+            {showLabel ? <span>{label}</span> : null}
         </Button>
     )
 }

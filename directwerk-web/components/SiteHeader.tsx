@@ -27,6 +27,8 @@ interface NavItem {
     requiresAuth?: boolean
 }
 
+const mobileActionClass = 'min-h-11 w-full justify-start'
+
 export default function SiteHeader({
     children,
 }: {
@@ -40,6 +42,7 @@ export default function SiteHeader({
     const dictionary = useDictionary()
     const {isAuthenticated} = useSubscriberAuth()
     const [isLoggingOut, setIsLoggingOut] = useState(false)
+    const [menuOpen, setMenuOpen] = useState(false)
     const brand = config.branding.siteTitle ?? config.tenant.name
     const href = (path: string) => localizedPath(lang, path)
 
@@ -98,27 +101,87 @@ export default function SiteHeader({
         )
     })
 
-    const navigation = items.map((item) => {
-        const isActive = barePath === item.href || barePath.startsWith(`${item.href}/`)
-        const label =
-            item.href === '/account' && isAuthenticated
-                ? dictionary.nav.myAccount
-                : item.label
-        return (
+    const dismissMenu = () => {
+        setMenuOpen(false)
+    }
+
+    function renderNavLinks(keyPrefix: string): ReactNode {
+        return items.map((item) => {
+            const isActive = barePath === item.href || barePath.startsWith(`${item.href}/`)
+            const label =
+                item.href === '/account' && isAuthenticated
+                    ? dictionary.nav.myAccount
+                    : item.label
+            return (
+                <Link
+                    key={`${keyPrefix}:${item.href}`}
+                    href={href(item.href)}
+                    className={buttonVariants({
+                        variant: isActive ? 'secondary' : 'ghost',
+                        className: 'min-h-[44px] justify-start',
+                    })}
+                    aria-current={isActive ? 'page' : undefined}
+                    onClick={dismissMenu}
+                >
+                    {label}
+                </Link>
+            )
+        })
+    }
+
+    const accountActions = isAuthenticated ? (
+        <>
             <Link
-                key={item.href}
-                href={href(item.href)}
                 className={buttonVariants({
-                    variant: isActive ? 'secondary' : 'ghost',
-                    className: 'min-h-[44px] justify-start',
+                    variant: 'ghost',
+                    size: 'sm',
+                    className: mobileActionClass,
                 })}
-                aria-current={isActive ? 'page' : undefined}
+                href={href('/account')}
+                onClick={dismissMenu}
             >
-                {label}
+                {dictionary.nav.myAccount}
             </Link>
-        )
-    })
-    const actions = (
+            <Button
+                type="button"
+                variant="outline"
+                className={mobileActionClass}
+                disabled={isLoggingOut}
+                onClick={() => {
+                    dismissMenu()
+                    void handleLogout()
+                }}
+            >
+                {isLoggingOut ? dictionary.nav.logoutPending : dictionary.nav.logout}
+            </Button>
+        </>
+    ) : (
+        <>
+            <Link
+                className={buttonVariants({
+                    variant: 'ghost',
+                    className: mobileActionClass,
+                })}
+                href={href('/register')}
+                onClick={dismissMenu}
+            >
+                {dictionary.nav.register}
+            </Link>
+            <Link
+                href={href('/login')}
+                className={buttonVariants({
+                    variant: 'outline',
+                    className: mobileActionClass,
+                })}
+                aria-current={barePath === '/login' ? 'page' : undefined}
+                onClick={dismissMenu}
+            >
+                {dictionary.nav.login}
+            </Link>
+        </>
+    )
+
+    const desktopActions = (
         <>
             <HeaderSearchButton />
             <ModeToggle />
@@ -162,6 +225,20 @@ export default function SiteHeader({
         </>
     )
 
+    const mobileActions = (
+        <>
+            <HeaderSearchButton
+                showLabel
+                onOpen={() => {
+                    setMenuOpen(false)
+                }}
+            />
+            <ModeToggle showLabel />
+            <LanguageSwitcher layout="row" />
+            {accountActions}
+        </>
+    )
+
     return (
         <SiteShell
             className="dw-web-shell bg-transparent"
@@ -177,9 +254,13 @@ export default function SiteHeader({
                     </span>
                 </Link>
             }
-            navigation={navigation}
-            mobileNavigation={navigation}
-            actions={actions}
+            navigation={renderNavLinks('desktop')}
+            mobileNavigation={renderNavLinks('mobile')}
+            actions={desktopActions}
+            mobileActions={mobileActions}
+            navigationOpen={menuOpen}
+            onNavigationOpenChange={setMenuOpen}
+            navigationCloseSignal={pathname}
             skipLinkLabel={dictionary.nav.skipToContent}
             navigationTriggerLabel={dictionary.nav.menuOpen}
             navigationLabel={dictionary.nav.navigation}
