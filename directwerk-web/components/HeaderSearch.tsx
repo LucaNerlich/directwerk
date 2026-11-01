@@ -90,23 +90,35 @@ function SearchGlyph(): React.JSX.Element {
     )
 }
 
-export function HeaderSearchButton(): React.JSX.Element {
+export function HeaderSearchButton({
+    className,
+    showLabel = false,
+    onOpen,
+}: {
+    className?: string
+    /** Full-width labeled row for the mobile sheet. */
+    showLabel?: boolean
+    /** Called just before the search dialog opens (e.g. dismiss the mobile sheet). */
+    onOpen?: () => void
+}): React.JSX.Element {
     const dictionary = useDictionary()
     const expanded = useSyncExternalStore(subscribeSearchOpen, getSearchOpen, () => false)
     return (
         <Button
             type="button"
             variant="ghost"
-            className="size-11"
+            className={cn(showLabel ? 'min-h-11 w-full justify-start gap-2' : 'size-11', className)}
             aria-label={dictionary.search.open}
             aria-expanded={expanded}
             aria-controls={SEARCH_LIST_ID}
             onClick={(event) => {
                 rememberTrigger(event.currentTarget)
+                onOpen?.()
                 setSearchOpen(true)
             }}
         >
             <SearchGlyph />
+            {showLabel ? <span>{dictionary.search.open}</span> : null}
         </Button>
     )
 }

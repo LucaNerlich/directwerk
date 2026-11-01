@@ -1,7 +1,7 @@
 'use client'
 
 import {Menu} from 'lucide-react'
-import type {ReactNode} from 'react'
+import {useEffect, useRef, useState, type ReactNode} from 'react'
 
 import {Button} from '#components/button'
 import {
@@ -19,16 +19,22 @@ export default function SiteShell({
     navigation,
     mobileNavigation,
     actions,
+    mobileActions,
     children,
     className,
     skipLinkLabel = 'Zum Inhalt springen',
     navigationTriggerLabel = 'Menü öffnen',
     navigationLabel = 'Navigation',
+    navigationCloseSignal,
+    navigationOpen,
+    onNavigationOpenChange,
 }: {
     brand: ReactNode
     navigation: ReactNode
     mobileNavigation?: ReactNode
     actions?: ReactNode
+    /** Sheet footer actions; falls back to `actions` when omitted. */
+    mobileActions?: ReactNode
     children: ReactNode
     className?: string
     /** Visible-on-focus skip link text. */
@@ -37,7 +43,37 @@ export default function SiteShell({
     navigationTriggerLabel?: string
     /** Title of the mobile navigation sheet. */
     navigationLabel?: string
+    /** When this value changes, the mobile sheet closes (e.g. pathname). */
+    navigationCloseSignal?: string
+    /** Controlled open state for the mobile sheet. */
+    navigationOpen?: boolean
+    onNavigationOpenChange?: (open: boolean) => void
 }): React.JSX.Element {
+    const [uncontrolledOpen, setUncontrolledOpen] = useState(false)
+    const controlled = onNavigationOpenChange !== undefined
+    const open = controlled ? Boolean(navigationOpen) : uncontrolledOpen
+    const setOpen = controlled ? onNavigationOpenChange : setUncontrolledOpen
+    const sheetActions = mobileActions ?? actions
+    const previousCloseSignal = useRef(navigationCloseSignal)
+
+    useEffect(() => {
+        if (previousCloseSignal.current === navigationCloseSignal) {
+            return
+        }
+        previousCloseSignal.current = navigationCloseSignal
+        setOpen(false)
+    }, [navigationCloseSignal, setOpen])
+
+    function closeOnAnchorClick(event: React.MouseEvent<HTMLElement>): void {
+        const target = event.target
+        if (!(target instanceof Element)) {
+            return
+        }
+        if (target.closest('a') !== null) {
+            setOpen(false)
+        }
+    }
+
     return (
         <div className={cn('min-h-screen bg-background', className)}>
             <a
@@ -55,7 +91,7 @@ export default function SiteShell({
                     <div className="ml-auto hidden shrink-0 items-center gap-2 md:flex">
                         {actions}
                     </div>
-                    <Sheet>
+                    <Sheet open={open} onOpenChange={setOpen}>
                         <SheetTrigger
                             render={
                                 <Button
@@ -69,18 +105,23 @@ export default function SiteShell({
                             <Menu />
                         </SheetTrigger>
                         <SheetContent className="w-[min(22rem,88vw)]" side="right">
-                            <SheetHeader>
-                                <SheetTitle>{brand}</SheetTitle>
-                                <SheetDescription>{navigationLabel}</SheetDescription>
-                            </SheetHeader>
-                            <nav className="flex flex-col gap-1 px-4">
-                                {mobileNavigation ?? navigation}
-                            </nav>
-                            {actions !== undefined ? (
-                                <div className="mt-auto flex flex-col gap-2 border-t p-4">
-                                    {actions}
-                                </div>
-                            ) : null}
+                            <div
+                                className="flex min-h-0 flex-1 flex-col gap-4"
+                                onClick={closeOnAnchorClick}
+                            >
+                                <SheetHeader>
+                                    <SheetTitle>{brand}</SheetTitle>
+                                    <SheetDescription>{navigationLabel}</SheetDescription>
+                                </SheetHeader>
+                                <nav className="flex flex-col gap-1 px-4">
+                                    {mobileNavigation ?? navigation}
+                                </nav>
+                                {sheetActions !== undefined ? (
+                                    <div className="mt-auto flex flex-col gap-2 border-t p-4">
+                                        {sheetActions}
+                                    </div>
+                                ) : null}
+                            </div>
                         </SheetContent>
                     </Sheet>
                 </div>

@@ -1,19 +1,23 @@
-import {fireEvent, render, screen} from '@testing-library/react'
+import {cleanup, fireEvent, render, screen} from '@testing-library/react'
 import {afterEach, describe, expect, it, vi} from 'vitest'
 
 import {SiteConfigProvider} from '@/lib/site/SiteConfigProvider'
 
 import {TestLocale} from '@/lib/i18n/testWrapper'
 
+import {resetHeaderSearchState} from './HeaderSearch'
 import SiteHeader from './SiteHeader'
 
 vi.mock('next/navigation', () => ({
     usePathname: () => '/de/articles',
-    useRouter: () => ({replace: vi.fn()}),
+    useRouter: () => ({replace: vi.fn(), push: vi.fn()}),
 }))
 
 afterEach(() => {
+    resetHeaderSearchState()
+    cleanup()
     window.localStorage.clear()
+    document.documentElement.classList.remove('light', 'dark')
 })
 
 describe('SiteHeader', () => {
@@ -55,7 +59,95 @@ describe('SiteHeader', () => {
         expect(screen.getByRole('main')).toHaveTextContent('Page content')
 
         fireEvent.click(screen.getByRole('button', {name: 'Menü öffnen'}))
+        const sheet = screen.getByRole('dialog')
+        expect(sheet).toBeInTheDocument()
+        expect(
+            sheet.querySelector('button[aria-label="Suchen"]'),
+        ).toHaveTextContent('Suchen')
+        expect(
+            sheet.querySelector('button[aria-label="Zum dunklen Modus wechseln"]'),
+        ).toHaveTextContent('Zum dunklen Modus wechseln')
+        expect(
+            sheet.querySelector('[role="navigation"][aria-label="Sprache"]'),
+        ).toBeInTheDocument()
+        expect(
+            sheet.querySelector('a[href="/de/register"]'),
+        ).toHaveTextContent('Registrieren')
+        expect(
+            sheet.querySelector('a[href="/de/login"]'),
+        ).toHaveTextContent('Anmelden')
+    })
+
+    it('closes the mobile sheet when opening search from the sheet', () => {
+        render(
+            <TestLocale>
+                <SiteConfigProvider
+                    config={{
+                        tenant: {slug: 'journal', name: 'Journal'},
+                        enabledModules: ['DIGITAL_CONTENT'],
+                        branding: {
+                            siteTitle: 'The Journal',
+                            primaryColor: null,
+                            secondaryColor: null,
+                            logoUrl: null,
+                            faviconUrl: null,
+                        },
+                        publicSiteUrl: null,
+                        publicRssUrl: null,
+                        publicArticleRssUrl: null,
+                        analytics: null,
+                        emailNotifyAvailable: false,
+                    }}
+                >
+                    <SiteHeader>
+                        <p>Page content</p>
+                    </SiteHeader>
+                </SiteConfigProvider>
+            </TestLocale>,
+        )
+
+        fireEvent.click(screen.getByRole('button', {name: 'Menü öffnen'}))
+        const sheet = screen.getByRole('dialog')
+        fireEvent.click(sheet.querySelector('button[aria-label="Suchen"]')!)
+        expect(screen.queryByRole('dialog', {name: 'The Journal'})).not.toBeInTheDocument()
         expect(screen.getByRole('dialog')).toBeInTheDocument()
+    })
+
+    it('closes the mobile sheet when a nav link is clicked', () => {
+        render(
+            <TestLocale>
+                <SiteConfigProvider
+                    config={{
+                        tenant: {slug: 'journal', name: 'Journal'},
+                        enabledModules: ['DIGITAL_CONTENT'],
+                        branding: {
+                            siteTitle: 'The Journal',
+                            primaryColor: null,
+                            secondaryColor: null,
+                            logoUrl: null,
+                            faviconUrl: null,
+                        },
+                        publicSiteUrl: null,
+                        publicRssUrl: null,
+                        publicArticleRssUrl: null,
+                        analytics: null,
+                        emailNotifyAvailable: false,
+                    }}
+                >
+                    <SiteHeader>
+                        <p>Page content</p>
+                    </SiteHeader>
+                </SiteConfigProvider>
+            </TestLocale>,
+        )
+
+        fireEvent.click(screen.getByRole('button', {name: 'Menü öffnen'}))
+        expect(screen.getByRole('dialog')).toBeInTheDocument()
+
+        // Sheet + desktop header both mount the Beiträge link; click the one in the dialog.
+        const sheet = screen.getByRole('dialog')
+        fireEvent.click(sheet.querySelector('a[href="/de/articles"]')!)
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
     })
 
     it('toggles light/dark theme from the header control', () => {
