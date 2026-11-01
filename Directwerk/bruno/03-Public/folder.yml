@@ -10,6 +10,8 @@ request:
 
 docs:
   content: |-
-    No auth anywhere in this folder -- tenant is resolved purely from the Host header.
+    No auth on the catalog requests -- tenant is resolved purely from the Host header.
     Includes public podcast endpoints and public article list/detail (PublicArticleController).
+    Search documents is the exception: the guest request is anonymous, and the lower/higher
+    tier requests send a subscriber bearer so paid plainText follows that caller's entitlements.
   type: text/markdown

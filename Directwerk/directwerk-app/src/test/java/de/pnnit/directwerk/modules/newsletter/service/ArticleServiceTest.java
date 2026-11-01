@@ -37,6 +37,7 @@ import de.pnnit.directwerk.modules.newsletter.exception.ArticleNotFoundException
 import de.pnnit.directwerk.modules.newsletter.exception.ArticleValidationException;
 import de.pnnit.directwerk.modules.newsletter.job.ArticleRssFeedRefreshJobProducer;
 import de.pnnit.directwerk.modules.newsletter.repository.ArticleRepository;
+import de.pnnit.directwerk.modules.search.SearchIndex;
 import de.pnnit.directwerk.security.DirectwerkUserPrincipal;
 import java.util.Arrays;
 import java.util.List;
@@ -104,7 +105,8 @@ class ArticleServiceTest {
                 articleRssFeedRefreshScheduler,
                 new MembershipPermissionService(
                         overrideRepository, tenantMembershipRepository, tenantRepository,
-                        platformAuditService)
+                        platformAuditService),
+                SearchIndex.NOOP
         );
         authenticate(5L, Role.EDITOR);
     }

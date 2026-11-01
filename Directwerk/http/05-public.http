@@ -130,3 +130,31 @@ Accept: application/json
         client.assert(Array.isArray(response.body.data), "Expected series array");
     });
 %}
+
+###
+
+### @name publicSearchDocumentsGuest
+### Paid rows leave plainText empty. The tier split is 37-search-documents.http.
+GET {{baseUrl}}/api/v1/public/search-documents
+Host: {{tenantAHost}}
+Accept: application/json
+
+> {%
+    client.test("Public search documents guest", function() {
+        client.assert(response.status === 200, "Expected 200");
+        client.assert(Array.isArray(response.body.data), "Expected documents array");
+        response.body.data.forEach(function(row) {
+            client.assert(typeof row.kind === "string", "Expected kind");
+            client.assert(typeof row.title === "string", "Expected title");
+            client.assert(typeof row.slug === "string", "Expected slug");
+            client.assert(typeof row.excerpt === "string", "Expected excerpt");
+            client.assert(typeof row.plainText === "string", "Expected plainText");
+            client.assert(typeof row.hrefPath === "string", "Expected hrefPath");
+            client.assert(row.access === "FREE" || row.access === "PAID", "Expected FREE or PAID");
+            client.assert(row.plainText.indexOf("<") === -1, "No HTML in plainText");
+            if (row.access === "PAID") {
+                client.assert(row.plainText === "", "Guest paid plainText stays empty");
+            }
+        });
+    });
+%}

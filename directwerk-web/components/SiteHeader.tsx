@@ -8,6 +8,7 @@ import {Button, buttonVariants} from '@directwerk/ui/components/button'
 import SiteShell from '@directwerk/ui/components/layout/site-shell'
 
 import BrandLogo from '@/components/BrandLogo'
+import {HeaderSearchButton, HeaderSearchDialog} from '@/components/HeaderSearch'
 import LanguageSwitcher from '@/components/LanguageSwitcher'
 import ModeToggle from '@/components/mode-toggle'
 import SiteFooter from '@/components/SiteFooter'
@@ -119,6 +120,7 @@ export default function SiteHeader({
     })
     const actions = (
         <>
+            <HeaderSearchButton />
             <ModeToggle />
             <LanguageSwitcher />
             {isAuthenticated ? (
@@ -182,6 +184,7 @@ export default function SiteHeader({
             navigationTriggerLabel={dictionary.nav.menuOpen}
             navigationLabel={dictionary.nav.navigation}
         >
+            <HeaderSearchDialog />
             {children}
             <SiteFooter />
         </SiteShell>

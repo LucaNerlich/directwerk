@@ -37,6 +37,16 @@
     "toHome": "Zur Startseite",
     "viewPlans": "Tarife ansehen"
   },
+  "search": {
+    "open": "Suchen",
+    "close": "Suche schließen",
+    "placeholder": "Titel, Themen, Seiten",
+    "hint": "Suchbegriff eingeben",
+    "empty": "Keine Treffer",
+    "loading": "Index wird geladen",
+    "error": "Suche gerade nicht verfügbar",
+    "locked": "Abo nötig"
+  },
   "common": {
     "activate": "Aktivieren",
     "active": "Aktiv",

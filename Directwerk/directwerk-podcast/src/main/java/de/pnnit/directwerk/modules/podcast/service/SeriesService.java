@@ -13,10 +13,13 @@ import de.pnnit.directwerk.modules.core.util.TitleNormalizer;
 import de.pnnit.directwerk.modules.digital.service.HtmlSanitizer;
 import de.pnnit.directwerk.modules.podcast.PodcastModule;
 import de.pnnit.directwerk.modules.podcast.job.RssFeedRefreshJobProducer;
+import de.pnnit.directwerk.modules.podcast.entity.Episode;
 import de.pnnit.directwerk.modules.podcast.entity.PodcastSeries;
 import de.pnnit.directwerk.modules.podcast.entity.SeriesStatus;
 import de.pnnit.directwerk.modules.podcast.exception.SeriesNotFoundException;
+import de.pnnit.directwerk.modules.podcast.repository.EpisodeRepository;
 import de.pnnit.directwerk.modules.podcast.repository.PodcastSeriesRepository;
+import de.pnnit.directwerk.modules.search.SearchIndex;
 import de.pnnit.directwerk.security.SecurityUtils;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -32,11 +35,13 @@ public class SeriesService {
     private static final int MAX_ITUNES_CATEGORY_LENGTH = 128;
 
     private final PodcastSeriesRepository podcastSeriesRepository;
+    private final EpisodeRepository episodeRepository;
     private final TenantRepository tenantRepository;
     private final PodcastCoverAssetResolver podcastCoverAssetResolver;
     private final RssFeedRefreshJobProducer rssFeedRefreshScheduler;
     private final HtmlSanitizer htmlSanitizer;
     private final MembershipPermissionService permissionService;
+    private final SearchIndex searchIndex;
 
     @Transactional(readOnly = true)
     public List<PodcastSeries> listSeries(Long tenantId, boolean publishedOnly) {
@@ -155,7 +160,8 @@ public class SeriesService {
                     "defaultRequiredLevelSortOrder"
             ));
         }
-        if (status != null && status != series.getStatus()) {
+        SeriesStatus previousStatus = series.getStatus();
+        if (status != null && status != previousStatus) {
             // Issue #322: an unguarded write allowed DRAFT -> PUBLISHED on a series with no cover
             // (publishing a feed the module itself documents as directory-invalid) and
             // PUBLISHED -> DRAFT, silently dropping the whole series from every feed.
@@ -163,8 +169,24 @@ public class SeriesService {
             series.setStatus(status);
         }
         PodcastSeries saved = podcastSeriesRepository.save(series);
+        if (status != null && status != previousStatus) {
+            refreshEpisodeSearchForSeries(tenantId, saved);
+        }
         rssFeedRefreshScheduler.requestRefreshAfterCommit(tenantId);
         return saved;
+    }
+
+    /**
+     * Keep the public search index aligned with {@code requirePublishedEpisode}: withdrawing a
+     * series removes its episodes from the feed; republishing re-mirrors published ones.
+     */
+    private void refreshEpisodeSearchForSeries(Long tenantId, PodcastSeries series) {
+        List<Episode> episodes = episodeRepository.findByTenantIdAndSeriesId(tenantId, series.getId());
+        if (series.getStatus() == SeriesStatus.PUBLISHED) {
+            episodes.forEach(episode -> EpisodeSearchIndex.mirror(searchIndex, episode));
+            return;
+        }
+        episodes.forEach(episode -> EpisodeSearchIndex.remove(searchIndex, tenantId, episode.getId()));
     }
 
     private static String normalizeLanguage(String language) {

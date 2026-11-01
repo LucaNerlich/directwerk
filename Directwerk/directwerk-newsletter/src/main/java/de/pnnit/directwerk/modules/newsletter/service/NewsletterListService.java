@@ -10,6 +10,9 @@ import de.pnnit.directwerk.modules.newsletter.entity.NewsletterListStatus;
 import de.pnnit.directwerk.modules.newsletter.entity.NewsletterSubscriptionStatus;
 import de.pnnit.directwerk.modules.newsletter.exception.NewsletterListNotFoundException;
 import de.pnnit.directwerk.modules.newsletter.repository.NewsletterListRepository;
+import de.pnnit.directwerk.modules.search.SearchIndex;
+import de.pnnit.directwerk.modules.search.SearchIndexDraft;
+import de.pnnit.directwerk.modules.search.SearchKinds;
 import de.pnnit.directwerk.modules.newsletter.repository.NewsletterSubscriptionRepository;
 import de.pnnit.directwerk.security.SecurityUtils;
 import java.util.List;
@@ -29,6 +32,7 @@ public class NewsletterListService {
     private final NewsletterListRepository newsletterListRepository;
     private final NewsletterSubscriptionRepository newsletterSubscriptionRepository;
     private final TenantRepository tenantRepository;
+    private final SearchIndex searchIndex;
 
     @Transactional(readOnly = true)
     public List<NewsletterList> listLists(Long tenantId, boolean activeOnly) {
@@ -116,7 +120,9 @@ public class NewsletterListService {
         list.setDescription(normalizeDescription(description));
         list.setStatus(NewsletterListStatus.ACTIVE);
         list.setCreatedBy(SecurityUtils.currentUserId());
-        return newsletterListRepository.save(list);
+        NewsletterList saved = newsletterListRepository.save(list);
+        mirrorSearch(saved);
+        return saved;
     }
 
     @Transactional
@@ -146,13 +152,37 @@ public class NewsletterListService {
         if (status != null) {
             list.setStatus(status);
         }
-        return newsletterListRepository.save(list);
+        NewsletterList saved = newsletterListRepository.save(list);
+        mirrorSearch(saved);
+        return saved;
     }
 
     @Transactional
     @RequiresModule("EMAIL_NOTIFY")
     public NewsletterList archiveList(Long tenantId, Long listId) {
         return updateList(tenantId, listId, null, null, null, NewsletterListStatus.ARCHIVED);
+    }
+
+    private void mirrorSearch(NewsletterList list) {
+        if (list.getId() == null || list.getTenant() == null || list.getTenant().getId() == null) {
+            return;
+        }
+        long tenantId = list.getTenant().getId();
+        if (list.getStatus() != NewsletterListStatus.ACTIVE) {
+            searchIndex.remove(tenantId, SearchKinds.NEWSLETTER_LIST, list.getId());
+            return;
+        }
+        searchIndex.sync(new SearchIndexDraft(
+                tenantId,
+                SearchKinds.NEWSLETTER_LIST,
+                list.getId(),
+                list.getName(),
+                list.getSlug(),
+                list.getDescription(),
+                list.getDescription(),
+                "/newsletter/" + list.getSlug(),
+                "FREE"
+        ));
     }
 
     private static String normalizeName(String name) {

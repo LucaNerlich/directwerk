@@ -23,7 +23,9 @@ import de.pnnit.directwerk.modules.digital.service.HtmlSanitizer;
 import de.pnnit.directwerk.modules.podcast.entity.PodcastSeries;
 import de.pnnit.directwerk.modules.podcast.entity.SeriesStatus;
 import de.pnnit.directwerk.modules.podcast.job.RssFeedRefreshJobProducer;
+import de.pnnit.directwerk.modules.podcast.repository.EpisodeRepository;
 import de.pnnit.directwerk.modules.podcast.repository.PodcastSeriesRepository;
+import de.pnnit.directwerk.modules.search.SearchIndex;
 import de.pnnit.directwerk.security.DirectwerkUserPrincipal;
 import java.util.Arrays;
 import java.util.List;
@@ -46,6 +48,9 @@ class SeriesServiceTest {
 
     @Mock
     private PodcastSeriesRepository podcastSeriesRepository;
+
+    @Mock
+    private EpisodeRepository episodeRepository;
 
     @Mock
     private TenantRepository tenantRepository;
@@ -74,13 +79,15 @@ class SeriesServiceTest {
     void wireService() {
         seriesService = new SeriesService(
                 podcastSeriesRepository,
+                episodeRepository,
                 tenantRepository,
                 podcastCoverAssetResolver,
                 rssFeedRefreshScheduler,
                 htmlSanitizer,
                 new MembershipPermissionService(
                         overrideRepository, tenantMembershipRepository, tenantRepository,
-                        platformAuditService));
+                        platformAuditService),
+                SearchIndex.NOOP);
         SecurityContextHolder.clearContext();
     }
 

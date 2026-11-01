@@ -22,6 +22,7 @@ import de.pnnit.directwerk.modules.podcast.entity.SeriesStatus;
 import de.pnnit.directwerk.modules.podcast.exception.EpisodeValidationException;
 import de.pnnit.directwerk.modules.podcast.job.RssFeedRefreshJobProducer;
 import de.pnnit.directwerk.modules.podcast.repository.EpisodeRepository;
+import de.pnnit.directwerk.modules.search.SearchIndex;
 import java.time.Instant;
 import java.util.List;
 import java.util.function.BiConsumer;
@@ -44,6 +45,7 @@ public class PublicationWorkflowService extends PublicationWorkflow<Episode, Epi
     private final HtmlSanitizer htmlSanitizer;
     private final RssFeedRefreshJobProducer rssFeedRefreshScheduler;
     private final ObjectProvider<PublicationWorkflowService> self;
+    private final SearchIndex searchIndex;
 
     public PublicationWorkflowService(
             EpisodeRepository episodeRepository,
@@ -56,9 +58,11 @@ public class PublicationWorkflowService extends PublicationWorkflow<Episode, Epi
             SubscriberNotificationGate notificationGate,
             RssFeedRefreshJobProducer rssFeedRefreshScheduler,
             ObjectProvider<PublicationWorkflowService> self,
-            MembershipPermissionService permissionService
+            MembershipPermissionService permissionService,
+            SearchIndex searchIndex
     ) {
         super(scheduledPublicationExecutor, contentPublishedNotifier, notificationGate, permissionService);
+        this.searchIndex = searchIndex;
         this.episodeRepository = episodeRepository;
         this.episodeService = episodeService;
         this.formatService = formatService;
@@ -88,7 +92,9 @@ public class PublicationWorkflowService extends PublicationWorkflow<Episode, Epi
             boolean notifySubscribers,
             Instant publishedAt
     ) {
-        return publishContent(tenantId, episodeId, notifySubscribers, publishedAt);
+        Episode episode = publishContent(tenantId, episodeId, notifySubscribers, publishedAt);
+        EpisodeSearchIndex.mirror(searchIndex, episode);
+        return episode;
     }
 
     @Transactional
@@ -112,19 +118,25 @@ public class PublicationWorkflowService extends PublicationWorkflow<Episode, Epi
     @Transactional
     @RequiresModule(PodcastModule.KEY)
     public Episode unpublish(Long tenantId, Long episodeId) {
-        return unpublishContent(tenantId, episodeId, true);
+        Episode episode = unpublishContent(tenantId, episodeId, true);
+        EpisodeSearchIndex.mirror(searchIndex, episode);
+        return episode;
     }
 
     @Transactional
     @RequiresModule(PodcastModule.KEY)
     public Episode archive(Long tenantId, Long episodeId) {
-        return archiveContent(tenantId, episodeId);
+        Episode episode = archiveContent(tenantId, episodeId);
+        EpisodeSearchIndex.mirror(searchIndex, episode);
+        return episode;
     }
 
     @Transactional
     @RequiresModule(PodcastModule.KEY)
     public Episode unarchive(Long tenantId, Long episodeId) {
-        return unarchiveContent(tenantId, episodeId);
+        Episode episode = unarchiveContent(tenantId, episodeId);
+        EpisodeSearchIndex.mirror(searchIndex, episode);
+        return episode;
     }
 
     @Transactional
@@ -141,6 +153,7 @@ public class PublicationWorkflowService extends PublicationWorkflow<Episode, Epi
     @RequiresModule(PodcastModule.KEY)
     public void publishScheduledEpisode(Long tenantId, Long episodeId) {
         publishScheduledContent(tenantId, episodeId);
+        episodeRepository.findById(episodeId).ifPresent(episode -> EpisodeSearchIndex.mirror(searchIndex, episode));
     }
 
     /**
@@ -156,7 +169,9 @@ public class PublicationWorkflowService extends PublicationWorkflow<Episode, Epi
             boolean notifySubscribers,
             Instant publishedAt
     ) {
-        return bulkPublishContent(tenantId, episodeIds, notifySubscribers, publishedAt);
+        List<Episode> published = bulkPublishContent(tenantId, episodeIds, notifySubscribers, publishedAt);
+        published.forEach(episode -> EpisodeSearchIndex.mirror(searchIndex, episode));
+        return published;
     }
 
     /**
@@ -166,7 +181,9 @@ public class PublicationWorkflowService extends PublicationWorkflow<Episode, Epi
     @Transactional
     @RequiresModule(PodcastModule.KEY)
     public List<Episode> bulkUnpublish(Long tenantId, List<Long> episodeIds) {
-        return bulkUnpublishContent(tenantId, episodeIds);
+        List<Episode> unpublished = bulkUnpublishContent(tenantId, episodeIds);
+        unpublished.forEach(episode -> EpisodeSearchIndex.mirror(searchIndex, episode));
+        return unpublished;
     }
 
     @Override

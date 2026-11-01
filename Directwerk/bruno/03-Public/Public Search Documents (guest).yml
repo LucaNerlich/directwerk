@@ -1,0 +1,43 @@
+info:
+  name: Public Search Documents (guest)
+  type: http
+  seq: 20
+
+http:
+  method: GET
+  url: "{{baseUrl}}/api/v1/public/search-documents"
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("guest feed hides paid bodies", function() {
+          expect(res.getStatus()).to.equal(200);
+          expect(res.body.data).to.be.an("array");
+          res.body.data.forEach(function(row) {
+            expect(["article", "episode", "newsletter_list", "product"]).to.include(row.kind);
+            expect(["FREE", "PAID"]).to.include(row.access);
+            expect(row.title).to.be.a("string");
+            expect(row.slug).to.be.a("string");
+            expect(row.excerpt).to.be.a("string");
+            expect(row.plainText).to.be.a("string");
+            expect(row.hrefPath).to.be.a("string");
+            expect(row.plainText).to.not.include("<");
+            expect(row.excerpt).to.not.include("<");
+            if (row.access === "PAID") {
+              expect(row.plainText).to.equal("");
+            }
+          });
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+docs: |-
+  Header search feed for the tenant Host. No session: FREE rows include stripped
+  plainText, PAID rows keep the public teaser in excerpt and leave plainText empty.
+  Run before the tier requests. Pair with http/37-search-documents.http.

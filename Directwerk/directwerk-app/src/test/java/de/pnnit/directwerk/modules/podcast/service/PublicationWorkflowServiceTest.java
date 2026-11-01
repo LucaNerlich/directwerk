@@ -48,6 +48,7 @@ import de.pnnit.directwerk.modules.podcast.job.RssFeedRefreshJobProducer;
 import de.pnnit.directwerk.modules.content.InvalidPublicationTransitionException;
 import de.pnnit.directwerk.modules.digital.service.HtmlSanitizer;
 import de.pnnit.directwerk.modules.podcast.repository.EpisodeRepository;
+import de.pnnit.directwerk.modules.search.SearchIndex;
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.List;
@@ -125,7 +126,8 @@ class PublicationWorkflowServiceTest {
                 selfProvider,
                 new MembershipPermissionService(
                         overrideRepository, tenantMembershipRepository, tenantRepository,
-                        platformAuditService)
+                        platformAuditService),
+                SearchIndex.NOOP
         );
         lenient().when(notificationGate.enabled(anyLong(), any(), anyLong())).thenReturn(true);
         lenient().when(selfProvider.getObject()).thenReturn(publicationWorkflowService);

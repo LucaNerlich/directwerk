@@ -18,6 +18,9 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface EpisodeRepository extends JpaRepository<Episode, Long> {
 
+    @EntityGraph(attributePaths = {"tenant", "series", "formats", "categories"})
+    List<Episode> findByTenantIdAndIdIn(Long tenantId, Collection<Long> ids);
+
     // Keep graphs complete for open-in-view=false: controllers map series.slug, formats,
     // categories.parent, cover fallback (episode/format/series), and publicCdnUrl needs audioAsset.tenant.slug.
 
@@ -76,6 +79,9 @@ public interface EpisodeRepository extends JpaRepository<Episode, Long> {
             "categories", "categories.parent"
     })
     Optional<Episode> findBySeriesIdAndSlugAndTenantId(Long seriesId, String slug, Long tenantId);
+
+    /** Used when a series is published or withdrawn to refresh the search index. */
+    List<Episode> findByTenantIdAndSeriesId(Long tenantId, Long seriesId);
 
     @EntityGraph(attributePaths = {
             "tenant", "series", "series.coverAsset", "coverAsset", "coverAsset.tenant",

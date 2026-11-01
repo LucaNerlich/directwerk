@@ -16,6 +16,7 @@ import de.pnnit.directwerk.modules.subscription.entity.OfferingType;
 import de.pnnit.directwerk.modules.subscription.entity.SubscriptionProduct;
 import de.pnnit.directwerk.modules.subscription.exception.SubscriptionProductNotFoundException;
 import de.pnnit.directwerk.modules.subscription.repository.SubscriptionProductRepository;
+import de.pnnit.directwerk.modules.search.SearchIndex;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -50,7 +51,8 @@ class SubscriptionProductServiceTest {
                 subscriptionProductRepository,
                 tenantRepository,
                 cacheEviction,
-                eventPublisher
+                eventPublisher,
+                SearchIndex.NOOP
         );
     }
 

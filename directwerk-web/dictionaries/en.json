@@ -37,6 +37,16 @@
     "toHome": "Back to home",
     "viewPlans": "View plans"
   },
+  "search": {
+    "open": "Search",
+    "close": "Close search",
+    "placeholder": "Titles, topics, pages",
+    "hint": "Type to search",
+    "empty": "No matches",
+    "loading": "Loading the index",
+    "error": "Search is unavailable",
+    "locked": "Subscription required"
+  },
   "common": {
     "activate": "Enable",
     "active": "Active",
