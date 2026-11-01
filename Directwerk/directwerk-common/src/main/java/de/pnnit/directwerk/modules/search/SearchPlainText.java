@@ -31,9 +31,24 @@ public final class SearchPlainText {
 
     /**
      * Short public snippet. Prefers an author excerpt, otherwise the start of the stripped body.
+     * Paid articles must use {@link #authorExcerpt(String)} so a blank teaser never leaks the body.
      */
     public static String excerpt(String explicit, String plain) {
         String source = explicit == null || explicit.isBlank() ? nullToEmpty(plain) : fromHtml(explicit);
+        return clipExcerpt(source);
+    }
+
+    /**
+     * Author-written teaser only. Empty when the author left no excerpt — never the body prefix.
+     */
+    public static String authorExcerpt(String explicit) {
+        if (explicit == null || explicit.isBlank()) {
+            return "";
+        }
+        return clipExcerpt(fromHtml(explicit));
+    }
+
+    private static String clipExcerpt(String source) {
         if (source.length() <= EXCERPT_CHARS) {
             return source;
         }

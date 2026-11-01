@@ -27,4 +27,12 @@ class SearchPlainTextTest {
         assertThat(SearchPlainText.excerpt("  ", "x".repeat(200))).hasSize(SearchPlainText.EXCERPT_CHARS);
         assertThat(SearchPlainText.excerpt(null, null)).isEmpty();
     }
+
+    @Test
+    void authorExcerptNeverFallsBackToBody() {
+        assertThat(SearchPlainText.authorExcerpt(null)).isEmpty();
+        assertThat(SearchPlainText.authorExcerpt("   ")).isEmpty();
+        assertThat(SearchPlainText.authorExcerpt("<em>Teaser</em>")).isEqualTo("Teaser");
+        assertThat(SearchPlainText.authorExcerpt("x".repeat(200))).hasSize(SearchPlainText.EXCERPT_CHARS);
+    }
 }

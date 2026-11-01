@@ -14,14 +14,17 @@ Accept: application/json
         client.assert(typeof response.body.metadata.page === "number", "Expected page metadata");
         client.assert(typeof response.body.metadata.size === "number", "Expected size metadata");
         client.assert(typeof response.body.metadata.totalElements === "number", "Expected totalElements");
-        if (response.body.data.length > 0 && response.body.data[0].subscriptions.length > 0) {
-            client.assert(
-                Object.prototype.hasOwnProperty.call(
-                    response.body.data[0].subscriptions[0],
-                    "externalSubscriptionId"
-                ),
-                "Expected externalSubscriptionId on subscription items"
-            );
+        if (response.body.data.length > 0) {
+            client.global.set("subscriberUserId", response.body.data[0].userId);
+            if (response.body.data[0].subscriptions.length > 0) {
+                client.assert(
+                    Object.prototype.hasOwnProperty.call(
+                        response.body.data[0].subscriptions[0],
+                        "externalSubscriptionId"
+                    ),
+                    "Expected externalSubscriptionId on subscription items"
+                );
+            }
         }
     });
 %}

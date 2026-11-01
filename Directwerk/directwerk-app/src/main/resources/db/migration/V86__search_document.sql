@@ -47,7 +47,12 @@ SELECT
     a.title,
     a.slug,
     search_plain_text(a.body),
-    left(search_plain_text(coalesce(nullif(btrim(a.excerpt), ''), a.body)), 180),
+    left(search_plain_text(
+        CASE
+            WHEN a.access_policy = 'PAID' THEN coalesce(a.excerpt, '')
+            ELSE coalesce(nullif(btrim(a.excerpt), ''), a.body)
+        END
+    ), 180),
     '/articles/' || a.slug,
     a.access_policy
 FROM articles a
@@ -67,7 +72,9 @@ SELECT
     '/episodes/' || e.slug,
     e.access_policy
 FROM episodes e
-WHERE e.status = 'PUBLISHED';
+INNER JOIN podcast_series ps ON ps.id = e.series_id
+WHERE e.status = 'PUBLISHED'
+  AND ps.status = 'PUBLISHED';
 
 INSERT INTO search_document (
     tenant_id, kind, source_id, title, slug, plain_text, excerpt, href_path, access

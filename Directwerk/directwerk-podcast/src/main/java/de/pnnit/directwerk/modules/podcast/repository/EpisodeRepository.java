@@ -80,6 +80,9 @@ public interface EpisodeRepository extends JpaRepository<Episode, Long> {
     })
     Optional<Episode> findBySeriesIdAndSlugAndTenantId(Long seriesId, String slug, Long tenantId);
 
+    /** Used when a series is published or withdrawn to refresh the search index. */
+    List<Episode> findByTenantIdAndSeriesId(Long tenantId, Long seriesId);
+
     @EntityGraph(attributePaths = {
             "tenant", "series", "series.coverAsset", "coverAsset", "coverAsset.tenant",
             "audioAsset", "audioAsset.tenant", "formats", "formats.coverAsset",

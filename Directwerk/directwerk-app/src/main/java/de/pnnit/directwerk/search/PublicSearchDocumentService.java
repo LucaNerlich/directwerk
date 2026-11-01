@@ -11,6 +11,7 @@ import de.pnnit.directwerk.modules.newsletter.repository.ArticleRepository;
 import de.pnnit.directwerk.modules.podcast.api.EpisodeAccessSubjects;
 import de.pnnit.directwerk.modules.podcast.entity.Episode;
 import de.pnnit.directwerk.modules.podcast.entity.EpisodeStatus;
+import de.pnnit.directwerk.modules.podcast.entity.SeriesStatus;
 import de.pnnit.directwerk.modules.podcast.repository.EpisodeRepository;
 import de.pnnit.directwerk.modules.search.SearchKinds;
 import de.pnnit.directwerk.modules.subscription.service.EntitlementService;
@@ -20,6 +21,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -57,9 +59,13 @@ public class PublicSearchDocumentService {
         boolean lists = moduleGateService.isModuleActive(tenantId, FeatureModuleKeys.EMAIL_NOTIFY)
                 && directwerkConfig.isEmailEnabled();
 
-        List<SearchDocument> visible = searchDocumentRepository.findByTenant_IdOrderByTitleAscIdAsc(tenantId)
+        List<SearchDocument> candidates = searchDocumentRepository.findByTenant_IdOrderByTitleAscIdAsc(tenantId)
                 .stream()
                 .filter(document -> included(document.getKind(), articles, episodes, products, lists))
+                .toList();
+        Set<Long> publishedEpisodeIds = publishedEpisodeIds(tenantId, candidates);
+        List<SearchDocument> visible = candidates.stream()
+                .filter(document -> episodeCatalogAllows(document, publishedEpisodeIds))
                 .toList();
 
         Long userId = readerId(tenantId);
@@ -68,6 +74,33 @@ public class PublicSearchDocumentService {
         return visible.stream()
                 .map(document -> toView(document, openArticles, openEpisodes))
                 .toList();
+    }
+
+    /**
+     * Same gate as {@code PublicPodcastQueryService.requirePublishedEpisode}: an episode whose
+     * series was withdrawn must not appear in search even if a stale index row remains.
+     */
+    private Set<Long> publishedEpisodeIds(Long tenantId, List<SearchDocument> documents) {
+        List<Long> ids = documents.stream()
+                .filter(document -> SearchKinds.EPISODE.equals(document.getKind()))
+                .map(SearchDocument::getSourceId)
+                .toList();
+        if (ids.isEmpty()) {
+            return Set.of();
+        }
+        return episodeRepository.findByTenantIdAndIdIn(tenantId, ids).stream()
+                .filter(episode -> episode.getStatus() == EpisodeStatus.PUBLISHED
+                        && episode.getSeries() != null
+                        && episode.getSeries().getStatus() == SeriesStatus.PUBLISHED)
+                .map(Episode::getId)
+                .collect(Collectors.toSet());
+    }
+
+    private static boolean episodeCatalogAllows(SearchDocument document, Set<Long> publishedEpisodeIds) {
+        if (!SearchKinds.EPISODE.equals(document.getKind())) {
+            return true;
+        }
+        return publishedEpisodeIds.contains(document.getSourceId());
     }
 
     private static boolean included(

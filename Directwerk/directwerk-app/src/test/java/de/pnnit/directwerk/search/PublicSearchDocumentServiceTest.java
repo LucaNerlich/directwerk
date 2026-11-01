@@ -3,6 +3,7 @@ package de.pnnit.directwerk.search;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.when;
 
 import de.pnnit.directwerk.api.dto.PublicSearchDocumentView;
@@ -17,6 +18,7 @@ import de.pnnit.directwerk.modules.newsletter.repository.ArticleRepository;
 import de.pnnit.directwerk.modules.podcast.entity.Episode;
 import de.pnnit.directwerk.modules.podcast.entity.EpisodeStatus;
 import de.pnnit.directwerk.modules.podcast.entity.PodcastSeries;
+import de.pnnit.directwerk.modules.podcast.entity.SeriesStatus;
 import de.pnnit.directwerk.modules.podcast.repository.EpisodeRepository;
 import de.pnnit.directwerk.modules.subscription.service.EntitlementService;
 import de.pnnit.directwerk.security.DirectwerkUserPrincipal;
@@ -65,20 +67,36 @@ class PublicSearchDocumentServiceTest {
                 moduleGateService,
                 directwerkConfig
         );
-        when(moduleGateService.isModuleActive(10L, FeatureModuleKeys.DIGITAL_CONTENT)).thenReturn(true);
-        when(moduleGateService.isModuleActive(10L, FeatureModuleKeys.PODCAST)).thenReturn(true);
-        when(moduleGateService.isModuleActive(10L, FeatureModuleKeys.SUBSCRIPTION)).thenReturn(false);
-        when(moduleGateService.isModuleActive(10L, FeatureModuleKeys.EMAIL_NOTIFY)).thenReturn(true);
-        when(directwerkConfig.isEmailEnabled()).thenReturn(false);
-        when(searchDocumentRepository.findByTenant_IdOrderByTitleAscIdAsc(10L)).thenReturn(List.of(
+        lenient().when(moduleGateService.isModuleActive(10L, FeatureModuleKeys.DIGITAL_CONTENT)).thenReturn(true);
+        lenient().when(moduleGateService.isModuleActive(10L, FeatureModuleKeys.PODCAST)).thenReturn(true);
+        lenient().when(moduleGateService.isModuleActive(10L, FeatureModuleKeys.SUBSCRIPTION)).thenReturn(false);
+        lenient().when(moduleGateService.isModuleActive(10L, FeatureModuleKeys.EMAIL_NOTIFY)).thenReturn(true);
+        lenient().when(directwerkConfig.isEmailEnabled()).thenReturn(false);
+        lenient().when(searchDocumentRepository.findByTenant_IdOrderByTitleAscIdAsc(10L)).thenReturn(List.of(
                 document("article", 7L, "PAID", "secret body words", "public teaser", "/articles/paid"),
                 document("article", 8L, "FREE", "free body words", "free teaser", "/articles/free"),
                 document("episode", 9L, "PAID", "episode secret", "episode teaser", "/episodes/paid"),
                 document("product", 4L, "FREE", "Supporter plan", "Supporter plan", "/pricing"),
                 document("newsletter_list", 5L, "FREE", "Weekly", "Weekly", "/newsletter/weekly")
         ));
-        when(articleRepository.findByTenantIdAndIdIn(eq(10L), any())).thenReturn(List.of(paidArticle()));
-        when(episodeRepository.findByTenantIdAndIdIn(eq(10L), any())).thenReturn(List.of(paidEpisode()));
+        lenient().when(articleRepository.findByTenantIdAndIdIn(eq(10L), any())).thenReturn(List.of(paidArticle()));
+        lenient().when(episodeRepository.findByTenantIdAndIdIn(eq(10L), any())).thenReturn(List.of(paidEpisode()));
+    }
+
+    @Test
+    void omitsEpisodesWhoseSeriesIsNotPublished() {
+        PodcastSeries draftSeries = new PodcastSeries();
+        draftSeries.setId(3L);
+        draftSeries.setStatus(SeriesStatus.DRAFT);
+        Episode orphan = paidEpisode();
+        orphan.setSeries(draftSeries);
+        when(episodeRepository.findByTenantIdAndIdIn(eq(10L), any())).thenReturn(List.of(orphan));
+
+        List<PublicSearchDocumentView> guest = service.list(10L);
+
+        assertThat(guest).extracting(PublicSearchDocumentView::slug)
+                .contains("paid", "free")
+                .doesNotContain("episode-paid");
     }
 
     @AfterEach
@@ -195,6 +213,7 @@ class PublicSearchDocumentServiceTest {
         tenant.setId(10L);
         PodcastSeries series = new PodcastSeries();
         series.setId(3L);
+        series.setStatus(SeriesStatus.PUBLISHED);
         Episode episode = new Episode();
         episode.setId(9L);
         episode.setTenant(tenant);

@@ -9,9 +9,19 @@ import de.pnnit.directwerk.modules.core.repository.TenantRepository;
 import de.pnnit.directwerk.modules.core.entity.Tenant;
 import de.pnnit.directwerk.modules.core.service.MembershipPermissionService;
 import de.pnnit.directwerk.modules.digital.service.HtmlSanitizer;
+import static org.mockito.Mockito.verify;
+
+import de.pnnit.directwerk.modules.digital.entity.MediaAsset;
+import de.pnnit.directwerk.modules.podcast.entity.Episode;
+import de.pnnit.directwerk.modules.podcast.entity.EpisodeStatus;
 import de.pnnit.directwerk.modules.podcast.entity.PodcastSeries;
+import de.pnnit.directwerk.modules.podcast.entity.SeriesStatus;
 import de.pnnit.directwerk.modules.podcast.job.RssFeedRefreshJobProducer;
+import de.pnnit.directwerk.modules.podcast.repository.EpisodeRepository;
 import de.pnnit.directwerk.modules.podcast.repository.PodcastSeriesRepository;
+import de.pnnit.directwerk.modules.search.SearchIndex;
+import de.pnnit.directwerk.modules.search.SearchKinds;
+import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -24,6 +34,8 @@ class SeriesServiceTest {
     @Mock
     private PodcastSeriesRepository podcastSeriesRepository;
     @Mock
+    private EpisodeRepository episodeRepository;
+    @Mock
     private TenantRepository tenantRepository;
     @Mock
     private PodcastCoverAssetResolver podcastCoverAssetResolver;
@@ -32,16 +44,25 @@ class SeriesServiceTest {
     @Mock
     private MembershipPermissionService permissionService;
 
-    @Test
-    void createSeriesSanitizesDescription() {
-        SeriesService service = new SeriesService(
+    @Mock
+    private SearchIndex searchIndex;
+
+    private SeriesService newService() {
+        return new SeriesService(
                 podcastSeriesRepository,
+                episodeRepository,
                 tenantRepository,
                 podcastCoverAssetResolver,
                 rssFeedRefreshScheduler,
                 new HtmlSanitizer(),
-                permissionService
+                permissionService,
+                searchIndex
         );
+    }
+
+    @Test
+    void createSeriesSanitizesDescription() {
+        SeriesService service = newService();
         Tenant tenant = new Tenant();
         tenant.setId(10L);
         tenant.setSlug("alpha");
@@ -71,14 +92,7 @@ class SeriesServiceTest {
 
     @Test
     void createSeriesRejectsSlugsReservedByLiteralFeedRoutes() {
-        SeriesService service = new SeriesService(
-                podcastSeriesRepository,
-                tenantRepository,
-                podcastCoverAssetResolver,
-                rssFeedRefreshScheduler,
-                new HtmlSanitizer(),
-                permissionService
-        );
+        SeriesService service = newService();
 
         // Issue #389: /feeds/{tenant}/articles.xml is a literal route, so a series slugged
         // "articles" could never serve its own {seriesSlug}.xml feed.
@@ -95,14 +109,7 @@ class SeriesServiceTest {
 
     @Test
     void updateSeriesSanitizesDescription() {
-        SeriesService service = new SeriesService(
-                podcastSeriesRepository,
-                tenantRepository,
-                podcastCoverAssetResolver,
-                rssFeedRefreshScheduler,
-                new HtmlSanitizer(),
-                permissionService
-        );
+        SeriesService service = newService();
         PodcastSeries existing = new PodcastSeries();
         Tenant tenant = new Tenant();
         tenant.setId(10L);
@@ -129,5 +136,32 @@ class SeriesServiceTest {
 
         assertThat(updated.getDescription()).doesNotContain("onerror", "<img");
         assertThat(updated.getDescription()).contains("Caption");
+    }
+
+    @Test
+    void withdrawingSeriesRemovesPublishedEpisodesFromSearchIndex() {
+        SeriesService service = newService();
+        PodcastSeries existing = new PodcastSeries();
+        Tenant tenant = new Tenant();
+        tenant.setId(10L);
+        existing.setId(5L);
+        existing.setTenant(tenant);
+        existing.setSlug("my-show");
+        existing.setStatus(SeriesStatus.PUBLISHED);
+        existing.setCoverAsset(new MediaAsset());
+        Episode episode = new Episode();
+        episode.setId(9L);
+        episode.setTenant(tenant);
+        episode.setSeries(existing);
+        episode.setStatus(EpisodeStatus.PUBLISHED);
+        when(podcastSeriesRepository.findByIdAndTenantId(5L, 10L)).thenReturn(java.util.Optional.of(existing));
+        when(podcastSeriesRepository.save(any(PodcastSeries.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+        when(episodeRepository.findByTenantIdAndSeriesId(10L, 5L)).thenReturn(List.of(episode));
+
+        service.updateSeries(
+                10L, 5L, null, null, null, null, null, null, null, null, SeriesStatus.DRAFT);
+
+        verify(searchIndex).remove(10L, SearchKinds.EPISODE, 9L);
     }
 }

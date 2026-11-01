@@ -2,6 +2,7 @@ package de.pnnit.directwerk.modules.podcast.service;
 
 import de.pnnit.directwerk.modules.podcast.entity.Episode;
 import de.pnnit.directwerk.modules.podcast.entity.EpisodeStatus;
+import de.pnnit.directwerk.modules.podcast.entity.SeriesStatus;
 import de.pnnit.directwerk.modules.search.SearchIndex;
 import de.pnnit.directwerk.modules.search.SearchIndexDraft;
 import de.pnnit.directwerk.modules.search.SearchKinds;
@@ -16,7 +17,10 @@ final class EpisodeSearchIndex {
             return;
         }
         long tenantId = episode.getTenant().getId();
-        if (episode.getStatus() == EpisodeStatus.PUBLISHED) {
+        // Match PublicPodcastQueryService: both episode and series must be published.
+        if (episode.getStatus() == EpisodeStatus.PUBLISHED
+                && episode.getSeries() != null
+                && episode.getSeries().getStatus() == SeriesStatus.PUBLISHED) {
             index.sync(new SearchIndexDraft(
                     tenantId,
                     SearchKinds.EPISODE,

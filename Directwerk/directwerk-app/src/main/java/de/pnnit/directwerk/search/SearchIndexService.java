@@ -3,6 +3,7 @@ package de.pnnit.directwerk.search;
 import de.pnnit.directwerk.modules.core.repository.TenantRepository;
 import de.pnnit.directwerk.modules.search.SearchIndex;
 import de.pnnit.directwerk.modules.search.SearchIndexDraft;
+import de.pnnit.directwerk.modules.search.SearchKinds;
 import de.pnnit.directwerk.modules.search.SearchPlainText;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -29,7 +30,12 @@ public class SearchIndexService implements SearchIndex {
     @Transactional
     public void sync(SearchIndexDraft draft) {
         String plain = SearchPlainText.fromHtml(draft.body());
-        String excerpt = SearchPlainText.excerpt(draft.excerpt(), plain);
+        // PAID articles keep only the author teaser in excerpt; never the start of the body.
+        // Episodes and FREE articles still fall back to a body/description prefix.
+        boolean paidArticle = SearchKinds.ARTICLE.equals(draft.kind()) && "PAID".equals(draft.access());
+        String excerpt = paidArticle
+                ? SearchPlainText.authorExcerpt(draft.excerpt())
+                : SearchPlainText.excerpt(draft.excerpt(), plain);
         SearchDocument document = searchDocumentRepository
                 .findByTenant_IdAndKindAndSourceId(draft.tenantId(), draft.kind(), draft.sourceId())
                 .orElseGet(SearchDocument::new);
