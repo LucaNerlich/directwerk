@@ -49,6 +49,7 @@
 ### | 34-article-import.http | ArticleImportController (RSS preview + stream ingest + bulk) |
 ### | 35-tenant-analytics.http | TenantAnalyticsController (Umami read API stats) |
 ### | 36-digital-publications-and-integrations.http | DigitalPublicationController, MediaController storage summary, TenantIntegrationsController |
+### | 37-search-documents.http | PublicSearchDocumentController (guest, supporter, producer) |
 ###
 ### Controllers live under de.pnnit.directwerk.controller.*
 

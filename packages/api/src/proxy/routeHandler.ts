@@ -147,12 +147,17 @@ export function createTenantProxyRouteHandler(
         }
 
         const isPublicPath = apiPath.startsWith('/api/v1/public/')
-        const bearerToken = isPublicPath
-            ? undefined
-            : readBearerToken(request.headers.get('authorization'))
-        if (!isPublicPath && bearerToken === null) {
+        const presentedBearer = readBearerToken(request.headers.get('authorization'))
+        if (!isPublicPath && presentedBearer === null) {
             return jsonError('A valid bearer token is required.', 401)
         }
+        // Search is public, but a session changes which paid bodies are filled in.
+        // Other public paths stay anonymous so a token cannot change their payload.
+        const bearerToken = isPublicPath
+            ? apiPath === '/api/v1/public/search-documents'
+                ? presentedBearer ?? undefined
+                : undefined
+            : presentedBearer ?? undefined
 
         if (hasUnsupportedProxyQuery(request.url)) {
             // Only allowlisted paths carry query strings (previews, media

@@ -14,6 +14,9 @@ import de.pnnit.directwerk.modules.subscription.entity.OfferingType;
 import de.pnnit.directwerk.modules.subscription.entity.SubscriptionProduct;
 import de.pnnit.directwerk.modules.subscription.exception.SubscriptionProductNotFoundException;
 import de.pnnit.directwerk.modules.subscription.repository.SubscriptionProductRepository;
+import de.pnnit.directwerk.modules.search.SearchIndex;
+import de.pnnit.directwerk.modules.search.SearchIndexDraft;
+import de.pnnit.directwerk.modules.search.SearchKinds;
 import java.util.List;
 import java.util.Set;
 import lombok.RequiredArgsConstructor;
@@ -33,6 +36,7 @@ public class SubscriptionProductService {
     private final TenantRepository tenantRepository;
     private final DirectwerkCacheEviction cacheEviction;
     private final ApplicationEventPublisher eventPublisher;
+    private final SearchIndex searchIndex;
 
     @Transactional(readOnly = true)
     @Cacheable(
@@ -101,6 +105,7 @@ public class SubscriptionProductService {
         SubscriptionProduct saved = subscriptionProductRepository.save(product);
         cacheEviction.evictPublicProductsAfterCommit(tenantId);
         eventPublisher.publishEvent(new TenantEntitlementsChangedEvent(tenantId));
+        mirrorSearch(saved);
         return saved;
     }
 
@@ -152,6 +157,7 @@ public class SubscriptionProductService {
         SubscriptionProduct saved = subscriptionProductRepository.save(product);
         cacheEviction.evictPublicProductsAfterCommit(tenantId);
         eventPublisher.publishEvent(new TenantEntitlementsChangedEvent(tenantId));
+        mirrorSearch(saved);
         return saved;
     }
 
@@ -175,6 +181,28 @@ public class SubscriptionProductService {
         SubscriptionProduct saved = subscriptionProductRepository.save(product);
         cacheEviction.evictPublicProductsAfterCommit(tenantId);
         return saved;
+    }
+
+    private void mirrorSearch(SubscriptionProduct product) {
+        if (product.getId() == null || product.getTenant() == null || product.getTenant().getId() == null) {
+            return;
+        }
+        long tenantId = product.getTenant().getId();
+        if (!product.isActive()) {
+            searchIndex.remove(tenantId, SearchKinds.PRODUCT, product.getId());
+            return;
+        }
+        searchIndex.sync(new SearchIndexDraft(
+                tenantId,
+                SearchKinds.PRODUCT,
+                product.getId(),
+                product.getTitle(),
+                product.getSlug(),
+                product.getDescription(),
+                product.getDescription(),
+                "/pricing",
+                "FREE"
+        ));
     }
 
     private String normalizeDescription(String description) {

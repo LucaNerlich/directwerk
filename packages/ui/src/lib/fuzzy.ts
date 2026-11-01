@@ -49,3 +49,26 @@ export function fuzzyFilter<T>(
         .filter((result) => (result.score ?? 0) <= cutoff)
         .map((result) => result.item)
 }
+
+/**
+ * Ranked Fuse hits for a query. An empty query returns no rows, so a search
+ * dialog can show a hint instead of the whole catalog. Every hit under the
+ * threshold is kept, in Fuse's score order.
+ */
+export function fuzzyRank<T>(
+    items: readonly T[],
+    query: string,
+    options: FuzzyFilterOptions<T>,
+): T[] {
+    const trimmed = query.trim()
+    if (trimmed.length === 0) {
+        return []
+    }
+
+    const fuse = new Fuse(items as T[], {
+        keys: options.keys,
+        threshold: options.threshold ?? DEFAULT_THRESHOLD,
+        ignoreLocation: true,
+    })
+    return fuse.search(trimmed).map((result) => result.item)
+}

@@ -1,0 +1,43 @@
+info:
+  name: Public Search Documents (higher tier)
+  type: http
+  seq: 22
+
+http:
+  method: GET
+  url: "{{baseUrl}}/api/v1/public/search-documents"
+  auth:
+    type: bearer
+    token: "{{subscriberAccessToken}}"
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("higher tier opens the paid body the lower tier cannot", function() {
+          expect(res.getStatus()).to.equal(200);
+          expect(res.body.data).to.be.an("array");
+          const slug = bru.getVar("searchTierSlug");
+          if (!slug) {
+            return;
+          }
+          const row = res.body.data.find(function(item) { return item.slug === slug; });
+          expect(row, "paid fixture row").to.not.equal(undefined);
+          expect(row.access).to.equal("PAID");
+          expect(row.plainText).to.include("SEARCHTIERBODY");
+          expect(row.plainText).to.not.include("<");
+          expect(row.plainText).to.not.equal(bru.getVar("searchTierLowerPlain"));
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+docs: |-
+  Same subscriber after the producer grant (sort order 2). plainText is the stripped
+  body for the level-2 article that the supporter request left empty. No HTML.
+  Prerequisite: http/37-search-documents.http through the producer grant, and the
+  lower-tier request (so searchTierLowerPlain is set).

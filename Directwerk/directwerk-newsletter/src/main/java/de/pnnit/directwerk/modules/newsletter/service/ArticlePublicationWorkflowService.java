@@ -17,6 +17,7 @@ import de.pnnit.directwerk.modules.newsletter.entity.ArticleStatus;
 import de.pnnit.directwerk.modules.newsletter.exception.ArticleValidationException;
 import de.pnnit.directwerk.modules.newsletter.job.ArticleRssFeedRefreshJobProducer;
 import de.pnnit.directwerk.modules.newsletter.repository.ArticleRepository;
+import de.pnnit.directwerk.modules.search.SearchIndex;
 import java.time.Instant;
 import java.util.List;
 import java.util.function.BiConsumer;
@@ -36,6 +37,7 @@ public class ArticlePublicationWorkflowService extends PublicationWorkflow<Artic
     private final HtmlSanitizer htmlSanitizer;
     private final ArticleRssFeedRefreshJobProducer articleRssFeedRefreshScheduler;
     private final ObjectProvider<ArticlePublicationWorkflowService> self;
+    private final SearchIndex searchIndex;
 
     public ArticlePublicationWorkflowService(
             ArticleRepository articleRepository,
@@ -46,7 +48,8 @@ public class ArticlePublicationWorkflowService extends PublicationWorkflow<Artic
             SubscriberNotificationGate notificationGate,
             ArticleRssFeedRefreshJobProducer articleRssFeedRefreshScheduler,
             ObjectProvider<ArticlePublicationWorkflowService> self,
-            MembershipPermissionService permissionService
+            MembershipPermissionService permissionService,
+            SearchIndex searchIndex
     ) {
         super(scheduledPublicationExecutor, contentPublishedNotifier, notificationGate, permissionService);
         this.articleRepository = articleRepository;
@@ -54,6 +57,7 @@ public class ArticlePublicationWorkflowService extends PublicationWorkflow<Artic
         this.htmlSanitizer = htmlSanitizer;
         this.articleRssFeedRefreshScheduler = articleRssFeedRefreshScheduler;
         this.self = self;
+        this.searchIndex = searchIndex;
     }
 
     @Transactional
@@ -71,7 +75,9 @@ public class ArticlePublicationWorkflowService extends PublicationWorkflow<Artic
     @Transactional
     @RequiresModule(ArticlesModule.KEY)
     public Article publish(Long tenantId, Long articleId, boolean notifySubscribers, Instant publishedAt) {
-        return publishContent(tenantId, articleId, notifySubscribers, publishedAt);
+        Article article = publishContent(tenantId, articleId, notifySubscribers, publishedAt);
+        ArticleSearchIndex.mirror(searchIndex, article);
+        return article;
     }
 
     @Transactional
@@ -95,19 +101,25 @@ public class ArticlePublicationWorkflowService extends PublicationWorkflow<Artic
     @Transactional
     @RequiresModule(ArticlesModule.KEY)
     public Article unpublish(Long tenantId, Long articleId) {
-        return unpublishContent(tenantId, articleId, true);
+        Article article = unpublishContent(tenantId, articleId, true);
+        ArticleSearchIndex.mirror(searchIndex, article);
+        return article;
     }
 
     @Transactional
     @RequiresModule(ArticlesModule.KEY)
     public Article archive(Long tenantId, Long articleId) {
-        return archiveContent(tenantId, articleId);
+        Article article = archiveContent(tenantId, articleId);
+        ArticleSearchIndex.mirror(searchIndex, article);
+        return article;
     }
 
     @Transactional
     @RequiresModule(ArticlesModule.KEY)
     public Article unarchive(Long tenantId, Long articleId) {
-        return unarchiveContent(tenantId, articleId);
+        Article article = unarchiveContent(tenantId, articleId);
+        ArticleSearchIndex.mirror(searchIndex, article);
+        return article;
     }
 
     @Transactional
@@ -124,6 +136,7 @@ public class ArticlePublicationWorkflowService extends PublicationWorkflow<Artic
     @RequiresModule(ArticlesModule.KEY)
     public void publishScheduledArticle(Long tenantId, Long articleId) {
         publishScheduledContent(tenantId, articleId);
+        articleRepository.findById(articleId).ifPresent(article -> ArticleSearchIndex.mirror(searchIndex, article));
     }
 
     /**
@@ -139,7 +152,9 @@ public class ArticlePublicationWorkflowService extends PublicationWorkflow<Artic
             boolean notifySubscribers,
             Instant publishedAt
     ) {
-        return bulkPublishContent(tenantId, articleIds, notifySubscribers, publishedAt);
+        List<Article> published = bulkPublishContent(tenantId, articleIds, notifySubscribers, publishedAt);
+        published.forEach(article -> ArticleSearchIndex.mirror(searchIndex, article));
+        return published;
     }
 
     /**
@@ -149,7 +164,9 @@ public class ArticlePublicationWorkflowService extends PublicationWorkflow<Artic
     @Transactional
     @RequiresModule(ArticlesModule.KEY)
     public List<Article> bulkUnpublish(Long tenantId, List<Long> articleIds) {
-        return bulkUnpublishContent(tenantId, articleIds);
+        List<Article> unpublished = bulkUnpublishContent(tenantId, articleIds);
+        unpublished.forEach(article -> ArticleSearchIndex.mirror(searchIndex, article));
+        return unpublished;
     }
 
     @Override

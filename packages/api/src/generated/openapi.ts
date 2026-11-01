@@ -1444,6 +1444,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/episodes/{episodeId}/discard-draft": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Discard working draft
+         * @description Clears the draft-over-publish overlay on a PUBLISHED episode. Live columns stay unchanged; the public page and feeds are unaffected.
+         */
+        post: operations["discardWorkingDraft"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/episodes/{episodeId}/cancel-schedule": {
         parameters: {
             query?: never;
@@ -1838,6 +1858,26 @@ export interface paths {
          * @description Clears the one-shot claim when needed and enqueues content-notify. Requires at least one ACTIVE attached list.
          */
         post: operations["notifySubscribers_1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/articles/{articleId}/discard-draft": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Discard working draft
+         * @description Clears the draft-over-publish overlay on a PUBLISHED article. Live columns stay unchanged; the public page is unaffected.
+         */
+        post: operations["discardWorkingDraft_1"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2488,6 +2528,22 @@ export interface paths {
             cookie?: never;
         };
         get: operations["listSeries_1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/public/search-documents": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["listSearchDocuments"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3979,6 +4035,7 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string;
+            hasWorkingDraft?: boolean;
         };
         ResponseEpisodeView: {
             /** Format: int32 */
@@ -4106,6 +4163,7 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string;
+            hasWorkingDraft?: boolean;
         };
         NewsletterListTag: {
             /** Format: int64 */
@@ -5474,6 +5532,25 @@ export interface components {
             statusCode?: number;
             statusMessage?: string;
             data?: components["schemas"]["PublicSeriesView"][];
+            errors?: components["schemas"]["ErrorDetail"][];
+            metadata?: {
+                [key: string]: unknown;
+            };
+        };
+        PublicSearchDocumentView: {
+            kind?: string;
+            title?: string;
+            slug?: string;
+            excerpt?: string;
+            plainText?: string;
+            hrefPath?: string;
+            access?: string;
+        };
+        ResponseListPublicSearchDocumentView: {
+            /** Format: int32 */
+            statusCode?: number;
+            statusMessage?: string;
+            data?: components["schemas"]["PublicSearchDocumentView"][];
             errors?: components["schemas"]["ErrorDetail"][];
             metadata?: {
                 [key: string]: unknown;
@@ -9129,6 +9206,28 @@ export interface operations {
             };
         };
     };
+    discardWorkingDraft: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                episodeId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ResponseEpisodeView"];
+                };
+            };
+        };
+    };
     cancelSchedule: {
         parameters: {
             query?: never;
@@ -9807,6 +9906,28 @@ export interface operations {
         };
     };
     notifySubscribers_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                articleId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ResponseArticleView"];
+                };
+            };
+        };
+    };
+    discardWorkingDraft_1: {
         parameters: {
             query?: never;
             header?: never;
@@ -10861,6 +10982,26 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["ResponseListPublicSeriesView"];
+                };
+            };
+        };
+    };
+    listSearchDocuments: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ResponseListPublicSearchDocumentView"];
                 };
             };
         };

@@ -31,6 +31,7 @@ import de.pnnit.directwerk.modules.podcast.entity.EpisodeStatus;
 import de.pnnit.directwerk.modules.podcast.exception.EpisodeNotFoundException;
 import de.pnnit.directwerk.modules.podcast.job.RssFeedRefreshJobProducer;
 import de.pnnit.directwerk.modules.podcast.repository.EpisodeRepository;
+import de.pnnit.directwerk.modules.search.SearchIndex;
 import de.pnnit.directwerk.modules.podcast.repository.FormatRepository;
 import de.pnnit.directwerk.security.DirectwerkUserPrincipal;
 import java.util.Arrays;
@@ -107,7 +108,8 @@ class EpisodeServiceTest {
                 rssFeedRefreshScheduler,
                 new MembershipPermissionService(
                         overrideRepository, tenantMembershipRepository, tenantRepository,
-                        platformAuditService)
+                        platformAuditService),
+                SearchIndex.NOOP
         );
         authenticate(5L, Role.EDITOR);
     }

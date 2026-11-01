@@ -1,6 +1,6 @@
 import {describe, expect, it} from 'vitest'
 
-import {fuzzyFilter} from './fuzzy'
+import {fuzzyFilter, fuzzyRank} from './fuzzy'
 
 interface Row {
     name: string
@@ -48,5 +48,17 @@ describe('fuzzyFilter', () => {
 
     it('returns an empty array when nothing matches', () => {
         expect(fuzzyFilter(rows, 'zzzz-not-a-hit', {keys: ['name', 'slug']})).toEqual([])
+    })
+})
+
+describe('fuzzyRank', () => {
+    it('returns no rows for an empty query', () => {
+        expect(fuzzyRank(rows, '', {keys: ['name', 'slug']})).toEqual([])
+        expect(fuzzyRank(rows, '   ', {keys: ['name']})).toEqual([])
+    })
+
+    it('ranks a typo ahead of unrelated rows', () => {
+        const hits = fuzzyRank(rows, 'alfa podcast', {keys: ['name', 'slug']})
+        expect(hits[0]?.slug).toBe('alpha-podcast')
     })
 })

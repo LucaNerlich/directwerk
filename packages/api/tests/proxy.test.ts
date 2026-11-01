@@ -806,6 +806,44 @@ describe('createTenantProxyRouteHandler HEAD support', () => {
     })
 })
 
+describe('createTenantProxyRouteHandler search session', () => {
+    function handlers(fetchUpstream: (request: {path: string; bearerToken?: string}) => Promise<Response>) {
+        return createTenantProxyRouteHandler({
+            fetchUpstream: (request) =>
+                fetchUpstream({path: request.path, bearerToken: request.bearerToken}),
+            jsonBodyLimit: 16_384,
+        })
+    }
+
+    it('forwards a bearer token only for the search document feed', async () => {
+        const seen: Array<{path: string; bearerToken?: string}> = []
+        const routeHandlers = handlers(async (request) => {
+            seen.push(request)
+            return Response.json({statusCode: 200, statusMessage: 'OK', data: [], errors: [], metadata: {}})
+        })
+        const headers = {
+            'x-tenant-host': 'tenant.example',
+            authorization: 'Bearer token123',
+        }
+
+        const search = await routeHandlers.GET(
+            new Request('http://local/api/proxy/public/search-documents', {headers}),
+            {params: Promise.resolve({path: ['public', 'search-documents']})},
+        )
+        const articles = await routeHandlers.GET(
+            new Request('http://local/api/proxy/public/articles', {headers}),
+            {params: Promise.resolve({path: ['public', 'articles']})},
+        )
+
+        expect(search.status).toBe(200)
+        expect(articles.status).toBe(200)
+        expect(seen).toEqual([
+            {path: '/api/v1/public/search-documents', bearerToken: 'token123'},
+            {path: '/api/v1/public/articles', bearerToken: undefined},
+        ])
+    })
+})
+
 describe('PROXY_POLICIES', () => {
     it('pins the agreed per-app body limits and the flags that are read', () => {
         expect(PROXY_POLICIES.studioTenant).toEqual({

@@ -35,6 +35,9 @@ public interface ArticleRepository extends JpaRepository<Article, Long> {
     })
     Optional<Article> findByIdAndTenantId(Long id, Long tenantId);
 
+    @EntityGraph(attributePaths = {"tenant", "categories"})
+    List<Article> findByTenantIdAndIdIn(Long tenantId, Collection<Long> ids);
+
     @EntityGraph(attributePaths = {
             "tenant", "heroAsset", "heroAsset.tenant", "categories", "categories.parent", "newsletterLists"
     })

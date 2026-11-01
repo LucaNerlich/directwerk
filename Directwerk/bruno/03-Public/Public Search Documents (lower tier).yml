@@ -1,0 +1,42 @@
+info:
+  name: Public Search Documents (lower tier)
+  type: http
+  seq: 21
+
+http:
+  method: GET
+  url: "{{baseUrl}}/api/v1/public/search-documents"
+  auth:
+    type: bearer
+    token: "{{subscriberAccessToken}}"
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("lower tier still gets teasers", function() {
+          expect(res.getStatus()).to.equal(200);
+          expect(res.body.data).to.be.an("array");
+          const slug = bru.getVar("searchTierSlug");
+          if (slug) {
+            const row = res.body.data.find(function(item) { return item.slug === slug; });
+            expect(row, "paid fixture row").to.not.equal(undefined);
+            expect(row.access).to.equal("PAID");
+            expect(row.plainText).to.equal("");
+            expect(row.excerpt.length).to.be.greaterThan(0);
+            bru.setVar("searchTierLowerPlain", row.plainText);
+          }
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+docs: |-
+  Same feed with the subscriber bearer. A supporter (sort order 1) cannot open an
+  article whose requiredLevelSortOrder is 2, so that row's plainText stays empty.
+  Prerequisite: 01-Auth subscriber login, then http/37-search-documents.http through
+  the supporter grant (sets searchTierSlug). Run this before granting producer.

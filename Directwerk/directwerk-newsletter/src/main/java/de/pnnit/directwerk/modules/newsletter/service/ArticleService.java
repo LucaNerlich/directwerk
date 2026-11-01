@@ -27,6 +27,7 @@ import de.pnnit.directwerk.modules.newsletter.exception.ArticleNotFoundException
 import de.pnnit.directwerk.modules.newsletter.exception.ArticleValidationException;
 import de.pnnit.directwerk.modules.newsletter.job.ArticleRssFeedRefreshJobProducer;
 import de.pnnit.directwerk.modules.newsletter.repository.ArticleRepository;
+import de.pnnit.directwerk.modules.search.SearchIndex;
 import de.pnnit.directwerk.modules.digital.service.CategoryService;
 import de.pnnit.directwerk.modules.digital.service.HtmlSanitizer;
 import de.pnnit.directwerk.security.SecurityUtils;
@@ -56,6 +57,7 @@ public class ArticleService {
     private final HtmlSanitizer htmlSanitizer;
     private final ArticleRssFeedRefreshJobProducer articleRssFeedRefreshScheduler;
     private final MembershipPermissionService permissionService;
+    private final SearchIndex searchIndex;
 
     /**
      * Lists all articles for a tenant, ordered by creation time and ID in descending order.
@@ -231,15 +233,19 @@ public class ArticleService {
         permissionService.requireArticleAccess(ContentOperation.UPDATE, article.getCreatedBy());
         Set<Category> resolved = categoryService.resolveActiveCategories(tenantId, categoryIds,
                 id -> { throw new ArticleValidationException("Category is inactive: " + id); });
+        Article updated;
         if (article.getStatus() == ArticleStatus.PUBLISHED) {
             List<Long> ids = resolved.stream().map(Category::getId).sorted().toList();
-            return patchWorkingDraft(
+            updated = patchWorkingDraft(
                     tenantId, article, null, null, null, null, null, null, null, null, null, ids, null);
+        } else {
+            article.getCategories().clear();
+            article.getCategories().addAll(resolved);
+            articleRepository.save(article);
+            updated = requireArticle(tenantId, articleId);
         }
-        article.getCategories().clear();
-        article.getCategories().addAll(resolved);
-        articleRepository.save(article);
-        return requireArticle(tenantId, articleId);
+        ArticleSearchIndex.mirror(searchIndex, updated);
+        return updated;
     }
 
     @Transactional
@@ -364,6 +370,7 @@ public class ArticleService {
         permissionService.requireArticleAccess(ContentOperation.DELETE, article.getCreatedBy());
         boolean wasVisible = article.getStatus() == ArticleStatus.PUBLISHED
                 || article.getStatus() == ArticleStatus.SCHEDULED;
+        ArticleSearchIndex.remove(searchIndex, tenantId, articleId);
         articleRepository.delete(article);
         if (wasVisible) {
             articleRssFeedRefreshScheduler.requestRefreshAfterCommit(tenantId);
@@ -390,6 +397,7 @@ public class ArticleService {
             anyVisible = anyVisible
                     || article.getStatus() == ArticleStatus.PUBLISHED
                     || article.getStatus() == ArticleStatus.SCHEDULED;
+            ArticleSearchIndex.remove(searchIndex, tenantId, articleId);
             articleRepository.delete(article);
             deleted.add(articleId);
         }

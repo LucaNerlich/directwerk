@@ -1,0 +1,178 @@
+### Directwerk — PublicSearchDocumentController
+### Guest, supporter (sort order 1), and producer (sort order 2) see different plainText
+### for one PAID article that requires level 2.
+###
+### Prerequisites: 02-oauth2.http / 03-auth.http (tenantAAccessToken, subscriberAccessToken).
+### The subscriber must not already hold producer. Seeded products: supporter, producer.
+### DIGITAL_CONTENT is on for tenant A.
+
+### @name createSearchTierArticle
+< {%
+  client.global.set("searchTierSlug", "search-tier-" + Date.now().toString(36));
+%}
+POST {{baseUrl}}/api/v1/articles
+Host: {{tenantAHost}}
+Authorization: Bearer {{tenantAAccessToken}}
+Content-Type: application/json
+Accept: application/json
+
+{
+  "slug": "{{searchTierSlug}}",
+  "title": "Search tier article",
+  "body": "<p>SEARCHTIERBODY secret paragraph for the higher tier.</p>",
+  "excerpt": "Public teaser only",
+  "accessPolicy": "PAID",
+  "requiredLevelSortOrder": 2,
+  "categoryIds": []
+}
+
+> {%
+    client.test("Create paid search article", function() {
+        client.assert(response.status === 201, "Expected 201, got " + response.status);
+        client.global.set("searchTierArticleId", response.body.data.id);
+        client.global.set("searchTierSlug", response.body.data.slug);
+    });
+%}
+
+###
+
+### @name publishSearchTierArticle
+POST {{baseUrl}}/api/v1/articles/{{searchTierArticleId}}/publish
+Host: {{tenantAHost}}
+Authorization: Bearer {{tenantAAccessToken}}
+Content-Type: application/json
+Accept: application/json
+
+{
+  "notifySubscribers": false
+}
+
+> {%
+    client.test("Publish search article", function() {
+        client.assert(response.status === 200, "Expected 200");
+    });
+%}
+
+###
+
+### @name searchDocumentsGuest
+GET {{baseUrl}}/api/v1/public/search-documents
+Host: {{tenantAHost}}
+Accept: application/json
+
+> {%
+    client.test("Guest paid body is empty", function() {
+        client.assert(response.status === 200, "Expected 200");
+        const row = response.body.data.find(item => item.slug === client.global.get("searchTierSlug"));
+        client.assert(row !== undefined, "Expected the published article in the feed");
+        client.assert(row.kind === "article", "Expected article");
+        client.assert(row.access === "PAID", "Expected PAID");
+        client.assert(row.plainText === "", "Guest plainText stays empty");
+        client.assert(row.excerpt === "Public teaser only", "Excerpt is the public teaser");
+        client.assert(row.hrefPath === "/articles/" + row.slug, "Locale-free href");
+        client.assert(row.plainText.indexOf("<") === -1, "No HTML");
+        client.assert(row.excerpt.indexOf("<") === -1, "No HTML in the teaser");
+        client.global.set("searchTierGuestPlain", row.plainText);
+    });
+%}
+
+###
+
+### @name listSearchTierProducts
+GET {{baseUrl}}/api/v1/tenant/products
+Host: {{tenantAHost}}
+Authorization: Bearer {{tenantAAccessToken}}
+Accept: application/json
+
+> {%
+    client.test("Capture supporter and producer", function() {
+        client.assert(response.status === 200, "Expected 200");
+        const supporter = response.body.data.find(item => item.slug === "supporter");
+        const producer = response.body.data.find(item => item.slug === "producer");
+        client.assert(supporter !== undefined && producer !== undefined, "Seeded level products");
+        client.global.set("supporterProductId", supporter.id);
+        client.global.set("producerProductId", producer.id);
+    });
+%}
+
+###
+
+### @name grantSupporterForSearch
+POST {{baseUrl}}/api/v1/tenant/subscriptions
+Host: {{tenantAHost}}
+Authorization: Bearer {{tenantAAccessToken}}
+Content-Type: application/json
+Accept: application/json
+
+{
+  "email": "{{subscriberEmail}}",
+  "productId": {{supporterProductId}}
+}
+
+> {%
+    client.test("Grant supporter", function() {
+        client.assert(response.status === 201, "Expected 201, got " + response.status);
+        client.global.set("searchTierSupporterSubscriptionId", response.body.data.id);
+    });
+%}
+
+###
+
+### @name searchDocumentsLowerTier
+GET {{baseUrl}}/api/v1/public/search-documents
+Host: {{tenantAHost}}
+Authorization: Bearer {{subscriberAccessToken}}
+Accept: application/json
+
+> {%
+    client.test("Supporter still sees the teaser only", function() {
+        client.assert(response.status === 200, "Expected 200");
+        const row = response.body.data.find(item => item.slug === client.global.get("searchTierSlug"));
+        client.assert(row !== undefined, "Expected the article");
+        client.assert(row.plainText === "", "Lower tier plainText stays empty");
+        client.assert(row.excerpt === "Public teaser only", "Teaser is still public");
+        client.assert(row.plainText === client.global.get("searchTierGuestPlain"), "Lower tier matches the guest body");
+        client.global.set("searchTierLowerPlain", row.plainText);
+    });
+%}
+
+###
+
+### @name grantProducerForSearch
+POST {{baseUrl}}/api/v1/tenant/subscriptions
+Host: {{tenantAHost}}
+Authorization: Bearer {{tenantAAccessToken}}
+Content-Type: application/json
+Accept: application/json
+
+{
+  "email": "{{subscriberEmail}}",
+  "productId": {{producerProductId}}
+}
+
+> {%
+    client.test("Grant producer", function() {
+        client.assert(response.status === 201, "Expected 201, got " + response.status);
+    });
+%}
+
+###
+
+### @name searchDocumentsHigherTier
+GET {{baseUrl}}/api/v1/public/search-documents
+Host: {{tenantAHost}}
+Authorization: Bearer {{subscriberAccessToken}}
+Accept: application/json
+
+> {%
+    client.test("Producer receives the stripped paid body", function() {
+        client.assert(response.status === 200, "Expected 200");
+        const row = response.body.data.find(item => item.slug === client.global.get("searchTierSlug"));
+        client.assert(row !== undefined, "Expected the article");
+        client.assert(row.access === "PAID", "Still marked PAID");
+        client.assert(row.plainText.indexOf("SEARCHTIERBODY") !== -1, "Higher tier plainText includes the body");
+        client.assert(row.plainText.indexOf("<") === -1, "Tags are stripped");
+        client.assert(row.plainText !== client.global.get("searchTierLowerPlain"), "Higher tier feed differs from the lower tier");
+        client.assert(row.excerpt === "Public teaser only", "Excerpt stays the teaser");
+    });
+%}

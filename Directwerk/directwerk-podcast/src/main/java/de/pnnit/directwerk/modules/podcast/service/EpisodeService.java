@@ -28,6 +28,7 @@ import de.pnnit.directwerk.modules.podcast.exception.FormatNotFoundException;
 import de.pnnit.directwerk.modules.digital.service.CategoryService;
 import de.pnnit.directwerk.modules.digital.service.HtmlSanitizer;
 import de.pnnit.directwerk.modules.podcast.repository.EpisodeRepository;
+import de.pnnit.directwerk.modules.search.SearchIndex;
 import de.pnnit.directwerk.modules.podcast.repository.FormatRepository;
 import de.pnnit.directwerk.security.SecurityUtils;
 import java.time.Instant;
@@ -56,6 +57,7 @@ public class EpisodeService {
     private final PodcastCoverAssetResolver podcastCoverAssetResolver;
     private final RssFeedRefreshJobProducer rssFeedRefreshScheduler;
     private final MembershipPermissionService permissionService;
+    private final SearchIndex searchIndex;
 
     /**
      * Paged variant (#310): bounds the response for tenants with large episode counts, where the
@@ -303,15 +305,19 @@ public class EpisodeService {
         permissionService.requireEpisodeAccess(ContentOperation.UPDATE, episode.getCreatedBy());
         Set<Category> resolved = categoryService.resolveActiveCategories(tenantId, categoryIds,
                 id -> { throw new EpisodeValidationException("Category is inactive: " + id); });
+        Episode updated;
         if (episode.getStatus() == EpisodeStatus.PUBLISHED) {
             List<Long> ids = resolved.stream().map(Category::getId).sorted().toList();
-            return patchWorkingDraft(
+            updated = patchWorkingDraft(
                     tenantId, episode, null, null, null, null, null, null, null, null, null, null, ids, null);
+        } else {
+            episode.getCategories().clear();
+            episode.getCategories().addAll(resolved);
+            episodeRepository.save(episode);
+            updated = requireEpisode(tenantId, episodeId);
         }
-        episode.getCategories().clear();
-        episode.getCategories().addAll(resolved);
-        episodeRepository.save(episode);
-        return requireEpisode(tenantId, episodeId);
+        EpisodeSearchIndex.mirror(searchIndex, updated);
+        return updated;
     }
 
     @Transactional
@@ -454,6 +460,7 @@ public class EpisodeService {
         permissionService.requireEpisodeAccess(ContentOperation.DELETE, episode.getCreatedBy());
         boolean wasVisible = episode.getStatus() == EpisodeStatus.PUBLISHED
                 || episode.getStatus() == EpisodeStatus.SCHEDULED;
+        EpisodeSearchIndex.remove(searchIndex, tenantId, episodeId);
         episodeRepository.delete(episode);
         if (wasVisible) {
             rssFeedRefreshScheduler.requestRefreshAfterCommit(tenantId);
@@ -480,6 +487,7 @@ public class EpisodeService {
             anyVisible = anyVisible
                     || episode.getStatus() == EpisodeStatus.PUBLISHED
                     || episode.getStatus() == EpisodeStatus.SCHEDULED;
+            EpisodeSearchIndex.remove(searchIndex, tenantId, episodeId);
             episodeRepository.delete(episode);
             deleted.add(episodeId);
         }

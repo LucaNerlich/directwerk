@@ -16,6 +16,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
@@ -40,6 +41,7 @@ import de.pnnit.directwerk.modules.newsletter.exception.ArticleValidationExcepti
 import de.pnnit.directwerk.modules.newsletter.job.ArticleRssFeedRefreshJobProducer;
 import de.pnnit.directwerk.modules.content.InvalidPublicationTransitionException;
 import de.pnnit.directwerk.modules.newsletter.repository.ArticleRepository;
+import de.pnnit.directwerk.modules.search.SearchIndex;
 import de.pnnit.directwerk.security.DirectwerkUserPrincipal;
 import java.time.Instant;
 import java.util.Arrays;
@@ -83,6 +85,9 @@ class ArticlePublicationWorkflowServiceTest {
     private ArticleRssFeedRefreshJobProducer articleRssFeedRefreshScheduler;
 
     @Mock
+    private SearchIndex searchIndex;
+
+    @Mock
     private ObjectProvider<ArticlePublicationWorkflowService> selfProvider;
 
     @Mock
@@ -114,7 +119,8 @@ class ArticlePublicationWorkflowServiceTest {
                 selfProvider,
                 new MembershipPermissionService(
                         overrideRepository, tenantMembershipRepository, tenantRepository,
-                        platformAuditService)
+                        platformAuditService),
+                searchIndex
         );
         lenient().when(notificationGate.enabled(anyLong(), any(), anyLong())).thenReturn(true);
         lenient().when(selfProvider.getObject()).thenReturn(articlePublicationWorkflowService);
@@ -132,6 +138,22 @@ class ArticlePublicationWorkflowServiceTest {
     @AfterEach
     void clearAuthentication() {
         SecurityContextHolder.clearContext();
+    }
+
+    @Test
+    void publishIndexesTheArticleAndUnpublishDeletesIt() {
+        Article article = draftArticle();
+        when(articleService.requireArticle(10L, 7L)).thenReturn(article);
+
+        articlePublicationWorkflowService.publish(10L, 7L);
+        articlePublicationWorkflowService.unpublish(10L, 7L);
+
+        verify(searchIndex).sync(argThat(draft ->
+                "article".equals(draft.kind())
+                        && draft.sourceId() == 7L
+                        && "/articles/hello-world".equals(draft.hrefPath())
+                        && "FREE".equals(draft.access())));
+        verify(searchIndex).remove(10L, "article", 7L);
     }
 
     @Test
