@@ -9046,6 +9046,7 @@ export interface operations {
             query?: {
                 limit?: number;
                 offset?: number;
+                sort?: "CREATED" | "PUBLISHED" | "UPDATED" | "TITLE";
             };
             header?: never;
             path?: never;
@@ -9767,6 +9768,7 @@ export interface operations {
             query?: {
                 limit?: number;
                 offset?: number;
+                sort?: "CREATED" | "PUBLISHED" | "UPDATED" | "TITLE";
             };
             header?: never;
             path?: never;

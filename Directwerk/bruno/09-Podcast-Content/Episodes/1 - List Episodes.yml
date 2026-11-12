@@ -5,7 +5,7 @@ info:
 
 http:
   method: GET
-  url: "{{baseUrl}}/api/v1/episodes?limit=100&offset=0"
+  url: "{{baseUrl}}/api/v1/episodes?limit=100&offset=0&sort=PUBLISHED"
   params:
     - name: limit
       value: "100"
@@ -15,6 +15,10 @@ http:
       value: "0"
       type: query
       description: Rows to skip (default 0), not pageIndex×limit — non-multiples of limit are valid (e.g. offset=50&limit=100).
+    - name: sort
+      value: PUBLISHED
+      type: query
+      description: CREATED (default), PUBLISHED (newest first), UPDATED (last modified), or TITLE (A–Z).
   auth: inherit
 
 runtime:

@@ -2,7 +2,7 @@
 
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react'
 
-import type {PublicationStatus} from '@directwerk/api/types'
+import type {PublicationSort, PublicationStatus} from '@directwerk/api/types'
 import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
 
 import {
@@ -36,7 +36,7 @@ export interface PublicationListPageConfig<T extends {
     title: string
     status: PublicationStatus
 }> {
-    load: (page?: {limit?: number; offset?: number}) => Promise<T[]>
+    load: (page?: {limit?: number; offset?: number; sort?: PublicationSort}) => Promise<T[]>
     publish: (id: number) => Promise<T>
     unpublish: (id: number) => Promise<T>
     cancelSchedule: (id: number) => Promise<T>
@@ -64,6 +64,7 @@ export function usePublicationListPage<T extends {
 
     const [items, setItems] = useState<T[]>([])
     const [isLoading, setIsLoading] = useState(true)
+    const [sort, setSort] = useState<PublicationSort>('CREATED')
     const [listError, setListError] = useState<string | null>(null)
     const [actionErrorMessage, setActionErrorMessage] = useState<string | null>(null)
     const [actionStatusMessage, setActionStatusMessage] = useState<string | null>(null)
@@ -84,6 +85,8 @@ export function usePublicationListPage<T extends {
 
     const itemsRef = useRef(items)
     itemsRef.current = items
+    const sortRef = useRef(sort)
+    sortRef.current = sort
 
     const selection = usePublicationListState(itemIds)
 
@@ -100,9 +103,15 @@ export function usePublicationListPage<T extends {
         [],
     )
 
+    const loadEpochRef = useRef(0)
+    const loadedSortRef = useRef<PublicationSort>('CREATED')
+
     const load = useCallback(async (offset = 0): Promise<void> => {
+        const epoch = ++loadEpochRef.current
         const current = configRef.current
-        setIsLoading(offset === 0)
+        const requestSort = sortRef.current
+        // Keep loaded rows visible while a sort change refetches; only an empty list blocks the page.
+        setIsLoading(offset === 0 && itemsRef.current.length === 0)
         setListError(null)
         // loadMore must not wipe in-flight or completed action messages (#729 review).
         if (offset === 0) {
@@ -110,7 +119,16 @@ export function usePublicationListPage<T extends {
             setActionStatusMessage(null)
         }
         try {
-            const loaded = await current.load({limit: LIST_PAGE_SIZE, offset})
+            const loaded = await current.load({
+                limit: LIST_PAGE_SIZE,
+                offset,
+                sort: requestSort,
+            })
+            // Latest request wins so a slow sort response cannot overwrite a newer one.
+            if (epoch !== loadEpochRef.current) {
+                return
+            }
+            loadedSortRef.current = requestSort
             setItems((existing) =>
                 offset === 0
                     ? loaded
@@ -123,18 +141,24 @@ export function usePublicationListPage<T extends {
             )
             setHasMore(loaded.length === LIST_PAGE_SIZE)
         } catch (error) {
-            if (authRedirect(error)) {
+            if (epoch !== loadEpochRef.current || authRedirect(error)) {
                 return
             }
             setListError(
                 error instanceof Error ? error.message : current.labels.loadError,
             )
         } finally {
-            setIsLoading(false)
+            if (epoch === loadEpochRef.current) {
+                setIsLoading(false)
+            }
         }
     }, [authRedirect])
 
     const loadMore = useCallback(async (): Promise<void> => {
+        // A sort refetch is in flight; its page-0 response will replace these rows.
+        if (loadedSortRef.current !== sortRef.current) {
+            return
+        }
         await load(itemsRef.current.length)
     }, [load])
 
@@ -186,7 +210,7 @@ export function usePublicationListPage<T extends {
 
     useEffect(() => {
         void load()
-    }, [load])
+    }, [load, sort])
 
     const displayError = listError ?? actionErrorMessage
 
@@ -196,6 +220,8 @@ export function usePublicationListPage<T extends {
         isLoading,
         hasMore,
         loadMore,
+        sort,
+        setSort,
         listError,
         displayError,
         statusMessage: actionStatusMessage,

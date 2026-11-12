@@ -1392,6 +1392,7 @@
     "kopierenFehlgeschlagen": "Copy failed.",
     "kopiert": "Copied!",
     "linkEinfuegenEntfernen": "Insert or remove link",
+    "nameAz": "Name (A–Z)",
     "oeffentlicheUrl": "Public URL:",
     "ohneTitel": "Untitled",
     "passeSuchbegriffSetzeSucheZurueckAlle": "Adjust the search term or reset the search to see all entries.",
@@ -1410,6 +1411,7 @@
     "shownotesErscheinenFeedFolgenseiteMediumBil": "Show notes appear in the feed and on the episode page. Use “Media” to embed images or link audio/video/documents (public files only).",
     "slugBereitsVergeben": "Slug is already taken.",
     "slugBestaetigung": "Slug to confirm",
+    "sortierenNach": "Sort by",
     "teaserKartenEMailBenachrichtigungen": "Teaser for cards and email notifications…",
     "textErscheintBeitragsseiteFeedMediumBilder": "The body appears on the article page and in the feed. Use “Media” to embed images or link audio/video/documents (public files only).",
     "titelEingeben": "Enter title…",
@@ -1425,9 +1427,12 @@
     "unpublishSelected": "Unpublish ${unpublishableCount}",
     "unpublishing": "Unpublishing…",
     "veroeffentlichenBlockedreason": "Before publishing: {blockedReason}",
+    "veroeffentlichtNeuesteZuerst": "Published (newest first)",
     "veroeffentlichungsdatumDarfZukunftLiegen": "Publish date must not be in the future.",
     "werDarfLesenGiltSeiteFeed": "Who may read? Applies to page and feed.",
     "wiederhergestellt": "Restoring…",
+    "zuletztErstellt": "Newest first",
+    "zuletztGeaendert": "Last modified",
     "zurueckziehenPlanungAufheben": "unpublish or cancel the schedule"
   },
   "gates": {

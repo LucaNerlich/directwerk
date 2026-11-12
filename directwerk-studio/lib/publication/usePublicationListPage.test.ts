@@ -432,6 +432,67 @@ describe('usePublicationListPage', () => {
 
         expect(result.current.statusMessage).toBe('Item 1 published')
         expect(result.current.items).toHaveLength(101)
-        expect(load).toHaveBeenLastCalledWith({limit: 100, offset: 100})
+        expect(load).toHaveBeenLastCalledWith({limit: 100, offset: 100, sort: 'CREATED'})
+    })
+
+    it('reloads from the start when the sort changes', async () => {
+        type TestItem = {id: number; title: string; status: PublicationStatus}
+        const item: TestItem = {id: 1, title: 'A', status: 'DRAFT'}
+        const load = vi
+            .fn()
+            .mockResolvedValueOnce([item])
+            .mockImplementation(() => new Promise<TestItem[]>(() => {}))
+        const mutate = vi.fn().mockResolvedValue(item)
+        const labels = {
+            loadError: 'load failed',
+            publishSuccess: (title: string) => `${title} published`,
+            unpublishSuccess: () => 'unpublished',
+            cancelScheduleSuccess: () => 'schedule cancelled',
+            unarchiveSuccess: () => 'unarchived',
+            publishError: 'publish failed',
+            unpublishError: 'unpublish failed',
+            cancelScheduleError: 'cancel failed',
+            unarchiveError: 'unarchive failed',
+            bulk: {
+                publishSuccess: () => 'published',
+                publishPartial: () => 'partially published',
+                unpublishSuccess: () => 'unpublished',
+                unpublishPartial: () => 'partially unpublished',
+                deleteSuccess: () => 'deleted',
+                publishError: 'publish failed',
+                unpublishError: 'unpublish failed',
+                deleteError: 'delete failed',
+                noPublishable: 'none to publish',
+                noUnpublishable: 'none to unpublish',
+            },
+        }
+
+        const {result} = renderHook(() =>
+            usePublicationListPage<TestItem>({
+                load,
+                publish: mutate,
+                unpublish: mutate,
+                cancelSchedule: mutate,
+                unarchive: mutate,
+                publishMany: vi.fn(),
+                unpublishMany: vi.fn(),
+                labels,
+            }),
+        )
+
+        await waitFor(() => expect(result.current.isLoading).toBe(false))
+        expect(load).toHaveBeenLastCalledWith({limit: 100, offset: 0, sort: 'CREATED'})
+
+        act(() => result.current.setSort('TITLE'))
+
+        await waitFor(() =>
+            expect(load).toHaveBeenLastCalledWith({limit: 100, offset: 0, sort: 'TITLE'}),
+        )
+
+        // The refetch is still in flight — "load more" must not merge the old-sort rows.
+        await act(async () => {
+            await result.current.loadMore()
+        })
+        expect(load).toHaveBeenCalledTimes(2)
     })
 })

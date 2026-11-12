@@ -13,9 +13,10 @@ import type {ViewMode} from '@directwerk/ui/components/view-mode-toggle'
 import {fuzzyFilter} from '@directwerk/ui/lib/fuzzy'
 
 import PublicationStatusBadge from '@/components/publication/PublicationStatusBadge'
+import SelectControl from '@/components/studio/SelectControl'
 import TagPill from '@/components/publication/TagPill'
 import {isBulkPublicationStatus} from '@/lib/publication/publicationBulkEligibility'
-import type {PublicationStatus} from '@directwerk/api/types'
+import type {PublicationSort, PublicationStatus} from '@directwerk/api/types'
 import {useDictionary} from '@/components/i18n/LocaleProvider'
 
 export interface PublicationListItem {
@@ -61,6 +62,9 @@ interface PublicationListSectionProps<T extends PublicationListItem> {
     /** True while older rows exist beyond the loaded page (#733). */
     hasMore?: boolean
     onLoadMore?: () => void
+    /** Sort control; hidden when either prop is omitted (e.g. series list). */
+    sort?: PublicationSort
+    onSortChange?: (sort: PublicationSort) => void
 }
 
 function formatPublishedAt(value: string | null): string | null {
@@ -291,9 +295,12 @@ export default function PublicationListSection<T extends PublicationListItem>(
         selectedIds,
         unpublishableCount,
         viewMode,
+        sort,
+        onSortChange,
     } = props
 
     const searchInputId = useId()
+    const sortSelectId = useId()
     const [query, setQuery] = useState('')
     const hasQuery = query.trim().length > 0
     const visibleItems = useMemo(
@@ -349,6 +356,35 @@ export default function PublicationListSection<T extends PublicationListItem>(
                             type="search"
                             value={query}
                         />
+                        {sort !== undefined && onSortChange !== undefined ? (
+                            <div className="flex items-center gap-2">
+                                <label
+                                    className="whitespace-nowrap text-sm text-muted-foreground"
+                                    htmlFor={sortSelectId}
+                                >
+                                    {dict.publication.sortierenNach}
+                                </label>
+                                <SelectControl
+                                    className="w-56"
+                                    id={sortSelectId}
+                                    onChange={(event) =>
+                                        onSortChange(event.target.value as PublicationSort)
+                                    }
+                                    value={sort}
+                                >
+                                    <option value="CREATED">
+                                        {dict.publication.zuletztErstellt}
+                                    </option>
+                                    <option value="PUBLISHED">
+                                        {dict.publication.veroeffentlichtNeuesteZuerst}
+                                    </option>
+                                    <option value="UPDATED">
+                                        {dict.publication.zuletztGeaendert}
+                                    </option>
+                                    <option value="TITLE">{dict.publication.nameAz}</option>
+                                </SelectControl>
+                            </div>
+                        ) : null}
                         {hasQuery ? (
                             <p className="text-sm text-muted-foreground" role="status">
                                 {visibleItems.length === 1
