@@ -44,6 +44,7 @@ When you change a canonical doc below that has a public mirror, update the match
 | [`stripe-advanced-billing.md`](stripe-advanced-billing.md) | Planned | — |
 | [`platform-saas-billing.md`](platform-saas-billing.md) | Planned | — |
 | [`content-creation-implementation.md`](content-creation-implementation.md) | Reference | — |
+| [`state-machines.md`](state-machines.md) | Shipped | — |
 | [`patreon-steady-integration.md`](patreon-steady-integration.md) | Planned / partial | — |
 | [`bunny-net-integration.md`](bunny-net-integration.md) | Operator CDN guide | — |
 | [`Directwerk/docs/multi-tenancy.md`](../Directwerk/docs/multi-tenancy.md) | Shipped | `directwerk-docs/.../architecture/multi-tenancy` |

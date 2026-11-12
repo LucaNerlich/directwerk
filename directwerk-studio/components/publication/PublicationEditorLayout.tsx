@@ -22,13 +22,20 @@ import LevelSelect from '@/components/studio/LevelSelect'
 import {ShowNotesEditor} from '@/lib/dynamic/ShowNotesEditor'
 import {rbacErrorMessage} from '@/lib/rbac/access'
 import {safeLinkHref} from '@/lib/url/safeUrl'
-import type {AccessPolicy, ContentNotifyPreview, PublicationStatus} from '@directwerk/api/types'
+import type {
+    AccessPolicy,
+    ContentNotifyPreview,
+    PublicationAction,
+    PublicationStatus,
+} from '@directwerk/api/types'
 import {renderContentHtml} from '@directwerk/api/content/renderContentHtml'
 import {useDictionary} from '@/components/i18n/LocaleProvider'
 
 interface PublicationEditorLayoutProps {
     kind: 'article' | 'episode'
     status: PublicationStatus
+    /** State-valid actions from the API; permissions are applied separately. */
+    availableActions: PublicationAction[]
     title: string
     body: string
     accessPolicy: AccessPolicy
@@ -105,6 +112,7 @@ interface PublicationEditorLayoutProps {
 export default function PublicationEditorLayout({
     kind,
     status,
+    availableActions,
     title,
     body,
     accessPolicy,
@@ -162,7 +170,8 @@ export default function PublicationEditorLayout({
     const dict = useDictionary()
     const bodyLabel = kind === 'episode' ? 'Shownotes' : 'Text'
     const readOnly = readOnlyReason !== null
-    const canEditFields = status === 'DRAFT' || status === 'PUBLISHED'
+    const can = (action: PublicationAction): boolean => availableActions.includes(action)
+    const canEditFields = can('EDIT')
     const fieldsDisabled = isSaving || !canEditFields || readOnly
     const publicationLabel = kind === 'episode' ? 'Folge' : 'Beitrag'
     const resolvedBackHref = backHref ?? (kind === 'episode' ? '/podcast/episodes' : '/write/articles')
@@ -186,7 +195,6 @@ export default function PublicationEditorLayout({
     const isDraft = status === 'DRAFT'
     const isScheduled = status === 'SCHEDULED'
     const isPublished = status === 'PUBLISHED'
-    const isArchived = status === 'ARCHIVED'
     const previewLink = previewUrl !== null ? safeLinkHref(previewUrl) : null
     // Only render when Preview is shown — Write tab typing must not pay this cost.
     // TipTap bodies are HTML; Markdown (MCP/import) is converted then sanitized.
@@ -225,7 +233,7 @@ export default function PublicationEditorLayout({
                                 {isSaving ? dict.common.saving : dict.common.save}
                             </Button>
                         ) : null}
-                        {(isDraft || isScheduled || (isPublished && hasWorkingDraft)) ? (
+                        {(can('PUBLISH')) ? (
                             <Button
                                 disabled={isSaving || readOnly || publishDisabled}
                                 onClick={() => setPublishDialogOpen(true)}
@@ -238,44 +246,39 @@ export default function PublicationEditorLayout({
                                     : dict.common.publish}
                             </Button>
                         ) : null}
-                        {isPublished ? (
-                            <>
-                                {hasWorkingDraft && onDiscardDraft !== undefined ? (
-                                    <Button
-                                        disabled={isSaving || readOnly}
-                                        onClick={onDiscardDraft}
-                                        size="sm"
-                                        type="button"
-                                        variant="outline"
-                                    >
-                                        Entwurf verwerfen
-                                    </Button>
-                                ) : null}
-                                <Button disabled={isSaving || readOnly} onClick={onUnpublish} size="sm" type="button" variant="outline">
-                                    {dict.common.withdraw}
-                                </Button>
-                                <Button
-                                    disabled={isSaving || readOnly || hasWorkingDraft}
-                                    onClick={onArchive}
-                                    size="sm"
-                                    title={
-                                        hasWorkingDraft
-                                            ? 'Entwurf veröffentlichen oder verwerfen, bevor archiviert wird.'
-                                            : undefined
-                                    }
-                                    type="button"
-                                    variant="outline"
-                                >
-                                    {dict.common.archive}
-                                </Button>
-                            </>
+                        {can('DISCARD_DRAFT') && onDiscardDraft !== undefined ? (
+                            <Button
+                                disabled={isSaving || readOnly}
+                                onClick={onDiscardDraft}
+                                size="sm"
+                                type="button"
+                                variant="outline"
+                            >
+                                Entwurf verwerfen
+                            </Button>
                         ) : null}
-                        {isScheduled ? (
+                        {can('UNPUBLISH') ? (
+                            <Button disabled={isSaving || readOnly} onClick={onUnpublish} size="sm" type="button" variant="outline">
+                                {dict.common.withdraw}
+                            </Button>
+                        ) : null}
+                        {can('ARCHIVE') ? (
+                            <Button
+                                disabled={isSaving || readOnly}
+                                onClick={onArchive}
+                                size="sm"
+                                type="button"
+                                variant="outline"
+                            >
+                                {dict.common.archive}
+                            </Button>
+                        ) : null}
+                        {can('CANCEL_SCHEDULE') ? (
                             <Button disabled={isSaving || readOnly} onClick={onCancelSchedule} size="sm" type="button" variant="outline">
                                 {dict.common.cancelSchedule}
                             </Button>
                         ) : null}
-                        {isArchived ? (
+                        {can('UNARCHIVE') ? (
                             <Button disabled={isSaving || readOnly} onClick={onUnarchive} size="sm" type="button">
                                 {dict.common.restore}
                             </Button>

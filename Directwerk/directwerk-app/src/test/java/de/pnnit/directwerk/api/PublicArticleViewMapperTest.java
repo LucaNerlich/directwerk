@@ -5,6 +5,7 @@ import static org.mockito.Mockito.when;
 
 import de.pnnit.directwerk.api.dto.ArticleView;
 import de.pnnit.directwerk.api.dto.PublicArticleView;
+import de.pnnit.directwerk.modules.content.LifecycleAction;
 import de.pnnit.directwerk.modules.digital.entity.AccessPolicy;
 import de.pnnit.directwerk.modules.digital.entity.MediaAsset;
 import de.pnnit.directwerk.modules.digital.service.CategoryService;
@@ -108,6 +109,18 @@ class PublicArticleViewMapperTest {
 
         assertThat(view.title()).isEqualTo("Draft title");
         assertThat(view.hasWorkingDraft()).isTrue();
+    }
+
+    @Test
+    void studioViewExposesStateValidActions() {
+        ArticleView view = mapper.toStudioView(article(null));
+
+        assertThat(view.availableActions())
+                .containsExactly(
+                        LifecycleAction.EDIT,
+                        LifecycleAction.PUBLISH,
+                        LifecycleAction.SCHEDULE,
+                        LifecycleAction.DELETE);
     }
 
     private static Article article(MediaAsset hero) {

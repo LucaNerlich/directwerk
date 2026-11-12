@@ -194,6 +194,7 @@ export async function publishSeries(
         title: updated.title,
         status: updated.status,
         rssUrl: updated.rssUrl,
+        availableActions: updated.availableActions,
     }
 }
 
@@ -207,5 +208,6 @@ export async function unpublishSeries(
         title: updated.title,
         status: updated.status,
         rssUrl: updated.rssUrl,
+        availableActions: updated.availableActions,
     }
 }

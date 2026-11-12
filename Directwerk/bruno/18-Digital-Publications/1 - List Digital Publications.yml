@@ -18,6 +18,12 @@ runtime:
         test("returns an array of publications", function() {
           expect(res.body.data).to.be.an("array");
         });
+        test("publication rows expose state-valid actions", function() {
+          const rows = res.body.data;
+          if (Array.isArray(rows) && rows.length > 0) {
+            expect(Array.isArray(rows[0].availableActions)).to.equal(true);
+          }
+        });
 
 settings:
   encodeUrl: true

@@ -2,6 +2,8 @@ package de.pnnit.directwerk.controller.podcast;
 
 import de.pnnit.directwerk.api.dto.ContentTextLimits;
 import de.pnnit.directwerk.api.response.Response;
+import de.pnnit.directwerk.modules.content.LifecycleAction;
+import de.pnnit.directwerk.modules.content.PublicationActions;
 import de.pnnit.directwerk.modules.core.RequiresModule;
 import de.pnnit.directwerk.modules.core.util.FeedUrls;
 import de.pnnit.directwerk.modules.core.util.PublicUrlBuilder;
@@ -170,7 +172,8 @@ public class SeriesController {
                 rssUrl,
                 series.getCreatedBy(),
                 series.getCreatedAt(),
-                series.getUpdatedAt()
+                series.getUpdatedAt(),
+                PublicationActions.forSeries(series.getStatus().phase())
         );
     }
 
@@ -216,7 +219,8 @@ public class SeriesController {
             String rssUrl,
             Long createdBy,
             Instant createdAt,
-            Instant updatedAt
+            Instant updatedAt,
+            List<LifecycleAction> availableActions
     ) {
     }
 }

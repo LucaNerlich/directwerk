@@ -124,6 +124,11 @@ stateDiagram-v2
 Implement once as `PublicationWorkflowService` in `modules/digital/internal/` — episode, article,
 and digital publication services **delegate** to it.
 
+The authoritative transition table is `PublicationActions` in `directwerk-common`; the workflow
+guards and each studio view's `availableActions[]` read the same table. Clients must render
+workflow buttons from `availableActions` instead of inferring them from `status`. See
+[`state-machines.md`](state-machines.md).
+
 ### Shared access policy
 
 | `access_policy` | Meaning | Audio/file visibility on publish |

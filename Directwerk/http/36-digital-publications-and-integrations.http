@@ -115,6 +115,15 @@ Authorization: Bearer {{tenantAAccessToken}}
 Host: {{tenantAHost}}
 Accept: application/json
 
+> {%
+    client.test("Get digital publication", function() {
+        client.assert(response.status === 200 || response.status === 404, "Expected 200 or 404");
+        if (response.status === 200) {
+            client.assert(Array.isArray(response.body.data.availableActions), "Expected availableActions on bonus file view");
+        }
+    });
+%}
+
 ###
 
 ### @name updateDigitalPublicationDraft

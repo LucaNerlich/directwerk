@@ -3,7 +3,10 @@ package de.pnnit.directwerk.modules.core.content;
 import de.pnnit.directwerk.modules.content.ContentPublishedNotifier;
 import de.pnnit.directwerk.modules.content.ContentType;
 import de.pnnit.directwerk.modules.content.InvalidPublicationTransitionException;
+import de.pnnit.directwerk.modules.content.LifecycleAction;
+import de.pnnit.directwerk.modules.content.PublicationActions;
 import de.pnnit.directwerk.modules.content.PublicationLifecycleSupport;
+import de.pnnit.directwerk.modules.content.PublicationPhase;
 import de.pnnit.directwerk.modules.content.PublicationTransitions;
 import de.pnnit.directwerk.modules.content.ScheduledPublishing;
 import de.pnnit.directwerk.modules.content.WorkingDraftMaps;
@@ -26,7 +29,7 @@ import lombok.extern.slf4j.Slf4j;
  * <p>The orchestration — transition guards, published-at resolution, the single
  * feed refresh per batch, the notification claim, the scheduled-publish permission
  * skip — lives here exactly once. A vertical service keeps only its hooks: how to
- * load and save its entity, which status enum value means which {@link Phase},
+ * load and save its entity, which status enum value means which {@link PublicationPhase},
  * what must be validated before publishing, and which module/content labels the
  * error messages and feeds use.</p>
  *
@@ -35,16 +38,6 @@ import lombok.extern.slf4j.Slf4j;
  */
 @Slf4j
 public abstract class PublicationWorkflow<ENTITY extends PublicationEntity<STATUS>, STATUS> {
-
-    /**
-     * The lifecycle phase every content type shares, mapped from the module status enum.
-     */
-    protected enum Phase {
-        DRAFT,
-        SCHEDULED,
-        PUBLISHED,
-        ARCHIVED
-    }
 
     private final ScheduledPublicationExecutor scheduledPublicationExecutor;
     private final ContentPublishedNotifier contentPublishedNotifier;
@@ -89,16 +82,11 @@ public abstract class PublicationWorkflow<ENTITY extends PublicationEntity<STATU
         ENTITY entity = requireEntity(tenantId, contentId);
         requirePermission(ContentOperation.SCHEDULE, entity);
         beforeSchedule(entity);
-        PublicationLifecycleSupport.schedule(
-                scheduledAt,
-                () -> phaseOf(entity.getStatus()) == Phase.DRAFT,
-                pluralLabel(),
-                () -> {
-                    entity.setStatus(statusFor(Phase.SCHEDULED));
-                    entity.setScheduledAt(scheduledAt);
-                    entity.setNotifySubscribersOnPublish(notifySubscribers);
-                }
-        );
+        requireAction(phaseOf(entity.getStatus()), LifecycleAction.SCHEDULE, false);
+        PublicationTransitions.requireFutureInstant(scheduledAt, "scheduledAt");
+        entity.setStatus(statusFor(PublicationPhase.SCHEDULED));
+        entity.setScheduledAt(scheduledAt);
+        entity.setNotifySubscribersOnPublish(notifySubscribers);
         return save(entity);
     }
 
@@ -108,14 +96,9 @@ public abstract class PublicationWorkflow<ENTITY extends PublicationEntity<STATU
     protected ENTITY cancelScheduleContent(Long tenantId, Long contentId) {
         ENTITY entity = requireEntity(tenantId, contentId);
         requirePermission(ContentOperation.SCHEDULE, entity);
-        PublicationLifecycleSupport.cancelSchedule(
-                () -> phaseOf(entity.getStatus()) == Phase.SCHEDULED,
-                pluralLabel(),
-                () -> {
-                    entity.setStatus(statusFor(Phase.DRAFT));
-                    entity.setScheduledAt(null);
-                }
-        );
+        requireAction(phaseOf(entity.getStatus()), LifecycleAction.CANCEL_SCHEDULE, false);
+        entity.setStatus(statusFor(PublicationPhase.DRAFT));
+        entity.setScheduledAt(null);
         return save(entity);
     }
 
@@ -136,20 +119,11 @@ public abstract class PublicationWorkflow<ENTITY extends PublicationEntity<STATU
     protected ENTITY archiveContent(Long tenantId, Long contentId) {
         ENTITY entity = requireEntity(tenantId, contentId);
         requirePermission(ContentOperation.ARCHIVE, entity);
-        PublicationTransitions.requireNoWorkingDraft(
-                WorkingDraftMaps.isPresent(entity.getWorkingDraft()),
-                pluralLabel(),
-                "archiving");
-        PublicationLifecycleSupport.archive(
-                () -> phaseOf(entity.getStatus()) == Phase.PUBLISHED,
-                pluralLabel(),
-                () -> {
-                    beforeArchive(entity);
-                    entity.setStatus(statusFor(Phase.ARCHIVED));
-                    entity.setScheduledAt(null);
-                },
-                null
-        );
+        boolean hasWorkingDraft = WorkingDraftMaps.isPresent(entity.getWorkingDraft());
+        requireAction(phaseOf(entity.getStatus()), LifecycleAction.ARCHIVE, hasWorkingDraft);
+        beforeArchive(entity);
+        entity.setStatus(statusFor(PublicationPhase.ARCHIVED));
+        entity.setScheduledAt(null);
         ENTITY archived = save(entity);
         requestFeedRefresh(tenantId);
         return archived;
@@ -161,14 +135,8 @@ public abstract class PublicationWorkflow<ENTITY extends PublicationEntity<STATU
     protected ENTITY discardWorkingDraftContent(Long tenantId, Long contentId) {
         ENTITY entity = requireEntity(tenantId, contentId);
         requirePermission(ContentOperation.UPDATE, entity);
-        if (phaseOf(entity.getStatus()) != Phase.PUBLISHED) {
-            throw new InvalidPublicationTransitionException(
-                    "Only PUBLISHED " + pluralLabel() + " can discard a working draft");
-        }
-        if (!WorkingDraftMaps.isPresent(entity.getWorkingDraft())) {
-            throw new InvalidPublicationTransitionException(
-                    "No working draft to discard for this " + singularLabel());
-        }
+        boolean hasWorkingDraft = WorkingDraftMaps.isPresent(entity.getWorkingDraft());
+        requireAction(phaseOf(entity.getStatus()), LifecycleAction.DISCARD_DRAFT, hasWorkingDraft);
         entity.setWorkingDraft(null);
         return save(entity);
     }
@@ -179,15 +147,10 @@ public abstract class PublicationWorkflow<ENTITY extends PublicationEntity<STATU
     protected ENTITY unarchiveContent(Long tenantId, Long contentId) {
         ENTITY entity = requireEntity(tenantId, contentId);
         requirePermission(ContentOperation.UNARCHIVE, entity);
-        PublicationLifecycleSupport.unarchive(
-                () -> phaseOf(entity.getStatus()) == Phase.ARCHIVED,
-                pluralLabel(),
-                () -> {
-                    entity.setStatus(statusFor(Phase.DRAFT));
-                    entity.setPublishedAt(null);
-                    entity.setScheduledAt(null);
-                }
-        );
+        requireAction(phaseOf(entity.getStatus()), LifecycleAction.UNARCHIVE, false);
+        entity.setStatus(statusFor(PublicationPhase.DRAFT));
+        entity.setPublishedAt(null);
+        entity.setScheduledAt(null);
         return save(entity);
     }
 
@@ -229,7 +192,7 @@ public abstract class PublicationWorkflow<ENTITY extends PublicationEntity<STATU
     protected void publishScheduledContent(Long tenantId, Long contentId) {
         ENTITY entity = requireEntity(tenantId, contentId);
         if (PublicationLifecycleSupport.skipScheduledPublishIfStatusChanged(
-                phaseOf(entity.getStatus()) == Phase.SCHEDULED,
+                phaseOf(entity.getStatus()) == PublicationPhase.SCHEDULED,
                 log,
                 singularLabel(),
                 contentId,
@@ -265,6 +228,40 @@ public abstract class PublicationWorkflow<ENTITY extends PublicationEntity<STATU
         );
     }
 
+    /**
+     * Rejects an action the shared table does not allow in the current phase.
+     * Messages keep the module's content label and the two working-draft cases
+     * explain the remedy instead of only naming the illegal transition.
+     */
+    private void requireAction(PublicationPhase phase, LifecycleAction action, boolean hasWorkingDraft) {
+        if (PublicationActions.forContent(phase, hasWorkingDraft).contains(action)) {
+            return;
+        }
+        throw new InvalidPublicationTransitionException(transitionMessage(phase, action, hasWorkingDraft));
+    }
+
+    private String transitionMessage(
+            PublicationPhase phase, LifecycleAction action, boolean hasWorkingDraft) {
+        return switch (action) {
+            case PUBLISH -> phase == PublicationPhase.PUBLISHED
+                    ? "Only PUBLISHED " + pluralLabel() + " with a working draft can be re-published"
+                    : "Only DRAFT or SCHEDULED " + pluralLabel() + " can be published";
+            case ARCHIVE -> hasWorkingDraft
+                    ? "Discard or publish the working draft before archiving " + pluralLabel()
+                    : "Only PUBLISHED " + pluralLabel() + " can be archived";
+            case SCHEDULE -> "Only DRAFT " + pluralLabel() + " can be scheduled";
+            case CANCEL_SCHEDULE -> "Only SCHEDULED " + pluralLabel() + " can be unscheduled";
+            case UNPUBLISH -> "Only PUBLISHED " + pluralLabel() + " can be unpublished";
+            case UNARCHIVE -> "Only ARCHIVED " + pluralLabel() + " can be unarchived";
+            case DISCARD_DRAFT -> phase != PublicationPhase.PUBLISHED
+                    ? "Only PUBLISHED " + pluralLabel() + " can discard a working draft"
+                    : "No working draft to discard for this " + singularLabel();
+            case NOTIFY -> "Only PUBLISHED " + pluralLabel() + " can send subscriber notifications";
+            case EDIT -> "Only DRAFT or PUBLISHED " + pluralLabel() + " can be edited";
+            case DELETE -> pluralLabel() + " cannot be deleted while " + phase;
+        };
+    }
+
     private ENTITY publishInternal(
             Long tenantId,
             ENTITY entity,
@@ -272,16 +269,11 @@ public abstract class PublicationWorkflow<ENTITY extends PublicationEntity<STATU
             Instant requestedPublishedAt,
             boolean refresh
     ) {
-        Phase phase = phaseOf(entity.getStatus());
-        if (phase == Phase.PUBLISHED) {
-            PublicationTransitions.requireWorkingDraftForRepublish(
-                    WorkingDraftMaps.isPresent(entity.getWorkingDraft()),
-                    pluralLabel());
+        PublicationPhase phase = phaseOf(entity.getStatus());
+        boolean hasWorkingDraft = WorkingDraftMaps.isPresent(entity.getWorkingDraft());
+        requireAction(phase, LifecycleAction.PUBLISH, hasWorkingDraft);
+        if (phase == PublicationPhase.PUBLISHED) {
             applyWorkingDraft(tenantId, entity);
-        } else {
-            PublicationTransitions.requireDraftOrScheduled(
-                    phase == Phase.DRAFT || phase == Phase.SCHEDULED,
-                    pluralLabel());
         }
         validateAndPrepareForPublish(tenantId, entity);
 
@@ -289,7 +281,7 @@ public abstract class PublicationWorkflow<ENTITY extends PublicationEntity<STATU
                 requestedPublishedAt,
                 entity.getPublishedAt()
         );
-        entity.setStatus(statusFor(Phase.PUBLISHED));
+        entity.setStatus(statusFor(PublicationPhase.PUBLISHED));
         entity.setPublishedAt(publishedAt);
         entity.setScheduledAt(null);
         entity.setWorkingDraft(null);
@@ -303,21 +295,18 @@ public abstract class PublicationWorkflow<ENTITY extends PublicationEntity<STATU
     }
 
     private void unpublishInternal(Long tenantId, ENTITY entity, boolean refresh) {
-        PublicationLifecycleSupport.unpublish(
-                () -> phaseOf(entity.getStatus()) == Phase.PUBLISHED,
-                pluralLabel(),
-                () -> {
-                    if (WorkingDraftMaps.isPresent(entity.getWorkingDraft())) {
-                        applyWorkingDraft(tenantId, entity);
-                    }
-                    entity.setWorkingDraft(null);
-                    beforeUnpublish(entity);
-                    entity.setStatus(statusFor(Phase.DRAFT));
-                    entity.setPublishedAt(null);
-                    entity.setScheduledAt(null);
-                },
-                refresh ? () -> requestFeedRefresh(tenantId) : null
-        );
+        requireAction(phaseOf(entity.getStatus()), LifecycleAction.UNPUBLISH, false);
+        if (WorkingDraftMaps.isPresent(entity.getWorkingDraft())) {
+            applyWorkingDraft(tenantId, entity);
+        }
+        entity.setWorkingDraft(null);
+        beforeUnpublish(entity);
+        entity.setStatus(statusFor(PublicationPhase.DRAFT));
+        entity.setPublishedAt(null);
+        entity.setScheduledAt(null);
+        if (refresh) {
+            requestFeedRefresh(tenantId);
+        }
     }
 
     private void maybeNotifySubscribers(Long tenantId, ENTITY published, boolean notifySubscribers) {
@@ -346,10 +335,7 @@ public abstract class PublicationWorkflow<ENTITY extends PublicationEntity<STATU
     protected ENTITY notifyContentNow(Long tenantId, Long contentId) {
         ENTITY entity = requireEntity(tenantId, contentId);
         requirePermission(ContentOperation.PUBLISH, entity);
-        if (phaseOf(entity.getStatus()) != Phase.PUBLISHED) {
-            throw new InvalidPublicationTransitionException(
-                    "Only PUBLISHED " + pluralLabel() + " can send subscriber notifications");
-        }
+        requireAction(phaseOf(entity.getStatus()), LifecycleAction.NOTIFY, false);
         if (!notificationGate.enabled(tenantId, contentType(), contentId)) {
             throw new InvalidPublicationTransitionException(
                     "Subscriber notifications are not available for this tenant");
@@ -374,10 +360,10 @@ public abstract class PublicationWorkflow<ENTITY extends PublicationEntity<STATU
     protected abstract List<ENTITY> findDueScheduled(Instant now);
 
     /** Maps the module status enum onto the shared lifecycle phase. */
-    protected abstract Phase phaseOf(STATUS status);
+    protected abstract PublicationPhase phaseOf(STATUS status);
 
     /** Maps a shared lifecycle phase onto the module status enum. */
-    protected abstract STATUS statusFor(Phase phase);
+    protected abstract STATUS statusFor(PublicationPhase phase);
 
     /** Enforces the module's per-entity permission check. */
     protected abstract void requirePermission(ContentOperation operation, ENTITY entity);

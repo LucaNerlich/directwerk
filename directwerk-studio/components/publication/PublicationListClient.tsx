@@ -13,7 +13,7 @@ import PublicationListSection, {
 import BulkEditDialog, {type BulkEditOperation} from '@/components/publication/BulkEditDialog'
 import BulkDeletePublicationDialog from '@/components/publication/BulkDeletePublicationDialog'
 import DeletePublicationDialog from '@/components/publication/DeletePublicationDialog'
-import type {CategorySummary, FormatSummary, PublicationStatus} from '@directwerk/api/types'
+import type {CategorySummary, FormatSummary, PublicationAction, PublicationStatus} from '@directwerk/api/types'
 import {
     usePublicationListPage,
     type PublicationListPageConfig,
@@ -23,6 +23,7 @@ type PublicationListEntity = {
     id: number
     title: string
     status: PublicationStatus
+    availableActions: PublicationAction[]
     slug?: string
     publishedAt: string | null
 }

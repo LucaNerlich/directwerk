@@ -8,6 +8,7 @@ import de.pnnit.directwerk.api.dto.PublicCategoryView;
 import de.pnnit.directwerk.api.dto.PublicEpisodeView;
 import de.pnnit.directwerk.api.dto.PublicFormatView;
 import de.pnnit.directwerk.modules.content.PublicSurfacePolicy;
+import de.pnnit.directwerk.modules.content.PublicationActions;
 import de.pnnit.directwerk.modules.content.WorkingDraftMaps;
 import de.pnnit.directwerk.modules.digital.api.EpisodeMediaApi;
 import de.pnnit.directwerk.modules.digital.service.CategoryService;
@@ -154,7 +155,8 @@ public class PublicEpisodeViewMapper {
                 episode.getCreatedBy(),
                 episode.getCreatedAt(),
                 episode.getUpdatedAt(),
-                hasDraft
+                hasDraft,
+                PublicationActions.forContent(episode.getStatus().phase(), hasDraft)
         );
     }
 

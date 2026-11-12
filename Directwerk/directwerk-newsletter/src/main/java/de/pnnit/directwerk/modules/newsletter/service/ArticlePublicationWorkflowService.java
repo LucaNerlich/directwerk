@@ -2,6 +2,7 @@ package de.pnnit.directwerk.modules.newsletter.service;
 
 import de.pnnit.directwerk.modules.content.ContentPublishedNotifier;
 import de.pnnit.directwerk.modules.content.ContentType;
+import de.pnnit.directwerk.modules.content.PublicationPhase;
 import de.pnnit.directwerk.modules.content.PublicationTexts;
 import de.pnnit.directwerk.modules.core.RequiresModule;
 import de.pnnit.directwerk.modules.core.authorization.ContentEntityType;
@@ -188,17 +189,12 @@ public class ArticlePublicationWorkflowService extends PublicationWorkflow<Artic
     }
 
     @Override
-    protected Phase phaseOf(ArticleStatus status) {
-        return switch (status) {
-            case DRAFT -> Phase.DRAFT;
-            case SCHEDULED -> Phase.SCHEDULED;
-            case PUBLISHED -> Phase.PUBLISHED;
-            case ARCHIVED -> Phase.ARCHIVED;
-        };
+    protected PublicationPhase phaseOf(ArticleStatus status) {
+        return status.phase();
     }
 
     @Override
-    protected ArticleStatus statusFor(Phase phase) {
+    protected ArticleStatus statusFor(PublicationPhase phase) {
         return switch (phase) {
             case DRAFT -> ArticleStatus.DRAFT;
             case SCHEDULED -> ArticleStatus.SCHEDULED;

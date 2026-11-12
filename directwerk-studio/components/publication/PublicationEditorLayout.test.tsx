@@ -53,6 +53,7 @@ function renderLayout(body = '<p>Text</p>') {
             publishedAt=""
             scheduledAt=""
             showNotify={false}
+            availableActions={['EDIT', 'PUBLISH', 'SCHEDULE', 'DELETE']}
             status="DRAFT"
             title="Beitrag"
         />,
@@ -85,6 +86,7 @@ describe('PublicationEditorLayout locale', () => {
                 publishedAt=""
                 scheduledAt=""
                 showNotify={false}
+                availableActions={['EDIT', 'PUBLISH', 'SCHEDULE', 'DELETE']}
                 status="DRAFT"
                 title="Post"
             />,

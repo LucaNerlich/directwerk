@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 
 import de.pnnit.directwerk.api.dto.EpisodeView;
+import de.pnnit.directwerk.modules.content.LifecycleAction;
 import de.pnnit.directwerk.modules.digital.api.EpisodeMediaApi;
 import de.pnnit.directwerk.modules.digital.entity.AccessPolicy;
 import de.pnnit.directwerk.modules.digital.entity.MediaAsset;
@@ -125,6 +126,18 @@ class PublicEpisodeViewMapperTest {
         MediaAsset asset = org.mockito.Mockito.mock(MediaAsset.class);
         when(asset.getId()).thenReturn(id);
         return asset;
+    }
+
+    @Test
+    void studioViewExposesStateValidActions() {
+        EpisodeView view = mapper.toStudioView(episode(null, Set.of()));
+
+        assertThat(view.availableActions())
+                .containsExactly(
+                        LifecycleAction.EDIT,
+                        LifecycleAction.PUBLISH,
+                        LifecycleAction.SCHEDULE,
+                        LifecycleAction.DELETE);
     }
 
     private static Episode episode(MediaAsset cover, Set<Format> formats) {

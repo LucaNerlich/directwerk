@@ -41,6 +41,7 @@ describe('PodcastDeskClient', () => {
                 title: 'Show',
                 status: 'PUBLISHED',
                 rssUrl: null,
+                availableActions: ['EDIT', 'UNPUBLISH'],
             },
         ])
         vi.mocked(listFormats).mockResolvedValueOnce([])

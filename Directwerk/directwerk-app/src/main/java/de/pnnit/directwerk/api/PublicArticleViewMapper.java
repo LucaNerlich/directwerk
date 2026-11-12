@@ -5,6 +5,7 @@ import de.pnnit.directwerk.api.dto.PublicCategoryView;
 import de.pnnit.directwerk.api.dto.MeArticleView;
 import de.pnnit.directwerk.api.dto.PublicArticleView;
 import de.pnnit.directwerk.modules.content.PublicSurfacePolicy;
+import de.pnnit.directwerk.modules.content.PublicationActions;
 import de.pnnit.directwerk.modules.content.WorkingDraftMaps;
 import de.pnnit.directwerk.api.dto.CategoryView;
 import de.pnnit.directwerk.modules.digital.service.CategoryService;
@@ -121,7 +122,8 @@ public class PublicArticleViewMapper {
                 article.getCreatedBy(),
                 article.getCreatedAt(),
                 article.getUpdatedAt(),
-                hasDraft
+                hasDraft,
+                PublicationActions.forContent(article.getStatus().phase(), hasDraft)
         );
     }
 

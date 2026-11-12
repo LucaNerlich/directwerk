@@ -1,29 +1,14 @@
 package de.pnnit.directwerk.modules.content;
 
-import de.pnnit.directwerk.modules.content.InvalidPublicationTransitionException;
 import java.time.Instant;
 
 /**
- * Shared publication transition guards for {@link ContentType} workflows.
- * Vertical services supply entity-specific validation exceptions where needed.
+ * Shared value guards for publication transitions. Which action is legal in
+ * which phase lives in {@link PublicationActions}.
  */
 public final class PublicationTransitions {
 
     private PublicationTransitions() {
-    }
-
-    public static void requireDraftStatus(boolean isDraft, String entityLabel) {
-        if (!isDraft) {
-            throw new InvalidPublicationTransitionException(
-                    "Only DRAFT " + entityLabel + " can be scheduled");
-        }
-    }
-
-    public static void requireScheduledStatus(boolean isScheduled, String entityLabel) {
-        if (!isScheduled) {
-            throw new InvalidPublicationTransitionException(
-                    "Only SCHEDULED " + entityLabel + " can be unscheduled");
-        }
     }
 
     public static void requireFutureInstant(Instant instant, String fieldLabel) {
@@ -50,44 +35,5 @@ public final class PublicationTransitions {
             return existingPublishedAt;
         }
         return Instant.now();
-    }
-
-    public static void requirePublishedStatus(boolean isPublished, String entityLabel) {
-        if (!isPublished) {
-            throw new InvalidPublicationTransitionException(
-                    "Only PUBLISHED " + entityLabel + " can be unpublished or archived");
-        }
-    }
-
-    public static void requireArchivedStatus(boolean isArchived, String entityLabel) {
-        if (!isArchived) {
-            throw new InvalidPublicationTransitionException(
-                    "Only ARCHIVED " + entityLabel + " can be unarchived");
-        }
-    }
-
-    public static void requireDraftOrScheduled(boolean draftOrScheduled, String entityLabel) {
-        if (!draftOrScheduled) {
-            throw new InvalidPublicationTransitionException(
-                    "Only DRAFT or SCHEDULED " + entityLabel + " can be published");
-        }
-    }
-
-    /**
-     * Over-publish: a {@code PUBLISHED} item may be published again only when a working draft
-     * overlay is present (draft-over-publish).
-     */
-    public static void requireWorkingDraftForRepublish(boolean hasWorkingDraft, String entityLabel) {
-        if (!hasWorkingDraft) {
-            throw new InvalidPublicationTransitionException(
-                    "Only PUBLISHED " + entityLabel + " with a working draft can be re-published");
-        }
-    }
-
-    public static void requireNoWorkingDraft(boolean hasWorkingDraft, String entityLabel, String action) {
-        if (hasWorkingDraft) {
-            throw new InvalidPublicationTransitionException(
-                    "Discard or publish the working draft before " + action + " " + entityLabel);
-        }
     }
 }

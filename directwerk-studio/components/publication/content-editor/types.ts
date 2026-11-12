@@ -4,6 +4,7 @@ import type {DeskAccess} from '@/lib/rbac/access'
 import type {
     AccessPolicy,
     ContentNotifyPreview,
+    PublicationAction,
     PublicationStatus,
     PublishOptions,
     RbacEntityType,
@@ -65,6 +66,7 @@ export interface ContentEditorModel<
         title: string
         createdBy?: number | null
         hasWorkingDraft?: boolean
+        availableActions?: PublicationAction[]
     },
 > {
     descriptor: ContentEditorDescriptor<T>

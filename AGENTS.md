@@ -19,6 +19,7 @@ Mailpit, host `bootRun`, Docker image, Coolify/prod). **Public docs site:** [`di
 [`docs/content-platform-strategy.md`](docs/content-platform-strategy.md),
 [`docs/content-subscriptions-and-entitlements.md`](docs/content-subscriptions-and-entitlements.md),
 [`docs/payment.md`](docs/payment.md),
+[`docs/state-machines.md`](docs/state-machines.md),
 [`docs/patreon-steady-integration.md`](docs/patreon-steady-integration.md),
 [`docs/product-naming.md`](docs/product-naming.md), [`docs/asset-storage.md`](docs/asset-storage.md).
 Manual API tests: [`Directwerk/http/`](Directwerk/http/). Product UIs are `directwerk-admin`,

@@ -62,6 +62,9 @@ Accept: application/json
 > {%
     client.test("Get article", function() {
         client.assert(response.status === 200 || response.status === 403 || response.status === 404, "Expected article response");
+        if (response.status === 200) {
+            client.assert(Array.isArray(response.body.data.availableActions), "Expected availableActions on article view");
+        }
     });
 %}
 
