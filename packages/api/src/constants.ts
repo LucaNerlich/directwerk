@@ -24,6 +24,9 @@ export const ASSET_STATUSES = ['PENDING', 'READY', 'PENDING_DELETE', 'ARCHIVED']
 /** Known asset visibilities for media uploads. */
 export const ASSET_VISIBILITIES = ['PUBLIC', 'PRIVATE'] as const
 
+/** Studio episode/article list orderings accepted by `?sort=`. */
+export const PUBLICATION_SORTS = ['CREATED', 'PUBLISHED', 'UPDATED', 'TITLE'] as const
+
 /** Known job statuses reported by the platform queue endpoint. */
 export const JOB_STATUSES = ['QUEUED', 'PROCESSING', 'COMPLETED', 'FAILED'] as const
 

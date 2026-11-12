@@ -15,6 +15,7 @@ import de.pnnit.directwerk.modules.core.authorization.ContentEntityType;
 import de.pnnit.directwerk.modules.core.audit.PlatformAuditService;
 import de.pnnit.directwerk.modules.core.authorization.ContentOperation;
 import de.pnnit.directwerk.modules.core.authorization.RestrictionScope;
+import de.pnnit.directwerk.modules.core.content.PublicationSort;
 import de.pnnit.directwerk.modules.core.entity.Role;
 import de.pnnit.directwerk.modules.core.entity.Tenant;
 import de.pnnit.directwerk.modules.core.exception.ContentAccessDeniedException;
@@ -121,15 +122,28 @@ class EpisodeServiceTest {
 
     @Test
     void listEpisodesPassesTrueRowOffsetToRepository() {
-        when(episodeRepository.findByTenantIdOrderByCreatedAtDescIdDesc(eq(TENANT_ID), any(Pageable.class)))
+        when(episodeRepository.findByTenantId(eq(TENANT_ID), any(Pageable.class)))
                 .thenReturn(List.of());
 
         episodeService.listEpisodes(TENANT_ID, 100, 50);
 
         ArgumentCaptor<Pageable> pageable = ArgumentCaptor.forClass(Pageable.class);
-        verify(episodeRepository).findByTenantIdOrderByCreatedAtDescIdDesc(eq(TENANT_ID), pageable.capture());
+        verify(episodeRepository).findByTenantId(eq(TENANT_ID), pageable.capture());
         assertThat(pageable.getValue().getOffset()).isEqualTo(50);
         assertThat(pageable.getValue().getPageSize()).isEqualTo(100);
+        assertThat(pageable.getValue().getSort().getOrderFor("createdAt")).isNotNull();
+    }
+
+    @Test
+    void listEpisodesAppliesRequestedSort() {
+        when(episodeRepository.findByTenantId(eq(TENANT_ID), any(Pageable.class)))
+                .thenReturn(List.of());
+
+        episodeService.listEpisodes(TENANT_ID, 100, 0, PublicationSort.TITLE);
+
+        ArgumentCaptor<Pageable> pageable = ArgumentCaptor.forClass(Pageable.class);
+        verify(episodeRepository).findByTenantId(eq(TENANT_ID), pageable.capture());
+        assertThat(pageable.getValue().getSort().getOrderFor("title")).isNotNull();
     }
 
     @Test

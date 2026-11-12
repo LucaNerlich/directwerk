@@ -13,6 +13,7 @@ import de.pnnit.directwerk.api.dto.ReplaceNewsletterListsRequest;
 import de.pnnit.directwerk.api.response.Response;
 import de.pnnit.directwerk.controller.support.ContentEndpointSupport;
 import de.pnnit.directwerk.modules.core.RequiresModule;
+import de.pnnit.directwerk.modules.core.content.PublicationSort;
 import de.pnnit.directwerk.modules.digital.DigitalContentModule;
 import de.pnnit.directwerk.modules.digital.entity.AccessPolicy;
 import de.pnnit.directwerk.modules.email.content.ContentNotifyStudioService;
@@ -73,11 +74,12 @@ public class ArticleController {
     @GetMapping
     ResponseEntity<Response<List<ArticleView>>> listArticles(
             @RequestParam(defaultValue = "100") @Min(1) @Max(500) int limit,
-            @RequestParam(defaultValue = "0") @Min(0) int offset
+            @RequestParam(defaultValue = "0") @Min(0) int offset,
+            @RequestParam(defaultValue = "CREATED") PublicationSort sort
     ) {
         Long tenantId = TenantContext.requireTenantId();
         return ContentEndpointSupport.okList(
-                articleService.listArticles(tenantId, limit, offset), publicArticleViewMapper::toStudioView);
+                articleService.listArticles(tenantId, limit, offset, sort), publicArticleViewMapper::toStudioView);
     }
 
     @GetMapping("/{articleId}")

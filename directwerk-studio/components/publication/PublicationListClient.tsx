@@ -108,6 +108,8 @@ export default function PublicationListClient<T extends PublicationListEntity>({
         allSelected,
         viewMode,
         setViewMode,
+        sort,
+        setSort,
         toggleSelection,
         toggleSelectAll,
         publishableCount,
@@ -295,6 +297,8 @@ export default function PublicationListClient<T extends PublicationListEntity>({
                         selectedIds={selectedIds}
                         unpublishableCount={unpublishableCount}
                         viewMode={viewMode}
+                        sort={sort}
+                        onSortChange={setSort}
                     />
                     <DeletePublicationDialog
                         contentLabel={contentLabel}

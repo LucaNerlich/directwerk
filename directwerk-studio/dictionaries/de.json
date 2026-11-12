@@ -1392,6 +1392,7 @@
     "kopierenFehlgeschlagen": "Kopieren fehlgeschlagen.",
     "kopiert": "Kopiert!",
     "linkEinfuegenEntfernen": "Link einfügen oder entfernen",
+    "nameAz": "Name (A–Z)",
     "oeffentlicheUrl": "Öffentliche URL:",
     "ohneTitel": "Ohne Titel",
     "passeSuchbegriffSetzeSucheZurueckAlle": "Passe den Suchbegriff an oder setze die Suche zurück, um alle Einträge zu sehen.",
@@ -1410,6 +1411,7 @@
     "shownotesErscheinenFeedFolgenseiteMediumBil": "Shownotes erscheinen im Feed und auf der Folgenseite. Über „Medium“ Bilder einbetten oder Audio/Video/Dokumente verlinken (nur öffentliche Dateien).",
     "slugBereitsVergeben": "Slug ist bereits vergeben.",
     "slugBestaetigung": "Slug zur Bestätigung",
+    "sortierenNach": "Sortieren nach",
     "teaserKartenEMailBenachrichtigungen": "Teaser für Karten und E-Mail-Benachrichtigungen…",
     "textErscheintBeitragsseiteFeedMediumBilder": "Der Text erscheint auf der Beitragsseite und im Feed. Über „Medium“ Bilder einbetten oder Audio/Video/Dokumente verlinken (nur öffentliche Dateien).",
     "titelEingeben": "Titel eingeben…",
@@ -1425,9 +1427,12 @@
     "unpublishSelected": "${unpublishableCount} zurückziehen",
     "unpublishing": "Wird zurückgezogen…",
     "veroeffentlichenBlockedreason": "Vor dem Veröffentlichen: {blockedReason}",
+    "veroeffentlichtNeuesteZuerst": "Veröffentlicht (neueste zuerst)",
     "veroeffentlichungsdatumDarfZukunftLiegen": "Veröffentlichungsdatum darf nicht in der Zukunft liegen.",
     "werDarfLesenGiltSeiteFeed": "Wer darf lesen? Gilt für Seite und Feed.",
     "wiederhergestellt": "Wird wiederhergestellt…",
+    "zuletztErstellt": "Zuletzt erstellt",
+    "zuletztGeaendert": "Zuletzt geändert",
     "zurueckziehenPlanungAufheben": "zurückziehen oder die Planung aufheben"
   },
   "gates": {

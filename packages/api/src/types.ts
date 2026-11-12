@@ -3,6 +3,7 @@ import type {
     ASSET_TYPES,
     ASSET_VISIBILITIES,
     JOB_STATUSES,
+    PUBLICATION_SORTS,
     TenantInvitableRole,
 } from './constants'
 import {MODULE_PRESETS} from './constants'
@@ -70,6 +71,8 @@ export type StudioHome = 'OVERVIEW' | 'WRITE_DESK' | 'PODCAST_DESK'
 export type StudioDesk = 'WRITE' | 'PODCAST'
 
 export type PublicationStatus = 'DRAFT' | 'SCHEDULED' | 'PUBLISHED' | 'ARCHIVED'
+
+export type PublicationSort = (typeof PUBLICATION_SORTS)[number]
 
 export type AccessPolicy = 'FREE' | 'PAID'
 

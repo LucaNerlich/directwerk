@@ -12,6 +12,7 @@ import de.pnnit.directwerk.api.dto.ReplaceCategoriesRequest;
 import de.pnnit.directwerk.api.response.Response;
 import de.pnnit.directwerk.controller.support.ContentEndpointSupport;
 import de.pnnit.directwerk.modules.core.RequiresModule;
+import de.pnnit.directwerk.modules.core.content.PublicationSort;
 import de.pnnit.directwerk.modules.email.content.ContentNotifyStudioService;
 import de.pnnit.directwerk.modules.podcast.PodcastModule;
 import de.pnnit.directwerk.modules.digital.entity.AccessPolicy;
@@ -70,11 +71,12 @@ public class EpisodeController {
     @GetMapping
     ResponseEntity<Response<List<EpisodeView>>> listEpisodes(
             @RequestParam(defaultValue = "100") @Min(1) @Max(500) int limit,
-            @RequestParam(defaultValue = "0") @Min(0) int offset
+            @RequestParam(defaultValue = "0") @Min(0) int offset,
+            @RequestParam(defaultValue = "CREATED") PublicationSort sort
     ) {
         Long tenantId = TenantContext.requireTenantId();
         return ContentEndpointSupport.okList(
-                episodeService.listEpisodes(tenantId, limit, offset),
+                episodeService.listEpisodes(tenantId, limit, offset, sort),
                 publicEpisodeViewMapper::toStudioView);
     }
 

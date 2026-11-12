@@ -35,8 +35,9 @@ Accept: application/json
 
 ### @name listArticles
 ### Page with ?limit=1..500 (default 100) and ?offset=<rows skipped> (default 0; not pageIndex×limit).
+### ?sort=CREATED (default) | PUBLISHED (newest first) | UPDATED (last modified) | TITLE (A–Z).
 ### Each article includes heroImageUrl (public CDN hero; null while private/unset) for studio list thumbs.
-GET {{baseUrl}}/api/v1/articles?limit=100&offset=0
+GET {{baseUrl}}/api/v1/articles?limit=100&offset=0&sort=PUBLISHED
 Host: {{tenantAHost}}
 Authorization: Bearer {{tenantAAccessToken}}
 Accept: application/json

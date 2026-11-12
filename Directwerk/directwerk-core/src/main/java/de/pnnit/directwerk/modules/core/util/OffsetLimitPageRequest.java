@@ -25,6 +25,11 @@ public final class OffsetLimitPageRequest implements Pageable {
         return new OffsetLimitPageRequest(Math.max(limit, 1), Math.max(offset, 0), Sort.unsorted());
     }
 
+    /** Uncapped limit with an explicit sort. */
+    public static OffsetLimitPageRequest of(int limit, int offset, Sort sort) {
+        return new OffsetLimitPageRequest(Math.max(limit, 1), Math.max(offset, 0), sort);
+    }
+
     /** Limit clamped to {@code [1, maxLimit]}. */
     public static OffsetLimitPageRequest of(int limit, int offset, int maxLimit) {
         int pageSize = Math.min(Math.max(limit, 1), Math.max(maxLimit, 1));

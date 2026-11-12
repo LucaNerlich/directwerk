@@ -377,6 +377,12 @@ describe('buildSafePublicationListQueryString', () => {
                 new URLSearchParams('limit=500'),
             ),
         ).toBe('?limit=500')
+        expect(
+            buildSafePublicationListQueryString(
+                '/api/v1/articles',
+                new URLSearchParams('limit=100&offset=0&sort=PUBLISHED'),
+            ),
+        ).toBe('?limit=100&offset=0&sort=PUBLISHED')
     })
 
     it('rejects unknown paths, keys, duplicates, and invalid values', () => {
@@ -420,6 +426,18 @@ describe('buildSafePublicationListQueryString', () => {
             buildSafePublicationListQueryString(
                 '/api/v1/articles',
                 new URLSearchParams(''),
+            ),
+        ).toBeNull()
+        expect(
+            buildSafePublicationListQueryString(
+                '/api/v1/episodes',
+                new URLSearchParams('sort=published'),
+            ),
+        ).toBeNull()
+        expect(
+            buildSafePublicationListQueryString(
+                '/api/v1/episodes',
+                new URLSearchParams('sort=TITLE&sort=CREATED'),
             ),
         ).toBeNull()
     })

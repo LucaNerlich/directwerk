@@ -5,6 +5,7 @@ import de.pnnit.directwerk.modules.core.exception.ConflictCodes;
 import de.pnnit.directwerk.modules.core.RequiresModule;
 import de.pnnit.directwerk.modules.core.authorization.ContentOperation;
 import de.pnnit.directwerk.modules.core.content.BulkPublication;
+import de.pnnit.directwerk.modules.core.content.PublicationSort;
 import de.pnnit.directwerk.modules.core.repository.TenantRepository;
 import de.pnnit.directwerk.modules.core.service.MembershipPermissionService;
 import de.pnnit.directwerk.modules.content.WorkingDraftMaps;
@@ -71,8 +72,14 @@ public class EpisodeService {
     /** Offset variant so a tenant can reach episodes past the first page (#733). */
     @Transactional(readOnly = true)
     public List<Episode> listEpisodes(Long tenantId, int limit, int offset) {
-        return episodeRepository.findByTenantIdOrderByCreatedAtDescIdDesc(
-                tenantId, OffsetLimitPageRequest.of(limit, offset));
+        return listEpisodes(tenantId, limit, offset, PublicationSort.CREATED);
+    }
+
+    /** Offset variant with studio list ordering (published, last modified, title). */
+    @Transactional(readOnly = true)
+    public List<Episode> listEpisodes(Long tenantId, int limit, int offset, PublicationSort sort) {
+        return episodeRepository.findByTenantId(
+                tenantId, OffsetLimitPageRequest.of(limit, offset, sort.toSort()));
     }
 
     @Transactional(readOnly = true)

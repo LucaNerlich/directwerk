@@ -40,6 +40,10 @@ function toolError(error: unknown) {
 const idSchema = z.coerce.number().int().positive()
 const optionalLimit = z.coerce.number().int().min(1).max(100).optional()
 const optionalOffset = z.coerce.number().int().min(0).optional()
+const optionalSort = z
+    .enum(['CREATED', 'PUBLISHED', 'UPDATED', 'TITLE'])
+    .optional()
+    .describe('CREATED (default), PUBLISHED (newest first), UPDATED, or TITLE (A–Z)')
 
 /** Options for {@link createMcpServer}. Filesystem tools stay stdio-only. */
 export type CreateMcpServerOptions = {
@@ -65,6 +69,7 @@ export function createMcpServer(
     server.tool('list_articles', 'List articles for the tenant', {
         limit: optionalLimit,
         offset: optionalOffset,
+        sort: optionalSort,
     }, async (args) => {
         try {
             return toolResult(await api('GET', 'api/v1/articles', undefined, args))
@@ -289,6 +294,7 @@ export function createMcpServer(
     server.tool('list_episodes', 'List episodes for the tenant', {
         limit: optionalLimit,
         offset: optionalOffset,
+        sort: optionalSort,
     }, async (args) => {
         try {
             return toolResult(await api('GET', 'api/v1/episodes', undefined, args))

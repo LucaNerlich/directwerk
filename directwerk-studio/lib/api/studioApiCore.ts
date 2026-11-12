@@ -1,6 +1,6 @@
 'use client'
 
-import type {PublishOptions, ScheduleOptions} from '@directwerk/api/types'
+import type {PublicationSort, PublishOptions, ScheduleOptions} from '@directwerk/api/types'
 import {authenticatedRequest, INVALID_RESPONSE, jsonInit, proxyRequest} from './studioTransport'
 
 
@@ -47,7 +47,7 @@ export async function studioDelete(path: string): Promise<void> {
 }
 
 export interface PublicationWorkflowApi<T, TCreate, TUpdate> {
-    list(page?: {limit?: number; offset?: number}): Promise<T[]>
+    list(page?: {limit?: number; offset?: number; sort?: PublicationSort}): Promise<T[]>
     get(id: number): Promise<T>
     create(input: TCreate): Promise<T>
     update(id: number, input: TUpdate): Promise<T>
@@ -72,13 +72,16 @@ export function createPublicationWorkflowApi<T, TCreate extends object, TUpdate 
     const {basePath, parseEnvelope, parseListEnvelope, messages} = config
 
     return {
-        list: (page?: {limit?: number; offset?: number}): Promise<T[]> => {
+        list: (page?: {limit?: number; offset?: number; sort?: PublicationSort}): Promise<T[]> => {
             const params = new URLSearchParams()
             if (page?.limit !== undefined) {
                 params.set('limit', String(page.limit))
             }
             if (page?.offset !== undefined) {
                 params.set('offset', String(page.offset))
+            }
+            if (page?.sort !== undefined) {
+                params.set('sort', page.sort)
             }
             const query = params.toString()
             return studioGet(

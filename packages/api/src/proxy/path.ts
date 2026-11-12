@@ -1,4 +1,4 @@
-import {ASSET_STATUSES, ASSET_TYPES} from '../constants'
+import {ASSET_STATUSES, ASSET_TYPES, PUBLICATION_SORTS} from '../constants'
 
 // Allow '.' so domain hosts (e.g. podcast.example.com) can be path segments.
 const SAFE_PATH_SEGMENT = /^[A-Za-z0-9_.-]+$/
@@ -185,16 +185,17 @@ export function buildSafeMediaFolderDeleteQueryString(
 }
 
 /**
- * Studio episode/article list pages page with `limit`/`offset`
+ * Studio episode/article list pages page with `limit`/`offset` and sort
  * (`GET /api/v1/episodes`, `GET /api/v1/articles` — Spring caps limit at
  * 500). Same strict allowlist pattern as the media library: known keys
  * only, no duplicates, rebuilt canonically.
  */
 const PUBLICATION_LIST_PATHS = new Set(['/api/v1/episodes', '/api/v1/articles'])
 const MAX_PUBLICATION_LIST_LIMIT = 500
+const ALLOWED_PUBLICATION_SORTS = new Set<string>(PUBLICATION_SORTS)
 
 /**
- * Builds a canonical `?limit=&offset=` query for episode/article lists.
+ * Builds a canonical `?limit=&offset=&sort=` query for episode/article lists.
  * Returns `null` for any other path, unknown key, duplicate key, or
  * invalid value.
  */
@@ -231,6 +232,12 @@ export function buildSafePublicationListQueryString(
             }
             case 'offset': {
                 if (!/^\d{1,9}$/.test(value)) {
+                    return null
+                }
+                break
+            }
+            case 'sort': {
+                if (!ALLOWED_PUBLICATION_SORTS.has(value)) {
                     return null
                 }
                 break
