@@ -9,6 +9,7 @@ interface CoverTestItem {
     slug: string
     title: string
     status: 'PUBLISHED'
+    availableActions: ['UNPUBLISH', 'DELETE']
     publishedAt: null
     coverImageUrl?: string | null
 }
@@ -17,6 +18,7 @@ const baseItem: Omit<CoverTestItem, 'id' | 'coverImageUrl'> = {
     slug: 'folge-1',
     title: 'Folge 1',
     status: 'PUBLISHED',
+    availableActions: ['UNPUBLISH', 'DELETE'],
     publishedAt: null,
 }
 

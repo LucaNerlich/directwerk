@@ -3767,6 +3767,7 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string;
+            availableActions?: ("EDIT" | "PUBLISH" | "SCHEDULE" | "CANCEL_SCHEDULE" | "UNPUBLISH" | "ARCHIVE" | "UNARCHIVE" | "DISCARD_DRAFT" | "NOTIFY" | "DELETE")[];
         };
         UpdateUploadLimitsRequest: {
             /** Format: int64 */
@@ -4036,6 +4037,7 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string;
             hasWorkingDraft?: boolean;
+            availableActions?: ("EDIT" | "PUBLISH" | "SCHEDULE" | "CANCEL_SCHEDULE" | "UNPUBLISH" | "ARCHIVE" | "UNARCHIVE" | "DISCARD_DRAFT" | "NOTIFY" | "DELETE")[];
         };
         ResponseEpisodeView: {
             /** Format: int32 */
@@ -4091,6 +4093,7 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string;
+            availableActions?: ("EDIT" | "PUBLISH" | "SCHEDULE" | "CANCEL_SCHEDULE" | "UNPUBLISH" | "ARCHIVE" | "UNARCHIVE" | "DISCARD_DRAFT" | "NOTIFY" | "DELETE")[];
         };
         ResponseDigitalPublicationView: {
             /** Format: int32 */
@@ -4164,6 +4167,7 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string;
             hasWorkingDraft?: boolean;
+            availableActions?: ("EDIT" | "PUBLISH" | "SCHEDULE" | "CANCEL_SCHEDULE" | "UNPUBLISH" | "ARCHIVE" | "UNARCHIVE" | "DISCARD_DRAFT" | "NOTIFY" | "DELETE")[];
         };
         NewsletterListTag: {
             /** Format: int64 */

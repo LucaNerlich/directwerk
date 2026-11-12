@@ -177,6 +177,11 @@ Same names on API `/mcp` and this package (except stdio-only `import_podcast_man
 
 Publish/schedule args match REST (`notifySubscribers`, `scheduledAt`, `publishedAt`). Newsletter **list** CRUD remains outside the API-key allowlist; attach uses article path only.
 
+Every `get_*` / `list_*` response includes `availableActions` (the state-valid
+transitions from the shared `PublicationActions` table). Agents should call only
+those actions and treat a transition 4xx as "state changed since read" rather
+than retrying the same call.
+
 ### Draft-over-publish
 
 `update_*` / `set_*_categories` (and article newsletter lists / episode formats+audio) on a **PUBLISHED** item stage a `working_draft` overlay — status stays `PUBLISHED` and the public page stays up. Studio/MCP GET responses overlay draft fields and set `hasWorkingDraft: true`. Call `publish_*` again to apply the draft to live columns (over-publish). REST also exposes `POST …/discard-draft` to drop the overlay without changing live content.

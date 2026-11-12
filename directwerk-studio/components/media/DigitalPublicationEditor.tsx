@@ -39,6 +39,7 @@ import type {
     AccessPolicy,
     CreateDigitalPublicationInput,
     DigitalPublication,
+    PublicationAction,
     UpdateDigitalPublicationInput,
 } from '@directwerk/api/types'
 
@@ -118,7 +119,11 @@ export default function DigitalPublicationEditor({
 
     const canModify = isNew ? desk.canCreate : desk.canEdit
     const modifyBlockedReason = isNew ? desk.createBlockedReason : desk.editBlockedReason
-    const readOnly = publication?.status === 'PUBLISHED' || !canModify
+    // New items behave as an unsaved draft; loaded items carry the server's transition table.
+    const availableActions: PublicationAction[] = publication?.availableActions
+        ?? (isNew ? ['EDIT', 'PUBLISH', 'DELETE'] : [])
+    const can = (action: PublicationAction): boolean => availableActions.includes(action)
+    const readOnly = !can('EDIT') || !canModify
 
     async function runAction(action: () => Promise<DigitalPublication>, success: string): Promise<void> {
         setIsSaving(true)
@@ -333,7 +338,7 @@ export default function DigitalPublicationEditor({
                 <Button disabled={isSaving || readOnly} onClick={() => void handleSave()} type="button">
                     {isNew ? 'Anlegen' : 'Speichern'}
                 </Button>
-                {!isNew && publication?.status === 'DRAFT' ? (
+                {!isNew && publication !== null && can('PUBLISH') ? (
                     <Button
                         disabled={isSaving || readOnly || !desk.canPublish}
                         onClick={() =>
@@ -348,37 +353,37 @@ export default function DigitalPublicationEditor({
                         Veröffentlichen
                     </Button>
                 ) : null}
-                {!isNew && publication?.status === 'PUBLISHED' ? (
-                    <>
-                        <Button
-                            disabled={isSaving || !desk.canEdit}
-                            onClick={() =>
-                                void runAction(
-                                    () => unpublishDigitalPublication( publication.id),
-                                    'Zurückgezogen.',
-                                )
-                            }
-                            type="button"
-                            variant="outline"
-                        >
-                            Zurückziehen
-                        </Button>
-                        <Button
-                            disabled={isSaving || !desk.canEdit}
-                            onClick={() =>
-                                void runAction(
-                                    () => archiveDigitalPublication( publication.id),
-                                    'Archiviert.',
-                                )
-                            }
-                            type="button"
-                            variant="outline"
-                        >
-                            Archivieren
-                        </Button>
-                    </>
+                {!isNew && publication !== null && can('UNPUBLISH') ? (
+                    <Button
+                        disabled={isSaving || !desk.canEdit}
+                        onClick={() =>
+                            void runAction(
+                                () => unpublishDigitalPublication( publication.id),
+                                'Zurückgezogen.',
+                            )
+                        }
+                        type="button"
+                        variant="outline"
+                    >
+                        Zurückziehen
+                    </Button>
                 ) : null}
-                {!isNew && publication?.status === 'ARCHIVED' ? (
+                {!isNew && publication !== null && can('ARCHIVE') ? (
+                    <Button
+                        disabled={isSaving || !desk.canEdit}
+                        onClick={() =>
+                            void runAction(
+                                () => archiveDigitalPublication( publication.id),
+                                'Archiviert.',
+                            )
+                        }
+                        type="button"
+                        variant="outline"
+                    >
+                        Archivieren
+                    </Button>
+                ) : null}
+                {!isNew && publication !== null && can('UNARCHIVE') ? (
                     <Button
                         disabled={isSaving || !desk.canEdit}
                         onClick={() =>
@@ -395,7 +400,7 @@ export default function DigitalPublicationEditor({
                 ) : null}
                 {!isNew &&
                 publication !== null &&
-                publication.status !== 'PUBLISHED' &&
+                can('DELETE') &&
                 desk.canDelete ? (
                     <Button
                         disabled={isSaving}

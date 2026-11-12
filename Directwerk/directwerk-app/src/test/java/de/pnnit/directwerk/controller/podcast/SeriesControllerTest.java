@@ -82,7 +82,9 @@ class SeriesControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data[0].id").value(7))
                 .andExpect(jsonPath("$.data[0].slug").value("main-show"))
-                .andExpect(jsonPath("$.data[0].title").value("Main Show"));
+                .andExpect(jsonPath("$.data[0].title").value("Main Show"))
+                .andExpect(jsonPath("$.data[0].availableActions[0]").value("EDIT"))
+                .andExpect(jsonPath("$.data[0].availableActions[1]").value("PUBLISH"));
 
         verify(seriesService).listSeries(10L, false, 100);
     }

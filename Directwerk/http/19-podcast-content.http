@@ -215,6 +215,9 @@ Accept: application/json
 > {%
     client.test("Get podcast series", function() {
         client.assert(response.status === 200 || response.status === 404, "Expected 200 or 404");
+        if (response.status === 200) {
+            client.assert(Array.isArray(response.body.data.availableActions), "Expected availableActions on series view");
+        }
     });
 %}
 
@@ -310,6 +313,7 @@ Accept: application/json
         client.assert(response.status === 200 || response.status === 404, "Expected 200 or 404");
         if (response.status === 200) {
             client.assert("coverImageUrl" in response.body.data, "Expected coverImageUrl on episode view");
+            client.assert(Array.isArray(response.body.data.availableActions), "Expected availableActions on episode view");
         }
     });
 %}

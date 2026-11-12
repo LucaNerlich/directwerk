@@ -16,6 +16,13 @@ runtime:
           expect(res.getStatus() === 200 || res.getStatus() === 404).to.equal(true);
         });
 
+        test("series view exposes state-valid actions", function() {
+          const data = res.body && res.body.data;
+          if (res.getStatus() === 200 && data !== undefined && data !== null) {
+            expect(Array.isArray(data.availableActions)).to.equal(true);
+          }
+        });
+
 settings:
   encodeUrl: true
   timeout: 0

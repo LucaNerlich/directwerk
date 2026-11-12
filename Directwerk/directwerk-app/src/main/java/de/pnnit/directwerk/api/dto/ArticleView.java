@@ -1,5 +1,6 @@
 package de.pnnit.directwerk.api.dto;
 
+import de.pnnit.directwerk.modules.content.LifecycleAction;
 import java.time.Instant;
 import java.util.List;
 
@@ -32,7 +33,9 @@ public record ArticleView(
         Long createdBy,
         Instant createdAt,
         Instant updatedAt,
-        boolean hasWorkingDraft
+        boolean hasWorkingDraft,
+        /** State-valid next actions (LifecycleAction names). RBAC still applies. */
+        List<LifecycleAction> availableActions
 ) {
     public record NewsletterListTag(Long id, String slug, String name) {
     }

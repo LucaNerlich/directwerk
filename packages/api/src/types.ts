@@ -72,6 +72,19 @@ export type StudioDesk = 'WRITE' | 'PODCAST'
 
 export type PublicationStatus = 'DRAFT' | 'SCHEDULED' | 'PUBLISHED' | 'ARCHIVED'
 
+/** State-valid action reported by the API (`availableActions`). */
+export type PublicationAction =
+    | 'EDIT'
+    | 'PUBLISH'
+    | 'SCHEDULE'
+    | 'CANCEL_SCHEDULE'
+    | 'UNPUBLISH'
+    | 'ARCHIVE'
+    | 'UNARCHIVE'
+    | 'DISCARD_DRAFT'
+    | 'NOTIFY'
+    | 'DELETE'
+
 export type PublicationSort = (typeof PUBLICATION_SORTS)[number]
 
 export type AccessPolicy = 'FREE' | 'PAID'
@@ -150,6 +163,8 @@ export interface EpisodeDetail extends EpisodeSummary {
      * Studio fields already reflect the overlay; public/RSS still show live columns.
      */
     hasWorkingDraft?: boolean
+    /** State-valid next actions; permissions are enforced separately by the API. */
+    availableActions: PublicationAction[]
 }
 
 export interface ArticleDetail extends ArticleSummary {
@@ -172,6 +187,8 @@ export interface ArticleDetail extends ArticleSummary {
      * Studio fields already reflect the overlay; public/RSS still show live columns.
      */
     hasWorkingDraft?: boolean
+    /** State-valid next actions; permissions are enforced separately by the API. */
+    availableActions: PublicationAction[]
 }
 
 /** Studio EMAIL_NOTIFY preview for publish checkbox / failure recovery. */
@@ -219,6 +236,8 @@ export interface SeriesSummary {
     title: string
     status: SeriesStatus
     rssUrl: string | null
+    /** State-valid next actions; permissions are enforced separately by the API. */
+    availableActions: PublicationAction[]
 }
 
 export interface SeriesDetail {
@@ -235,6 +254,8 @@ export interface SeriesDetail {
     status: SeriesStatus
     /** Creator user id; null for legacy rows. */
     createdBy: number | null
+    /** State-valid next actions; permissions are enforced separately by the API. */
+    availableActions: PublicationAction[]
 }
 
 export interface CreateArticleInput {
@@ -635,6 +656,8 @@ export interface DigitalPublication {
     createdBy: number | null
     createdAt: string
     updatedAt: string
+    /** State-valid next actions; permissions are enforced separately by the API. */
+    availableActions: PublicationAction[]
 }
 
 export interface CreateDigitalPublicationInput {

@@ -58,6 +58,7 @@ const existingSeries: SeriesSummary = {
     title: 'Alpha Show',
     status: 'PUBLISHED',
     rssUrl: 'https://demo.example/feeds/demo/alpha-show.xml',
+    availableActions: ['EDIT', 'UNPUBLISH'],
 }
 
 const preview: RssImportPreview = {

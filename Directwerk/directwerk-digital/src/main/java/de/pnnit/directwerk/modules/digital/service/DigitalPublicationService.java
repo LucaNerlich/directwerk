@@ -174,6 +174,9 @@ public class DigitalPublicationService {
     public DigitalPublication archive(Long tenantId, Long publicationId) {
         DigitalPublication publication = require(tenantId, publicationId);
         permissionService.requireMediaAssetAccess(ContentOperation.ARCHIVE, publication.getCreatedBy());
+        if (publication.getStatus() != DigitalPublicationStatus.PUBLISHED) {
+            throw new IllegalArgumentException("Only published bonus files can be archived");
+        }
         publication.setStatus(DigitalPublicationStatus.ARCHIVED);
         return digitalPublicationRepository.save(publication);
     }

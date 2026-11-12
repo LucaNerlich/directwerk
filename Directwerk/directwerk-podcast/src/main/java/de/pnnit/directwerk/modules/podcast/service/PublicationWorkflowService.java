@@ -2,6 +2,7 @@ package de.pnnit.directwerk.modules.podcast.service;
 
 import de.pnnit.directwerk.modules.content.ContentPublishedNotifier;
 import de.pnnit.directwerk.modules.content.ContentType;
+import de.pnnit.directwerk.modules.content.PublicationPhase;
 import de.pnnit.directwerk.modules.content.PublicationTexts;
 import de.pnnit.directwerk.modules.core.RequiresModule;
 import de.pnnit.directwerk.modules.core.authorization.ContentEntityType;
@@ -205,17 +206,12 @@ public class PublicationWorkflowService extends PublicationWorkflow<Episode, Epi
     }
 
     @Override
-    protected Phase phaseOf(EpisodeStatus status) {
-        return switch (status) {
-            case DRAFT -> Phase.DRAFT;
-            case SCHEDULED -> Phase.SCHEDULED;
-            case PUBLISHED -> Phase.PUBLISHED;
-            case ARCHIVED -> Phase.ARCHIVED;
-        };
+    protected PublicationPhase phaseOf(EpisodeStatus status) {
+        return status.phase();
     }
 
     @Override
-    protected EpisodeStatus statusFor(Phase phase) {
+    protected EpisodeStatus statusFor(PublicationPhase phase) {
         return switch (phase) {
             case DRAFT -> EpisodeStatus.DRAFT;
             case SCHEDULED -> EpisodeStatus.SCHEDULED;

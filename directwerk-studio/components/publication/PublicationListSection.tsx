@@ -16,7 +16,7 @@ import PublicationStatusBadge from '@/components/publication/PublicationStatusBa
 import SelectControl from '@/components/studio/SelectControl'
 import TagPill from '@/components/publication/TagPill'
 import {isBulkPublicationStatus} from '@/lib/publication/publicationBulkEligibility'
-import type {PublicationSort, PublicationStatus} from '@directwerk/api/types'
+import type {PublicationAction, PublicationSort, PublicationStatus} from '@directwerk/api/types'
 import {useDictionary} from '@/components/i18n/LocaleProvider'
 
 export interface PublicationListItem {
@@ -24,6 +24,8 @@ export interface PublicationListItem {
     slug?: string
     title: string
     status: PublicationStatus
+    /** State-valid actions from the API; RBAC is applied by the caller. */
+    availableActions: PublicationAction[]
     publishedAt: string | null
     meta?: string | null
     formats?: {id: number; name: string}[]
@@ -105,9 +107,12 @@ function PublicationRowActions<T extends PublicationListItem>({
 }): React.JSX.Element {
     const dict = useDictionary()
     const publishBlocked = publishBlockedReason !== undefined && publishBlockedReason !== null
+    const can = (action: PublicationAction): boolean => item.availableActions.includes(action)
     return (
         <>
-            {item.status === 'DRAFT' ? (
+            {/* Scheduled items can publish now, but the row keeps that in the editor to avoid
+                two ambiguous "Veröffentlichen" buttons next to "Planung aufheben". */}
+            {item.status === 'DRAFT' && can('PUBLISH') ? (
                 <>
                     {publishBlocked ? (
                         <span className="text-xs text-muted-foreground">{publishBlockedReason}</span>
@@ -122,7 +127,7 @@ function PublicationRowActions<T extends PublicationListItem>({
                     </Button>
                 </>
             ) : null}
-            {item.status === 'PUBLISHED' ? (
+            {can('UNPUBLISH') ? (
                 <Button
                     disabled={disabled || isBusy}
                     onClick={() => void onUnpublish(item)}
@@ -133,7 +138,7 @@ function PublicationRowActions<T extends PublicationListItem>({
                     {isBusy ? dict.common.withdrawing : dict.common.withdraw}
                 </Button>
             ) : null}
-            {item.status === 'SCHEDULED' && onCancelSchedule !== undefined ? (
+            {can('CANCEL_SCHEDULE') && onCancelSchedule !== undefined ? (
                 <Button
                     disabled={disabled || isBusy}
                     onClick={() => void onCancelSchedule(item)}
@@ -144,7 +149,7 @@ function PublicationRowActions<T extends PublicationListItem>({
                     {isBusy ? 'Wird abgebrochen…' : 'Planung aufheben'}
                 </Button>
             ) : null}
-            {item.status === 'ARCHIVED' && onUnarchive !== undefined ? (
+            {can('UNARCHIVE') && onUnarchive !== undefined ? (
                 <Button
                     disabled={disabled || isBusy}
                     onClick={() => void onUnarchive(item)}

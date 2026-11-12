@@ -45,6 +45,7 @@ import type {
     PermissionRestriction,
     ProductAccessRule,
     ProductAccessScopeType,
+    PublicationAction,
     PublicationStatus,
     PublicCategory,
     RbacEffectiveAccess,
@@ -229,6 +230,31 @@ function parseTagArray(value: unknown): Tag[] | null {
     return parseBoundedArray(value, 100, parseTag)
 }
 
+const PUBLICATION_ACTIONS: readonly PublicationAction[] = [
+    'EDIT',
+    'PUBLISH',
+    'SCHEDULE',
+    'CANCEL_SCHEDULE',
+    'UNPUBLISH',
+    'ARCHIVE',
+    'UNARCHIVE',
+    'DISCARD_DRAFT',
+    'NOTIFY',
+    'DELETE',
+]
+
+/** Unknown action values are dropped; an absent list means an older API. */
+function parsePublicationActions(value: unknown): PublicationAction[] {
+    if (!Array.isArray(value)) {
+        return []
+    }
+    return value.filter(
+        (item): item is PublicationAction =>
+            typeof item === 'string' &&
+            (PUBLICATION_ACTIONS as readonly string[]).includes(item),
+    )
+}
+
 /**
  * Parses an article detail response.
  *
@@ -284,6 +310,7 @@ function parseArticleDetail(value: unknown): ArticleDetail | null {
             : null,
         createdBy: parseNullableUserId(value.createdBy),
         hasWorkingDraft: value.hasWorkingDraft === true,
+        availableActions: parsePublicationActions(value.availableActions),
     }
 }
 
@@ -416,6 +443,7 @@ function parseEpisodeDetail(value: unknown): EpisodeDetail | null {
             : null,
         createdBy: parseNullableUserId(value.createdBy),
         hasWorkingDraft: value.hasWorkingDraft === true,
+        availableActions: parsePublicationActions(value.availableActions),
     }
 }
 
@@ -767,6 +795,7 @@ function parseSeriesSummary(value: unknown): SeriesSummary | null {
         title: value.title,
         status: value.status,
         rssUrl: value.rssUrl,
+        availableActions: parsePublicationActions(value.availableActions),
     }
 }
 
@@ -2510,6 +2539,7 @@ export function parseDigitalPublication(value: unknown): DigitalPublication | nu
         createdBy: parseNullableUserId(value.createdBy),
         createdAt: value.createdAt,
         updatedAt: value.updatedAt,
+        availableActions: parsePublicationActions(value.availableActions),
     }
 }
 

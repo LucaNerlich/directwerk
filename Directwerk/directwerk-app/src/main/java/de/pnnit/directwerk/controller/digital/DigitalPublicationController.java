@@ -1,6 +1,8 @@
 package de.pnnit.directwerk.controller.digital;
 
 import de.pnnit.directwerk.api.response.Response;
+import de.pnnit.directwerk.modules.content.LifecycleAction;
+import de.pnnit.directwerk.modules.content.PublicationActions;
 import de.pnnit.directwerk.modules.core.RequiresModule;
 import de.pnnit.directwerk.modules.digital.BonusContentModule;
 import de.pnnit.directwerk.modules.digital.entity.AccessPolicy;
@@ -136,7 +138,8 @@ public class DigitalPublicationController {
                 publication.getPublishedAt(),
                 publication.getCreatedBy(),
                 publication.getCreatedAt(),
-                publication.getUpdatedAt()
+                publication.getUpdatedAt(),
+                PublicationActions.forDigitalPublication(publication.getStatus().phase())
         );
     }
 
@@ -175,7 +178,8 @@ public class DigitalPublicationController {
             Instant publishedAt,
             Long createdBy,
             Instant createdAt,
-            Instant updatedAt
+            Instant updatedAt,
+            List<LifecycleAction> availableActions
     ) {
     }
 }

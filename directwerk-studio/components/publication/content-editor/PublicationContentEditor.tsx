@@ -8,7 +8,10 @@ import PublicationDangerZone from '@/components/publication/PublicationDangerZon
 import PublicationEditorLayout from '@/components/publication/PublicationEditorLayout'
 import PublishedLinksPanel from '@/components/publication/PublishedLinksPanel'
 import type {ContentEditorModel} from '@/components/publication/content-editor/types'
-import type {PublicationStatus} from '@directwerk/api/types'
+import type {PublicationAction, PublicationStatus} from '@directwerk/api/types'
+
+/** A new, unsaved item is a draft: edit, publish after saving, or schedule. */
+const NEW_PUBLICATION_ACTIONS: PublicationAction[] = ['EDIT', 'PUBLISH', 'SCHEDULE']
 
 /**
  * Parameterised publication editor shell shared by articles and episodes.
@@ -24,6 +27,7 @@ export default function PublicationContentEditor<
         title: string
         createdBy?: number | null
         hasWorkingDraft?: boolean
+        availableActions?: PublicationAction[]
     },
 >({model}: {model: ContentEditorModel<T>}): React.JSX.Element {
     const {descriptor} = model
@@ -51,6 +55,7 @@ export default function PublicationContentEditor<
         <PublicationEditorLayout
             kind={descriptor.kind}
             status={status}
+            availableActions={model.publication?.availableActions ?? NEW_PUBLICATION_ACTIONS}
             title={model.title}
             body={model.body}
             accessPolicy={model.accessPolicy}

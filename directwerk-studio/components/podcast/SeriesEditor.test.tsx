@@ -6,6 +6,7 @@ import {beforeEach, describe, expect, it, vi} from 'vitest'
 import SeriesEditor from '@/components/podcast/SeriesEditor'
 import {createSeries, updateSeries} from '@/lib/api/podcastApi'
 import {clearCachedTenantData} from '@directwerk/api/client/useCachedTenantQuery'
+import type {SeriesDetail} from '@directwerk/api/types'
 
 // `useRouter()` in Next.js returns a stable/memoized object across re-renders.
 // The load effect depends on `router` (see SeriesEditor.tsx), so the mock must
@@ -90,12 +91,13 @@ describe('SeriesEditor RSS URL', () => {
     })
 
     it('retries a failed publish-on-create as an update instead of duplicating', async () => {
-        const created = {
+        const created: SeriesDetail = {
             id: 9, slug: 'neue-sendung', title: 'Neue Sendung', description: null,
             coverAssetId: null, language: 'de', itunesCategory: null,
             itunesExplicit: false, defaultRequiredLevelSortOrder: null,
-            rssUrl: null, status: 'DRAFT' as const,
+            rssUrl: null, status: 'DRAFT',
             createdBy: null,
+            availableActions: ['EDIT', 'PUBLISH'],
         }
         vi.mocked(createSeries).mockResolvedValueOnce(created)
         vi.mocked(updateSeries)

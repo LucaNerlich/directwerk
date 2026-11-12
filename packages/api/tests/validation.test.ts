@@ -930,6 +930,7 @@ describe('digital publications / storage / integrations parsers', () => {
         createdBy: 3,
         createdAt: '2026-01-01T00:00:00Z',
         updatedAt: '2026-01-02T00:00:00Z',
+        availableActions: ['EDIT', 'PUBLISH', 'DELETE'],
     }
 
     it('parses digital publication envelopes', () => {
