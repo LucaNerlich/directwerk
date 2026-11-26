@@ -31,8 +31,7 @@ import {
     hasActiveBrowse,
     toggleId,
 } from '@/lib/catalog/catalogBrowse'
-import {findUnlockProduct, unlockHref} from '@/lib/catalog/unlock'
-import {usePublicProducts} from '@/lib/catalog/usePublicProducts'
+import {unlockHref} from '@/lib/catalog/unlock'
 import {useSubscriberAuth} from '@/lib/auth/useSubscriberAuth'
 import type {PublicEpisode} from '@directwerk/api/types'
 import {formatDuration} from '@/lib/format/content'
@@ -65,8 +64,7 @@ export default function EpisodesClient({
         loadSeries: listPublicSeries,
         initialItems: initialEpisodes,
     })
-    const products = usePublicProducts()
-    const unlockTarget = unlockHref(findUnlockProduct(products), lang)
+    const unlockTarget = unlockHref(lang)
     const publicPodcastFeedUrl = webPublicPodcastFeedUrl(siteConfig, tenantHost)
     const [visibleCount, setVisibleCount] = useState(PAGE_SIZE)
     const [query, setQuery] = useState('')
