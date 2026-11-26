@@ -5,7 +5,6 @@ import de.pnnit.directwerk.modules.stripebilling.StripeOperations;
 import de.pnnit.directwerk.modules.stripebilling.exception.StripeConnectNotReadyException;
 import de.pnnit.directwerk.modules.subscription.billing.ExternalSubscriptionBillingGateway;
 import de.pnnit.directwerk.modules.subscription.entity.Subscription;
-import de.pnnit.directwerk.modules.subscription.entity.SubscriptionSource;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -24,8 +23,9 @@ public class StripeExternalSubscriptionBillingGateway implements ExternalSubscri
 
     @Override
     public void cancelExternalSubscriptionIfNeeded(Long tenantId, Subscription subscription) {
-        if (subscription.getSource() != SubscriptionSource.STRIPE
-                || subscription.getExternalSubscriptionId() == null
+        // Source is not the signal: a MANUAL grant records the Stripe subscription id so a later
+        // revoke can still cancel the live subscription (#1027).
+        if (subscription.getExternalSubscriptionId() == null
                 || !stripeOperations.isConfigured()) {
             return;
         }
