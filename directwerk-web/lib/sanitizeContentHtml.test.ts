@@ -1,6 +1,6 @@
 import {describe, expect, it} from 'vitest'
 
-import {sanitizeContentHtml} from './sanitizeContentHtml'
+import {sanitizeContentHtml} from '@directwerk/api/content/sanitizeContentHtml'
 
 describe('sanitizeContentHtml', () => {
     it('preserves allowed article markup', () => {
