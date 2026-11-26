@@ -4,7 +4,6 @@ import {useState} from 'react'
 
 import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
 import {Button} from '@directwerk/ui/components/button'
-import EmptyState from '@directwerk/ui/components/empty-state'
 import PageHeader from '@directwerk/ui/components/page-header'
 import PageStack from '@directwerk/ui/components/page-stack'
 import SectionHeader from '@directwerk/ui/components/section-header'
@@ -71,18 +70,11 @@ export default function TenantsPage(): React.JSX.Element {
 
             {tenants ? (
                 <>
-                    {tenants.length > 0 ? (
-                        <TenantListTable
-                            onQueryChange={applySearch}
-                            query={searchQuery}
-                            tenants={tenants}
-                        />
-                    ) : (
-                        <EmptyState
-                            description="Create the first tenant to begin."
-                            title="No tenants yet"
-                        />
-                    )}
+                    <TenantListTable
+                        onQueryChange={applySearch}
+                        query={searchQuery}
+                        tenants={tenants}
+                    />
                     {!error && !isLoading && tenantsPage ? (
                         <>
                             <p aria-live="polite" className="text-sm text-muted-foreground">
