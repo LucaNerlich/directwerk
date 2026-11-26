@@ -56,6 +56,7 @@ export default function ProductRulesEditor({
     const [statusMessage, setStatusMessage] = useState<string | null>(null)
     const [isLoading, setIsLoading] = useState(true)
     const [isSaving, setIsSaving] = useState(false)
+    const [loaded, setLoaded] = useState(false)
 
     const handleAuthError = useCallback(
         (error: unknown) => {
@@ -69,6 +70,8 @@ export default function ProductRulesEditor({
 
     useEffect(() => {
         let active = true
+        setLoaded(false)
+        setDrafts([])
 
         Promise.all([
             listProductRules( productId),
@@ -91,6 +94,7 @@ export default function ProductRulesEditor({
                 setFormats(formatList.filter((item) => item.active))
                 setCategories(categoryList.filter((item) => item.active))
                 setDocuments(mediaList)
+                setLoaded(true)
                 setIsLoading(false)
             })
             .catch((error: unknown) => {
@@ -336,7 +340,9 @@ export default function ProductRulesEditor({
                     Regel hinzufügen
                 </Button>
                 <Button
-                    disabled={isSaving}
+                    // Saving before the initial load replaced every rule with an empty list
+                    // (the API treats that as delete-all) (#1020).
+                    disabled={isSaving || !loaded}
                     onClick={() => void handleSave()}
                     type="button"
                 >
