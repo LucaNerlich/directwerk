@@ -61,7 +61,7 @@ public class StudioAuthController {
 
     public record StudioWorkspacesRequest(
             @NotBlank @Email String email,
-            @NotBlank @Size(min = 8, max = 128) String password
+            @NotBlank @Size(min = 8, max = 72) String password
     ) {
     }
 

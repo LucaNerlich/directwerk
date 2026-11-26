@@ -111,7 +111,7 @@ public class AuthController {
 
     public record RegisterRequest(
             @NotBlank @Email String email,
-            @NotBlank @Size(min = 8, max = 128) String password,
+            @NotBlank @Size(min = 8, max = 72) String password,
             @Size(max = 255) String name
     ) {
     }
@@ -121,7 +121,7 @@ public class AuthController {
 
     public record AcceptInviteRequest(
             @NotBlank @Size(max = 512) String token,
-            @Size(min = 8, max = 128) String password,
+            @Size(min = 8, max = 72) String password,
             @Size(max = 255) String name
     ) {
     }
@@ -137,7 +137,7 @@ public class AuthController {
 
     public record ResetPasswordRequest(
             @NotBlank @Size(max = 512) String token,
-            @NotBlank @Size(min = 8, max = 128) String newPassword
+            @NotBlank @Size(min = 8, max = 72) String newPassword
     ) {
     }
 

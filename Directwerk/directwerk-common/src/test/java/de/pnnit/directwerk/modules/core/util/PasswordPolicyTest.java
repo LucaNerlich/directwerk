@@ -17,7 +17,9 @@ class PasswordPolicyTest {
                 .isInstanceOf(IllegalArgumentException.class);
         assertThatThrownBy(() -> PasswordPolicy.validate("a".repeat(PasswordPolicy.MIN_LENGTH - 1)))
                 .isInstanceOf(IllegalArgumentException.class);
-        assertThatThrownBy(() -> PasswordPolicy.validate("a".repeat(PasswordPolicy.MAX_LENGTH + 1)))
+        assertThatThrownBy(() -> PasswordPolicy.validate("a".repeat(PasswordPolicy.MAX_BYTES + 1)))
+                .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> PasswordPolicy.validate("\uD83D\uDE00".repeat(25)))
                 .isInstanceOf(IllegalArgumentException.class);
     }
 
@@ -25,7 +27,7 @@ class PasswordPolicyTest {
     void acceptsBoundaryLengthPasswords() {
         assertThatCode(() -> PasswordPolicy.validate("a".repeat(PasswordPolicy.MIN_LENGTH)))
                 .doesNotThrowAnyException();
-        assertThatCode(() -> PasswordPolicy.validate("a".repeat(PasswordPolicy.MAX_LENGTH)))
+        assertThatCode(() -> PasswordPolicy.validate("a".repeat(PasswordPolicy.MAX_BYTES)))
                 .doesNotThrowAnyException();
     }
 }
