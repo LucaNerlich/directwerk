@@ -23,10 +23,14 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class PublicSearchDocumentService {
+
+    /** Upper bound on the client-side search corpus per tenant. */
+    static final int MAX_CORPUS_DOCUMENTS = 1_000;
 
     private final SearchDocumentRepository searchDocumentRepository;
     private final ArticleRepository articleRepository;
@@ -53,13 +57,17 @@ public class PublicSearchDocumentService {
 
     @Transactional(readOnly = true)
     public List<PublicSearchDocumentView> list(Long tenantId) {
+        // The header search index is client-side; an unbounded corpus is a multi-MB anonymous
+        // response for a mature archive (#1041).
+
         boolean articles = moduleGateService.isModuleActive(tenantId, FeatureModuleKeys.DIGITAL_CONTENT);
         boolean episodes = moduleGateService.isModuleActive(tenantId, FeatureModuleKeys.PODCAST);
         boolean products = moduleGateService.isModuleActive(tenantId, FeatureModuleKeys.SUBSCRIPTION);
         boolean lists = moduleGateService.isModuleActive(tenantId, FeatureModuleKeys.EMAIL_NOTIFY)
                 && directwerkConfig.isEmailEnabled();
 
-        List<SearchDocument> candidates = searchDocumentRepository.findByTenant_IdOrderByTitleAscIdAsc(tenantId)
+        List<SearchDocument> candidates = searchDocumentRepository
+                .findByTenant_IdOrderByTitleAscIdAsc(tenantId, PageRequest.of(0, MAX_CORPUS_DOCUMENTS))
                 .stream()
                 .filter(document -> included(document.getKind(), articles, episodes, products, lists))
                 .toList();
