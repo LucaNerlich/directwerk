@@ -70,6 +70,7 @@ export default function TenantProductsPanel({
     const [rules, setRules] = useState<ProductAccessRule[]>([])
     const [rulesLoading, setRulesLoading] = useState(false)
     const [rulesProductId, setRulesProductId] = useState<number | null>(null)
+    const rulesRequestId = useRef(0)
     const [grants, setGrants] = useState<SubscriptionGrant[]>([])
     const [error, setError] = useState<string | null>(null)
     const [status, setStatus] = useState<string | null>(null)
@@ -301,18 +302,20 @@ export default function TenantProductsPanel({
 
     async function loadRules(productId: number): Promise<void> {
         const requestSession = captureSession()
+        const requestId = ++rulesRequestId.current
         setSelectedProductId(productId)
         setError(null)
-        // Discard the previous product's rules before the new ones arrive: saving an empty or
-        // stale list would replace the selected product's rules (#1043).
+        // Discard the previous product's rules before the new ones arrive, and treat the product
+        // as not loaded until its own response succeeded: saving an empty or stale list would
+        // replace the selected product's rules (#1043).
         setRules([])
         setRulesLoading(true)
-        setRulesProductId(productId)
+        setRulesProductId(null)
         try {
             const result = await getTenantData<ProductAccessRule[]>(
                 `tenant/products/${productId}/rules`
             )
-            if (!isCurrentSession(requestSession)) {
+            if (!isCurrentSession(requestSession) || requestId !== rulesRequestId.current) {
                 return
             }
             if (!Array.isArray(result)) {
@@ -320,13 +323,14 @@ export default function TenantProductsPanel({
                 return
             }
             setRules(result)
+            setRulesProductId(productId)
         } catch {
-            if (!isCurrentSession(requestSession)) {
+            if (!isCurrentSession(requestSession) || requestId !== rulesRequestId.current) {
                 return
             }
             setError('Could not load rules.')
         } finally {
-            if (isCurrentSession(requestSession)) {
+            if (isCurrentSession(requestSession) && requestId === rulesRequestId.current) {
                 setRulesLoading(false)
             }
         }
@@ -353,12 +357,14 @@ export default function TenantProductsPanel({
             rulesPayload = [{scopeType: ruleScopeType, scopeId}]
         }
 
+        const requestId = rulesRequestId.current
+        const productId = selectedProductId
         try {
             const saved = await putTenantData<ProductAccessRule[]>(
-                `tenant/products/${selectedProductId}/rules`,
+                `tenant/products/${productId}/rules`,
                 {rules: rulesPayload}
             )
-            if (!isCurrentSession(requestSession)) {
+            if (!isCurrentSession(requestSession) || requestId !== rulesRequestId.current) {
                 return
             }
             setRules(Array.isArray(saved) ? saved : [])
@@ -680,7 +686,9 @@ export default function TenantProductsPanel({
                             ))}
                         </ListPanel>
                     ) : (
-                        <p className="text-sm text-muted-foreground">No rules yet.</p>
+                        <p className="text-sm text-muted-foreground">
+                            {rulesLoading ? 'Loading rules…' : 'No rules yet.'}
+                        </p>
                     )}
                     <div className="flex flex-wrap items-end gap-3">
                         <div className="space-y-2">
