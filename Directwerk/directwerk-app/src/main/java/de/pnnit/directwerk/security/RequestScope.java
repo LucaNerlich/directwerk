@@ -71,10 +71,9 @@ public enum RequestScope {
             "/api/v1/digital-publications", "/api/v1/newsletter-lists"
     };
     /**
-     * Content routes reserved to tenant admins. Classified as {@link #TENANT_ADMIN_AREA}
-     * (not {@link #EDITOR_CONTENT}) to match the SecurityConfig matcher table, which has
-     * always required {@code TENANT_ADMIN} JWT role here — the membership re-check now agrees
-     * instead of being the looser layer.
+     * Taxonomy reads used by every editor screen. The JWT matcher keeps its wider
+     * {@code TENANT_ADMIN_OR_CONTENT_API_KEY} rule (MCP content keys write taxonomy), but the
+     * membership re-check must allow EDITOR — the controllers' GETs already do.
      */
     private static final String[] TENANT_ADMIN_CONTENT_BASES = {
             "/api/v1/formats", "/api/v1/categories"
@@ -123,10 +122,7 @@ public enum RequestScope {
                 || path.startsWith("/api/v1/security/")) {
             return MEMBER;
         }
-        if (isAtOrUnderAny(path, TENANT_ADMIN_CONTENT_BASES)) {
-            return TENANT_ADMIN_AREA;
-        }
-        if (isEditorContent(path)) {
+        if (isEditorContent(path) || isAtOrUnderAny(path, TENANT_ADMIN_CONTENT_BASES)) {
             return EDITOR_CONTENT;
         }
         // Unknown authenticated API routes are member-scoped by default — fail closed.
