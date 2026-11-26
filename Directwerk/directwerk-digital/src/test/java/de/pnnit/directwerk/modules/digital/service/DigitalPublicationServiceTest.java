@@ -9,7 +9,13 @@ import static org.mockito.Mockito.when;
 import de.pnnit.directwerk.modules.core.repository.TenantRepository;
 import de.pnnit.directwerk.modules.core.service.MembershipPermissionService;
 import de.pnnit.directwerk.modules.digital.api.MediaAssetQueryApi;
+import de.pnnit.directwerk.modules.core.entity.Tenant;
+import de.pnnit.directwerk.modules.digital.entity.AccessPolicy;
+import de.pnnit.directwerk.modules.digital.entity.AssetStatus;
+import de.pnnit.directwerk.modules.digital.entity.AssetType;
+import de.pnnit.directwerk.modules.digital.entity.AssetVisibility;
 import de.pnnit.directwerk.modules.digital.entity.DigitalPublication;
+import de.pnnit.directwerk.modules.digital.entity.MediaAsset;
 import de.pnnit.directwerk.modules.digital.entity.DigitalPublicationStatus;
 import de.pnnit.directwerk.modules.digital.repository.DigitalPublicationRepository;
 import java.util.Optional;
@@ -59,6 +65,30 @@ class DigitalPublicationServiceTest {
         DigitalPublication archived = service.archive(7L, 1L);
 
         assertThat(archived.getStatus()).isEqualTo(DigitalPublicationStatus.ARCHIVED);
+    }
+
+    @Test
+    void publishRejectsAPublicAssetForAPaidPublication() {
+        DigitalPublication publication = publication(DigitalPublicationStatus.DRAFT);
+        publication.setAccessPolicy(AccessPolicy.PAID);
+        MediaAsset asset = new MediaAsset();
+        asset.setId(9L);
+        asset.setAssetType(AssetType.DOCUMENT);
+        asset.setStatus(AssetStatus.READY);
+        asset.setVisibility(AssetVisibility.PUBLIC);
+        Tenant tenant = new Tenant();
+        tenant.setId(7L);
+        asset.setTenant(tenant);
+        publication.setAsset(asset);
+
+        when(digitalPublicationRepository.findByIdAndTenant_Id(1L, 7L))
+                .thenReturn(Optional.of(publication));
+        when(mediaAssetQueryApi.findById(9L)).thenReturn(Optional.of(asset));
+
+        assertThatThrownBy(() -> service.publish(7L, 1L))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("private asset");
+        verify(digitalPublicationRepository, never()).save(publication);
     }
 
     private static DigitalPublication publication(DigitalPublicationStatus status) {
