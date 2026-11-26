@@ -66,5 +66,7 @@ export async function loginTenantSession(input: {
     if (!response.ok) throw new Error(AUTH_REQUIRED)
     const tokens = parseTokenResponse(await response.json())
     if (tokens === null) throw new Error(AUTH_REQUIRED)
+    // A tenant refresh started during the login POST must not overwrite the new session (#1080).
+    invalidatePendingTenantRefresh()
     storeTenantTokens(tokens, input.tenantHost)
 }
