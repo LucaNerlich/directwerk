@@ -89,8 +89,8 @@ export function createMcpServer(
     })
 
     server.tool('create_article', 'Create an article', {
-        slug: z.string().min(1).max(120),
-        title: z.string().min(1).max(500),
+        slug: z.string().min(1).max(64),
+        title: z.string().min(1).max(255),
         body: z
             .string()
             .optional()
@@ -112,8 +112,8 @@ export function createMcpServer(
 
     server.tool('update_article', 'Update an article', {
         articleId: idSchema,
-        slug: z.string().min(1).max(120).optional(),
-        title: z.string().min(1).max(500).optional(),
+        slug: z.string().min(1).max(64).optional(),
+        title: z.string().min(1).max(255).optional(),
         body: z
             .string()
             .optional()
@@ -315,8 +315,8 @@ export function createMcpServer(
 
     server.tool('create_episode', 'Create an episode', {
         seriesId: idSchema,
-        slug: z.string().min(1).max(120),
-        title: z.string().min(1).max(500),
+        slug: z.string().min(1).max(64),
+        title: z.string().min(1).max(255),
         description: z
             .string()
             .optional()
@@ -337,8 +337,8 @@ export function createMcpServer(
 
     server.tool('update_episode', 'Update an episode', {
         episodeId: idSchema,
-        slug: z.string().min(1).max(120).optional(),
-        title: z.string().min(1).max(500).optional(),
+        slug: z.string().min(1).max(64).optional(),
+        title: z.string().min(1).max(255).optional(),
         description: z
             .string()
             .optional()
@@ -560,8 +560,8 @@ export function createMcpServer(
     })
 
     server.tool('create_series', 'Create a podcast series', {
-        slug: z.string().min(1).max(120),
-        title: z.string().min(1).max(500),
+        slug: z.string().min(1).max(64),
+        title: z.string().min(1).max(255),
         description: z.string().optional(),
         coverAssetId: idSchema.optional(),
         language: z.string().optional(),
@@ -578,8 +578,8 @@ export function createMcpServer(
 
     server.tool('update_series', 'Update a podcast series', {
         seriesId: idSchema,
-        slug: z.string().min(1).max(120).optional(),
-        title: z.string().min(1).max(500).optional(),
+        slug: z.string().min(1).max(64).optional(),
+        title: z.string().min(1).max(255).optional(),
         description: z.string().optional(),
         coverAssetId: idSchema.optional(),
         language: z.string().optional(),
@@ -605,7 +605,7 @@ export function createMcpServer(
     })
 
     server.tool('create_category', 'Create a category', {
-        slug: z.string().min(1).max(120),
+        slug: z.string().min(1).max(64),
         name: z.string().min(1).max(200),
         parentId: idSchema.optional(),
     }, async (args) => {
@@ -618,7 +618,7 @@ export function createMcpServer(
 
     server.tool('update_category', 'Update a category', {
         categoryId: idSchema,
-        slug: z.string().min(1).max(120).optional(),
+        slug: z.string().min(1).max(64).optional(),
         name: z.string().min(1).max(200).optional(),
         parentId: idSchema.optional(),
         clearParentId: z.boolean().optional(),
@@ -651,7 +651,7 @@ export function createMcpServer(
     })
 
     server.tool('create_format', 'Create a podcast format', {
-        slug: z.string().min(1).max(120),
+        slug: z.string().min(1).max(64),
         name: z.string().min(1).max(200),
     }, async (args) => {
         try {
@@ -663,7 +663,7 @@ export function createMcpServer(
 
     server.tool('update_format', 'Update a podcast format', {
         formatId: idSchema,
-        slug: z.string().min(1).max(120).optional(),
+        slug: z.string().min(1).max(64).optional(),
         name: z.string().min(1).max(200).optional(),
         active: z.boolean().optional(),
     }, async ({formatId, ...body}) => {
@@ -894,7 +894,9 @@ export function createMcpServer(
             mimeType: file.mimeType,
             sizeBytes: file.sizeBytes,
             assetType,
-            intendedVisibility: 'PUBLIC',
+            // Audio must start private: a PAID item is only scheduled until publish, and the
+            // public CDN key is guessable. Publish promotes FREE audio (#1048).
+            intendedVisibility: assetType === 'AUDIO' ? 'PRIVATE' : 'PUBLIC',
         })) as {assetId: number, uploadUrl: string, headers?: Record<string, string>}
         const buffer = await fs.readFile(file.path)
         if (buffer.length !== file.sizeBytes) {
