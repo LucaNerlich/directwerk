@@ -91,7 +91,12 @@ public class StripeCheckoutService {
         if (product.getStripePriceId() == null || product.getStripePriceId().isBlank()) {
             product = stripeCatalogSyncService.syncProduct(tenantId, product.getId());
         }
-        String safeSuccess = resolveRedirect(tenantId, successUrl, "/checkout/success?session_id={CHECKOUT_SESSION_ID}");
+        String safeSuccess = resolveRedirect(tenantId, successUrl, "/checkout/success");
+        if (successUrl == null || successUrl.isBlank()) {
+            // Stripe fills the placeholder at redirect time; URI.create rejects the braces, so the
+            // query is appended after the tenant URL has been validated.
+            safeSuccess += "?session_id={CHECKOUT_SESSION_ID}";
+        }
         String safeCancel = resolveRedirect(tenantId, cancelUrl, "/checkout/cancel");
         String customerId = ensureCustomer(tenantId, userId, account.getStripeAccountId());
         StripeOperations.CheckoutSessionResult session = stripeOperations.createCheckoutSession(
