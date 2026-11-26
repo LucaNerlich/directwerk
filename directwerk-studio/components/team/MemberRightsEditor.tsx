@@ -1,6 +1,6 @@
 'use client'
 
-import {useEffect, useState} from 'react'
+import {useCallback, useEffect, useRef, useState} from 'react'
 
 import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
 import {Button} from '@directwerk/ui/components/button'
@@ -63,6 +63,15 @@ export default function MemberRightsEditor({
 
     const isEditor = user.roles.includes('EDITOR') && !user.roles.includes('TENANT_ADMIN')
 
+    // TeamClient passes a fresh inline callback each render; keeping it in a ref stops every
+    // parent state change (each search keystroke) from re-fetching and resetting unsaved edits
+    // (#1064).
+    const onAuthRequiredRef = useRef(onAuthRequired)
+    useEffect(() => {
+        onAuthRequiredRef.current = onAuthRequired
+    }, [onAuthRequired])
+    const redirectToLogin = useCallback(() => onAuthRequiredRef.current(), [])
+
     useEffect(() => {
         if (!isEditor) {
             setIsLoading(false)
@@ -83,7 +92,7 @@ export default function MemberRightsEditor({
                     return
                 }
                 if (error instanceof Error && error.message === AUTH_REQUIRED) {
-                    onAuthRequired()
+                    redirectToLogin()
                     return
                 }
                 setErrorMessage(
@@ -94,7 +103,7 @@ export default function MemberRightsEditor({
         return () => {
             active = false
         }
-    }, [isEditor, onAuthRequired, reloadToken, user.userId])
+    }, [isEditor, redirectToLogin, reloadToken, user.userId])
 
     if (!isEditor) {
         return (
