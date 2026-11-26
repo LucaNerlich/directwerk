@@ -57,6 +57,27 @@ public class StripeSubscriptionSyncService {
             Instant endsAt,
             String externalPaymentId
     ) {
+        return upsertStripeSubscription(
+                tenantId, userId, productId, externalSubscriptionId, stripeCustomerId,
+                status, endsAt, externalPaymentId, false);
+    }
+
+    /**
+     * @param reactivationLiveConfirmed the caller already confirmed with Stripe that a CANCELED row
+     *     may be rewritten to ACTIVE (webhook reactivation guard)
+     */
+    @Transactional(noRollbackFor = StripeSubscriptionRebindRefusedException.class)
+    public Subscription upsertStripeSubscription(
+            Long tenantId,
+            Long userId,
+            Long productId,
+            String externalSubscriptionId,
+            String stripeCustomerId,
+            SubscriptionStatus status,
+            Instant endsAt,
+            String externalPaymentId,
+            boolean reactivationLiveConfirmed
+    ) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
         SubscriptionProduct product = subscriptionProductService.requireProduct(tenantId, productId);
@@ -66,7 +87,9 @@ public class StripeSubscriptionSyncService {
                     .findByTenantIdAndExternalSubscriptionIdForUpdate(tenantId, externalSubscriptionId)
                     .orElse(null);
         }
-        if (subscription != null && subscription.getSource() == SubscriptionSource.MANUAL) {
+        if (subscription != null
+                && subscription.getSource() == SubscriptionSource.MANUAL
+                && subscription.getStatus() != SubscriptionStatus.CANCELED) {
             // A manual grant that recorded a Stripe id keeps its source and status: the recorded
             // subscription is only needed so a revoke can cancel it (#1027).
             return subscription;
@@ -93,6 +116,17 @@ public class StripeSubscriptionSyncService {
         }
         SubscriptionStatus previousStatus = subscription.getStatus();
         SubscriptionStatus incoming = status != null ? status : SubscriptionStatus.ACTIVE;
+        if (previousStatus == SubscriptionStatus.CANCELED
+                && incoming == SubscriptionStatus.ACTIVE
+                && !reactivationLiveConfirmed
+                && (externalSubscriptionId == null
+                        || externalSubscriptionId.isBlank()
+                        || externalSubscriptionId.equals(subscription.getExternalSubscriptionId()))) {
+            // #1025: the guard's live check and this write are not atomic. A delete that committed
+            // in between leaves the locked row CANCELED; without a live confirmation, refuse.
+            log.warn("Refusing to reactivate canceled subscription without live confirmation");
+            return subscription;
+        }
         if (isCanceledTerminalRewrite(previousStatus, incoming)) {
             return subscription;
         }

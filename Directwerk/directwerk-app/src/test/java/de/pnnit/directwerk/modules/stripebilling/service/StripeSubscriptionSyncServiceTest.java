@@ -189,6 +189,30 @@ class StripeSubscriptionSyncServiceTest {
     }
 
     @Test
+    void canceledRowActivatesOnlyWithLiveConfirmation() {
+        User user = user();
+        when(userRepository.findById(USER_ID)).thenReturn(Optional.of(user));
+        SubscriptionProduct product = product();
+        when(subscriptionProductService.requireProduct(TENANT_ID, PRODUCT_ID)).thenReturn(product);
+
+        Subscription canceled = subscription(SubscriptionSource.STRIPE, SubscriptionStatus.CANCELED);
+        canceled.setExternalSubscriptionId("sub_recorded");
+        when(subscriptionRepository.findByTenantIdAndExternalSubscriptionIdForUpdate(TENANT_ID, "sub_recorded"))
+                .thenReturn(Optional.of(canceled));
+        when(subscriptionRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        Subscription refused = service.upsertStripeSubscription(
+                TENANT_ID, USER_ID, PRODUCT_ID, "sub_recorded", "cus_1",
+                SubscriptionStatus.ACTIVE, null, null);
+        assertThat(refused.getStatus()).isEqualTo(SubscriptionStatus.CANCELED);
+
+        Subscription confirmed = service.upsertStripeSubscription(
+                TENANT_ID, USER_ID, PRODUCT_ID, "sub_recorded", "cus_1",
+                SubscriptionStatus.ACTIVE, null, null, true);
+        assertThat(confirmed.getStatus()).isEqualTo(SubscriptionStatus.ACTIVE);
+    }
+
+    @Test
     void stripeUpsertRebindsACanceledStripeRowToANewSubscription() {
         // #705: a canceled row is terminal at Stripe, so a returning customer's new
         // subscription must take the row over instead of paying into a void.

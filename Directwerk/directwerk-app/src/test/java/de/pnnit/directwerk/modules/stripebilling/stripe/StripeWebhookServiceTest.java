@@ -119,7 +119,8 @@ class StripeWebhookServiceTest {
                 "cus_1",
                 SubscriptionStatus.ACTIVE,
                 Instant.parse("2026-09-01T00:00:00Z"),
-                "pi_1"
+                "pi_1",
+                false
         );
     }
 
@@ -159,7 +160,7 @@ class StripeWebhookServiceTest {
         service.applyParsedEvent(service.parseAndValidate("{}", "t=1,v1=sig"));
 
         verify(stripeSubscriptionSyncService, never()).upsertStripeSubscription(
-                any(), any(), any(), any(), any(), any(), any(), any()
+                any(), any(), any(), any(), any(), any(), any(), any(), anyBoolean()
         );
     }
 
@@ -214,7 +215,8 @@ class StripeWebhookServiceTest {
                 eq(7L), eq(3L), eq(11L), eq("sub_2"), eq("cus_1"),
                 eq(SubscriptionStatus.ACTIVE),
                 eq(Instant.parse("2026-09-01T00:00:00Z")),
-                isNull()
+                isNull(),
+                eq(true)
         );
     }
 
@@ -245,9 +247,45 @@ class StripeWebhookServiceTest {
         service.applyParsedEvent(service.parseAndValidate("{}", "sig"));
 
         verify(stripeSubscriptionSyncService, never()).upsertStripeSubscription(
-                any(), any(), any(), any(), any(), any(), any(), any()
+                any(), any(), any(), any(), any(), any(), any(), any(), anyBoolean()
         );
         verify(stripeSubscriptionSyncService, never()).syncStripeSubscriptionByExternalId(any(), any(), any(), any());
+    }
+
+    @Test
+    void stalePaymentFailedDoesNotDowngradeALiveActiveSubscription() {
+        StripeOperations.StripeWebhookPayload payload = new StripeOperations.StripeWebhookPayload(
+                "evt_fail_stale",
+                "invoice.payment_failed",
+                "acct_1",
+                "cus_1",
+                "sub_9",
+                null,
+                null,
+                "past_due",
+                true,
+                true,
+                true,
+                Map.of(),
+                null,
+                false,
+                null,
+                true
+        );
+        when(stripeOperations.parseWebhook("{}", "sig")).thenReturn(payload);
+        when(processedWebhookEventRepository.insertIfAbsent("evt_fail_stale", "invoice.payment_failed", "acct_1"))
+                .thenReturn(1);
+        when(stripeConnectService.findByStripeAccountId("acct_1")).thenReturn(account(7L, "acct_1"));
+        Subscription active = new Subscription();
+        active.setStatus(SubscriptionStatus.ACTIVE);
+        when(subscriptionRepository.findByTenantIdAndExternalSubscriptionId(7L, "sub_9"))
+                .thenReturn(Optional.of(active));
+        when(stripeOperations.retrieveSubscriptionStatus("acct_1", "sub_9")).thenReturn("active");
+
+        service.applyParsedEvent(service.parseAndValidate("{}", "sig"));
+
+        verify(stripeSubscriptionSyncService, never()).syncStripeSubscriptionByExternalId(
+                any(), any(), any(), any());
     }
 
     @Test
@@ -281,6 +319,76 @@ class StripeWebhookServiceTest {
                 eq(7L),
                 eq("sub_9"),
                 eq(SubscriptionStatus.PAST_DUE),
+                eq(null)
+        );
+    }
+
+    @Test
+    void asyncPaymentFailedClearsTheOpenIncompleteSubscription() {
+        StripeOperations.StripeWebhookPayload payload = new StripeOperations.StripeWebhookPayload(
+                "evt_async_fail",
+                "checkout.session.async_payment_failed",
+                "acct_1",
+                "cus_1",
+                "sub_9",
+                null,
+                null,
+                "incomplete",
+                true,
+                true,
+                true,
+                Map.of(),
+                null,
+                false,
+                "unpaid",
+                true
+        );
+        when(stripeOperations.parseWebhook("{}", "sig")).thenReturn(payload);
+        when(processedWebhookEventRepository.insertIfAbsent("evt_async_fail", "checkout.session.async_payment_failed", "acct_1"))
+                .thenReturn(1);
+        when(stripeConnectService.findByStripeAccountId("acct_1")).thenReturn(account(7L, "acct_1"));
+
+        service.applyParsedEvent(service.parseAndValidate("{}", "sig"));
+
+        verify(stripeSubscriptionSyncService).syncStripeSubscriptionByExternalId(
+                eq(7L),
+                eq("sub_9"),
+                eq(SubscriptionStatus.CANCELED),
+                eq(null)
+        );
+    }
+
+    @Test
+    void incompleteExpiredMapsToCanceled() {
+        StripeOperations.StripeWebhookPayload payload = new StripeOperations.StripeWebhookPayload(
+                "evt_expired",
+                "customer.subscription.updated",
+                "acct_1",
+                "cus_1",
+                "sub_9",
+                null,
+                null,
+                "incomplete_expired",
+                true,
+                true,
+                true,
+                Map.of(),
+                null,
+                false,
+                null,
+                true
+        );
+        when(stripeOperations.parseWebhook("{}", "sig")).thenReturn(payload);
+        when(processedWebhookEventRepository.insertIfAbsent("evt_expired", "customer.subscription.updated", "acct_1"))
+                .thenReturn(1);
+        when(stripeConnectService.findByStripeAccountId("acct_1")).thenReturn(account(7L, "acct_1"));
+
+        service.applyParsedEvent(service.parseAndValidate("{}", "sig"));
+
+        verify(stripeSubscriptionSyncService).syncStripeSubscriptionByExternalId(
+                eq(7L),
+                eq("sub_9"),
+                eq(SubscriptionStatus.CANCELED),
                 eq(null)
         );
     }
@@ -473,7 +581,7 @@ class StripeWebhookServiceTest {
         service.applyParsedEvent(service.parseAndValidate("{}", "sig"));
 
         verify(stripeSubscriptionSyncService, never()).upsertStripeSubscription(
-                any(), any(), any(), any(), any(), any(), any(), any()
+                any(), any(), any(), any(), any(), any(), any(), any(), anyBoolean()
         );
         verify(subscriptionProductRepository, never()).findByIdAndTenantId(any(), any());
     }
@@ -506,7 +614,7 @@ class StripeWebhookServiceTest {
         service.applyParsedEvent(service.parseAndValidate("{}", "sig"));
 
         verify(stripeSubscriptionSyncService, never()).upsertStripeSubscription(
-                any(), any(), any(), any(), any(), any(), any(), any()
+                any(), any(), any(), any(), any(), any(), any(), any(), anyBoolean()
         );
         verify(stripeSubscriptionSyncService, never()).syncStripeSubscriptionByExternalId(any(), any(), any(), any());
     }
@@ -547,7 +655,8 @@ class StripeWebhookServiceTest {
                 eq(7L), eq(3L), eq(22L), eq("sub_2"), eq("cus_1"),
                 eq(SubscriptionStatus.ACTIVE),
                 eq(Instant.parse("2026-09-01T00:00:00Z")),
-                isNull()
+                isNull(),
+                eq(false)
         );
     }
 
@@ -589,7 +698,8 @@ class StripeWebhookServiceTest {
                 eq("cus_1"),
                 eq(SubscriptionStatus.INCOMPLETE),
                 eq(Instant.parse("2026-09-01T00:00:00Z")),
-                eq("pi_1")
+                eq("pi_1"),
+                eq(false)
         );
     }
 
@@ -632,7 +742,7 @@ class StripeWebhookServiceTest {
         service.applyParsedEvent(service.parseAndValidate("{}", "sig"));
 
         verify(stripeSubscriptionSyncService, never()).upsertStripeSubscription(
-                any(), any(), any(), any(), any(), any(), any(), any()
+                any(), any(), any(), any(), any(), any(), any(), any(), anyBoolean()
         );
     }
 
@@ -671,7 +781,7 @@ class StripeWebhookServiceTest {
         service.applyParsedEvent(service.parseAndValidate("{}", "sig"));
 
         verify(stripeSubscriptionSyncService, never()).upsertStripeSubscription(
-                any(), any(), any(), any(), any(), any(), any(), any()
+                any(), any(), any(), any(), any(), any(), any(), any(), anyBoolean()
         );
     }
 
@@ -772,7 +882,8 @@ class StripeWebhookServiceTest {
                 "cus_1",
                 SubscriptionStatus.ACTIVE,
                 Instant.parse("2026-09-01T00:00:00Z"),
-                "pi_1"
+                "pi_1",
+                false
         )).thenThrow(new StripeSubscriptionRebindRefusedException(7L, 99L, "sub_old", "sub_orphan"));
         when(stripeOperations.isConfigured()).thenReturn(true);
 
@@ -822,7 +933,8 @@ class StripeWebhookServiceTest {
                 "cus_1",
                 SubscriptionStatus.ACTIVE,
                 Instant.parse("2026-09-01T00:00:00Z"),
-                "pi_1"
+                "pi_1",
+                false
         )).thenThrow(new StripeSubscriptionRebindRefusedException(7L, 99L, "sub_old", "sub_orphan"));
         when(stripeOperations.isConfigured()).thenReturn(true);
         doThrow(new IllegalStateException("stripe down"))
