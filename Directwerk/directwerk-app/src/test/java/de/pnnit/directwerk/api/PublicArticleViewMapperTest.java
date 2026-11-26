@@ -44,7 +44,7 @@ class PublicArticleViewMapperTest {
         MediaAsset hero = org.mockito.Mockito.mock(MediaAsset.class);
         when(hero.getId()).thenReturn(9L);
         Article article = article(hero);
-        when(publicCdnUrlResolver.resolve(hero))
+        when(publicCdnUrlResolver.resolveLoaded(hero))
                 .thenReturn(Optional.of(URI.create("https://cdn.test/hero.jpg").toURL()));
 
         PublicArticleView view = mapper.toPublicView(article);
@@ -58,7 +58,7 @@ class PublicArticleViewMapperTest {
         MediaAsset hero = org.mockito.Mockito.mock(MediaAsset.class);
         when(hero.getId()).thenReturn(9L);
         Article article = article(hero);
-        when(publicCdnUrlResolver.resolve(hero)).thenReturn(Optional.empty());
+        when(publicCdnUrlResolver.resolveLoaded(hero)).thenReturn(Optional.empty());
 
         PublicArticleView view = mapper.toPublicView(article);
 
@@ -71,7 +71,7 @@ class PublicArticleViewMapperTest {
         MediaAsset hero = org.mockito.Mockito.mock(MediaAsset.class);
         when(hero.getId()).thenReturn(9L);
         Article article = article(hero);
-        when(publicCdnUrlResolver.resolve(hero))
+        when(publicCdnUrlResolver.resolveLoaded(hero))
                 .thenReturn(Optional.of(URI.create("https://cdn.test/hero.jpg").toURL()));
 
         ArticleView view = mapper.toStudioView(article);
@@ -89,7 +89,7 @@ class PublicArticleViewMapperTest {
         Article article = article(hero);
         when(article.getTitle()).thenReturn("Live title");
         when(article.getWorkingDraft()).thenReturn(java.util.Map.of("title", "Draft title"));
-        when(publicCdnUrlResolver.resolve(hero)).thenReturn(Optional.empty());
+        when(publicCdnUrlResolver.resolveLoaded(hero)).thenReturn(Optional.empty());
 
         PublicArticleView view = mapper.toPublicView(article);
 
@@ -103,7 +103,7 @@ class PublicArticleViewMapperTest {
         Article article = article(hero);
         when(article.getTitle()).thenReturn("Live title");
         when(article.getWorkingDraft()).thenReturn(java.util.Map.of("title", "Draft title"));
-        when(publicCdnUrlResolver.resolve(hero)).thenReturn(Optional.empty());
+        when(publicCdnUrlResolver.resolveLoaded(hero)).thenReturn(Optional.empty());
 
         ArticleView view = mapper.toStudioView(article);
 
