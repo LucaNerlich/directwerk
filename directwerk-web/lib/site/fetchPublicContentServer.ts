@@ -30,20 +30,30 @@ const {
     parsePublicEpisodeListEnvelope,
 } = createWebPublicParsers()
 
+/** The public list endpoints are paged; pages are fetched until a short one arrives. */
+const PUBLIC_LIST_PAGE_SIZE = 200
+
 async function loadPublicEpisodeList(host: string): Promise<PublicEpisode[]> {
-    const response = await directwerkFetch({
-        path: '/api/v1/public/episodes',
-        tenantHost: host,
-        method: 'GET',
-    })
-    if (!response.ok) {
-        throw new Error(`public episodes request failed (HTTP ${response.status})`)
+    const episodes: PublicEpisode[] = []
+    for (let offset = 0; ; offset += PUBLIC_LIST_PAGE_SIZE) {
+        const response = await directwerkFetch({
+            path: '/api/v1/public/episodes',
+            query: `?limit=${PUBLIC_LIST_PAGE_SIZE}&offset=${offset}`,
+            tenantHost: host,
+            method: 'GET',
+        })
+        if (!response.ok) {
+            throw new Error(`public episodes request failed (HTTP ${response.status})`)
+        }
+        const parsed = parsePublicEpisodeListEnvelope(await response.json())
+        if (parsed === null) {
+            throw new Error(`public episodes response invalid for host ${host}`)
+        }
+        episodes.push(...parsed.data)
+        if (parsed.data.length < PUBLIC_LIST_PAGE_SIZE) {
+            return episodes
+        }
     }
-    const parsed = parsePublicEpisodeListEnvelope(await response.json())
-    if (parsed === null) {
-        throw new Error(`public episodes response invalid for host ${host}`)
-    }
-    return parsed.data
 }
 
 /**
@@ -65,19 +75,26 @@ export async function fetchPublicEpisodesServer(
 }
 
 async function loadPublicArticleList(host: string): Promise<PublicArticle[]> {
-    const response = await directwerkFetch({
-        path: '/api/v1/public/articles',
-        tenantHost: host,
-        method: 'GET',
-    })
-    if (!response.ok) {
-        throw new Error(`public articles request failed (HTTP ${response.status})`)
+    const articles: PublicArticle[] = []
+    for (let offset = 0; ; offset += PUBLIC_LIST_PAGE_SIZE) {
+        const response = await directwerkFetch({
+            path: '/api/v1/public/articles',
+            query: `?limit=${PUBLIC_LIST_PAGE_SIZE}&offset=${offset}`,
+            tenantHost: host,
+            method: 'GET',
+        })
+        if (!response.ok) {
+            throw new Error(`public articles request failed (HTTP ${response.status})`)
+        }
+        const parsed = parsePublicArticleListEnvelope(await response.json())
+        if (parsed === null) {
+            throw new Error(`public articles response invalid for host ${host}`)
+        }
+        articles.push(...parsed.data)
+        if (parsed.data.length < PUBLIC_LIST_PAGE_SIZE) {
+            return articles
+        }
     }
-    const parsed = parsePublicArticleListEnvelope(await response.json())
-    if (parsed === null) {
-        throw new Error(`public articles response invalid for host ${host}`)
-    }
-    return parsed.data
 }
 
 /**
