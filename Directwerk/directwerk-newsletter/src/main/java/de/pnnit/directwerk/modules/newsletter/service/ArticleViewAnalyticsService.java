@@ -40,20 +40,6 @@ public class ArticleViewAnalyticsService {
         this.tenantEventTracker = tenantEventTracker;
     }
 
-    /**
-     * Retained for direct instantiation by same-package unit tests; production wiring injects the
-     * shared {@link TenantEventTracker} bean instead.
-     */
-    ArticleViewAnalyticsService(
-            DirectwerkConfig directwerkConfig,
-            ModuleGateService moduleGateService,
-            TenantBrandingService tenantBrandingService,
-            UmamiEventClient umamiEventClient
-    ) {
-        this.tenantEventTracker = new TenantEventTracker(
-                directwerkConfig, moduleGateService, tenantBrandingService, umamiEventClient);
-    }
-
     @Transactional(readOnly = true)
     public void trackArticleView(Long tenantId, Article article, String source, String hostname) {
         trackArticleView(tenantId, article, source, hostname, null, null);
