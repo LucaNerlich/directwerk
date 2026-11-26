@@ -38,7 +38,7 @@ describe('BulkEditDialog', () => {
             <BulkEditDialog
                 busy={false}
                 categories={mockCategories}
-                contentLabel="Folge"
+                contentLabelPlural="Folgen"
                 draftCount={2}
                 formats={mockFormats}
                 onApply={onApply}
@@ -65,7 +65,7 @@ describe('BulkEditDialog', () => {
             <BulkEditDialog
                 busy={false}
                 categories={mockCategories}
-                contentLabel="Beitrag"
+                contentLabelPlural="Beiträge"
                 draftCount={1}
                 onApply={vi.fn()}
                 onOpenChange={vi.fn()}
@@ -76,7 +76,7 @@ describe('BulkEditDialog', () => {
 
         expect(
             screen.getByText(
-                '1 von 3 ausgewählten Beiträgen sind Entwürfe — veröffentlichte Beiträge werden übersprungen.',
+                '1 von 3 ausgewählten Einträgen sind Entwürfe — veröffentlichte Beiträge werden übersprungen.',
             ),
         ).toBeInTheDocument()
     })
@@ -88,7 +88,7 @@ describe('BulkEditDialog', () => {
             <BulkEditDialog
                 busy={false}
                 categories={mockCategories}
-                contentLabel="Folge"
+                contentLabelPlural="Folgen"
                 draftCount={0}
                 formats={mockFormats}
                 onApply={onApply}
@@ -100,7 +100,7 @@ describe('BulkEditDialog', () => {
 
         expect(
             screen.getByText(
-                '0 von 2 ausgewählten Folgen sind Entwürfe — veröffentlichte Folgen werden übersprungen.',
+                '0 von 2 ausgewählten Einträgen sind Entwürfe — veröffentlichte Folgen werden übersprungen.',
             ),
         ).toBeInTheDocument()
         expect(screen.getByRole('button', {name: 'Anwenden'})).toBeDisabled()
@@ -114,7 +114,7 @@ describe('BulkEditDialog', () => {
             <BulkEditDialog
                 busy={false}
                 categories={mockCategories}
-                contentLabel="Folge"
+                contentLabelPlural="Folgen"
                 draftCount={1}
                 onApply={onApply}
                 onOpenChange={vi.fn()}
@@ -137,7 +137,7 @@ describe('BulkEditDialog', () => {
             <BulkEditDialog
                 busy={false}
                 categories={[]}
-                contentLabel="Beitrag"
+                contentLabelPlural="Beiträge"
                 draftCount={1}
                 onApply={onApply}
                 onOpenChange={vi.fn()}
@@ -147,9 +147,14 @@ describe('BulkEditDialog', () => {
         )
 
         await user.click(screen.getByRole('radio', {name: 'Bezahlt'}))
+        await user.type(screen.getByLabelText(/Mindest-Level/), '10')
         await user.click(screen.getByRole('button', {name: 'Anwenden'}))
 
-        expect(onApply).toHaveBeenCalledWith({accessPolicy: 'PAID', kind: 'accessPolicy'})
+        expect(onApply).toHaveBeenCalledWith({
+            accessPolicy: 'PAID',
+            kind: 'accessPolicy',
+            requiredLevelSortOrder: 10,
+        })
     })
 
     it('offers categories that arrive after the dialog opened', async () => {
@@ -159,7 +164,7 @@ describe('BulkEditDialog', () => {
             <BulkEditDialog
                 busy={false}
                 categories={[]}
-                contentLabel="Beitrag"
+                contentLabelPlural="Beiträge"
                 draftCount={1}
                 onApply={vi.fn()}
                 onOpenChange={vi.fn()}
@@ -174,7 +179,7 @@ describe('BulkEditDialog', () => {
             <BulkEditDialog
                 busy={false}
                 categories={mockCategories}
-                contentLabel="Beitrag"
+                contentLabelPlural="Beiträge"
                 draftCount={1}
                 onApply={vi.fn()}
                 onOpenChange={vi.fn()}
@@ -195,7 +200,7 @@ describe('BulkEditDialog', () => {
             <BulkEditDialog
                 busy={false}
                 categories={[]}
-                contentLabel="Beitrag"
+                contentLabelPlural="Beiträge"
                 draftCount={1}
                 formats={mockFormats}
                 onApply={vi.fn()}
@@ -215,7 +220,7 @@ describe('BulkEditDialog', () => {
             <BulkEditDialog
                 busy={false}
                 categories={mockCategories}
-                contentLabel="Beitrag"
+                contentLabelPlural="Beiträge"
                 draftCount={1}
                 formats={mockFormats}
                 onApply={vi.fn()}

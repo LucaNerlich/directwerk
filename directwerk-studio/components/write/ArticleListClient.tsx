@@ -140,6 +140,8 @@ export default function ArticleListClient() {
                             case 'accessPolicy':
                                 return updateArticle(id, {
                                     accessPolicy: operation.accessPolicy,
+                                    requiredLevelSortOrder:
+                                        operation.requiredLevelSortOrder ?? undefined,
                                 })
                             case 'formats':
                                 return Promise.reject(new Error(w.formatsNotForArticles))

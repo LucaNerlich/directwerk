@@ -329,7 +329,7 @@ export default function PublicationListClient<T extends PublicationListEntity>({
                     <BulkEditDialog
                         busy={isBulkBusy}
                         categories={categories}
-                        contentLabel={contentLabel}
+                        contentLabelPlural={contentLabelPlural}
                         draftCount={draftCount}
                         formats={formats}
                         onApply={(operation) => void handleBulkEditApply(operation)}
