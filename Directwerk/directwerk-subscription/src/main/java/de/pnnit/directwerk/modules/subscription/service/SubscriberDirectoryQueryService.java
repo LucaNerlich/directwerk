@@ -58,14 +58,6 @@ public class SubscriberDirectoryQueryService {
     }
 
     /**
-     * Unbounded directory — prefer {@link #listSubscribers(Long, int, int, String)} for UIs.
-     */
-    @Transactional(readOnly = true)
-    public List<SubscriberDirectoryEntry> listSubscribers(Long tenantId) {
-        return listSubscribers(tenantId, 0, MAX_SUBSCRIBER_PAGE_SIZE, null).content();
-    }
-
-    /**
      * One page of the subscriber directory, optionally filtered by email/name/product title.
      *
      * @param page  zero-based page index
