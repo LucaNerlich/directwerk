@@ -189,8 +189,11 @@ export function useArticleContentEditor(
                 ...current,
                 {id: created.id, slug: created.slug},
             ])
+            // Relation persistence exists only on the update path before this fix, so a new
+            // article silently dropped its selected newsletter lists (#1018).
+            const withTags = await persistTags(created)
             routerRef.current.replace(localize(descriptor.paths.editor(created.id)))
-            return created
+            return withTags
         }
 
         const updated = await updateArticle(articleId, {
@@ -514,7 +517,13 @@ export function useArticleContentEditor(
         onRetryNotify: () => {
             void retryNotify()
                 .then(() => refreshNotifyPreview())
-                .catch(() => undefined)
+                .catch((error: unknown) =>
+                    setWorkflowError(
+                        error instanceof Error
+                            ? error.message
+                            : 'Benachrichtigung fehlgeschlagen.'
+                    )
+                )
         },
         isRetryingNotify,
         previewImageUrl: heroPreviewUrl,
