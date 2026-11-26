@@ -43,9 +43,6 @@ class RssFeedServiceTest {
     private SubscriberFeedAccess subscriberFeedAccess;
 
     @Mock
-    private EpisodeDownloadAnalyticsService episodeDownloadAnalyticsService;
-
-    @Mock
     private PublicCdnUrlResolver publicCdnUrlResolver;
 
     @Mock
@@ -59,7 +56,6 @@ class RssFeedServiceTest {
                 publicPodcastQueryService,
                 subscriberFeedAccess,
                 new RssXmlBuilder(new HtmlSanitizer()),
-                episodeDownloadAnalyticsService,
                 publicCdnUrlResolver,
                 new EpisodeCoverResolver(),
                 feedTokenProtector
@@ -88,14 +84,7 @@ class RssFeedServiceTest {
         free.setCoverAsset(publicImage(22L, "alpha/public/episode.jpg"));
 
         when(publicPodcastQueryService.listPublishedEpisodes(10L, series.getId())).thenReturn(List.of(free));
-        when(episodeDownloadAnalyticsService.publicRssEnclosureUrl(
-                10L,
-                "http",
-                "alpha.example.test",
-                8080,
-                "alpha",
-                "episode-1"
-        )).thenReturn("https://alpha.example.test/feeds/alpha/e/episode-1.mp3");
+
 
         String xml = rssFeedService.buildPublicFeed(tenant, series, "http", "alpha.example.test", 8080);
 
@@ -115,14 +104,7 @@ class RssFeedServiceTest {
         Episode free = episode(tenant, series, 1L, "Free Episode", AccessPolicy.FREE, publicAudio(10L));
 
         when(publicPodcastQueryService.listPublishedEpisodes(10L, null)).thenReturn(List.of(free));
-        when(episodeDownloadAnalyticsService.publicRssEnclosureUrl(
-                10L,
-                "http",
-                "alpha.example.test",
-                8080,
-                "alpha",
-                "episode-1"
-        )).thenReturn("https://alpha.example.test/feeds/alpha/e/episode-1.mp3");
+
 
         String xml = rssFeedService.buildPublicFeed(tenant, null, "http", "alpha.example.test", 8080);
 
@@ -140,14 +122,7 @@ class RssFeedServiceTest {
         Episode free = episode(tenant, series, 1L, "Free Episode", AccessPolicy.FREE, publicAudio(10L));
 
         when(publicPodcastQueryService.listPublishedEpisodes(10L, series.getId())).thenReturn(List.of(free));
-        when(episodeDownloadAnalyticsService.publicRssEnclosureUrl(
-                10L,
-                "http",
-                "alpha.example.test",
-                8080,
-                "alpha",
-                "episode-1"
-        )).thenReturn("https://alpha.example.test/feeds/alpha/e/episode-1.mp3");
+
 
         String xml = rssFeedService.buildPublicFeed(tenant, series, "http", "alpha.example.test", 8080);
 
@@ -166,15 +141,7 @@ class RssFeedServiceTest {
         Episode paid = episode(tenant, series, 2L, "Paid Episode", AccessPolicy.PAID, privateAudio(11L));
 
         when(subscriberFeedAccess.listEntitledEpisodes(10L, 99L, feed)).thenReturn(List.of(paid));
-        when(episodeDownloadAnalyticsService.privateRssEnclosureUrl(
-                10L,
-                "http",
-                "alpha.example.test",
-                8080,
-                "alpha",
-                "tok",
-                "episode-2"
-        )).thenReturn("https://alpha.example.test/feeds/alpha/u/tok/e/episode-2.mp3");
+
 
         String xml = rssFeedService.buildPrivateFeed(tenant, feed, "http", "alpha.example.test", 8080);
 
@@ -189,14 +156,7 @@ class RssFeedServiceTest {
         Episode free = episode(tenant, series, 1L, "Free Episode", AccessPolicy.FREE, publicAudio(10L));
 
         when(publicPodcastQueryService.listPublishedEpisodes(10L, null)).thenReturn(List.of(free));
-        when(episodeDownloadAnalyticsService.publicRssEnclosureUrl(
-                10L,
-                "http",
-                "alpha.example.test",
-                8080,
-                "alpha",
-                "episode-1"
-        )).thenReturn("https://alpha.example.test/feeds/alpha/e/episode-1.mp3");
+
 
         String xml = rssFeedService.buildPublicFeed(tenant, null, "http", "alpha.example.test", 8080);
 
@@ -217,14 +177,7 @@ class RssFeedServiceTest {
         free.getFormats().add(format);
 
         when(publicPodcastQueryService.listPublishedEpisodes(10L, null)).thenReturn(List.of(free));
-        when(episodeDownloadAnalyticsService.publicRssEnclosureUrl(
-                10L,
-                "http",
-                "alpha.example.test",
-                8080,
-                "alpha",
-                "episode-1"
-        )).thenReturn("https://alpha.example.test/feeds/alpha/e/episode-1.mp3");
+
 
         String xml = rssFeedService.buildPublicFeed(tenant, null, "http", "alpha.example.test", 8080);
 
@@ -253,14 +206,7 @@ class RssFeedServiceTest {
         Episode paid = episode(tenant, series, 2L, "Paid Episode", AccessPolicy.PAID, privateAudio(11L));
 
         when(publicPodcastQueryService.listPublishedEpisodes(10L, null)).thenReturn(List.of(free, paid));
-        when(episodeDownloadAnalyticsService.publicRssEnclosureUrl(
-                10L,
-                "http",
-                "alpha.example.test",
-                8080,
-                "alpha",
-                "episode-1"
-        )).thenReturn("https://alpha.example.test/feeds/alpha/e/episode-1.mp3");
+
 
         String xml = rssFeedService.buildPublicFeed(tenant, null, "http", "alpha.example.test", 8080);
 
@@ -268,7 +214,7 @@ class RssFeedServiceTest {
         assertThat(xml).contains("<description><![CDATA[<p>A &amp; B</p>]]></description>");
         assertThat(xml).doesNotContain("<script");
         assertThat(xml).doesNotContain("alert");
-        assertThat(xml).contains("https://alpha.example.test/feeds/alpha/e/episode-1.mp3");
+        assertThat(xml).contains("http://alpha.example.test:8080/feeds/alpha/e/episode-1.mp3");
         assertThat(xml).doesNotContain("https://cdn.example.test/alpha/public/free.mp3");
         assertThat(xml).contains("urn:directwerk:episode:alpha:1");
         assertThat(xml).doesNotContain("Paid Episode");
@@ -304,14 +250,7 @@ class RssFeedServiceTest {
 
         assertThat(xml).doesNotContain("Free Episode");
         assertThat(xml).doesNotContain("episode-1");
-        verify(episodeDownloadAnalyticsService, never()).publicRssEnclosureUrl(
-                10L,
-                "http",
-                "alpha.example.test",
-                8080,
-                "alpha",
-                "episode-1"
-        );
+
     }
 
     @Test
@@ -326,14 +265,7 @@ class RssFeedServiceTest {
 
         assertThat(xml).doesNotContain("Free Episode");
         assertThat(xml).doesNotContain("episode-1");
-        verify(episodeDownloadAnalyticsService, never()).publicRssEnclosureUrl(
-                10L,
-                "http",
-                "alpha.example.test",
-                8080,
-                "alpha",
-                "episode-1"
-        );
+
     }
 
     @Test
@@ -345,20 +277,12 @@ class RssFeedServiceTest {
         SubscriberFeed feed = feed(tenant);
 
         when(subscriberFeedAccess.listEntitledEpisodes(10L, 99L, feed)).thenReturn(List.of(paid));
-        when(episodeDownloadAnalyticsService.privateRssEnclosureUrl(
-                10L,
-                "http",
-                "alpha.example.test",
-                8080,
-                "alpha",
-                "tok",
-                "episode-2"
-        )).thenReturn("https://alpha.example.test/feeds/alpha/u/tok/e/episode-2.mp3");
+
 
         String xml = rssFeedService.buildPrivateFeed(tenant, feed, "http", "alpha.example.test", 8080);
 
         assertThat(xml).contains("Paid Episode");
-        assertThat(xml).contains("https://alpha.example.test/feeds/alpha/u/tok/e/episode-2.mp3");
+        assertThat(xml).contains("http://alpha.example.test:8080/feeds/alpha/u/tok/e/episode-2.mp3");
         assertThat(xml).contains("<itunes:image href=\"https://cdn.example.test/alpha/public/series.jpg\"/>");
         assertThat(xml).doesNotContain("X-Amz-Signature");
         verify(feedTokenProtector).reveal("enc:tok");
@@ -381,15 +305,7 @@ class RssFeedServiceTest {
 
         when(subscriberFeedAccess.listEntitledEpisodes(10L, 99L, feed))
                 .thenReturn(List.of(interviewEpisode));
-        when(episodeDownloadAnalyticsService.privateRssEnclosureUrl(
-                10L,
-                "http",
-                "alpha.example.test",
-                8080,
-                "alpha",
-                "tok",
-                "episode-2"
-        )).thenReturn("https://alpha.example.test/feeds/alpha/u/tok/e/episode-2.mp3");
+
 
         String xml = rssFeedService.buildPrivateFeed(tenant, feed, "http", "alpha.example.test", 8080);
 

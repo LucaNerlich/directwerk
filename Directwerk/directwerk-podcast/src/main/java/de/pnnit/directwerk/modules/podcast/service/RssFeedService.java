@@ -2,6 +2,7 @@ package de.pnnit.directwerk.modules.podcast.service;
 
 import de.pnnit.directwerk.modules.core.entity.Tenant;
 import de.pnnit.directwerk.modules.core.service.FeedTokenProtector;
+import de.pnnit.directwerk.modules.core.util.FeedUrls;
 import de.pnnit.directwerk.modules.core.util.PublicUrlBuilder;
 import de.pnnit.directwerk.modules.content.PublicSurfacePolicy;
 import de.pnnit.directwerk.modules.digital.entity.AssetStatus;
@@ -34,7 +35,6 @@ public class RssFeedService {
     private final PublicPodcastQueryService publicPodcastQueryService;
     private final SubscriberFeedAccess subscriberFeedAccess;
     private final RssXmlBuilder rssXmlBuilder;
-    private final EpisodeDownloadAnalyticsService episodeDownloadAnalyticsService;
     private final PublicCdnUrlResolver publicCdnUrlResolver;
     private final EpisodeCoverResolver episodeCoverResolver;
     private final FeedTokenProtector feedTokenProtector;
@@ -140,11 +140,10 @@ public class RssFeedService {
             return Optional.empty();
         }
         // Always use the stable public enclosure proxy (Umami + CDN redirect); never embed CDN/S3.
-        String url = episodeDownloadAnalyticsService.publicRssEnclosureUrl(
-                tenant.getId(),
-                scheme,
-                host,
-                port,
+        // The snapshot origin is already the resolved tenant host; resolving it again per item
+        // issued one tenant_domains SELECT per episode (#1032).
+        String url = FeedUrls.publicEnclosure(
+                PublicUrlBuilder.baseUrl(scheme, host, port),
                 tenant.getSlug(),
                 episode.getSlug()
         );
@@ -169,11 +168,8 @@ public class RssFeedService {
         if (PublicSurfacePolicy.isFreeAccess(episode.getAccessPolicy().name())) {
             return toPublicRssEpisode(episode, tenant, scheme, host, port);
         }
-        String url = episodeDownloadAnalyticsService.privateRssEnclosureUrl(
-                tenant.getId(),
-                scheme,
-                host,
-                port,
+        String url = FeedUrls.privateEnclosure(
+                PublicUrlBuilder.baseUrl(scheme, host, port),
                 tenant.getSlug(),
                 feedToken,
                 episode.getSlug()
