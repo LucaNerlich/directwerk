@@ -215,7 +215,7 @@ public class AnalyticsQueryService {
             );
         }
         if (!response.isSuccessful()) {
-            throw unavailable();
+            throw unavailable(new IllegalStateException("Umami returned HTTP " + response.status()));
         }
         JsonNode payload = parseBody(response.body());
         JsonNode token = payload.path("token");
@@ -239,7 +239,7 @@ public class AnalyticsQueryService {
                     "Umami request timed out."
             );
         } catch (IOException | RuntimeException ex) {
-            throw unavailable();
+            throw unavailable(ex);
         }
     }
 
@@ -253,7 +253,14 @@ public class AnalyticsQueryService {
     }
 
     private static AnalyticsQueryException unavailable() {
-        return new AnalyticsQueryException("UMAMI_UNAVAILABLE", HttpStatus.BAD_GATEWAY, "Umami is unavailable.");
+        return unavailable(null);
+    }
+
+    private static AnalyticsQueryException unavailable(Throwable cause) {
+        // Preserve the cause: without it the logs cannot tell timeout, TLS, 5xx and bad payload
+        // apart (#1078).
+        return new AnalyticsQueryException(
+                "UMAMI_UNAVAILABLE", HttpStatus.BAD_GATEWAY, "Umami is unavailable.", cause);
     }
 
     private JsonNode parseBody(String body) {
