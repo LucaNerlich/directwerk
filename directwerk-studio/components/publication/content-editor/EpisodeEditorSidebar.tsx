@@ -134,6 +134,7 @@ export default function EpisodeEditorSidebar({
                     <label className="grid gap-2 text-sm font-medium">
                         <span>Folgennummer</span>
                         <Input
+                            disabled={controlsDisabled}
                             min={1}
                             onChange={(event) => {
                                 onEpisodeNumberChange(event.target.value)

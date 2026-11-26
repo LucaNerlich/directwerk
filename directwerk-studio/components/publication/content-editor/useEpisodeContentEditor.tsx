@@ -220,6 +220,11 @@ export function useEpisodeContentEditor(
                 })
                 deferredCreateIdRef.current = created.id
                 setEpisode(created)
+                setEpisodeNumber(
+                    created.episodeNumber !== null
+                        ? String(created.episodeNumber)
+                        : ''
+                )
                 setSlugIndex((current) => [
                     ...current,
                     {id: created.id, slug: created.slug},
@@ -237,6 +242,13 @@ export function useEpisodeContentEditor(
             })
             const withTags = await persistTags(updated)
             setEpisode(withTags)
+            // The API treats an omitted/undefined number as "leave unchanged"; rehydrate from the
+            // response so the field never shows a value the server did not store (#1054).
+            setEpisodeNumber(
+                withTags.episodeNumber !== null
+                    ? String(withTags.episodeNumber)
+                    : ''
+            )
             setSlugIndex((current) =>
                 current.map((item) =>
                     item.id === withTags.id
