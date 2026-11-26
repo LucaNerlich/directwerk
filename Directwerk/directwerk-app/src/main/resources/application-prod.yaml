@@ -7,7 +7,9 @@ spring:
             mail:
                 smtp:
                     starttls:
-                        required: false
+                        # Never downgrade to cleartext SMTP in production: reset/invite tokens
+                        # and SMTP credentials would traverse the network in the clear (#1039).
+                        required: true
     jpa:
         hibernate:
             ddl-auto: validate
