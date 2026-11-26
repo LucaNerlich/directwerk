@@ -11,6 +11,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 import org.springframework.util.StringUtils;
@@ -227,9 +228,22 @@ public class QueueRepository {
     }
 
     public Optional<QueueJob> fail(UUID id, String worker, String error, Duration retryDelay) {
+        try {
+            return updateAfterFailure(id, worker, error, retryDelay, true);
+        } catch (DuplicateKeyException ex) {
+            // A coalesced follow-up already owns the single QUEUED slot for this correlation
+            // (jobs_queued_correlation_uidx). The superseded attempt is terminal; the follow-up
+            // carries the retry. Without this fallback the failure is never recorded and the job
+            // stays PROCESSING until lease expiry.
+            return updateAfterFailure(id, worker, error, retryDelay, false);
+        }
+    }
+
+    private Optional<QueueJob> updateAfterFailure(
+            UUID id, String worker, String error, Duration retryDelay, boolean allowRequeue) {
         return jdbcTemplate.query("""
                 UPDATE jobs
-                SET status = CASE WHEN attempts >= max_attempts THEN 'FAILED'::job_status
+                SET status = CASE WHEN NOT ? OR attempts >= max_attempts THEN 'FAILED'::job_status
                                   ELSE 'QUEUED'::job_status END,
                     available_at = clock_timestamp() + (? * interval '1 millisecond'),
                     locked_by = NULL,
@@ -240,7 +254,7 @@ public class QueueRepository {
                   AND locked_until > clock_timestamp()
                 RETURNING %s
                 """.formatted(COLUMNS), this::mapJob,
-                retryDelay.toMillis(), error, id, worker).stream().findFirst();
+                allowRequeue, retryDelay.toMillis(), error, id, worker).stream().findFirst();
     }
 
     public Optional<QueueJob> find(UUID id) {

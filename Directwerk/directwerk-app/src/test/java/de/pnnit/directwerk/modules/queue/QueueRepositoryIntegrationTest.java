@@ -333,6 +333,28 @@ class QueueRepositoryIntegrationTest {
     }
 
     @Test
+    void failAfterAFollowUpWasCoalescedRecordsTheFailureInsteadOfColliding() {
+        ObjectNode payload = objectMapper.createObjectNode().put("tenantId", 10);
+        QueueJob first = queueRepository.enqueue(
+                "mail", payload, 0, Instant.now(), 3, 10L, "requeue-collision-10", null
+        );
+        List<QueueJob> claimed = queueRepository.claim("mail", "worker-1", 1, Duration.ofSeconds(60));
+        assertThat(claimed).extracting(QueueJob::id).containsExactly(first.id());
+
+        QueueJob followUp = queueRepository.enqueue(
+                "mail", payload, 0, Instant.now(), 3, 10L, "requeue-collision-10", null
+        );
+
+        QueueJob failed = queueRepository.fail(first.id(), "worker-1", "boom", Duration.ofSeconds(30))
+                .orElseThrow();
+
+        assertThat(failed.status()).isEqualTo(JobStatus.FAILED);
+        assertThat(failed.lastError()).isEqualTo("boom");
+        assertThat(queueRepository.find(followUp.id()).orElseThrow().status())
+                .isEqualTo(JobStatus.QUEUED);
+    }
+
+    @Test
     void concurrentEnqueuesWithSameCorrelationIdCoalesceToOneJob() throws Exception {
         ObjectNode payload = objectMapper.createObjectNode().put("tenantId", 10);
         int workers = 8;
