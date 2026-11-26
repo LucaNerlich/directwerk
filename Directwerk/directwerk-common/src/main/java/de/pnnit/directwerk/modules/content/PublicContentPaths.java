@@ -50,10 +50,6 @@ public final class PublicContentPaths {
         return localized(DEFAULT_LOCALE, "/newsletter/unsubscribe");
     }
 
-    public static String newsletterSubscribe(String listSlug) {
-        return localized(DEFAULT_LOCALE, "/newsletter/" + listSlug);
-    }
-
     /**
      * Prefixes an absolute path with a locale segment. Blank/null locale falls back to
      * {@link #DEFAULT_LOCALE}.
