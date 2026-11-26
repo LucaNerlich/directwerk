@@ -11,7 +11,6 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-import org.springframework.dao.DuplicateKeyException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 import org.springframework.util.StringUtils;
@@ -227,34 +226,34 @@ public class QueueRepository {
                 .stream().findFirst();
     }
 
+    /**
+     * Fails a claimed job. A coalesced follow-up may already own the single QUEUED slot for this
+     * correlation (jobs_queued_correlation_uidx), so the transition is decided in the same
+     * statement: raising 23505 here would abort the caller's transaction and the retry could not
+     * run (#1009).
+     */
     public Optional<QueueJob> fail(UUID id, String worker, String error, Duration retryDelay) {
-        try {
-            return updateAfterFailure(id, worker, error, retryDelay, true);
-        } catch (DuplicateKeyException ex) {
-            // A coalesced follow-up already owns the single QUEUED slot for this correlation
-            // (jobs_queued_correlation_uidx). The superseded attempt is terminal; the follow-up
-            // carries the retry. Without this fallback the failure is never recorded and the job
-            // stays PROCESSING until lease expiry.
-            return updateAfterFailure(id, worker, error, retryDelay, false);
-        }
-    }
-
-    private Optional<QueueJob> updateAfterFailure(
-            UUID id, String worker, String error, Duration retryDelay, boolean allowRequeue) {
         return jdbcTemplate.query("""
-                UPDATE jobs
-                SET status = CASE WHEN NOT ? OR attempts >= max_attempts THEN 'FAILED'::job_status
+                UPDATE jobs j
+                SET status = CASE WHEN j.attempts >= j.max_attempts
+                                   OR EXISTS (SELECT 1 FROM jobs sibling
+                                              WHERE sibling.queue_name = j.queue_name
+                                                AND sibling.tenant_id = j.tenant_id
+                                                AND sibling.correlation_id = j.correlation_id
+                                                AND sibling.status = 'QUEUED'
+                                                AND sibling.id <> j.id)
+                                  THEN 'FAILED'::job_status
                                   ELSE 'QUEUED'::job_status END,
                     available_at = clock_timestamp() + (? * interval '1 millisecond'),
                     locked_by = NULL,
                     locked_until = NULL,
                     last_error = ?,
                     updated_at = clock_timestamp()
-                WHERE id = ? AND status = 'PROCESSING' AND locked_by = ?
-                  AND locked_until > clock_timestamp()
+                WHERE j.id = ? AND j.status = 'PROCESSING' AND j.locked_by = ?
+                  AND j.locked_until > clock_timestamp()
                 RETURNING %s
                 """.formatted(COLUMNS), this::mapJob,
-                allowRequeue, retryDelay.toMillis(), error, id, worker).stream().findFirst();
+                retryDelay.toMillis(), error, id, worker).stream().findFirst();
     }
 
     public Optional<QueueJob> find(UUID id) {
