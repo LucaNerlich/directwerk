@@ -367,6 +367,17 @@ export default function DomainVerificationWizard({
                         ) : null}
                         <p className="text-xs text-muted-foreground">{s.wizardDnsProviderTip}</p>
                         <div className="flex flex-wrap gap-2">
+                            {challenge === null ? (
+                                <Button
+                                    onClick={() => {
+                                        void loadChallenge(host ?? '')
+                                    }}
+                                    type="button"
+                                    variant="outline"
+                                >
+                                    Erneut laden
+                                </Button>
+                            ) : null}
                             <Button
                                 disabled={challenge === null}
                                 onClick={() => {
