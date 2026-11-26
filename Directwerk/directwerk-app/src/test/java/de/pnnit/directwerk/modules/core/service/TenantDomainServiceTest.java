@@ -17,8 +17,10 @@ import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
+import org.mockito.quality.Strictness;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.context.ApplicationEventPublisher;
 
 @ExtendWith(MockitoExtension.class)
@@ -42,8 +44,16 @@ class TenantDomainServiceTest {
     @Mock
     private ApplicationEventPublisher eventPublisher;
 
+    @Mock
+    private ObjectProvider<TenantDomainService> selfProvider;
+
     @InjectMocks
     private TenantDomainService service;
+
+    @org.junit.jupiter.api.BeforeEach
+    void proxyReturnsThisInstance() {
+        org.mockito.Mockito.lenient().when(selfProvider.getObject()).thenReturn(service);
+    }
 
     @Test
     void addDomainClearsExistingPrimaryWhenAddingNewPrimary() {

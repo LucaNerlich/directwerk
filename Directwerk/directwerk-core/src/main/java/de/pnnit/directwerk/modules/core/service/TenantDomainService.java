@@ -14,6 +14,7 @@ import java.util.HexFormat;
 import java.util.List;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
@@ -35,6 +36,7 @@ public class TenantDomainService {
     private final DomainDnsLookup domainDnsLookup;
     private final PlatformAuditService platformAuditService;
     private final ApplicationEventPublisher eventPublisher;
+    private final ObjectProvider<TenantDomainService> selfProvider;
     private final SecureRandom secureRandom = new SecureRandom();
 
     /**
@@ -132,10 +134,14 @@ public class TenantDomainService {
         );
     }
 
-    /** Verifies domain ownership using a DNS TXT record at {@link #DNS_CHALLENGE_LABEL}. */
-    @Transactional
+    /**
+     * Verifies domain ownership using a DNS TXT record at {@link #DNS_CHALLENGE_LABEL}.
+     *
+     * <p>Deliberately not transactional: the JNDI lookup can block for the resolver's deadline and
+     * must not hold a pooled JDBC connection. Both short phases go through the proxy.
+     */
     public TenantDomain verifyDomain(Long tenantId, String host) {
-        TenantDomain domain = requireDomainForVerification(tenantId, host);
+        TenantDomain domain = selfProvider.getObject().requireDomainForVerification(tenantId, host);
         if (domain.isVerified()) return domain;
         String challengeName = challengeDnsName(domain.getHost());
         boolean dnsMatched = domainDnsLookup.lookupTxt(challengeName).stream()
@@ -145,7 +151,7 @@ public class TenantDomainService {
                         + ". Publish a TXT record at " + challengeName
                         + " with value "
                         + DNS_TXT_PREFIX + domain.getVerificationToken());
-        return persistVerification(tenantId, host);
+        return selfProvider.getObject().persistVerification(tenantId, host);
     }
 
     static String challengeDnsName(String host) {
@@ -164,7 +170,7 @@ public class TenantDomainService {
      * @return the verified domain
      */
     @Transactional
-    protected TenantDomain persistVerification(Long tenantId, String host) {
+    public TenantDomain persistVerification(Long tenantId, String host) {
         TenantDomain domain = requireDomain(tenantId, host);
         if (domain.isVerified()) {
             return domain;
@@ -195,7 +201,7 @@ public class TenantDomainService {
      * @throws DomainVerificationException if the domain is not found
      */
     @Transactional
-    protected TenantDomain requireDomainForVerification(Long tenantId, String host) {
+    public TenantDomain requireDomainForVerification(Long tenantId, String host) {
         TenantDomain domain = requireDomain(tenantId, host);
         ensureToken(domain);
         return domain;
