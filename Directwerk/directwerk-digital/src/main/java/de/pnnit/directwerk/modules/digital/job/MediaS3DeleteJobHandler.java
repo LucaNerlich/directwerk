@@ -76,6 +76,17 @@ public class MediaS3DeleteJobHandler implements JobHandler {
             log.debug("Media asset {} already ARCHIVED — skipping S3 delete job", asset.getId());
             return;
         }
+        // A payload key that no longer matches the asset is a stale-key cleanup (demotion to
+        // private), not an asset deletion: delete that object and stop, without the
+        // attached-references guard or the ARCHIVED write (#1030 review).
+        if (!payload.s3Key().equals(asset.getS3Key())) {
+            DirectwerkProperties.Storage storage = StorageConfigs.requireEnabled(directwerkConfig);
+            deleteS3Object(storage, payload.s3Key());
+            if (StringUtils.hasText(payload.cdnUrl())) {
+                mediaDeleteJobProducer.enqueueCdnPurge(payload.mediaAssetId(), payload.cdnUrl());
+            }
+            return;
+        }
         // Re-check at the irreversible step: an asset tombstoned before the guard existed, or
         // attached while the job sat in the queue, must not lose its bytes (#704 review).
         if (mediaAssetRepository.hasAttachedReferences(asset.getId())) {
