@@ -2380,8 +2380,13 @@ function parseBillingStats(value: unknown): BillingStats | null {
         !isNonNegativeSafeInteger(value.pastDueSubscriptions) ||
         !isNonNegativeSafeInteger(value.incompleteSubscriptions) ||
         !isNonNegativeSafeInteger(value.totalMemberships) ||
-        !isNonNegativeSafeInteger(value.estimatedMonthlyCents) ||
-        !isBoundedString(value.currency, 3)
+        !Array.isArray(value.monthlyTotals) ||
+        value.monthlyTotals.some(
+            (entry) =>
+                !isRecord(entry) ||
+                !isBoundedString(entry.currency, 3) ||
+                !isNonNegativeSafeInteger(entry.amountCents),
+        )
     ) {
         return null
     }
@@ -2395,8 +2400,10 @@ function parseBillingStats(value: unknown): BillingStats | null {
         pastDueSubscriptions: value.pastDueSubscriptions,
         incompleteSubscriptions: value.incompleteSubscriptions,
         totalMemberships: value.totalMemberships,
-        estimatedMonthlyCents: value.estimatedMonthlyCents,
-        currency: value.currency,
+        monthlyTotals: value.monthlyTotals.map((entry) => ({
+            currency: entry.currency,
+            amountCents: entry.amountCents,
+        })),
     }
 }
 

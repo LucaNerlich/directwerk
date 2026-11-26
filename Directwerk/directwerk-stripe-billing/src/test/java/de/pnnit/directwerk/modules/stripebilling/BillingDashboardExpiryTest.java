@@ -54,7 +54,7 @@ class BillingDashboardExpiryTest {
         assertEquals(1, dashboard.stats().activePaidSubscriptions());
         assertEquals(1, dashboard.stats().activeGrantSubscriptions());
         assertEquals(2, dashboard.stats().uniqueActiveMembers());
-        assertEquals(990, dashboard.stats().estimatedMonthlyCents());
+        assertEquals(990, dashboard.stats().monthlyTotals().stream().mapToInt(BillingDashboardService.MonthlyTotal::amountCents).sum());
     }
 
     @Test
@@ -75,7 +75,7 @@ class BillingDashboardExpiryTest {
 
         BillingDashboardService.BillingDashboard dashboard = service.snapshot(4L);
 
-        assertEquals(2, dashboard.stats().estimatedMonthlyCents());
+        assertEquals(2, dashboard.stats().monthlyTotals().stream().mapToInt(BillingDashboardService.MonthlyTotal::amountCents).sum());
     }
 
     private static Subscription subscription(
