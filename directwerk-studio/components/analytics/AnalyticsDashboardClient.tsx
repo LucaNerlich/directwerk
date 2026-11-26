@@ -237,22 +237,6 @@ export default function AnalyticsDashboardClient({
                 setArticles(loadedArticles)
                 setEpisodes(loadedEpisodes)
                 setSeries(loadedSeries)
-                if (subscriptionEnabled) {
-                    try {
-                        setBilling(await getBillingDashboard())
-                    } catch (billingError: unknown) {
-                        if (
-                            billingError instanceof Error &&
-                            authRedirect(billingError)
-                        ) {
-                            return
-                        }
-                        // Editors get 403 here (dashboard needs TENANT_ADMIN) —
-                        // content stats still render, audience stays hidden.
-                        setBilling(null)
-                        setBillingUnavailable(true)
-                    }
-                }
             } catch (error: unknown) {
                 if (!active) {
                     return
@@ -275,7 +259,41 @@ export default function AnalyticsDashboardClient({
         return () => {
             active = false
         }
-    }, [a.loadFailed, authRedirect, attempt, showPodcast, showWrite, subscriptionEnabled])
+    }, [a.loadFailed, authRedirect, attempt, showPodcast, showWrite])
+
+    // Billing is independent of the content desks: a subscription-only tenant has no
+    // WRITE/PODCAST desk, and the content effect returned early before fetching it (#1066).
+    useEffect(() => {
+        if (!subscriptionEnabled) {
+            return
+        }
+        let active = true
+
+        void (async () => {
+            try {
+                const loaded = await getBillingDashboard()
+                if (active) {
+                    setBilling(loaded)
+                    setBillingUnavailable(false)
+                }
+            } catch (billingError: unknown) {
+                if (!active) {
+                    return
+                }
+                if (billingError instanceof Error && authRedirect(billingError)) {
+                    return
+                }
+                // Editors get 403 here (dashboard needs TENANT_ADMIN) — content stats
+                // still render, audience stays hidden.
+                setBilling(null)
+                setBillingUnavailable(true)
+            }
+        })()
+
+        return () => {
+            active = false
+        }
+    }, [attempt, authRedirect, subscriptionEnabled])
 
     useEffect(() => {
         if (!umamiActive) {
