@@ -16,6 +16,8 @@ import de.pnnit.directwerk.modules.podcast.service.PublicPodcastQueryService;
 import de.pnnit.directwerk.modules.podcast.service.RssFeedSnapshotService;
 import de.pnnit.directwerk.multitenancy.TenantContext;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import java.util.List;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -59,13 +61,18 @@ public class PublicPodcastController {
 
     @GetMapping("/episodes")
     ResponseEntity<Response<List<PublicEpisodeView>>> listEpisodes(
-            @RequestParam(required = false) Long seriesId
+            @RequestParam(required = false) Long seriesId,
+            @RequestParam(defaultValue = "50") @Min(1) @Max(200) int limit,
+            @RequestParam(defaultValue = "0") @Min(0) int offset
     ) {
         // Issue #379: fail closed on an unmatched Host instead of running tenant-less queries.
         Long tenantId = TenantContext.requireTenantId();
+        // #1036: bound the anonymous catalog response; descriptions can reach 100k chars.
         List<PublicEpisodeView> episodes = publicPodcastQueryService
                 .listPublishedEpisodes(tenantId, seriesId)
                 .stream()
+                .skip(offset)
+                .limit(limit)
                 .map(publicEpisodeViewMapper::toPublicView)
                 .toList();
         return ResponseEntity.ok(Response.ok(episodes));
