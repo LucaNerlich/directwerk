@@ -1,5 +1,6 @@
 package de.pnnit.directwerk.modules.email;
 
+import de.pnnit.directwerk.modules.search.SearchPlainText;
 import java.util.regex.Pattern;
 import org.springframework.stereotype.Component;
 import org.springframework.web.util.HtmlUtils;
@@ -8,7 +9,6 @@ import org.springframework.web.util.HtmlUtils;
 public class EmailTemplateRenderer {
 
     private static final Pattern PLACEHOLDER_PATTERN = Pattern.compile("\\{\\{([a-zA-Z][a-zA-Z0-9_]*)}}");
-    private static final Pattern HTML_TAG_PATTERN = Pattern.compile("<[^>]+>");
 
     private final EmailTemplateSource templateSource;
 
@@ -59,14 +59,8 @@ public class EmailTemplateRenderer {
     }
 
     static String htmlToPlainText(String html) {
-        // Tags become a space (not "") so adjacent words don't merge.
-        String withoutTags = HTML_TAG_PATTERN.matcher(html).replaceAll(" ");
-        // Issue #392: the renderer escapes with HtmlUtils.htmlEscape, which also emits &quot;
-        // and &#39; — decode the full entity set rather than the four manual replaces, or
-        // plain-text alternatives show "O&#39;Brien".
-        String decoded = org.springframework.web.util.HtmlUtils.htmlUnescape(withoutTags);
-        // &nbsp; decodes to U+00A0, which Java's \s does not consider whitespace — normalise it
-        // so the collapse below still works (the previous four-replace version mapped it to " ").
-        return decoded.replace('\u00A0', ' ').replaceAll("\\s+", " ").trim();
+        // Shared with search snippets and publication excerpts (#1070); issue #392's full entity
+        // decoding lives there now.
+        return SearchPlainText.stripHtml(html);
     }
 }
