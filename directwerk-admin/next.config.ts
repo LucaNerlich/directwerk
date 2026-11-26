@@ -13,8 +13,11 @@ const nextConfig: NextConfig = {
     experimental: {
         ...baseConfig.experimental,
         // The storage test upload posts through a server action; Next's 1 MB default rejected
-        // every realistic file before the 10 MB pre-check ran (#1016).
+        // every realistic file before the 10 MB pre-check ran (#1016). The proxy buffers the
+        // same request first and defaults to 10 MiB, so it needs headroom above the action
+        // limit or a file at the cap arrives truncated (#1016 review).
         serverActions: {bodySizeLimit: '11mb'},
+        proxyClientMaxBodySize: '12mb',
     },
 }
 
