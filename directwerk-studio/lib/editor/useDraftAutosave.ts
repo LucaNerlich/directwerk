@@ -1,6 +1,6 @@
 'use client'
 
-import {useEffect, useRef} from 'react'
+import {useEffect, useLayoutEffect, useRef} from 'react'
 
 
 export function useDraftAutosave({
@@ -22,9 +22,11 @@ export function useDraftAutosave({
     revision?: number
 }): void {
     const onSaveRef = useRef(onSave)
-    onSaveRef.current = onSave
     const canSaveRef = useRef(canSave)
-    canSaveRef.current = canSave
+    useLayoutEffect(() => {
+        onSaveRef.current = onSave
+        canSaveRef.current = canSave
+    }, [canSave, onSave])
     /** Revision of the last attempted save, so a failed autosave (isDirty stays
      * true) does not retry every `delayMs` forever — only a new edit (new
      * revision) schedules another attempt. */
