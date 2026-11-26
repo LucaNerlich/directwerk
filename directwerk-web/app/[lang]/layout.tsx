@@ -41,8 +41,8 @@ async function resolveTenantSeo(lang: Locale): Promise<{
     config: PublicSiteConfig | null
 }> {
     const dictionary = await getDictionary(lang)
+    const host = await getTenantHost()
     try {
-        const host = await getTenantHost()
         if (host === null) {
             throw new Error('Tenant host unresolved')
         }
@@ -63,7 +63,9 @@ async function resolveTenantSeo(lang: Locale): Promise<{
         }
     } catch {
         return {
-            origin: 'https://localhost',
+            // The host is already known; a config-fetch failure must not advertise localhost
+            // as the tenant's canonical origin (#1068).
+            origin: resolveTenantOrigin(host),
             title: dictionary.layoutSeo.fallbackTitle,
             description: dictionary.layoutSeo.fallbackDescription,
             primaryColor: null,
@@ -132,7 +134,7 @@ export async function generateMetadata({
             description: seo.description,
             type: 'website',
             locale: ogLocale,
-            url: `/${lang}`,
+            url: './',
         },
         twitter: {
             card: 'summary',
@@ -178,9 +180,9 @@ export default async function LangLayout({
     const dictionary = await getDictionary(lang)
 
     let config: PublicSiteConfig
-    let origin = 'https://localhost'
+    const host = await getTenantHost()
+    let origin = resolveTenantOrigin(host)
     try {
-        const host = await getTenantHost()
         if (host === null) {
             throw new Error('Tenant host unresolved')
         }
