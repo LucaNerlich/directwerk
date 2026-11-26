@@ -23,16 +23,28 @@ const PACKAGES = [
 ]
 
 let failed = false
+let toolFailed = false
 
 for (const pkg of PACKAGES) {
     process.stdout.write(`\n=== ${pkg.dir} ===\n`)
     try {
-        execSync(
-            `pnpm dlx madge --circular --extensions ts,tsx --ts-config ${pkg.tsconfig} ${pkg.dir}`,
-            {cwd: repoRoot, stdio: 'inherit'},
+        const output = execSync(
+            `pnpm exec madge --circular --extensions ts,tsx --ts-config ${pkg.tsconfig} ${pkg.dir}`,
+            {cwd: repoRoot, encoding: 'utf8'},
         )
-    } catch {
-        failed = true
+        process.stdout.write(output)
+    } catch (error) {
+        const stdout = String(error?.stdout ?? '')
+        const stderr = String(error?.stderr ?? '')
+        process.stdout.write(stdout)
+        if (/Found \d+ circular dependenc/i.test(stdout + stderr)) {
+            failed = true
+        } else {
+            // A missing tool or registry failure is not a cycle; reporting it as one sends
+            // developers hunting for a dependency loop that does not exist (#1084).
+            toolFailed = true
+            console.error(`✖ Could not run madge for ${pkg.dir}: ${stderr.trim() || error?.message || 'unknown error'}`)
+        }
     }
 }
 
@@ -108,6 +120,11 @@ if (gradleCycle) {
 if (failed) {
     console.error('\nCircular dependencies detected.')
     process.exit(1)
+}
+
+if (toolFailed) {
+    console.error('\nCircular-dependency check could not run (tool failure, not a cycle).')
+    process.exit(2)
 }
 
 console.log('\nNo circular dependencies in cleanup scope.')
