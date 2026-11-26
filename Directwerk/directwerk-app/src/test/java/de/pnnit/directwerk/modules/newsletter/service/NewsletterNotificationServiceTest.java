@@ -105,8 +105,8 @@ class NewsletterNotificationServiceTest {
                 subscription("grace@example.com", "enc-grace")
         ));
         when(feedTokenProtector.reveal(anyString())).thenAnswer(invocation -> "raw-" + invocation.getArgument(0));
-        when(contentNotificationMarkerRepository.existsNewsletterRecipient(eq(TENANT_ID), eq(ARTICLE_ID), anyString()))
-                .thenReturn(false);
+        when(contentNotificationMarkerRepository.claimNewsletterRecipient(eq(TENANT_ID), eq(ARTICLE_ID), anyString()))
+                .thenReturn(true);
         when(emailJobProducer.enqueueTokenizedContentNotification(any(), any(), any(), any(), any(), any()))
                 .thenReturn(org.mockito.Mockito.mock(de.pnnit.directwerk.modules.queue.QueueJob.class));
         when(tenantContentBrandingResolver.resolve(TENANT_ID))
@@ -156,10 +156,10 @@ class NewsletterNotificationServiceTest {
         when(publicContentUrlResolver.contentPageUrl(TENANT_ID, ContentType.ARTICLE, "hello-world"))
                 .thenReturn("https://tenant.example/de/articles/hello-world");
         // The first run already claimed Ada; the retry must skip her and still reach Grace.
-        when(contentNotificationMarkerRepository.existsNewsletterRecipient(TENANT_ID, ARTICLE_ID, "ada@example.com"))
-                .thenReturn(true);
-        when(contentNotificationMarkerRepository.existsNewsletterRecipient(TENANT_ID, ARTICLE_ID, "grace@example.com"))
+        when(contentNotificationMarkerRepository.claimNewsletterRecipient(TENANT_ID, ARTICLE_ID, "ada@example.com"))
                 .thenReturn(false);
+        when(contentNotificationMarkerRepository.claimNewsletterRecipient(TENANT_ID, ARTICLE_ID, "grace@example.com"))
+                .thenReturn(true);
         when(emailJobProducer.enqueueTokenizedContentNotification(any(), any(), any(), any(), any(), any()))
                 .thenReturn(org.mockito.Mockito.mock(de.pnnit.directwerk.modules.queue.QueueJob.class));
 
@@ -169,7 +169,7 @@ class NewsletterNotificationServiceTest {
                 any(), eq("ada@example.com"), any(), any(), any(), any());
         verify(emailJobProducer).enqueueTokenizedContentNotification(
                 any(), eq("grace@example.com"), any(), any(), any(), any());
-        verify(contentNotificationMarkerRepository, never())
+        verify(contentNotificationMarkerRepository)
                 .claimNewsletterRecipient(TENANT_ID, ARTICLE_ID, "ada@example.com");
         verify(contentNotificationMarkerRepository)
                 .claimNewsletterRecipient(TENANT_ID, ARTICLE_ID, "grace@example.com");
@@ -188,8 +188,8 @@ class NewsletterNotificationServiceTest {
                 .thenReturn(new TenantContentBrandingResolver.BrandingContext("Acme", "Acme Magazine", "#123456"));
         when(publicContentUrlResolver.contentPageUrl(TENANT_ID, ContentType.ARTICLE, "hello-world"))
                 .thenReturn("https://tenant.example/de/articles/hello-world");
-        when(contentNotificationMarkerRepository.existsNewsletterRecipient(TENANT_ID, ARTICLE_ID, "ada@example.com"))
-                .thenReturn(false);
+        when(contentNotificationMarkerRepository.claimNewsletterRecipient(TENANT_ID, ARTICLE_ID, "ada@example.com"))
+                .thenReturn(true);
         when(emailJobProducer.enqueueTokenizedContentNotification(any(), any(), any(), any(), any(), any()))
                 .thenReturn(null);
 
@@ -197,8 +197,9 @@ class NewsletterNotificationServiceTest {
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("Email delivery is disabled");
 
-        verify(contentNotificationMarkerRepository, never())
-                .claimNewsletterRecipient(any(), any(), any());
+        // Claim-first: the transaction rolls the marker back when the enqueue throws.
+        verify(contentNotificationMarkerRepository)
+                .claimNewsletterRecipient(TENANT_ID, ARTICLE_ID, "ada@example.com");
     }
 
     @Test

@@ -91,8 +91,9 @@ public class NewsletterNotificationService implements NewsletterNotificationApi 
         TenantContentBrandingResolver.BrandingContext branding = tenantContentBrandingResolver.resolve(tenantId);
         String contentUrl = publicContentUrlResolver.contentPageUrl(tenantId, ContentType.ARTICLE, event.slug());
         for (Recipient recipient : recipients) {
-            // Issue #949: skip addresses already claimed after a prior successful enqueue.
-            if (contentNotificationMarkerRepository.existsNewsletterRecipient(
+            // Claim first: exists-then-enqueue-then-claim raced with a second fan-out (#1035).
+            // The enclosing transaction rolls the claim back if the enqueue throws.
+            if (!contentNotificationMarkerRepository.claimNewsletterRecipient(
                     tenantId, event.contentId(), recipient.email())) {
                 continue;
             }
@@ -111,8 +112,6 @@ public class NewsletterNotificationService implements NewsletterNotificationApi 
             if (job == null) {
                 throw new IllegalStateException("Email delivery is disabled");
             }
-            contentNotificationMarkerRepository.claimNewsletterRecipient(
-                    tenantId, event.contentId(), recipient.email());
         }
     }
 
