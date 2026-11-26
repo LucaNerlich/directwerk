@@ -30,7 +30,22 @@ async function main(): Promise<void> {
         }
         // Stateless: one transport + server per request (mirrors API-hosted mode).
         // No filesystemTools — HTTP must not expose import_podcast_manifest.
-        const transport = new StreamableHTTPServerTransport({sessionIdGenerator: undefined})
+        // A malicious page can DNS-rebind to loopback and become same-origin; this entry has no
+        // request auth and holds the tenant API key, so require loopback Host/Origin (#1047).
+        const transport = new StreamableHTTPServerTransport({
+            sessionIdGenerator: undefined,
+            enableDnsRebindingProtection: true,
+            allowedHosts: [
+                `127.0.0.1:${port}`,
+                `localhost:${port}`,
+                `[::1]:${port}`,
+            ],
+            allowedOrigins: [
+                `http://127.0.0.1:${port}`,
+                `http://localhost:${port}`,
+                `http://[::1]:${port}`,
+            ],
+        })
         const server = createMcpServer(client)
         await server.connect(transport)
         try {
