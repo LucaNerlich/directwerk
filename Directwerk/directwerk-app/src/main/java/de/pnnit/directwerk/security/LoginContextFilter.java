@@ -35,7 +35,7 @@ public class LoginContextFilter extends OncePerRequestFilter {
             HttpServletResponse response,
             FilterChain filterChain
     ) throws ServletException, IOException {
-        if (!"/oauth2/token".equals(request.getRequestURI())) {
+        if (!"/oauth2/token".equals(RequestPaths.of(request))) {
             filterChain.doFilter(request, response);
             return;
         }

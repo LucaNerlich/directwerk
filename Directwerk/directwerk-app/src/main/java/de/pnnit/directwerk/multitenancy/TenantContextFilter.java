@@ -57,7 +57,7 @@ public class TenantContextFilter extends OncePerRequestFilter {
      */
     private boolean establishTenantContext(HttpServletRequest request, HttpServletResponse response) {
         try {
-            String path = request.getRequestURI();
+            String path = de.pnnit.directwerk.security.RequestPaths.of(request);
             RequestScope scope = RequestScope.of(path);
             if (scope == RequestScope.PLATFORM) {
                 TenantContext.clear();

@@ -28,7 +28,7 @@ public class PlatformAdminGuardFilter extends OncePerRequestFilter {
             HttpServletResponse response,
             FilterChain filterChain
     ) throws ServletException, IOException {
-        String path = request.getRequestURI();
+        String path = RequestPaths.of(request);
         if (!SecurityUtils.isAuthenticated() || !isPlatformAdminPath(path)) {
             filterChain.doFilter(request, response);
             return;

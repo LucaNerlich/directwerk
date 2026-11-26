@@ -34,7 +34,7 @@ public class JsonRequestBodySizeFilter extends OncePerRequestFilter {
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
         return !"POST".equalsIgnoreCase(request.getMethod())
-                || !path.equals(request.getRequestURI());
+                || !path.equals(RequestPaths.of(request));
     }
 
     @Override

@@ -37,7 +37,7 @@ public class BillingRateLimitFilter extends OncePerRequestFilter {
             FilterChain filterChain
     ) throws ServletException, IOException {
         if (!"POST".equalsIgnoreCase(request.getMethod())
-                || !request.getRequestURI().startsWith("/api/v1/me/billing/")) {
+                || !RequestPaths.of(request).startsWith("/api/v1/me/billing/")) {
             filterChain.doFilter(request, response);
             return;
         }
