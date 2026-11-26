@@ -8,11 +8,9 @@ import {
     parsePublicNewsletterListEnvelope,
     parsePublicNewsletterListListEnvelope,
     parsePublicProductListEnvelope,
-    parsePublicSiteConfigEnvelope,
 } from '@directwerk/api/validation/public'
 
 import type {
-    ApiEnvelope,
     LevelSummary,
     PublicArticle,
     PublicCategory,
@@ -21,24 +19,14 @@ import type {
     PublicNewsletterList,
     PublicProduct,
     PublicSeries,
-    PublicSiteConfig,
 } from '@directwerk/api/types'
-import {createWebPublicParsers} from '@/lib/publicContent/parsers'
+import {createWebCatalogParsers} from '@/lib/publicContent/parsers'
 import {envelopeResult, jsonRequest} from './transport'
 
-const publicParsers = createWebPublicParsers()
+const publicParsers = createWebCatalogParsers()
 const parsePublicArticleListEnvelope = publicParsers.parsePublicArticleListEnvelope
 const parsePublicSeriesListEnvelope = publicParsers.parsePublicSeriesListEnvelope
 const parsePublicEpisodeListEnvelope = publicParsers.parsePublicEpisodeListEnvelope
-
-export async function getSiteConfig(
-): Promise<ApiEnvelope<PublicSiteConfig>> {
-    return envelopeResult(
-        parsePublicSiteConfigEnvelope,
-        await jsonRequest('/api/proxy/public/site-config'),
-        'The server returned an invalid site configuration.',
-    )
-}
 
 export async function listPublicArticles(
 ): Promise<PublicArticle[]> {
