@@ -41,7 +41,6 @@ interface AudioPlayerValue {
     /** Load (or resume) a track and start playback. No-ops when `audioUrl` is empty. */
     playTrack: (track: PlayerTrack) => void
     togglePlay: () => void
-    pause: () => void
     seek: (seconds: number) => void
     /** Stop playback and clear the active track (hides the mini-player). */
     dismiss: () => void
@@ -153,10 +152,6 @@ export function AudioPlayerProvider({
         })
     }, [])
 
-    const pause = useCallback(() => {
-        audioRef.current?.pause()
-    }, [])
-
     const togglePlay = useCallback(() => {
         const audio = audioRef.current
         if (audio === null || track === null) {
@@ -218,8 +213,7 @@ export function AudioPlayerProvider({
             duration,
             playTrack,
             togglePlay,
-            pause,
-            seek,
+                seek,
             dismiss,
         }),
         [
@@ -229,8 +223,7 @@ export function AudioPlayerProvider({
             duration,
             playTrack,
             togglePlay,
-            pause,
-            seek,
+                seek,
             dismiss,
         ],
     )
