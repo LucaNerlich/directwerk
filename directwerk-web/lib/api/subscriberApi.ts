@@ -15,7 +15,7 @@ import type {
     SubscriberDownload,
     SubscriberFeedView,
 } from '@directwerk/api/types'
-import {createWebCatalogParsers} from '@/lib/publicContent/parsers'
+import {createWebCatalogParsers} from '@/lib/publicContent/catalogParsers'
 import {authedFetch, envelopeResult, jsonInit} from './transport'
 
 const publicParsers = createWebCatalogParsers()

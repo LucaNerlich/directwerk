@@ -20,7 +20,7 @@ import type {
     PublicProduct,
     PublicSeries,
 } from '@directwerk/api/types'
-import {createWebCatalogParsers} from '@/lib/publicContent/parsers'
+import {createWebCatalogParsers} from '@/lib/publicContent/catalogParsers'
 import {envelopeResult, jsonRequest} from './transport'
 
 const publicParsers = createWebCatalogParsers()
