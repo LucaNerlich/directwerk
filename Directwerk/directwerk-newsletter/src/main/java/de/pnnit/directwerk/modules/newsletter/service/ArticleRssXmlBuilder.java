@@ -48,7 +48,7 @@ public class ArticleRssXmlBuilder {
                 null,
                 false,
                 null,
-                null
+                MAX_DESCRIPTION_CHARS
         );
         return RssXmlWriter.build(
                 channel,
@@ -85,12 +85,11 @@ public class ArticleRssXmlBuilder {
 
     private static String descriptionFor(Article article) {
         String fullBody = PublicSurfacePolicy.articleBody(article.getBody(), article.getAccessPolicy().name());
-        String text = fullBody != null
+        // RssXmlWriter truncates the sanitized text: a blind substring here could split an entity
+        // or a surrogate pair and make the whole feed invalid XML (#1034).
+        return fullBody != null
                 ? fullBody
                 : article.getExcerpt() != null ? article.getExcerpt() : "";
-        return text.length() > MAX_DESCRIPTION_CHARS
-                ? text.substring(0, MAX_DESCRIPTION_CHARS)
-                : text;
     }
 
     private static String channelTitle(Tenant tenant, String channelTitleOverride) {

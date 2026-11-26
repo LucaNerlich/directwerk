@@ -46,6 +46,23 @@ class ArticleRssXmlBuilderTest {
     }
 
     @Test
+    void truncationNeverSplitsASurrogatePair() throws Exception {
+        // #1034: a blind substring at the bound could cut an emoji in half and emit an unpaired
+        // surrogate, which makes the whole feed invalid XML.
+        Tenant tenant = tenant();
+        String prefix = "x".repeat(ArticleRssXmlBuilder.MAX_DESCRIPTION_CHARS - 1);
+        Article article = article(11L, "emoji-cut", "Emoji", "<p>" + prefix + "\uD83D\uDE00tail</p>",
+                AccessPolicy.FREE);
+
+        String xml = builder.buildFeed(tenant, List.of(article), "https://alpha.example.test", null);
+
+        var factory = javax.xml.parsers.DocumentBuilderFactory.newInstance();
+        factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
+        factory.newDocumentBuilder()
+                .parse(new java.io.ByteArrayInputStream(xml.getBytes(java.nio.charset.StandardCharsets.UTF_8)));
+    }
+
+    @Test
     void paidArticleFallsBackToExcerptInsteadOfFullBody() {
         Tenant tenant = tenant();
         Article article = article(2L, "paid-post", "Paid Post", "<p>Secret body</p>", AccessPolicy.PAID);
