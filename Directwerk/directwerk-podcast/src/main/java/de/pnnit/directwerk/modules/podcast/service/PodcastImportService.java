@@ -34,6 +34,9 @@ import org.springframework.transaction.annotation.Transactional;
 @Slf4j
 public class PodcastImportService {
 
+    /** Bound the preview response/import size; the article importer uses the same bound. */
+    private static final int MAX_PREVIEW_ITEMS = 200;
+
     private static final Duration FEED_TIMEOUT = Duration.ofSeconds(30);
     private static final FeedImportSupport.ImportErrorFactory RSS_IMPORT_ERRORS =
             (status, code, message, cause) -> cause == null
@@ -57,10 +60,16 @@ public class PodcastImportService {
     public Preview preview(String feedUrl) {
         Long tenantId = TenantContext.requireTenantId();
         ParsedRssFeed parsed = fetchAndParse(feedUrl);
+        // Same bound as the article twin (#1033): a 5 MB feed can hold thousands of tiny items,
+        // and the controller's bulk-import guard relies on `truncated` being honest.
+        boolean truncated = parsed.items().size() > MAX_PREVIEW_ITEMS;
+        List<ParsedRssFeed.Item> previewItems = truncated
+                ? parsed.items().subList(0, MAX_PREVIEW_ITEMS)
+                : parsed.items();
         // Issue #321: resolve every item's existing episode in one query instead of one lookup
         // per parsed item — an import preview for a large feed drove tens of thousands of
         // sequential queries from a single authenticated request.
-        List<String> importIdentities = parsed.items().stream()
+        List<String> importIdentities = previewItems.stream()
                 .map(item -> importIdentity(parsed.feedUrl(), item.guid()))
                 .toList();
         Map<String, Long> existingIdByImportIdentity = importIdentities.isEmpty()
@@ -72,7 +81,7 @@ public class PodcastImportService {
                                 (first, second) -> first));
 
         List<PreviewEpisode> episodes = new ArrayList<>();
-        for (ParsedRssFeed.Item item : parsed.items()) {
+        for (ParsedRssFeed.Item item : previewItems) {
             String importIdentity = importIdentity(parsed.feedUrl(), item.guid());
             Long existingId = existingIdByImportIdentity.get(importIdentity);
             episodes.add(new PreviewEpisode(
@@ -103,7 +112,7 @@ public class PodcastImportService {
                         FeedImportSupport.suggestSlug(channel.title(), "folge")
                 ),
                 episodes,
-                false
+                truncated
         );
     }
 
