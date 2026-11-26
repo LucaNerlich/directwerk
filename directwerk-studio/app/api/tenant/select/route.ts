@@ -1,6 +1,6 @@
 import {NextResponse} from 'next/server'
 
-import {parseTenantHost} from '@directwerk/api/proxy'
+import {parseTenantHost, readBoundedRequestBody} from '@directwerk/api/proxy'
 import {isSameOriginRequest} from '@directwerk/api/server'
 import {
     serializeClearTenantHostCookie,
@@ -39,15 +39,23 @@ export async function POST(request: Request): Promise<NextResponse> {
     }
 
     try {
-        let body: SelectTenantBody
+        const bounded = await readBoundedRequestBody(request, 4_096)
+        if (!bounded.ok) {
+            return jsonError(bounded.error, bounded.status)
+        }
+        let parsed: unknown
         try {
-            body = (await request.json()) as SelectTenantBody
+            parsed = JSON.parse(bounded.text)
         } catch {
             return jsonError('Ungültige Anfrage.', 400)
         }
+        if (parsed === null || typeof parsed !== 'object') {
+            return jsonError('Ungültige Anfrage.', 400)
+        }
+        const host = (parsed as SelectTenantBody).host
 
         const tenantHost = parseTenantHost(
-            typeof body.host === 'string' ? body.host : null,
+            typeof host === 'string' ? host : null,
         )
         if (tenantHost === null) {
             return jsonError('Bitte eine gültige Mandanten-Domain eingeben.', 400)
