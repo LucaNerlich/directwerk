@@ -68,6 +68,8 @@ export default function TenantProductsPanel({
         null
     )
     const [rules, setRules] = useState<ProductAccessRule[]>([])
+    const [rulesLoading, setRulesLoading] = useState(false)
+    const [rulesProductId, setRulesProductId] = useState<number | null>(null)
     const [grants, setGrants] = useState<SubscriptionGrant[]>([])
     const [error, setError] = useState<string | null>(null)
     const [status, setStatus] = useState<string | null>(null)
@@ -301,6 +303,11 @@ export default function TenantProductsPanel({
         const requestSession = captureSession()
         setSelectedProductId(productId)
         setError(null)
+        // Discard the previous product's rules before the new ones arrive: saving an empty or
+        // stale list would replace the selected product's rules (#1043).
+        setRules([])
+        setRulesLoading(true)
+        setRulesProductId(productId)
         try {
             const result = await getTenantData<ProductAccessRule[]>(
                 `tenant/products/${productId}/rules`
@@ -318,6 +325,10 @@ export default function TenantProductsPanel({
                 return
             }
             setError('Could not load rules.')
+        } finally {
+            if (isCurrentSession(requestSession)) {
+                setRulesLoading(false)
+            }
         }
     }
 
@@ -704,6 +715,9 @@ export default function TenantProductsPanel({
                             </div>
                         ) : null}
                         <Button
+                            disabled={
+                                rulesLoading || rulesProductId !== selectedProductId
+                            }
                             onClick={() => void handleSaveRules()}
                             type="button"
                         >
