@@ -33,6 +33,18 @@ class GlobalExceptionHandlerTest {
     }
 
     @Test
+    void mapsArticleFeedBuilderRejectionsToTheirDocumentedStatus() {
+        // #1013: the exception carried a status/code but extended RuntimeException, so every
+        // article feed-builder rejection became 500 INTERNAL_ERROR.
+        var response = handler.handleCodedStatus(
+                de.pnnit.directwerk.modules.newsletter.exception.ArticleFeedBuilderException.conflict(
+                        "FEED_TITLE_DUPLICATE", "Titel bereits vergeben"));
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
+        assertThat(response.getBody().errors().getFirst().code()).isEqualTo("FEED_TITLE_DUPLICATE");
+    }
+
+    @Test
     void mapsAnUnknownContentScopeToBadRequest() {
         var response = handler.handleInvalidContentScope(
                 new InvalidContentScopeException("PODCAST_SERIES", 999999L, "Podcast series 999999 was not found"));
