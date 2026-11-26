@@ -33,7 +33,7 @@ public class PublicCdnUrlResolver {
      * Batch overload: the caller already loaded the managed asset, so skip the extra
      * {@code findById} (issue #568).
      */
-    Optional<URL> resolveLoaded(MediaAsset managed) {
+    public Optional<URL> resolveLoaded(MediaAsset managed) {
         if (managed == null || !PublicAssetPolicy.isPublicCdnEligible(managed.getTenant().getSlug(), managed)) {
             return Optional.empty();
         }

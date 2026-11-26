@@ -194,7 +194,7 @@ public class PublicArticleViewMapper {
         if (article.getHeroAsset() == null) {
             return null;
         }
-        return publicCdnUrlResolver.resolve(article.getHeroAsset())
+        return publicCdnUrlResolver.resolveLoaded(article.getHeroAsset())
                 .map(URL::toString)
                 .orElse(null);
     }

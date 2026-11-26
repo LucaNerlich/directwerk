@@ -53,6 +53,6 @@ public class MediaAssetViewMapper {
                 || asset.getS3Key().isBlank()) {
             return null;
         }
-        return publicCdnUrlResolver.resolve(asset).map(URL::toString).orElse(null);
+        return publicCdnUrlResolver.resolveLoaded(asset).map(URL::toString).orElse(null);
     }
 }
