@@ -75,8 +75,9 @@ export function buildPodcastEpisodeJsonLd(input: {
         duration: durationIso8601(input.episode.durationSeconds),
         image: input.episode.coverImageUrl ?? undefined,
         partOfSeries: {
+            // No name: the payload exposes only the series slug, and a slug-shaped name is a
+            // known cause of low-quality PodcastEpisode markup (#1094).
             '@type': 'PodcastSeries',
-            name: input.episode.seriesSlug,
             url: `${input.origin}${pagePath('/episodes', input.lang)}`,
         },
     }
