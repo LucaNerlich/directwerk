@@ -119,9 +119,9 @@ public class StripeSubscriptionSyncService {
         if (previousStatus == SubscriptionStatus.CANCELED
                 && incoming == SubscriptionStatus.ACTIVE
                 && !reactivationLiveConfirmed
-                && (externalSubscriptionId == null
-                        || externalSubscriptionId.isBlank()
-                        || externalSubscriptionId.equals(subscription.getExternalSubscriptionId()))) {
+                && externalSubscriptionId != null
+                && !externalSubscriptionId.isBlank()
+                && externalSubscriptionId.equals(subscription.getExternalSubscriptionId())) {
             // #1025: the guard's live check and this write are not atomic. A delete that committed
             // in between leaves the locked row CANCELED; without a live confirmation, refuse.
             log.warn("Refusing to reactivate canceled subscription without live confirmation");
@@ -206,12 +206,32 @@ public class StripeSubscriptionSyncService {
             SubscriptionStatus status,
             Instant endsAt
     ) {
+        syncStripeSubscriptionByExternalId(tenantId, externalSubscriptionId, status, endsAt, false);
+    }
+
+    /**
+     * @param reactivationLiveConfirmed the caller confirmed with Stripe that a CANCELED row may be
+     *     rewritten to ACTIVE (webhook reactivation guard)
+     */
+    @Transactional
+    public void syncStripeSubscriptionByExternalId(
+            Long tenantId,
+            String externalSubscriptionId,
+            SubscriptionStatus status,
+            Instant endsAt,
+            boolean reactivationLiveConfirmed
+    ) {
         subscriptionRepository.findByTenantIdAndExternalSubscriptionIdForUpdate(tenantId, externalSubscriptionId)
                 .ifPresent(subscription -> {
                     if (subscription.getSource() == SubscriptionSource.MANUAL) {
                         return;
                     }
                     if (isCanceledTerminalRewrite(subscription.getStatus(), status)) {
+                        return;
+                    }
+                    if (subscription.getStatus() == SubscriptionStatus.CANCELED
+                            && status == SubscriptionStatus.ACTIVE
+                            && !reactivationLiveConfirmed) {
                         return;
                     }
                     subscription.setStatus(status);

@@ -304,7 +304,8 @@ public class StripeWebhookService {
                     tenantId,
                     event.subscriptionId(),
                     mappedStatus,
-                    event.currentPeriodEnd()
+                    event.currentPeriodEnd(),
+                    Boolean.FALSE.equals(shouldSkipReactivation)
             );
             return;
         }
@@ -341,12 +342,17 @@ public class StripeWebhookService {
         if (event.subscriptionId() == null || event.subscriptionId().isBlank()) {
             return;
         }
-        stripeSubscriptionSyncService.syncStripeSubscriptionByExternalId(
-                tenantId,
-                event.subscriptionId(),
-                SubscriptionStatus.CANCELED,
-                null
-        );
+        // Only an open (unsettled) row may be cancelled: a retried terminal event must not
+        // revoke a subscription that has since settled (#1107 review).
+        subscriptionRepository.findByTenantIdAndExternalSubscriptionId(tenantId, event.subscriptionId())
+                .filter(subscription -> subscription.getStatus() == SubscriptionStatus.INCOMPLETE
+                        || subscription.getStatus() == SubscriptionStatus.PAST_DUE)
+                .ifPresent(subscription -> stripeSubscriptionSyncService.syncStripeSubscriptionByExternalId(
+                        tenantId,
+                        event.subscriptionId(),
+                        SubscriptionStatus.CANCELED,
+                        null
+                ));
     }
 
     private void applySubscriptionCanceled(Long tenantId, StripeOperations.StripeWebhookPayload event) {
@@ -457,8 +463,7 @@ public class StripeWebhookService {
 
     private static boolean mayAttemptActiveReactivation(StripeOperations.StripeWebhookPayload event) {
         return switch (event.type()) {
-            case "checkout.session.completed", "checkout.session.async_payment_succeeded" ->
-                    checkoutWouldGrantActive(event);
+            case "checkout.session.completed", "checkout.session.async_payment_succeeded" -> true;
             case "customer.subscription.updated" -> {
                 SubscriptionStatus mapped = mapStripeStatus(event.stripeSubscriptionStatus());
                 yield mapped == SubscriptionStatus.ACTIVE

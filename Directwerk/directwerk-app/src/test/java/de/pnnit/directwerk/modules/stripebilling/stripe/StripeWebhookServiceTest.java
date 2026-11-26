@@ -249,7 +249,7 @@ class StripeWebhookServiceTest {
         verify(stripeSubscriptionSyncService, never()).upsertStripeSubscription(
                 any(), any(), any(), any(), any(), any(), any(), any(), anyBoolean()
         );
-        verify(stripeSubscriptionSyncService, never()).syncStripeSubscriptionByExternalId(any(), any(), any(), any());
+        verify(stripeSubscriptionSyncService, never()).syncStripeSubscriptionByExternalId(any(), any(), any(), any(), anyBoolean());
     }
 
     @Test
@@ -347,6 +347,10 @@ class StripeWebhookServiceTest {
         when(processedWebhookEventRepository.insertIfAbsent("evt_async_fail", "checkout.session.async_payment_failed", "acct_1"))
                 .thenReturn(1);
         when(stripeConnectService.findByStripeAccountId("acct_1")).thenReturn(account(7L, "acct_1"));
+        Subscription incomplete = new Subscription();
+        incomplete.setStatus(SubscriptionStatus.INCOMPLETE);
+        when(subscriptionRepository.findByTenantIdAndExternalSubscriptionId(7L, "sub_9"))
+                .thenReturn(Optional.of(incomplete));
 
         service.applyParsedEvent(service.parseAndValidate("{}", "sig"));
 
@@ -389,7 +393,8 @@ class StripeWebhookServiceTest {
                 eq(7L),
                 eq("sub_9"),
                 eq(SubscriptionStatus.CANCELED),
-                eq(null)
+                eq(null),
+                anyBoolean()
         );
     }
 
@@ -424,7 +429,8 @@ class StripeWebhookServiceTest {
                 eq(7L),
                 eq("sub_9"),
                 eq(SubscriptionStatus.PAST_DUE),
-                eq(null)
+                eq(null),
+                anyBoolean()
         );
     }
 
@@ -459,7 +465,8 @@ class StripeWebhookServiceTest {
                 eq(7L),
                 eq("sub_9"),
                 eq(SubscriptionStatus.PAST_DUE),
-                eq(null)
+                eq(null),
+                anyBoolean()
         );
     }
 
@@ -491,7 +498,7 @@ class StripeWebhookServiceTest {
 
         verify(stripeSubscriptionSyncService).markInvoicePaid(
                 7L, "sub_9", Instant.parse("2026-10-01T00:00:00Z"));
-        verify(stripeSubscriptionSyncService, never()).syncStripeSubscriptionByExternalId(any(), any(), any(), any());
+        verify(stripeSubscriptionSyncService, never()).syncStripeSubscriptionByExternalId(any(), any(), any(), any(), anyBoolean());
     }
 
     @Test
@@ -616,7 +623,7 @@ class StripeWebhookServiceTest {
         verify(stripeSubscriptionSyncService, never()).upsertStripeSubscription(
                 any(), any(), any(), any(), any(), any(), any(), any(), anyBoolean()
         );
-        verify(stripeSubscriptionSyncService, never()).syncStripeSubscriptionByExternalId(any(), any(), any(), any());
+        verify(stripeSubscriptionSyncService, never()).syncStripeSubscriptionByExternalId(any(), any(), any(), any(), anyBoolean());
     }
 
     @Test
