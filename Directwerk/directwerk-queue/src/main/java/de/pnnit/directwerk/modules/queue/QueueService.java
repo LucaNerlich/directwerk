@@ -172,9 +172,15 @@ public class QueueService {
     @Transactional
     public QueueJob fail(QueueJob job, String worker, String error, long retryDelaySeconds) {
         var properties = directwerkConfig.queue();
-        long effectiveRetryDelay = resolveRetryDelaySeconds(job.queue(), retryDelaySeconds);
-        if (effectiveRetryDelay < 0 || effectiveRetryDelay > properties.maxRetryDelaySeconds()) {
+        long baseRetryDelay = resolveRetryDelaySeconds(job.queue(), retryDelaySeconds);
+        if (baseRetryDelay < 0 || baseRetryDelay > properties.maxRetryDelaySeconds()) {
             throw new IllegalArgumentException("Retry delay exceeds the configured safe range.");
+        }
+        // Exponential backoff, capped by the configured ceiling: a flat delay exhausts the five
+        // attempts in ~2 minutes, so any upstream outage longer than that dropped the job for good.
+        long effectiveRetryDelay = baseRetryDelay;
+        for (int attempt = 1; attempt < job.attempts() && effectiveRetryDelay < properties.maxRetryDelaySeconds(); attempt++) {
+            effectiveRetryDelay = Math.min(effectiveRetryDelay * 2, properties.maxRetryDelaySeconds());
         }
         return repository.fail(job.id(), worker, error, Duration.ofSeconds(effectiveRetryDelay))
                 .orElseThrow(() -> new JobConflictException(
