@@ -15,6 +15,7 @@ import de.pnnit.directwerk.modules.digital.exception.MediaAssetNotFoundException
 import de.pnnit.directwerk.modules.digital.exception.StorageNotConfiguredException;
 import de.pnnit.directwerk.modules.digital.storage.StorageConfigs;
 import de.pnnit.directwerk.modules.digital.exception.UploadValidationException;
+import de.pnnit.directwerk.modules.digital.job.MediaDeleteJobProducer;
 import de.pnnit.directwerk.modules.digital.repository.MediaAssetRepository;
 import de.pnnit.directwerk.modules.digital.storage.S3PublicUrlBuilder;
 import de.pnnit.directwerk.multitenancy.TenantContext;
@@ -44,6 +45,7 @@ public class EpisodeMediaService implements EpisodeMediaApi {
     private final DirectwerkConfig directwerkConfig;
     private final PlatformTransactionManager transactionManager;
     private final ObjectProvider<EpisodeLinkValidator> episodeLinkValidators;
+    private final ObjectProvider<MediaDeleteJobProducer> mediaDeleteJobProducerProvider;
 
     @Override
     @Transactional(readOnly = true)
@@ -69,8 +71,37 @@ public class EpisodeMediaService implements EpisodeMediaApi {
         if (validator == null || !validator.episodeExists(asset.getTenant().getId(), episodeId)) {
             throw new UploadValidationException("UPLOAD_VALIDATION_FAILED", "Unknown episode");
         }
+        Long currentEpisodeId = asset.getEpisodeId();
+        if (currentEpisodeId != null && !currentEpisodeId.equals(episodeId)) {
+            // One asset belongs to one episode: access checks resolve entitlement through this
+            // back-reference, so sharing it would hand the other episode's policy to the asset.
+            throw new UploadValidationException(
+                    "UPLOAD_VALIDATION_FAILED",
+                    "Audio asset is already attached to episode " + currentEpisodeId);
+        }
+        // The previous asset of this episode keeps a stale back-reference otherwise, which blocks
+        // its deletion forever (#1029).
+        mediaAssetRepository.clearOtherEpisodeLinks(asset.getTenant().getId(), episodeId, assetId);
         asset.setEpisodeId(episodeId);
         mediaAssetRepository.save(asset);
+    }
+
+    private void enqueueStalePublicDelete(Long assetId, String publicKey) {
+        MediaDeleteJobProducer producer = mediaDeleteJobProducerProvider.getIfAvailable();
+        if (producer == null) {
+            log.error("No media delete producer available; stale public object for asset {} remains", assetId);
+            return;
+        }
+        try {
+            S3PublicUrlBuilder urlBuilder = publicUrlBuilderProvider.getIfAvailable();
+            producer.enqueueS3Delete(
+                    assetId,
+                    publicKey,
+                    urlBuilder == null ? null : urlBuilder.cdnUrl(publicKey).toString()
+            );
+        } catch (RuntimeException enqueueFailure) {
+            log.error("Could not enqueue cleanup of stale public object for asset {}", assetId, enqueueFailure);
+        }
     }
 
     @Override
@@ -195,6 +226,10 @@ public class EpisodeMediaService implements EpisodeMediaApi {
                         .build());
             } catch (RuntimeException ex) {
                 log.warn("Failed to delete stale public S3 object for asset {} after demoting to private", assetId, ex);
+                // The metadata transition is already committed, so the deterministic public URL
+                // stays fetchable until the object is gone. Retry through the existing media
+                // delete job instead of losing it with the log line (#1030).
+                enqueueStalePublicDelete(assetId, publicKey);
             }
         }
 
