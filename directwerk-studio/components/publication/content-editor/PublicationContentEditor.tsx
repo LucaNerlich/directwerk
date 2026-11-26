@@ -125,13 +125,14 @@ export default function PublicationContentEditor<
             }}
             onSchedule={() => {
                 const iso = model.parseScheduledAt()
-                if (iso === null) {
-                    model.setScheduleValidationError(
-                        'Bitte einen gültigen Zeitpunkt wählen.',
-                    )
-                    model.setErrorMessage(
-                        'Bitte einen gültigen Zeitpunkt wählen.',
-                    )
+                if (iso === null || new Date(iso).getTime() <= Date.now()) {
+                    // The server rejects a past instant with an untranslated 409 (#1055).
+                    const message =
+                        iso === null
+                            ? 'Bitte einen gültigen Zeitpunkt wählen.'
+                            : 'Bitte einen Zeitpunkt in der Zukunft wählen.'
+                    model.setScheduleValidationError(message)
+                    model.setErrorMessage(message)
                     return
                 }
                 model.setScheduleValidationError(null)

@@ -1,6 +1,6 @@
 'use client'
 
-import {useCallback, useRef, useState} from 'react'
+import {useCallback, useEffect, useRef, useState} from 'react'
 
 import {useDraftAutosave} from '@/lib/editor/useDraftAutosave'
 import type {PublicationStatus} from '@directwerk/api/types'
@@ -135,6 +135,20 @@ export function usePublicationEditorWorkflow<T extends {
         },
         [authRedirect, isEditablePublication, loadError, saveImpl],
     )
+
+    // New items cannot autosave (no id yet), and no editor registered an unload guard, so a
+    // reload or tab close silently discarded the whole draft (#1056).
+    useEffect(() => {
+        if (!isDirty) {
+            return
+        }
+        const guard = (event: BeforeUnloadEvent): void => {
+            event.preventDefault()
+            event.returnValue = ''
+        }
+        window.addEventListener('beforeunload', guard)
+        return () => window.removeEventListener('beforeunload', guard)
+    }, [isDirty])
 
     useDraftAutosave({
         enabled: canAutosave(),
