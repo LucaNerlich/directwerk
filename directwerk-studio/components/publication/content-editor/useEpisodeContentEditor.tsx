@@ -37,6 +37,8 @@ import type {
     FormatSummary,
     SeriesSummary,
 } from '@directwerk/api/types'
+import {getMediaUploadLimits} from '@/lib/api/mediaApi'
+import {resolveMediaLimits} from '@/lib/media/limits'
 import {uploadMediaFile} from '@/lib/media/upload'
 import {useCoverImageUpload} from '@/lib/media/useCoverImageUpload'
 import {episodePublishBlockReason} from '@/lib/podcast/episodePreflight'
@@ -534,10 +536,15 @@ export function useEpisodeContentEditor(
             setUploadProgress({file, progress: 0})
             try {
                 const host = getClientTenantHost()
+                // Use the tenant's configured cap, not the platform default (#1063).
+                const uploadLimits = resolveMediaLimits(
+                    await getMediaUploadLimits().catch(() => null)
+                )
                 const asset = await uploadMediaFile(host, file, {
                     assetType: 'AUDIO',
                     visibility: 'PRIVATE',
                     episodeId: saved.id,
+                    limits: uploadLimits,
                     onProgress: (percent) => {
                         if (mountedRef.current) {
                             setUploadProgress({file, progress: percent})

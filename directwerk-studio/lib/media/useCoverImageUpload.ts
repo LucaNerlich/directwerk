@@ -4,6 +4,8 @@ import {useCallback, useEffect, useRef, useState} from 'react'
 
 import {getClientTenantHost} from '@directwerk/api/tenant'
 
+import {getMediaUploadLimits} from '@/lib/api/mediaApi'
+import {resolveMediaLimits, type ResolvedMediaLimits} from '@/lib/media/limits'
 import {uploadMediaFile} from '@/lib/media/upload'
 
 /**
@@ -21,6 +23,26 @@ export function useCoverImageUpload({
     onError: (error: unknown) => void
 }) {
     const mountedRef = useRef(true)
+    // Tenant-specific limits, not the global defaults (#1063).
+    const [limits, setLimits] = useState<ResolvedMediaLimits>(() =>
+        resolveMediaLimits(null)
+    )
+
+    useEffect(() => {
+        let active = true
+        void getMediaUploadLimits()
+            .then((remote) => {
+                if (active) {
+                    setLimits(resolveMediaLimits(remote))
+                }
+            })
+            .catch(() => {
+                // Keep the defaults; the server still enforces its own caps.
+            })
+        return () => {
+            active = false
+        }
+    }, [])
     const [isUploading, setIsUploading] = useState(false)
     const [uploadProgress, setUploadProgress] = useState<{file: File; progress: number} | null>(
         null,
@@ -44,6 +66,7 @@ export function useCoverImageUpload({
                 const asset = await uploadMediaFile(getClientTenantHost(), file, {
                     assetType: 'IMAGE',
                     visibility: 'PUBLIC',
+                    limits,
                     onProgress: (percent) => {
                         if (mountedRef.current) {
                             setUploadProgress({file, progress: percent})
