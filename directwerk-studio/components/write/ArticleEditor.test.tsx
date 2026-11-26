@@ -81,6 +81,7 @@ vi.mock('@/lib/api/newsletterListsApi', () => ({
     listNewsletterLists: vi.fn().mockResolvedValue([]),
 }))
 vi.mock('@/lib/api/mediaApi', () => ({
+    getMediaUploadLimits: vi.fn().mockResolvedValue(null),
     listMedia: vi.fn().mockResolvedValue([]),
     getMediaPreviewUrl: vi.fn().mockResolvedValue('https://cdn.example/preview.jpg'),
 }))
