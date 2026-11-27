@@ -1,6 +1,6 @@
 'use client'
 
-import {useCallback, useRef, useState} from 'react'
+import {useCallback, useEffect, useRef, useState} from 'react'
 
 import {useDraftAutosave} from '@/lib/editor/useDraftAutosave'
 import type {PublicationStatus} from '@directwerk/api/types'
@@ -135,6 +135,47 @@ export function usePublicationEditorWorkflow<T extends {
         },
         [authRedirect, isEditablePublication, loadError, saveImpl],
     )
+
+    // New items cannot autosave (no id yet), and no editor registered an unload guard, so a
+    // reload or tab close silently discarded the whole draft (#1056).
+    useEffect(() => {
+        if (!isDirty) {
+            return
+        }
+        const guard = (event: BeforeUnloadEvent): void => {
+            event.preventDefault()
+            event.returnValue = ''
+        }
+        // In-app navigation never unloads the document, so the back link and side nav need their
+        // own guard while the draft is dirty (#1056 review).
+        const onClick = (event: MouseEvent): void => {
+            if (event.defaultPrevented || event.button !== 0 ||
+                event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
+                return
+            }
+            const anchor = (event.target as HTMLElement | null)?.closest?.('a')
+            if (anchor === null || anchor === undefined) {
+                return
+            }
+            const href = anchor.getAttribute('href')
+            if (href === null || href.startsWith('#') || anchor.target === '_blank') {
+                return
+            }
+            if (new URL(anchor.href, window.location.href).origin !== window.location.origin) {
+                return
+            }
+            if (!window.confirm('Ungespeicherte Änderungen verwerfen?')) {
+                event.preventDefault()
+                event.stopPropagation()
+            }
+        }
+        window.addEventListener('beforeunload', guard)
+        document.addEventListener('click', onClick, true)
+        return () => {
+            window.removeEventListener('beforeunload', guard)
+            document.removeEventListener('click', onClick, true)
+        }
+    }, [isDirty])
 
     useDraftAutosave({
         enabled: canAutosave(),

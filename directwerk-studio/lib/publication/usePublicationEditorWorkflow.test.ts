@@ -15,6 +15,33 @@ function deferred<T>() {
     return {promise, resolve}
 }
 
+describe('usePublicationEditorWorkflow unload guard (#1056)', () => {
+    it('registers the beforeunload guard while the draft is dirty', async () => {
+        const addSpy = vi.spyOn(window, 'addEventListener')
+        const removeSpy = vi.spyOn(window, 'removeEventListener')
+        const {result, unmount} = renderHook(() =>
+            usePublicationEditorWorkflow<Draft>({
+                publicationId: 1,
+                publication: draft,
+                saveImpl: vi.fn().mockResolvedValue(draft),
+                authRedirect: () => false,
+            }),
+        )
+
+        act(() => {
+            result.current.markDirty()
+        })
+
+        await waitFor(() =>
+            expect(addSpy).toHaveBeenCalledWith('beforeunload', expect.any(Function)),
+        )
+        unmount()
+        expect(removeSpy).toHaveBeenCalledWith('beforeunload', expect.any(Function))
+        addSpy.mockRestore()
+        removeSpy.mockRestore()
+    })
+})
+
 describe('usePublicationEditorWorkflow autosave (#557)', () => {
     it('keeps the dirty flag when an edit lands during an in-flight save', async () => {
         // The editor used to clear isDirty unconditionally on success, so a keystroke typed while
