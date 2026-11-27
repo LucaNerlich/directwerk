@@ -198,12 +198,12 @@ public class PodcastImportController {
                     .body(Response.error(404, "USER_NOT_FOUND", "User not found"));
         }
 
-        PodcastImportService.Preview preview = podcastImportService.preview(request.feedUrl());
+        PodcastImportService.Preview preview = podcastImportService.previewForBulk(request.feedUrl());
         if (preview.truncated()) {
             throw new RssImportException(
                     400,
                     "RSS_FEED_INVALID",
-                    "A truncated RSS feed preview cannot be used for bulk import"
+                    "This feed has more items than a bulk import can process"
             );
         }
         long alreadyImported = preview.episodes().stream()

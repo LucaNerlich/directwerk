@@ -51,7 +51,7 @@ class RssBulkImportJobHandlerTest {
 
     @Test
     void importsNewEpisodesSkipsImportedAndEmailsSummary() {
-        when(podcastImportService.preview("https://example.com/feed.xml")).thenReturn(preview());
+        when(podcastImportService.previewForBulk("https://example.com/feed.xml")).thenReturn(preview());
         when(podcastImportService.importEpisode(any())).thenAnswer(invocation -> new PodcastImportService.ImportedEpisode(
                 mock(Episode.class), false));
         when(podcastImportService.importEpisode(argThat(cmd -> "guid-fails".equals(cmd.guid()))))
@@ -71,7 +71,7 @@ class RssBulkImportJobHandlerTest {
         )));
 
         var commands = ArgumentCaptor.forClass(PodcastImportService.ImportEpisodeCommand.class);
-        verify(podcastImportService).preview("https://example.com/feed.xml");
+        verify(podcastImportService).previewForBulk("https://example.com/feed.xml");
         verify(podcastImportService, times(2)).importEpisode(commands.capture());
         assertThat(commands.getAllValues())
                 .extracting(PodcastImportService.ImportEpisodeCommand::guid)
@@ -98,7 +98,7 @@ class RssBulkImportJobHandlerTest {
 
     @Test
     void unexpectedRuntimeExceptionPropagatesForJobRetry() {
-        when(podcastImportService.preview("https://example.com/feed.xml")).thenReturn(preview());
+        when(podcastImportService.previewForBulk("https://example.com/feed.xml")).thenReturn(preview());
         when(podcastImportService.importEpisode(any()))
                 .thenThrow(new IllegalStateException("storage down"));
 
@@ -119,7 +119,7 @@ class RssBulkImportJobHandlerTest {
 
     @Test
     void aFailingRemoteAssetIsCountedInsteadOfAbortingTheRun() {
-        when(podcastImportService.preview("https://example.com/feed.xml")).thenReturn(preview());
+        when(podcastImportService.previewForBulk("https://example.com/feed.xml")).thenReturn(preview());
         when(podcastImportService.importEpisode(any())).thenAnswer(invocation -> {
             PodcastImportService.ImportEpisodeCommand cmd = invocation.getArgument(0);
             if ("guid-new".equals(cmd.guid())) {
@@ -158,7 +158,7 @@ class RssBulkImportJobHandlerTest {
 
     @Test
     void honorsAudioAndImageFlags() {
-        when(podcastImportService.preview("https://example.com/feed.xml")).thenReturn(preview());
+        when(podcastImportService.previewForBulk("https://example.com/feed.xml")).thenReturn(preview());
         when(podcastImportService.importEpisode(any()))
                 .thenReturn(new PodcastImportService.ImportedEpisode(mock(Episode.class), false));
 
@@ -191,7 +191,7 @@ class RssBulkImportJobHandlerTest {
     void countsAnEpisodeImportedByAnotherRunAsSkipped() {
         // #747: the summary hardcoded IMPORTED and discarded ImportedEpisode.alreadyImported,
         // so a race with another import reported new episodes that were never added.
-        when(podcastImportService.preview("https://example.com/feed.xml")).thenReturn(preview());
+        when(podcastImportService.previewForBulk("https://example.com/feed.xml")).thenReturn(preview());
         when(podcastImportService.importEpisode(any()))
                 .thenAnswer(invocation -> new PodcastImportService.ImportedEpisode(
                         mock(Episode.class), true));
@@ -238,7 +238,7 @@ class RssBulkImportJobHandlerTest {
                 preview().episodes(),
                 true
         );
-        when(podcastImportService.preview("https://example.com/feed.xml")).thenReturn(truncatedPreview);
+        when(podcastImportService.previewForBulk("https://example.com/feed.xml")).thenReturn(truncatedPreview);
 
         assertThatThrownBy(() -> handler.handle(job(new RssBulkImportPayload(
                 3L,
@@ -253,7 +253,7 @@ class RssBulkImportJobHandlerTest {
                 7L
         ))))
                 .isInstanceOf(RssImportException.class)
-                .hasMessageContaining("truncated");
+                .hasMessageContaining("feed has more items");
 
         verify(podcastImportService, never()).importEpisode(any());
         verify(emailService, never()).sendFromPayload(any(), any(), any(), any(), any());
@@ -261,7 +261,7 @@ class RssBulkImportJobHandlerTest {
 
     @Test
     void runsTheImportAsTheRequestingEditorAndRestoresTheContext() {
-        when(podcastImportService.preview("https://example.com/feed.xml")).thenReturn(preview());
+        when(podcastImportService.previewForBulk("https://example.com/feed.xml")).thenReturn(preview());
         List<Long> creatorsSeenDuringImport = new ArrayList<>();
         when(podcastImportService.importEpisode(any())).thenAnswer(invocation -> {
             creatorsSeenDuringImport.add(SecurityUtils.currentUserId());
