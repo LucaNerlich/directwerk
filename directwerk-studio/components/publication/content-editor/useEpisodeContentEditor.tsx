@@ -681,7 +681,9 @@ export function useEpisodeContentEditor(
     // The layout locks fields for statuses without EDIT (SCHEDULED, ARCHIVED); the sidebar must
     // follow the same signal or it accepts edits markDirty can never persist (#1054 review).
     const statusLocked =
-        episode !== null && !episode.availableActions.includes('EDIT')
+        episode !== null
+        && Array.isArray(episode.availableActions)
+        && !episode.availableActions.includes('EDIT')
     const controlsDisabled = busy || readOnly || statusLocked
     const episodePageUrl = publicEpisodePageUrl(config.publicSiteUrl, slug)
     const publishedLinks =
@@ -858,6 +860,7 @@ export function useEpisodeContentEditor(
                 coverPreviewUrl={coverPreviewUrl}
                 coverUploadProgress={coverUpload.uploadProgress}
                 episodeNumber={episodeNumber}
+                storedEpisodeNumber={episode?.episodeNumber ?? null}
                 enclosureEnabled={episode?.enclosureEnabled !== false}
                 showEnclosure={episode !== null}
                 showClassification={episode !== null}
