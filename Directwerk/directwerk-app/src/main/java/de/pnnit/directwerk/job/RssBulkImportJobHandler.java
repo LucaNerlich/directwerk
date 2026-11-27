@@ -77,12 +77,12 @@ public class RssBulkImportJobHandler implements JobHandler {
     }
 
     private void importAll(QueueJob job, RssBulkImportPayload payload) {
-        PodcastImportService.Preview preview = podcastImportService.preview(payload.feedUrl());
+        PodcastImportService.Preview preview = podcastImportService.previewForBulk(payload.feedUrl());
         if (preview.truncated()) {
             throw new RssImportException(
                     400,
                     "RSS_FEED_INVALID",
-                    "A truncated RSS feed preview cannot be used for bulk import"
+                    "This feed has more items than a bulk import can process"
             );
         }
 

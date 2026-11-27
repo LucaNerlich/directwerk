@@ -77,7 +77,7 @@ class PodcastImportBulkControllerTest {
 
     @Test
     void bulkEnqueuesJobWithPreviewCountsAndEditorEmail() {
-        when(podcastImportService.preview("https://example.com/feed.xml")).thenReturn(new PodcastImportService.Preview(
+        when(podcastImportService.previewForBulk("https://example.com/feed.xml")).thenReturn(new PodcastImportService.Preview(
                 "https://example.com/feed.xml",
                 new PodcastImportService.PreviewChannel(
                         "Show", "About", "de", "News", null, null, "show"),
@@ -173,7 +173,7 @@ class PodcastImportBulkControllerTest {
     void bulkRejectsTruncatedPreviewBeforeEnqueueing() {
         when(userAccountService.findAccount(20L)).thenReturn(Optional.of(
                 new UserAccountService.AccountView(7L, "editor@example.test", "Eddie")));
-        when(podcastImportService.preview("https://example.com/feed.xml")).thenReturn(new PodcastImportService.Preview(
+        when(podcastImportService.previewForBulk("https://example.com/feed.xml")).thenReturn(new PodcastImportService.Preview(
                 "https://example.com/feed.xml",
                 new PodcastImportService.PreviewChannel(
                         "Show", "About", "de", "News", null, null, "show"),
@@ -199,7 +199,7 @@ class PodcastImportBulkControllerTest {
                         List.of(new SimpleGrantedAuthority(RoleConstants.EDITOR)))
         ))
                 .isInstanceOf(RssImportException.class)
-                .hasMessageContaining("truncated");
+                .hasMessageContaining("feed has more items");
 
         verify(queueService, never()).enqueue(any(), any(), any(Integer.class), any(), any(), any());
     }

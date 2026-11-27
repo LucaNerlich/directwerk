@@ -3,6 +3,7 @@
 ###                19-podcast-content.http (podcastSeriesId). Storage must be enabled for ingest/import.
 
 ### @name previewRssFeed
+# At most 200 episodes; truncated=true when the feed has more.
 POST {{baseUrl}}/api/v1/podcast/import/preview
 Host: {{tenantAHost}}
 Authorization: Bearer {{tenantAAccessToken}}

@@ -42,3 +42,5 @@ docs: |-
   every not-yet-imported episode with the shared defaults (202). Already
   imported episodes are skipped; a summary email goes to the requesting editor
   when the job finishes. Queued duplicates coalesce via correlation id.
+  A feed whose preview is truncated (more than 200 episodes) is rejected with
+  400; the synchronous preview is the place to inspect large feeds.
