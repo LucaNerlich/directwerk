@@ -14,6 +14,8 @@ import java.time.YearMonth;
 import java.time.ZoneOffset;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -74,17 +76,18 @@ public class BillingDashboardService {
         long incomplete = subscriptions.stream()
                 .filter((subscription) -> subscription.getStatus() == SubscriptionStatus.INCOMPLETE)
                 .count();
-        int estimatedMonthlyCents = subscriptions.stream()
+        // Currencies have no common minor unit: summing cents across them is meaningless (#1075).
+        Map<String, Integer> monthlyByCurrency = new TreeMap<>();
+        subscriptions.stream()
                 .filter(subscription -> isCurrentlyActive(subscription, now))
                 .filter((subscription) -> subscription.getSource() == SubscriptionSource.STRIPE)
-                .mapToInt(this::monthlyCents)
-                .sum();
-        String currency = subscriptions.stream()
-                .map(Subscription::getProduct)
-                .map(SubscriptionProduct::getCurrency)
-                .filter((value) -> value != null && !value.isBlank())
-                .findFirst()
-                .orElse("EUR");
+                .forEach(subscription -> monthlyByCurrency.merge(
+                        currencyOf(subscription), monthlyCents(subscription), Integer::sum));
+        List<MonthlyTotal> monthlyTotals = monthlyByCurrency.entrySet().stream()
+                .map(entry -> new MonthlyTotal(entry.getKey(), entry.getValue()))
+                .toList();
+        // Deprecated v1 fields: kept for existing clients, meaningful only for a single currency.
+        MonthlyTotal single = monthlyTotals.size() == 1 ? monthlyTotals.getFirst() : null;
 
         List<MembershipRow> memberships = subscriptions.stream()
                 .sorted(Comparator
@@ -106,8 +109,9 @@ public class BillingDashboardService {
                         pastDue,
                         incomplete,
                         subscriptions.size(),
-                        estimatedMonthlyCents,
-                        currency
+                        monthlyTotals,
+                        single == null ? 0 : single.amountCents(),
+                        single == null ? null : single.currency()
                 ),
                 memberships
         );
@@ -133,6 +137,11 @@ public class BillingDashboardService {
             case ACTIVE -> 2;
             default -> 3;
         };
+    }
+
+    private static String currencyOf(Subscription subscription) {
+        String currency = subscription.getProduct().getCurrency();
+        return currency == null || currency.isBlank() ? "EUR" : currency;
     }
 
     private int monthlyCents(Subscription subscription) {
@@ -183,9 +192,15 @@ public class BillingDashboardService {
             long pastDueSubscriptions,
             long incompleteSubscriptions,
             long totalMemberships,
-            int estimatedMonthlyCents,
-            String currency
+            List<MonthlyTotal> monthlyTotals,
+            // Deprecated v1 fields, kept for existing clients: meaningful only for one currency.
+            @Deprecated int estimatedMonthlyCents,
+            @Deprecated String currency
     ) {
+    }
+
+    /** Estimated monthly recurring value, kept per currency — minor units never mix (#1075). */
+    public record MonthlyTotal(String currency, int amountCents) {
     }
 
     public record MembershipRow(

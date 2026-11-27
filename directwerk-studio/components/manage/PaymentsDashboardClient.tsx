@@ -304,10 +304,11 @@ export default function PaymentsDashboardClient(): React.JSX.Element {
                             <StatCard
                                 hint="Summe aller aktiven Preise, auf den Monat gerechnet"
                                 label={dict.manage.geschaetzterMonatswert}
-                                value={formatMoney(
-                                    dashboard.stats.estimatedMonthlyCents,
-                                    dashboard.stats.currency,
-                                )}
+                                value={dashboard.stats.monthlyTotals.length === 0
+                                    ? '–'
+                                    : dashboard.stats.monthlyTotals
+                                          .map((total) => formatMoney(total.amountCents, total.currency))
+                                          .join(" · ")}
                             />
                         </li>
                         <li>

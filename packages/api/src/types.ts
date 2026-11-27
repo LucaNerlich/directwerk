@@ -1060,8 +1060,12 @@ export interface BillingStats {
     pastDueSubscriptions: number
     incompleteSubscriptions: number
     totalMemberships: number
-    estimatedMonthlyCents: number
+    monthlyTotals: BillingMonthlyTotal[]
+}
+
+export interface BillingMonthlyTotal {
     currency: string
+    amountCents: number
 }
 
 export interface BillingMembership {

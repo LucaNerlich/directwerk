@@ -5347,8 +5347,13 @@ export interface components {
             incompleteSubscriptions?: number;
             /** Format: int64 */
             totalMemberships?: number;
-            /** Format: int32 */
+            monthlyTotals?: components["schemas"]["MonthlyTotal"][];
+            /**
+             * Format: int32
+             * @deprecated
+             */
             estimatedMonthlyCents?: number;
+            /** @deprecated */
             currency?: string;
         };
         MembershipRow: {
@@ -5368,6 +5373,11 @@ export interface components {
             /** Format: date-time */
             endsAt?: string;
             externalSubscriptionId?: string;
+        };
+        MonthlyTotal: {
+            currency?: string;
+            /** Format: int32 */
+            amountCents?: number;
         };
         ResponseBillingDashboard: {
             /** Format: int32 */

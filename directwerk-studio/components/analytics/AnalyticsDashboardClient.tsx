@@ -495,10 +495,11 @@ export default function AnalyticsDashboardClient({
                             />
                             <StatCard
                                 label={dict.analytics.geschaetzterMonatsumsatz}
-                                value={formatMoney(
-                                    billing.stats.estimatedMonthlyCents,
-                                    billing.stats.currency,
-                                )}
+                                value={billing.stats.monthlyTotals.length === 0
+                                    ? '–'
+                                    : billing.stats.monthlyTotals
+                                          .map((total) => formatMoney(total.amountCents, total.currency))
+                                          .join(" · ")}
                                 hint={`+${billing.stats.newThisMonth} / −${billing.stats.canceledThisMonth} diesen Monat`}
                             />
                         </div>
