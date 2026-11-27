@@ -14,20 +14,21 @@ import {
 import {Input} from '@directwerk/ui/components/input'
 
 import AccessPolicySelect from '@/components/publication/AccessPolicySelect'
+import LevelSelect from '@/components/studio/LevelSelect'
 import type {AccessPolicy, CategorySummary, FormatSummary} from '@directwerk/api/types'
 import {useDictionary} from '@/components/i18n/LocaleProvider'
 
 export type BulkEditOperation =
     | {kind: 'formats', formatIds: number[]}
     | {kind: 'categories', categoryIds: number[]}
-    | {kind: 'accessPolicy', accessPolicy: AccessPolicy}
+    | {kind: 'accessPolicy', accessPolicy: AccessPolicy, requiredLevelSortOrder: number | null}
 
 type BulkEditKind = BulkEditOperation['kind']
 
 interface BulkEditDialogProps {
     open: boolean
     onOpenChange: (open: boolean) => void
-    contentLabel: string
+    contentLabelPlural: string
     selectedCount: number
     draftCount: number
     formats?: FormatSummary[]
@@ -36,19 +37,11 @@ interface BulkEditDialogProps {
     onApply: (operation: BulkEditOperation) => void
 }
 
-function contentLabelPluralForms(contentLabel: string): {
-    nominative: string
-    dative: string
-} {
-    return contentLabel === 'Beitrag'
-        ? {nominative: 'Beiträge', dative: 'Beiträgen'}
-        : {nominative: `${contentLabel}n`, dative: `${contentLabel}n`}
-}
 
 export default function BulkEditDialog({
     open,
     onOpenChange,
-    contentLabel,
+    contentLabelPlural,
     selectedCount,
     draftCount,
     formats,
@@ -57,12 +50,12 @@ export default function BulkEditDialog({
     onApply,
 }: BulkEditDialogProps): React.JSX.Element {
     const dict = useDictionary()
-    const contentLabelPlural = contentLabelPluralForms(contentLabel)
     const [kind, setKind] = useState<BulkEditKind>('accessPolicy')
     const [kindChosen, setKindChosen] = useState(false)
     const [selectedFormatIds, setSelectedFormatIds] = useState<number[]>([])
     const [selectedCategoryIds, setSelectedCategoryIds] = useState<number[]>([])
     const [accessPolicy, setAccessPolicy] = useState<AccessPolicy>('FREE')
+    const [levelSortOrder, setLevelSortOrder] = useState<number | null>(null)
 
     const formatOptions = formats ?? []
     const hasFormats = formatOptions.length > 0
@@ -75,6 +68,7 @@ export default function BulkEditDialog({
         setSelectedFormatIds([])
         setSelectedCategoryIds([])
         setAccessPolicy('FREE')
+        setLevelSortOrder(null)
         setKindChosen(false)
         setKind(
             hasFormats ? 'formats' : hasCategories ? 'categories' : 'accessPolicy',
@@ -106,7 +100,9 @@ export default function BulkEditDialog({
             ? selectedFormatIds.length > 0
             : kind === 'categories'
               ? selectedCategoryIds.length > 0
-              : true)
+              : accessPolicy === 'PAID'
+                ? levelSortOrder !== null
+                : true)
 
     const toggleFormat = (formatId: number, checked: boolean): void => {
         setSelectedFormatIds((current) =>
@@ -126,7 +122,12 @@ export default function BulkEditDialog({
         } else if (kind === 'categories' && selectedCategoryIds.length > 0) {
             onApply({categoryIds: selectedCategoryIds, kind: 'categories'})
         } else if (kind === 'accessPolicy') {
-            onApply({accessPolicy, kind: 'accessPolicy'})
+            onApply({
+                accessPolicy,
+                kind: 'accessPolicy',
+                requiredLevelSortOrder:
+                    accessPolicy === 'PAID' ? levelSortOrder : null,
+            })
         }
     }
 
@@ -134,7 +135,7 @@ export default function BulkEditDialog({
         <Dialog onOpenChange={onOpenChange} open={open}>
             <DialogContent className="sm:max-w-md">
                 <DialogHeader>
-                    <DialogTitle>{contentLabelPlural.nominative} bearbeiten</DialogTitle>
+                    <DialogTitle>{contentLabelPlural} bearbeiten</DialogTitle>
                     <DialogDescription>
                         Es wird immer eine Änderung gleichzeitig auf alle ausgewählten
                         Entwürfe angewendet. Auswahl und Formate werden dabei ersetzt,
@@ -143,9 +144,9 @@ export default function BulkEditDialog({
                 </DialogHeader>
                 {draftCount < selectedCount ? (
                     <p className="text-sm text-muted-foreground">
-                        {draftCount} von {selectedCount} ausgewählten{' '}
-                        {contentLabelPlural.dative} sind Entwürfe — veröffentlichte{' '}
-                        {contentLabelPlural.nominative} werden übersprungen.
+                        {draftCount} von {selectedCount} ausgewählten Einträgen sind
+                        Entwürfe — veröffentlichte {contentLabelPlural} werden
+                        übersprungen.
                     </p>
                 ) : null}
                 <fieldset className="m-0 flex flex-col gap-2 border-0 p-0">
@@ -230,7 +231,21 @@ export default function BulkEditDialog({
                     </div>
                 ) : null}
                 {kind === 'accessPolicy' ? (
-                    <AccessPolicySelect onChange={setAccessPolicy} value={accessPolicy} />
+                    <div className="grid gap-2">
+                        <AccessPolicySelect onChange={setAccessPolicy} value={accessPolicy} />
+                        {accessPolicy === 'PAID' ? (
+                            <label className="grid gap-2 text-sm font-medium">
+                                <span>Mindest-Level</span>
+                                <LevelSelect
+                                    onChange={setLevelSortOrder}
+                                    value={levelSortOrder}
+                                />
+                                <span className="text-xs font-normal text-muted-foreground">
+                                    Ohne Level würde die Datei für die niedrigste Stufe gelten.
+                                </span>
+                            </label>
+                        ) : null}
+                    </div>
                 ) : null}
                 <DialogFooter>
                     <Button

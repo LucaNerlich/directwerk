@@ -498,7 +498,7 @@ describe('ArticleListClient', () => {
         expect(await screen.findByRole('dialog')).toBeInTheDocument()
         expect(
             await screen.findByText(
-                '1 von 2 ausgewählten Beiträgen sind Entwürfe — veröffentlichte Beiträge werden übersprungen.',
+                '1 von 2 ausgewählten Einträgen sind Entwürfe — veröffentlichte Beiträge werden übersprungen.',
             ),
         ).toBeInTheDocument()
 
@@ -540,7 +540,7 @@ describe('ArticleListClient', () => {
         expect(await screen.findByRole('dialog')).toBeInTheDocument()
         expect(
             await screen.findByText(
-                '0 von 1 ausgewählten Beiträgen sind Entwürfe — veröffentlichte Beiträge werden übersprungen.',
+                '0 von 1 ausgewählten Einträgen sind Entwürfe — veröffentlichte Beiträge werden übersprungen.',
             ),
         ).toBeInTheDocument()
         expect(screen.getByRole('button', {name: 'Anwenden'})).toBeDisabled()
