@@ -3,7 +3,7 @@ import {renderWithLocale} from '@/lib/i18n/testUtils'
 import {afterEach, describe, expect, it, vi} from 'vitest'
 
 import TeamClient from '@/components/team/TeamClient'
-import {listTenantUsers, replaceUserRestrictions} from '@/lib/api/tenantSettingsApi'
+import {listTenantUsers, listUserRestrictions, replaceUserRestrictions} from '@/lib/api/tenantSettingsApi'
 import {MeProvider} from '@/lib/auth/MeProvider'
 import type {TenantUser} from '@directwerk/api/types'
 
@@ -141,9 +141,16 @@ describe('TeamClient RBAC', () => {
     it('sends server-side search to the directory endpoint without re-walking editors', async () => {
         vi.mocked(listTenantUsers).mockResolvedValue(pageOf(admin, editor))
         listAllTenantEditorsMock.mockResolvedValue([editor])
+        vi.mocked(listUserRestrictions).mockResolvedValue([
+            {entityType: 'ARTICLE', operation: 'PUBLISH', scope: 'DENY'},
+        ])
         renderTeam()
         await screen.findByText('Zugriffsrechte')
         expect(listAllTenantEditorsMock).toHaveBeenCalledTimes(1)
+
+        const publishRight = await screen.findByLabelText('Beiträge: Veröffentlichen')
+        fireEvent.change(publishRight, {target: {value: 'OWN_ONLY'}})
+        const restrictionCalls = vi.mocked(listUserRestrictions).mock.calls.length
 
         fireEvent.change(screen.getByLabelText('Suchen'), {target: {value: 'editor'}})
 
@@ -153,5 +160,8 @@ describe('TeamClient RBAC', () => {
             ),
         )
         expect(listAllTenantEditorsMock).toHaveBeenCalledTimes(1)
+        // A search keystroke must not remount the editor and drop the unsaved right (#1064).
+        expect(vi.mocked(listUserRestrictions).mock.calls.length).toBe(restrictionCalls)
+        expect(screen.getByLabelText('Beiträge: Veröffentlichen')).toHaveValue('OWN_ONLY')
     })
 })
