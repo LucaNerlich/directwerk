@@ -66,10 +66,13 @@ export default function EpisodeDetailClient({
         isAuthenticated,
         tenantHost,
         loadPublic: () => fetchPublicEpisodeBySlug(slug),
-        // Entitled metadata is still list-only (`GET /me/episodes`); stream is
-        // by-slug. Prefer list find until a me-by-slug metadata endpoint lands.
+        // Entitled metadata is still list-only (`GET /me/episodes`); stream is by-slug.
+        // `/me/episodes` omits unentitled PAID episodes, so a logged-in visitor without the
+        // tier must fall back to the public payload and keep the locked panel (#1021).
         loadEntitled: async () =>
-            (await listMyEpisodes()).find((item) => item.slug === slug) ?? null,
+            (await listMyEpisodes()).find((item) => item.slug === slug) ??
+            initialPublicEpisode ??
+            fetchPublicEpisodeBySlug(slug),
         messages,
     })
 
