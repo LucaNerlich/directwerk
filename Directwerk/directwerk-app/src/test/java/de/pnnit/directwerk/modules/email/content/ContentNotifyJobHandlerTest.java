@@ -123,8 +123,8 @@ class ContentNotifyJobHandlerTest {
                 .thenReturn(new TenantContentBrandingResolver.BrandingContext("Acme", "Acme", "#000000"));
         when(tenantMembershipRepository.findNotificationOptedInMembers(TENANT_ID, MembershipStatus.ACTIVE))
                 .thenReturn(List.of(membership(2L, "grace@example.com", null)));
-        when(contentNotificationMarkerRepository.exists(TENANT_ID, ContentType.EPISODE.name(), 3L, 2L))
-                .thenReturn(false);
+        when(contentNotificationMarkerRepository.claim(TENANT_ID, ContentType.EPISODE.name(), 3L, 2L))
+                .thenReturn(true);
         when(emailJobProducer.enqueueContentNotification(any(), any(), any(), any(), any()))
                 .thenReturn(org.mockito.Mockito.mock(QueueJob.class));
 
@@ -149,15 +149,15 @@ class ContentNotifyJobHandlerTest {
         when(tenantMembershipRepository.findNotificationOptedInMembers(TENANT_ID, MembershipStatus.ACTIVE))
                 .thenReturn(List.of(membership(2L, "grace@example.com", null)));
         // Marker already claimed by the previous successful enqueue.
-        when(contentNotificationMarkerRepository.exists(TENANT_ID, ContentType.EPISODE.name(), 3L, 2L))
-                .thenReturn(true);
+        when(contentNotificationMarkerRepository.claim(TENANT_ID, ContentType.EPISODE.name(), 3L, 2L))
+                .thenReturn(false);
 
         handler.handle(job(ContentNotifyJobPayload.from(
                 ContentType.EPISODE, 3L, "New episode", null, "ep-3", "FREE"
         )));
 
         verify(emailJobProducer, never()).enqueueContentNotification(any(), any(), any(), any(), any());
-        verify(contentNotificationMarkerRepository, never()).claim(any(), any(), any(), any());
+        verify(contentNotificationMarkerRepository).claim(any(), any(), any(), any());
     }
 
     @Test
@@ -184,8 +184,8 @@ class ContentNotifyJobHandlerTest {
                 .thenReturn(new TenantContentBrandingResolver.BrandingContext("Acme", "Acme", "#000000"));
         when(tenantMembershipRepository.findNotificationOptedInMembers(TENANT_ID, MembershipStatus.ACTIVE))
                 .thenReturn(List.of(membership(2L, "grace@example.com", null)));
-        when(contentNotificationMarkerRepository.exists(TENANT_ID, ContentType.EPISODE.name(), 3L, 2L))
-                .thenReturn(false);
+        when(contentNotificationMarkerRepository.claim(TENANT_ID, ContentType.EPISODE.name(), 3L, 2L))
+                .thenReturn(true);
         when(emailJobProducer.enqueueContentNotification(any(), any(), any(), any(), any()))
                 .thenReturn(null);
 
@@ -193,7 +193,7 @@ class ContentNotifyJobHandlerTest {
                 ContentType.EPISODE, 3L, "New episode", null, "ep-3", "FREE"
         )))).isInstanceOf(IllegalStateException.class);
 
-        verify(contentNotificationMarkerRepository, never()).claim(any(), any(), any(), any());
+        verify(contentNotificationMarkerRepository).claim(any(), any(), any(), any());
     }
 
     @Test

@@ -97,8 +97,8 @@ class EmailNotifyDeepLinkContractTest {
                 .thenReturn(new TenantContentBrandingResolver.BrandingContext("Acme", "Acme Show", "#112233"));
         when(tenantMembershipRepository.findNotificationOptedInMembers(TENANT_ID, MembershipStatus.ACTIVE))
                 .thenReturn(List.of(membership(9L, "listener@example.com", "Listener")));
-        when(contentNotificationMarkerRepository.exists(TENANT_ID, ContentType.EPISODE.name(), 55L, 9L))
-                .thenReturn(false);
+        when(contentNotificationMarkerRepository.claim(TENANT_ID, ContentType.EPISODE.name(), 55L, 9L))
+                .thenReturn(true);
         when(emailJobProducer.enqueueContentNotification(any(), any(), any(), any(), any()))
                 .thenReturn(org.mockito.Mockito.mock(QueueJob.class));
 
@@ -133,8 +133,8 @@ class EmailNotifyDeepLinkContractTest {
                 .thenReturn(new TenantContentBrandingResolver.BrandingContext("Local", "Local", "#000000"));
         when(tenantMembershipRepository.findNotificationOptedInMembers(TENANT_ID, MembershipStatus.ACTIVE))
                 .thenReturn(List.of(membership(9L, "listener@example.com", null)));
-        when(contentNotificationMarkerRepository.exists(TENANT_ID, ContentType.EPISODE.name(), 55L, 9L))
-                .thenReturn(false);
+        when(contentNotificationMarkerRepository.claim(TENANT_ID, ContentType.EPISODE.name(), 55L, 9L))
+                .thenReturn(true);
         when(emailJobProducer.enqueueContentNotification(any(), any(), any(), any(), any()))
                 .thenReturn(org.mockito.Mockito.mock(QueueJob.class));
 

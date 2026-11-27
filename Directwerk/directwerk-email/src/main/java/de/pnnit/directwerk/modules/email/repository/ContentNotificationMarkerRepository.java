@@ -6,9 +6,9 @@ import org.springframework.stereotype.Repository;
 /**
  * Per-content/per-recipient idempotency markers for content-notify fan-out.
  *
- * <p>Markers are claimed only after a successful email-job enqueue so a disabled mailer
- * (null enqueue) cannot stick a recipient and block Studio retry. A content-notify retry
- * skips already-claimed recipients via {@link #exists} / {@link #existsNewsletterRecipient}.
+ * <p>Claims are taken before the enqueue: the atomic insert is the idempotency gate, and the
+ * caller's transaction rolls the claim back when the enqueue fails, so a disabled mailer cannot
+ * stick a recipient and block Studio retry.
  */
 @Repository
 public class ContentNotificationMarkerRepository {
@@ -36,21 +36,6 @@ public class ContentNotificationMarkerRepository {
                 """, tenantId, contentType, contentId, userId) > 0;
     }
 
-    /** Clears all episode-member markers for one content item (Studio retry recovery). */
-    public int clearForContent(Long tenantId, String contentType, Long contentId) {
-        return jdbcTemplate.update("""
-                DELETE FROM content_notification_markers
-                WHERE tenant_id = ? AND content_type = ? AND content_id = ?
-                """, tenantId, contentType, contentId);
-    }
-
-    public boolean existsNewsletterRecipient(Long tenantId, Long contentId, String recipientEmail) {
-        Integer count = jdbcTemplate.queryForObject("""
-                SELECT COUNT(*) FROM newsletter_notification_markers
-                WHERE tenant_id = ? AND content_id = ? AND recipient_email = ?
-                """, Integer.class, tenantId, contentId, recipientEmail);
-        return count != null && count > 0;
-    }
 
     /**
      * Claims one article-newsletter recipient address (issue #539).

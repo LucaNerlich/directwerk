@@ -109,8 +109,9 @@ public class ContentNotifyJobHandler implements JobHandler {
         );
         for (TenantMembership membership : recipients) {
             Long userId = membership.getUser().getId();
-            // Skip addresses already claimed after a prior successful enqueue (#949).
-            if (contentNotificationMarkerRepository.exists(
+            // Claim first: exists-then-enqueue-then-claim raced a second fan-out, and the
+            // enclosing transaction rolls the claim back if the enqueue throws (#1035 review).
+            if (!contentNotificationMarkerRepository.claim(
                     tenantId, contentType.name(), payload.contentId(), userId)) {
                 continue;
             }
@@ -129,8 +130,6 @@ public class ContentNotifyJobHandler implements JobHandler {
             if (job == null) {
                 throw new IllegalStateException("Email delivery is disabled");
             }
-            contentNotificationMarkerRepository.claim(
-                    tenantId, contentType.name(), payload.contentId(), userId);
         }
     }
 
