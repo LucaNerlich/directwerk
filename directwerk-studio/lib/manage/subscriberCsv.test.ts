@@ -53,7 +53,16 @@ describe('buildSubscriberCsv', () => {
             subscriber({userId: 4, email: 'd@example.com', name: '-2+3+cmd'}),
             subscriber({userId: 5, email: 'e@example.com', name: '+cmd'}),
             subscriber({userId: 6, email: 'f@example.com', name: '@cmd'}),
+            subscriber({userId: 7, email: 'g@example.com', name: '\t=1+1'}),
+            subscriber({userId: 8, email: 'h@example.com', name: '\r=1+1'}),
+            subscriber({userId: 9, email: 'i@example.com', name: '\n=1+1'}),
         ])
         expect(csv).toContain('"\'=HYPERLINK(""http://evil"")"')
+        expect(csv).toContain("'\t=1+1")
+        expect(csv).toContain("'\r=1+1")
+        expect(csv).toContain("'\n=1+1")
+        expect(csv).toContain("'-2+3+cmd")
+        expect(csv).toContain("'+cmd")
+        expect(csv).toContain("'@cmd")
     })
 })
