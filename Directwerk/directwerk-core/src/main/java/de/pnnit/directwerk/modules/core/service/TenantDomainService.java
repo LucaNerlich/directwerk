@@ -7,7 +7,6 @@ import de.pnnit.directwerk.modules.core.repository.TenantDomainRepository;
 import de.pnnit.directwerk.modules.core.repository.TenantRepository;
 import de.pnnit.directwerk.modules.content.TenantRssSnapshotStaleEvent;
 import de.pnnit.directwerk.modules.core.util.TenantHostname;
-import de.pnnit.directwerk.multitenancy.TenantContext;
 import java.security.SecureRandom;
 import java.time.Instant;
 import java.util.HexFormat;
@@ -63,9 +62,9 @@ public class TenantDomainService {
     @Transactional
     public TenantDomain addDomain(Long tenantId, String host, boolean primary) {
         String normalizedHost = TenantHostname.normalize(host);
-        boolean exists = TenantContext.callWithoutTenant(() ->
-                tenantDomainRepository.findByHostIgnoreCase(normalizedHost).isPresent()
-        );
+        // TenantDomain is not Hibernate-filtered (host resolution is global), so the wrapper
+        // toggled a ThreadLocal this query never consulted.
+        boolean exists = tenantDomainRepository.findByHostIgnoreCase(normalizedHost).isPresent();
         if (exists) {
             throw new DomainAlreadyExistsException(normalizedHost);
         }
