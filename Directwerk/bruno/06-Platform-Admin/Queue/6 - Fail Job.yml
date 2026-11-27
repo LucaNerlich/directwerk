@@ -34,4 +34,6 @@ settings:
   maxRedirects: 5
   forwardAuthorizationHeader: true
 
-docs: 409 if the job isn't in a failable state (e.g. already claimed/completed by a previous run).
+docs: |-
+  409 if the job isn't in a failable state (e.g. already claimed/completed by a previous run).
+  `retryDelaySeconds` is a base delay: the queue doubles it per attempt, capped by the configured ceiling.
