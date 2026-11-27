@@ -11,6 +11,7 @@ import SiteHeader from './SiteHeader'
 vi.mock('next/navigation', () => ({
     usePathname: () => '/de/articles',
     useRouter: () => ({replace: vi.fn(), push: vi.fn()}),
+    useSearchParams: () => new URLSearchParams(),
 }))
 
 afterEach(() => {
