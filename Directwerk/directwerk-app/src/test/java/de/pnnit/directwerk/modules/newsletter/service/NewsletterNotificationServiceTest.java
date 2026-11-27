@@ -249,6 +249,8 @@ class NewsletterNotificationServiceTest {
                 .thenReturn(new TenantContentBrandingResolver.BrandingContext("Acme", "Acme Magazine", "#123456"));
         when(publicContentUrlResolver.contentPageUrl(TENANT_ID, ContentType.ARTICLE, "hello-world"))
                 .thenReturn("https://tenant.example/de/articles/hello-world");
+        when(emailJobProducer.enqueueTokenizedContentNotification(any(), any(), any(), any(), any(), any()))
+                .thenReturn(org.mockito.Mockito.mock(de.pnnit.directwerk.modules.queue.QueueJob.class));
 
         assertThat(service.hasActiveArticleAudience(TENANT_ID, ARTICLE_ID)).isTrue();
         assertThat(service.countArticleRecipients(TENANT_ID, ARTICLE_ID)).isEqualTo(1L);
