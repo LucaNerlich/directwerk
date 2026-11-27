@@ -85,7 +85,6 @@ directwerk-docs/
 ├── package.json
 ├── scripts/
 │   ├── export-openapi.sh
-│   ├── sync-architecture-docs.sh
 │   └── sync-changelog.mjs   # CHANGELOG.md → docs/changelog/index.md
 └── docs/
     ├── .vitepress/config.ts
