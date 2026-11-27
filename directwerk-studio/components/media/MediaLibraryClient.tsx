@@ -95,7 +95,6 @@ function resolveAssetType(
  * Returns {id, url} pairs; assets whose fetch failed are simply absent.
  */
 async function fetchPreviewUrls(
-    tenantHost: string,
     assetIds: number[],
     concurrency = 4,
 ): Promise<Record<number, string>> {
@@ -192,6 +191,7 @@ export default function MediaLibraryClient(): React.JSX.Element {
     }, [orphanOnly])
 
     async function loadMoreAssets(): Promise<void> {
+        const sequence = loadSequenceRef.current
         const currentFolderView = folderViewRef.current
         const currentIncludeSubfolders = includeSubfoldersRef.current
         const currentOrphanOnly = orphanOnlyRef.current
@@ -206,6 +206,11 @@ export default function MediaLibraryClient(): React.JSX.Element {
                 unassignedOnly: currentFolderView === null && !currentIncludeSubfolders,
                 ...(currentOrphanOnly ? {unreferencedOnly: true} : {}),
             })
+            if (sequence !== loadSequenceRef.current) {
+                // A folder/filter change started a reload while this page was in flight; the
+                // old page belongs to the previous result set (#1059).
+                return
+            }
             setAssets((current) => [
                 ...current,
                 ...page.filter((item) => !current.some((existing) => existing.id === item.id)),
@@ -215,6 +220,11 @@ export default function MediaLibraryClient(): React.JSX.Element {
             if (authRedirect(error)) {
                 return
             }
+            if (sequence !== loadSequenceRef.current) {
+                // A reload for a new result set already started; this page's failure is stale.
+                return
+            }
+            setFailedUpload(null)
             setErrorMessage(
                 error instanceof Error
                     ? error.message
@@ -273,10 +283,16 @@ export default function MediaLibraryClient(): React.JSX.Element {
         setUploadLimits(resolveMediaLimits(effective))
 
         const privateImageIds = assetResult
-            .filter((a) => a.assetType === 'IMAGE' && a.cdnUrl == null)
+            .filter(
+                (a) =>
+                    a.assetType === 'IMAGE' &&
+                    a.cdnUrl == null &&
+                    a.status === 'READY' &&
+                    previewUrls[a.id] === undefined,
+            )
             .map((a) => a.id)
         if (privateImageIds.length > 0) {
-            void fetchPreviewUrls(getClientTenantHost(), privateImageIds).then(
+            void fetchPreviewUrls(privateImageIds).then(
                 (urls) => {
                     if (!mountedRef.current || Object.keys(urls).length === 0) {
                         return
@@ -422,13 +438,25 @@ export default function MediaLibraryClient(): React.JSX.Element {
     }
 
     async function handleDelete(assetId: number): Promise<void> {
+        if (!window.confirm('Diese Datei endgültig löschen?')) {
+            return
+        }
+        setFailedUpload(null)
         setIsBusy(true)
         setErrorMessage(null)
         setStatusMessage(null)
         try {
             await deleteMedia( assetId)
             // Reload so folder tiles pick up fresh API assetCount (not stale optimistic list).
-            await reload()
+            try {
+                await reload()
+            } catch (error) {
+                if (authRedirect(error)) {
+                    return
+                }
+                setErrorMessage('Medium gelöscht, aber die Liste konnte nicht neu geladen werden.')
+                return
+            }
             if (!mountedRef.current) {
                 return
             }
@@ -542,7 +570,18 @@ export default function MediaLibraryClient(): React.JSX.Element {
 
             if (deletedIds.size > 0) {
                 // Reload so folder tiles pick up fresh API assetCount (not stale optimistic list).
-                await reload()
+                // The mutation already succeeded: a failing reload must not hide it (#1060).
+                try {
+                    await reload()
+                } catch (error) {
+                    if (authRedirect(error)) {
+                        return
+                    }
+                    setErrorMessage(
+                        'Datei(en) gelöscht, aber die Liste konnte nicht neu geladen werden.',
+                    )
+                    return
+                }
                 if (!mountedRef.current) {
                     return
                 }
@@ -550,7 +589,8 @@ export default function MediaLibraryClient(): React.JSX.Element {
             }
             if (rejected.length > 0) {
                 if (rejected.some(({result}) => authRedirect(result.reason))) return
-                setErrorMessage(
+                setFailedUpload(null)
+            setErrorMessage(
                     `Löschen fehlgeschlagen für Medien-IDs: ${rejected
                         .map(({asset}) => asset.id)
                         .join(', ')}.`,
@@ -663,7 +703,17 @@ export default function MediaLibraryClient(): React.JSX.Element {
             })
             if (movedById.size > 0) {
                 // Reload so folder tiles pick up fresh API assetCount (not stale optimistic list).
-                await reload()
+                try {
+                    await reload()
+                } catch (error) {
+                    if (authRedirect(error)) {
+                        return
+                    }
+                    setFolderDialogError(
+                        'Datei(en) verschoben, aber die Liste konnte nicht neu geladen werden.',
+                    )
+                    return
+                }
                 if (!mountedRef.current) {
                     return
                 }
@@ -681,6 +731,7 @@ export default function MediaLibraryClient(): React.JSX.Element {
                     && authRedirect((result as PromiseRejectedResult).reason))) {
                     return
                 }
+                setFailedUpload(null)
                 setFolderDialogError(
                     `Verschieben fehlgeschlagen für Medien-IDs: ${failures.join(', ')}.`,
                 )
