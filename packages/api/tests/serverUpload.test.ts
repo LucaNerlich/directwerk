@@ -188,6 +188,21 @@ describe('performMediaUpload', () => {
         })
     })
 
+    it('keeps the asset id when the confirm transport itself fails', async () => {
+        const result = await performMediaUpload(
+            options({
+                createUploadUrl: () =>
+                    Promise.resolve(uploadUrlResponse('https://s3.example.test/key')),
+                confirmUpload: () => Promise.reject(new TypeError('socket closed')),
+            }),
+        )
+
+        expect(result).toMatchObject({
+            status: 'confirm-failed',
+            assetId: 7,
+        })
+    })
+
     it('classifies timeout and unavailable failures', async () => {
         const transport: MediaUploadTransport = {
             createUploadUrl: () =>

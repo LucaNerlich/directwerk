@@ -140,7 +140,10 @@ export async function uploadMediaFileBrowser(
                 return
             }
 
-            if (status === 401) {
+            // The BFF returns {assetId, retryConfirm} for any confirm failure; the bytes are
+            // already in object storage, so re-streaming the file would create a second asset
+            // (#1062). Only the 401 case also runs the auth flow.
+            if (status < 200 || status >= 300) {
                 if (isMediaUploadRetryResponse(value)) {
                     config
                         .confirmUpload(value.assetId)
@@ -148,11 +151,11 @@ export async function uploadMediaFileBrowser(
                         .catch(reject)
                     return
                 }
-                config.onAuthRequired()
-                reject(new Error(AUTH_REQUIRED))
-                return
-            }
-            if (status < 200 || status >= 300) {
+                if (status === 401) {
+                    config.onAuthRequired()
+                    reject(new Error(AUTH_REQUIRED))
+                    return
+                }
                 reject(new Error(uploadErrorMessage(value, status)))
                 return
             }

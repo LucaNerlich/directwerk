@@ -206,7 +206,18 @@ export async function performMediaUpload(
             }
         }
 
-        const confirmResponse = await transport.confirmUpload(uploadData.assetId)
+        let confirmResponse: Response
+        try {
+            confirmResponse = await transport.confirmUpload(uploadData.assetId)
+        } catch {
+            // A transport-level confirm failure happens after the bytes are stored; keep the
+            // asset id so the caller can retry the confirm instead of re-uploading (#1062).
+            return {
+                status: 'confirm-failed',
+                response: new Response(null, {status: 502}),
+                assetId: uploadData.assetId,
+            }
+        }
         if (!confirmResponse.ok) {
             return {
                 status: 'confirm-failed',
