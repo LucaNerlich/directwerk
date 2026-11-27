@@ -678,7 +678,11 @@ export function useEpisodeContentEditor(
         formatSelected: selectedFormatIds.size > 0,
     })
     const readOnly = !desk.canEdit
-    const controlsDisabled = busy || readOnly
+    // The layout locks fields for statuses without EDIT (SCHEDULED, ARCHIVED); the sidebar must
+    // follow the same signal or it accepts edits markDirty can never persist (#1054 review).
+    const statusLocked =
+        episode !== null && !episode.availableActions.includes('EDIT')
+    const controlsDisabled = busy || readOnly || statusLocked
     const episodePageUrl = publicEpisodePageUrl(config.publicSiteUrl, slug)
     const publishedLinks =
         episode?.status === 'PUBLISHED'
