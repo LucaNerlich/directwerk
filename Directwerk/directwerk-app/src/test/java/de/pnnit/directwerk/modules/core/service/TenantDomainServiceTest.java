@@ -17,7 +17,6 @@ import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
-import org.mockito.quality.Strictness;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.beans.factory.ObjectProvider;
@@ -78,6 +77,16 @@ class TenantDomainServiceTest {
         assertThat(created.getHost()).isEqualTo("new.example.com");
         verify(cacheEviction).evictHostAfterCommit("new.example.com");
         verify(eventPublisher).publishEvent(new TenantRssSnapshotStaleEvent(1L));
+    }
+
+    @Test
+    void verifyDomainMustNotOpenATransactionAroundTheDnsLookup() throws Exception {
+        // The fix is the absence of @Transactional on verifyDomain; without this guard the
+        // annotation can silently return and re-pin a DB connection across the lookup.
+        java.lang.reflect.Method method =
+                TenantDomainService.class.getMethod("verifyDomain", Long.class, String.class);
+        assertThat(org.springframework.core.annotation.AnnotationUtils.findAnnotation(
+                method, org.springframework.transaction.annotation.Transactional.class)).isNull();
     }
 
     @Test
