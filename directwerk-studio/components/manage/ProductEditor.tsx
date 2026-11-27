@@ -103,6 +103,7 @@ export default function ProductEditor({
         setField,
         isNew,
         isLoading,
+        loadError,
         isSaving,
         isDeactivating,
         errorMessage,
@@ -167,6 +168,21 @@ export default function ProductEditor({
                 setStatusMessage('Produkt mit Stripe synchronisiert.')
             },
             {failedMessage: 'Stripe-Synchronisation fehlgeschlagen.'},
+        )
+    }
+
+    if (loadError) {
+        return (
+            <PageStack>
+                <Alert variant="destructive">
+                    <AlertDescription>
+                        {loadError}{' '}
+                        <LocaleLink className="underline underline-offset-4" href="/manage/products">
+                            Zurück zur Liste
+                        </LocaleLink>
+                    </AlertDescription>
+                </Alert>
+            </PageStack>
         )
     }
 
