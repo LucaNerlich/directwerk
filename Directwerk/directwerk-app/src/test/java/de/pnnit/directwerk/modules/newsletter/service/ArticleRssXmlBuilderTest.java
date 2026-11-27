@@ -46,20 +46,19 @@ class ArticleRssXmlBuilderTest {
     }
 
     @Test
-    void truncationNeverSplitsASurrogatePair() throws Exception {
-        // #1034: a blind substring at the bound could cut an emoji in half and emit an unpaired
-        // surrogate, which makes the whole feed invalid XML.
+    void truncationBoundsTheSanitizedTextNotTheRawHtml() {
+        // #1034 review: the observable change is applying the bound after sanitizing. 1000 emoji
+        // are 2007 raw chars but ~9007 sanitized chars, so the raw-substring version kept the
+        // whole body while the writer now bounds it.
         Tenant tenant = tenant();
-        String prefix = "x".repeat(ArticleRssXmlBuilder.MAX_DESCRIPTION_CHARS - 1);
-        Article article = article(11L, "emoji-cut", "Emoji", "<p>" + prefix + "\uD83D\uDE00tail</p>",
-                AccessPolicy.FREE);
+        String body = "<p>" + "\uD83D\uDE00".repeat(1000) + "</p>";
+        Article article = article(11L, "emoji-cut", "Emoji", body, AccessPolicy.FREE);
 
         String xml = builder.buildFeed(tenant, List.of(article), "https://alpha.example.test", null);
 
-        var factory = javax.xml.parsers.DocumentBuilderFactory.newInstance();
-        factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
-        factory.newDocumentBuilder()
-                .parse(new java.io.ByteArrayInputStream(xml.getBytes(java.nio.charset.StandardCharsets.UTF_8)));
+        String description = xml.replaceAll("(?s).*<description><!\\[CDATA\\[(.*?)]]></description>.*", "$1");
+        assertThat(description.length()).isLessThanOrEqualTo(ArticleRssXmlBuilder.MAX_DESCRIPTION_CHARS);
+        assertThat(xml).doesNotContain("\uFFFD");
     }
 
     @Test
