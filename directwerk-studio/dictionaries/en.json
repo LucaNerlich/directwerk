@@ -1040,6 +1040,7 @@
     "wizardCheckingDns": "Checking DNS…",
     "wizardCheckingTitle": "Checking",
     "wizardContinueDns": "Continue to DNS",
+    "wizardReload": "Reload",
     "wizardCopied": "Copied",
     "wizardCopy": "Copy",
     "wizardCopyFailed": "Copy to clipboard failed.",
