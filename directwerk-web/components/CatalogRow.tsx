@@ -16,8 +16,7 @@ export const CATALOG_GRID_CLASSNAME = 'grid gap-4 sm:grid-cols-2 lg:grid-cols-3'
 
 /**
  * Locked-state CTA shared by episode and article cards: guests are sent to
- * login, subscribers toward the unlocking membership (`unlockHref` prefers a
- * concrete product, see `lib/catalog/unlock`).
+ * login, subscribers toward the membership page (`unlockHref`).
  */
 export function LockedCatalogAction({
     isAuthenticated,
