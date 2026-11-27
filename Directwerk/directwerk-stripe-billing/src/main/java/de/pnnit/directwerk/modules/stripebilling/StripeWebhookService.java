@@ -193,7 +193,8 @@ public class StripeWebhookService {
                     applySubscriptionSync(tenantId, event, shouldSkipReactivation);
             case "invoice.paid" -> applyInvoicePaid(tenantId, event);
             case "customer.subscription.deleted" -> applySubscriptionCanceled(tenantId, event);
-            case "invoice.payment_failed" -> applyPaymentFailed(tenantId, event);
+            case "invoice.payment_failed" -> applyPaymentFailed(tenantId, event, shouldSkipReactivation);
+            case "checkout.session.async_payment_failed" -> applyCheckoutAsyncPaymentFailed(tenantId, event);
             case "charge.refunded" -> applyChargeRefunded(tenantId, event);
             default -> log.info("Ignoring unhandled Stripe event type={}", event.type());
         }
@@ -261,7 +262,8 @@ public class StripeWebhookService {
                 event.customerId(),
                 status,
                 event.currentPeriodEnd(),
-                event.paymentIntentId()
+                event.paymentIntentId(),
+                Boolean.FALSE.equals(shouldSkipReactivation)
         );
     }
 
@@ -291,19 +293,19 @@ public class StripeWebhookService {
         }
         SubscriptionStatus mappedStatus = mapStripeStatus(event.stripeSubscriptionStatus());
         if (userId == null || productId == null) {
-            if (mappedStatus == SubscriptionStatus.ACTIVE
-                    && applyReactivationGuard(
-                            tenantId,
-                            event,
-                            shouldSkipReactivation,
-                            "Skipping stale sync for canceled local row")) {
+            if (applyReactivationGuard(
+                    tenantId,
+                    event,
+                    shouldSkipReactivation,
+                    "Skipping stale sync for canceled local row")) {
                 return;
             }
             stripeSubscriptionSyncService.syncStripeSubscriptionByExternalId(
                     tenantId,
                     event.subscriptionId(),
                     mappedStatus,
-                    event.currentPeriodEnd()
+                    event.currentPeriodEnd(),
+                    Boolean.FALSE.equals(shouldSkipReactivation)
             );
             return;
         }
@@ -311,12 +313,11 @@ public class StripeWebhookService {
         // arriving after `deleted` must not resurrect paid entitlements. When
         // the local row is CANCELED, only apply ACTIVE if the subscription is
         // verifiably active at Stripe right now.
-        if (mappedStatus == SubscriptionStatus.ACTIVE
-                && applyReactivationGuard(
-                        tenantId,
-                        event,
-                        shouldSkipReactivation,
-                        "Skipping stale subscription.updated for canceled local row")) {
+        if (applyReactivationGuard(
+                tenantId,
+                event,
+                shouldSkipReactivation,
+                "Skipping stale subscription.updated for canceled local row")) {
             return;
         }
         stripeSubscriptionSyncService.upsertStripeSubscription(
@@ -327,8 +328,31 @@ public class StripeWebhookService {
                 event.customerId(),
                 mappedStatus,
                 event.currentPeriodEnd(),
-                event.paymentIntentId()
+                event.paymentIntentId(),
+                Boolean.FALSE.equals(shouldSkipReactivation)
         );
+    }
+
+    /**
+     * A delayed payment method failed its first charge. Stripe's subscription stays
+     * {@code incomplete} and becomes {@code incomplete_expired} later; locally CANCELing now lets the
+     * customer start a fresh checkout instead of being blocked by the open-subscription guard.
+     */
+    private void applyCheckoutAsyncPaymentFailed(Long tenantId, StripeOperations.StripeWebhookPayload event) {
+        if (event.subscriptionId() == null || event.subscriptionId().isBlank()) {
+            return;
+        }
+        // Only an open (unsettled) row may be cancelled: a retried terminal event must not
+        // revoke a subscription that has since settled (#1107 review).
+        subscriptionRepository.findByTenantIdAndExternalSubscriptionId(tenantId, event.subscriptionId())
+                .filter(subscription -> subscription.getStatus() == SubscriptionStatus.INCOMPLETE
+                        || subscription.getStatus() == SubscriptionStatus.PAST_DUE)
+                .ifPresent(subscription -> stripeSubscriptionSyncService.syncStripeSubscriptionByExternalId(
+                        tenantId,
+                        event.subscriptionId(),
+                        SubscriptionStatus.CANCELED,
+                        null
+                ));
     }
 
     private void applySubscriptionCanceled(Long tenantId, StripeOperations.StripeWebhookPayload event) {
@@ -364,8 +388,19 @@ public class StripeWebhookService {
         stripeSubscriptionSyncService.cancelStripeOneTimeByPaymentId(tenantId, event.paymentIntentId());
     }
 
-    private void applyPaymentFailed(Long tenantId, StripeOperations.StripeWebhookPayload event) {
+    private void applyPaymentFailed(
+            Long tenantId,
+            StripeOperations.StripeWebhookPayload event,
+            Boolean shouldSkipReactivation
+    ) {
         if (event.subscriptionId() == null) {
+            return;
+        }
+        if (applyReactivationGuard(
+                tenantId,
+                event,
+                shouldSkipReactivation,
+                "Skipping stale payment failure for a live subscription")) {
             return;
         }
         stripeSubscriptionSyncService.syncStripeSubscriptionByExternalId(
@@ -403,11 +438,23 @@ public class StripeWebhookService {
             return null;
         }
         Long tenantId = account.getTenant().getId();
-        boolean locallyCanceled = subscriptionRepository
+        SubscriptionStatus localStatus = subscriptionRepository
                 .findByTenantIdAndExternalSubscriptionId(tenantId, externalSubscriptionId)
-                .map(subscription -> subscription.getStatus() == SubscriptionStatus.CANCELED)
-                .orElse(false);
-        if (!locallyCanceled) {
+                .map(Subscription::getStatus)
+                .orElse(null);
+        if (localStatus == null) {
+            return null;
+        }
+        SubscriptionStatus incoming = incomingStatus(event);
+        if (incoming == null) {
+            return null;
+        }
+        if (incoming != SubscriptionStatus.ACTIVE) {
+            // Downgrade guard (#1026): a stale/retried past_due event must not revoke a row whose
+            // live Stripe subscription is still active. HTTP runs outside any transaction.
+            return localStatus == SubscriptionStatus.ACTIVE && isLiveActive(event);
+        }
+        if (localStatus != SubscriptionStatus.CANCELED) {
             return null;
         }
         // HTTP runs here — outside any transaction — so the connection pool is never pinned.
@@ -416,11 +463,26 @@ public class StripeWebhookService {
 
     private static boolean mayAttemptActiveReactivation(StripeOperations.StripeWebhookPayload event) {
         return switch (event.type()) {
-            case "checkout.session.completed", "checkout.session.async_payment_succeeded" ->
-                    checkoutWouldGrantActive(event);
-            case "customer.subscription.updated" ->
-                    mapStripeStatus(event.stripeSubscriptionStatus()) == SubscriptionStatus.ACTIVE;
+            case "checkout.session.completed", "checkout.session.async_payment_succeeded" -> true;
+            case "customer.subscription.updated" -> {
+                SubscriptionStatus mapped = mapStripeStatus(event.stripeSubscriptionStatus());
+                yield mapped == SubscriptionStatus.ACTIVE
+                        || mapped == SubscriptionStatus.PAST_DUE
+                        || mapped == SubscriptionStatus.INCOMPLETE;
+            }
+            case "invoice.payment_failed" -> true;
             default -> false;
+        };
+    }
+
+    /** Incoming local status an event would write, used to pick the live-check direction. */
+    private static SubscriptionStatus incomingStatus(StripeOperations.StripeWebhookPayload event) {
+        return switch (event.type()) {
+            case "checkout.session.completed", "checkout.session.async_payment_succeeded" ->
+                    checkoutWouldGrantActive(event) ? SubscriptionStatus.ACTIVE : SubscriptionStatus.INCOMPLETE;
+            case "customer.subscription.updated" -> mapStripeStatus(event.stripeSubscriptionStatus());
+            case "invoice.payment_failed" -> SubscriptionStatus.PAST_DUE;
+            default -> null;
         };
     }
 
@@ -521,7 +583,9 @@ public class StripeWebhookService {
         return switch (stripeStatus) {
             case "active", "trialing" -> SubscriptionStatus.ACTIVE;
             case "past_due", "unpaid", "paused" -> SubscriptionStatus.PAST_DUE;
-            case "incomplete", "incomplete_expired" -> SubscriptionStatus.INCOMPLETE;
+            case "incomplete" -> SubscriptionStatus.INCOMPLETE;
+            // Stripe treats incomplete_expired as terminal and requires a new subscription.
+            case "incomplete_expired" -> SubscriptionStatus.CANCELED;
             case "canceled" -> SubscriptionStatus.CANCELED;
             // Fail closed: unknown statuses never grant entitlements.
             default -> SubscriptionStatus.PAST_DUE;
