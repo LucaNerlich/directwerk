@@ -57,6 +57,7 @@ function manualGrantsFromSubscribers(
                     productTitle: subscription.productTitle,
                     status: subscription.status,
                     source: subscription.source,
+                    externalSubscriptionId: subscription.externalSubscriptionId,
                 })
             }
         }
@@ -163,13 +164,19 @@ export default function GrantsClient(): React.JSX.Element {
         }
     }
 
-    async function handleRevoke(subscriptionId: number): Promise<void> {
+    async function handleRevoke(grant: SubscriptionGrant): Promise<void> {
         // Issue #584: access removal is irreversible — require the same arm-then-confirm second
         // step as the subscribers and payments lists instead of acting on the first click.
-        if (!armRevoke(subscriptionId)) {
-            setStatusMessage('Nochmal bestätigen: der Zugang entfällt sofort.')
+        // A rebound MANUAL row with a recorded Stripe id also cancels the live subscription.
+        if (!armRevoke(grant.id)) {
+            setStatusMessage(
+                grant.externalSubscriptionId !== null
+                    ? 'Nochmal bestätigen: das Stripe-Abo wird gekündigt.'
+                    : 'Nochmal bestätigen: der Zugang entfällt sofort.',
+            )
             return
         }
+        const subscriptionId = grant.id
 
         setIsBusy(true)
         setErrorMessage(null)
@@ -224,7 +231,7 @@ export default function GrantsClient(): React.JSX.Element {
                 <div className="flex flex-wrap gap-2">
                     <Button
                         disabled={isBusy}
-                        onClick={() => void handleRevoke(grant.id)}
+                        onClick={() => void handleRevoke(grant)}
                         size="sm"
                         type="button"
                         variant={pendingRevokeId === grant.id ? 'destructive' : 'outline'}

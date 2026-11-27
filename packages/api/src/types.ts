@@ -1002,6 +1002,7 @@ export interface SubscriptionGrant {
     productTitle: string
     status: string
     source: string
+    externalSubscriptionId: string | null
 }
 
 export interface GrantSubscriptionInput {
