@@ -66,20 +66,53 @@ public class EpisodeService {
      */
     @Transactional(readOnly = true)
     public List<Episode> listEpisodes(Long tenantId, int limit) {
-        return listEpisodes(tenantId, limit, 0);
+        return listEpisodes(tenantId, null, null, limit, 0, PublicationSort.CREATED);
     }
 
     /** Offset variant so a tenant can reach episodes past the first page (#733). */
     @Transactional(readOnly = true)
     public List<Episode> listEpisodes(Long tenantId, int limit, int offset) {
-        return listEpisodes(tenantId, limit, offset, PublicationSort.CREATED);
+        return listEpisodes(tenantId, null, null, limit, offset, PublicationSort.CREATED);
     }
 
     /** Offset variant with studio list ordering (published, last modified, title). */
     @Transactional(readOnly = true)
     public List<Episode> listEpisodes(Long tenantId, int limit, int offset, PublicationSort sort) {
-        return episodeRepository.findByTenantId(
-                tenantId, OffsetLimitPageRequest.of(limit, offset, sort.toSort()));
+        return listEpisodes(tenantId, null, null, limit, offset, sort);
+    }
+
+    /**
+     * Studio list with optional series scope and title/slug search, so clients do not
+     * have to page through the whole tenant to find one show or one episode.
+     */
+    @Transactional(readOnly = true)
+    public List<Episode> listEpisodes(
+            Long tenantId,
+            Long seriesId,
+            String q,
+            int limit,
+            int offset,
+            PublicationSort sort
+    ) {
+        String needle = q == null ? null : q.trim();
+        if (needle != null && needle.isEmpty()) {
+            needle = null;
+        }
+        if (needle != null) {
+            // Escape LIKE metacharacters so a literal % or _ does not turn the search into a wildcard.
+            needle = needle.replace("!", "!!").replace("%", "!%").replace("_", "!_");
+        }
+        var page = OffsetLimitPageRequest.of(limit, offset, sort.toSort());
+        List<Long> ids = episodeRepository.searchIdsByTenantId(tenantId, seriesId, needle, page);
+        if (ids.isEmpty()) {
+            return List.of();
+        }
+        Map<Long, Episode> byId = episodeRepository.findPublicByIds(tenantId, ids).stream()
+                .collect(java.util.stream.Collectors.toMap(Episode::getId, episode -> episode));
+        return ids.stream()
+                .map(byId::get)
+                .filter(java.util.Objects::nonNull)
+                .toList();
     }
 
     @Transactional(readOnly = true)
@@ -257,7 +290,8 @@ public class EpisodeService {
             Integer durationSeconds,
             AccessPolicy accessPolicy,
             Integer requiredLevelSortOrder,
-            Boolean clearCoverAsset
+            Boolean clearCoverAsset,
+            Boolean clearEpisodeNumber
     ) {
         Episode episode = requireEditableEpisode(tenantId, episodeId);
         permissionService.requireEpisodeAccess(ContentOperation.UPDATE, episode.getCreatedBy());
@@ -274,6 +308,7 @@ public class EpisodeService {
                     accessPolicy,
                     requiredLevelSortOrder,
                     clearCoverAsset,
+                    clearEpisodeNumber,
                     null,
                     null,
                     null);
@@ -289,7 +324,8 @@ public class EpisodeService {
                 durationSeconds,
                 accessPolicy,
                 requiredLevelSortOrder,
-                clearCoverAsset);
+                clearCoverAsset,
+                clearEpisodeNumber);
         episodeRepository.save(episode);
         return requireEpisode(tenantId, episodeId);
     }
@@ -303,7 +339,7 @@ public class EpisodeService {
         if (episode.getStatus() == EpisodeStatus.PUBLISHED) {
             List<Long> ids = resolved.stream().map(Format::getId).sorted().toList();
             return patchWorkingDraft(
-                    tenantId, episode, null, null, null, null, null, null, null, null, null, ids, null, null);
+                    tenantId, episode, null, null, null, null, null, null, null, null, null, null, ids, null, null);
         }
         episode.getFormats().clear();
         episode.getFormats().addAll(resolved);
@@ -322,7 +358,7 @@ public class EpisodeService {
         if (episode.getStatus() == EpisodeStatus.PUBLISHED) {
             List<Long> ids = resolved.stream().map(Category::getId).sorted().toList();
             updated = patchWorkingDraft(
-                    tenantId, episode, null, null, null, null, null, null, null, null, null, null, ids, null);
+                    tenantId, episode, null, null, null, null, null, null, null, null, null, null, null, ids, null);
         } else {
             episode.getCategories().clear();
             episode.getCategories().addAll(resolved);
@@ -354,6 +390,7 @@ public class EpisodeService {
                     null,
                     null,
                     null,
+                    null,
                     audio.getId());
         }
         episode.setAudioAsset(audio);
@@ -372,7 +409,9 @@ public class EpisodeService {
         if (!WorkingDraftMaps.isPresent(draft)) {
             return;
         }
-        if (WorkingDraftMaps.containsKey(draft, WorkingDraftMaps.EPISODE_NUMBER)) {
+        if (WorkingDraftMaps.getBoolean(draft, WorkingDraftMaps.CLEAR_EPISODE_NUMBER, false)) {
+            episode.setEpisodeNumber(null);
+        } else if (WorkingDraftMaps.containsKey(draft, WorkingDraftMaps.EPISODE_NUMBER)) {
             episode.setEpisodeNumber(FieldConstraints.requirePositive(
                     WorkingDraftMaps.getInteger(draft, WorkingDraftMaps.EPISODE_NUMBER), "episodeNumber"));
         }
@@ -532,6 +571,7 @@ public class EpisodeService {
             AccessPolicy accessPolicy,
             Integer requiredLevelSortOrder,
             Boolean clearCoverAsset,
+            Boolean clearEpisodeNumber,
             List<Long> formatIds,
             List<Long> categoryIds,
             Long audioAssetId
@@ -539,7 +579,13 @@ public class EpisodeService {
         Map<String, Object> draft = WorkingDraftMaps.isPresent(episode.getWorkingDraft())
                 ? WorkingDraftMaps.mutableCopy(episode.getWorkingDraft())
                 : seedWorkingDraft(episode);
-        if (episodeNumber != null) {
+        if (Boolean.TRUE.equals(clearEpisodeNumber)) {
+            // The flag is authoritative: a JSON null alone would be lost if the
+            // JSON mapper ever stopped serialising null map values.
+            WorkingDraftMaps.putBoolean(draft, WorkingDraftMaps.CLEAR_EPISODE_NUMBER, true);
+            WorkingDraftMaps.putInteger(draft, WorkingDraftMaps.EPISODE_NUMBER, null);
+        } else if (episodeNumber != null) {
+            WorkingDraftMaps.putBoolean(draft, WorkingDraftMaps.CLEAR_EPISODE_NUMBER, false);
             WorkingDraftMaps.putInteger(
                     draft,
                     WorkingDraftMaps.EPISODE_NUMBER,
@@ -600,6 +646,7 @@ public class EpisodeService {
     private Map<String, Object> seedWorkingDraft(Episode episode) {
         Map<String, Object> draft = WorkingDraftMaps.mutableCopy(null);
         WorkingDraftMaps.putInteger(draft, WorkingDraftMaps.EPISODE_NUMBER, episode.getEpisodeNumber());
+        WorkingDraftMaps.putBoolean(draft, WorkingDraftMaps.CLEAR_EPISODE_NUMBER, false);
         WorkingDraftMaps.putString(draft, WorkingDraftMaps.SLUG, episode.getSlug());
         WorkingDraftMaps.putString(draft, WorkingDraftMaps.TITLE, episode.getTitle());
         WorkingDraftMaps.putString(draft, WorkingDraftMaps.DESCRIPTION, episode.getDescription());
@@ -638,9 +685,12 @@ public class EpisodeService {
             Integer durationSeconds,
             AccessPolicy accessPolicy,
             Integer requiredLevelSortOrder,
-            Boolean clearCoverAsset
+            Boolean clearCoverAsset,
+            Boolean clearEpisodeNumber
     ) {
-        if (episodeNumber != null) {
+        if (Boolean.TRUE.equals(clearEpisodeNumber)) {
+            episode.setEpisodeNumber(null);
+        } else if (episodeNumber != null) {
             episode.setEpisodeNumber(FieldConstraints.requirePositive(episodeNumber, "episodeNumber"));
         }
         if (rawSlug != null) {

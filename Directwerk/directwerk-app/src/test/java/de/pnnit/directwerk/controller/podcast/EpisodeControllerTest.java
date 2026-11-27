@@ -20,6 +20,7 @@ import de.pnnit.directwerk.modules.podcast.entity.Episode;
 import de.pnnit.directwerk.modules.podcast.exception.EpisodeNotFoundException;
 import de.pnnit.directwerk.modules.podcast.service.EpisodeService;
 import de.pnnit.directwerk.modules.podcast.service.PublicationWorkflowService;
+import de.pnnit.directwerk.modules.core.content.PublicationSort;
 import de.pnnit.directwerk.multitenancy.TenantContext;
 import java.util.List;
 import org.junit.jupiter.api.AfterEach;
@@ -70,6 +71,38 @@ class EpisodeControllerTest {
 
     @Test
     @WithMockUser(roles = "EDITOR")
+    void listPassesSeriesAndSearchFiltersToTheService() throws Exception {
+        when(episodeService.listEpisodes(10L, 4L, "batman", 100, 0, PublicationSort.CREATED))
+                .thenReturn(List.of());
+
+        mockMvc.perform(get("/api/v1/episodes").param("seriesId", "4").param("q", "batman"))
+                .andExpect(status().isOk());
+
+        verify(episodeService).listEpisodes(10L, 4L, "batman", 100, 0, PublicationSort.CREATED);
+    }
+
+    @Test
+    @WithMockUser(roles = "EDITOR")
+    void updatePassesClearEpisodeNumberToTheService() throws Exception {
+        when(episodeService.updateDraft(
+                ArgumentMatchers.eq(10L), ArgumentMatchers.eq(7L),
+                ArgumentMatchers.isNull(), ArgumentMatchers.isNull(), ArgumentMatchers.isNull(),
+                ArgumentMatchers.isNull(), ArgumentMatchers.isNull(), ArgumentMatchers.isNull(),
+                ArgumentMatchers.isNull(), ArgumentMatchers.isNull(), ArgumentMatchers.isNull(),
+                ArgumentMatchers.eq(true)))
+                .thenReturn(new Episode());
+
+        mockMvc.perform(put("/api/v1/episodes/{episodeId}", 7L)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"clearEpisodeNumber\":true}"))
+                .andExpect(status().isOk());
+
+        verify(episodeService).updateDraft(
+                10L, 7L, null, null, null, null, null, null, null, null, null, true);
+    }
+
+    @Test
+    @WithMockUser(roles = "EDITOR")
     void listRejectsAnOutOfRangeLimitAs400() throws Exception {
         // #566: Spring MVC's own parameter validation threw HandlerMethodValidationException,
         // which no advice mapped — a client mistake answered 500 INTERNAL_ERROR.
@@ -89,6 +122,13 @@ class EpisodeControllerTest {
                 .andExpect(status().isNoContent());
 
         verify(episodeService).deleteEpisode(10L, 7L);
+    }
+
+    @Test
+    @WithMockUser(roles = "EDITOR")
+    void listRejectsAnOverlongSearchTermAs400() throws Exception {
+        mockMvc.perform(get("/api/v1/episodes").param("q", "x".repeat(201)))
+                .andExpect(status().isBadRequest());
     }
 
     @Test

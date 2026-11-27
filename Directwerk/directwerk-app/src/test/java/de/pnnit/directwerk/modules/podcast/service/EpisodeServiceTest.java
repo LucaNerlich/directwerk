@@ -6,6 +6,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -122,13 +123,13 @@ class EpisodeServiceTest {
 
     @Test
     void listEpisodesPassesTrueRowOffsetToRepository() {
-        when(episodeRepository.findByTenantId(eq(TENANT_ID), any(Pageable.class)))
+        when(episodeRepository.searchIdsByTenantId(eq(TENANT_ID), isNull(), isNull(), any(Pageable.class)))
                 .thenReturn(List.of());
 
         episodeService.listEpisodes(TENANT_ID, 100, 50);
 
         ArgumentCaptor<Pageable> pageable = ArgumentCaptor.forClass(Pageable.class);
-        verify(episodeRepository).findByTenantId(eq(TENANT_ID), pageable.capture());
+        verify(episodeRepository).searchIdsByTenantId(eq(TENANT_ID), isNull(), isNull(), pageable.capture());
         assertThat(pageable.getValue().getOffset()).isEqualTo(50);
         assertThat(pageable.getValue().getPageSize()).isEqualTo(100);
         assertThat(pageable.getValue().getSort().getOrderFor("createdAt")).isNotNull();
@@ -136,14 +137,24 @@ class EpisodeServiceTest {
 
     @Test
     void listEpisodesAppliesRequestedSort() {
-        when(episodeRepository.findByTenantId(eq(TENANT_ID), any(Pageable.class)))
+        when(episodeRepository.searchIdsByTenantId(eq(TENANT_ID), isNull(), isNull(), any(Pageable.class)))
                 .thenReturn(List.of());
 
         episodeService.listEpisodes(TENANT_ID, 100, 0, PublicationSort.TITLE);
 
         ArgumentCaptor<Pageable> pageable = ArgumentCaptor.forClass(Pageable.class);
-        verify(episodeRepository).findByTenantId(eq(TENANT_ID), pageable.capture());
+        verify(episodeRepository).searchIdsByTenantId(eq(TENANT_ID), isNull(), isNull(), pageable.capture());
         assertThat(pageable.getValue().getSort().getOrderFor("title")).isNotNull();
+    }
+
+    @Test
+    void listEpisodesNormalisesBlankSearchToNoFilter() {
+        when(episodeRepository.searchIdsByTenantId(eq(TENANT_ID), isNull(), isNull(), any(Pageable.class)))
+                .thenReturn(List.of());
+
+        episodeService.listEpisodes(TENANT_ID, null, "   ", 100, 0, PublicationSort.CREATED);
+
+        verify(episodeRepository).searchIdsByTenantId(eq(TENANT_ID), isNull(), isNull(), any(Pageable.class));
     }
 
     @Test
@@ -235,10 +246,37 @@ class EpisodeServiceTest {
                 null,
                 null,
                 null,
-                true
+                true,
+                null
         );
 
         assertThat(updated.getCoverAsset()).isNull();
+        verify(episodeRepository).save(draft);
+    }
+
+    @Test
+    void updateDraftCanClearEpisodeNumber() {
+        Episode draft = episode(EpisodeStatus.DRAFT);
+        draft.setEpisodeNumber(7);
+        when(episodeRepository.findByIdAndTenantId(EPISODE_ID, TENANT_ID)).thenReturn(Optional.of(draft));
+        when(episodeRepository.save(draft)).thenReturn(draft);
+
+        Episode updated = episodeService.updateDraft(
+                TENANT_ID,
+                EPISODE_ID,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                true
+        );
+
+        assertThat(updated.getEpisodeNumber()).isNull();
         verify(episodeRepository).save(draft);
     }
 
@@ -264,7 +302,7 @@ class EpisodeServiceTest {
         authenticate(5L, Role.EDITOR);
 
         assertThatThrownBy(() -> episodeService.updateDraft(
-                        TENANT_ID, EPISODE_ID, null, null, null, null, null, null, null, null, null))
+                        TENANT_ID, EPISODE_ID, null, null, null, null, null, null, null, null, null, null))
                 .isInstanceOf(ContentAccessDeniedException.class)
                 .extracting(ex -> ((ContentAccessDeniedException) ex).getCode())
                 .isEqualTo(ContentAccessDeniedException.NOT_CONTENT_OWNER);
@@ -281,7 +319,7 @@ class EpisodeServiceTest {
                 override(ContentEntityType.EPISODE, ContentOperation.UPDATE, RestrictionScope.OTHERS_ONLY)));
         authenticate(5L, Role.EDITOR);
 
-        episodeService.updateDraft(TENANT_ID, EPISODE_ID, null, null, null, null, null, null, null, null, null);
+        episodeService.updateDraft(TENANT_ID, EPISODE_ID, null, null, null, null, null, null, null, null, null, null);
 
         verify(episodeRepository).save(draft);
     }
