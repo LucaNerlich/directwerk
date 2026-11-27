@@ -37,6 +37,40 @@ describe('POST /api/tenant/select (studio)', () => {
         expect(response.status).toBe(415)
     })
 
+    it('rejects a null JSON body', async () => {
+        const response = await POST(
+            new Request('http://localhost/api/tenant/select', {
+                method: 'POST',
+                headers: {
+                    origin: 'http://localhost',
+                    host: 'localhost',
+                    'content-type': 'application/json',
+                },
+                body: 'null',
+            }),
+        )
+
+        expect(response.status).toBe(400)
+        expect(response.headers.getSetCookie()).toEqual([])
+    })
+
+    it('rejects an oversized body without setting the cookie', async () => {
+        const response = await POST(
+            new Request('http://localhost/api/tenant/select', {
+                method: 'POST',
+                headers: {
+                    origin: 'http://localhost',
+                    host: 'localhost',
+                    'content-type': 'application/json',
+                },
+                body: JSON.stringify({host: 'acme.test', pad: 'x'.repeat(5_000)}),
+            }),
+        )
+
+        expect(response.status).toBe(413)
+        expect(response.headers.getSetCookie()).toEqual([])
+    })
+
     it('sets the tenant host cookie for same-origin JSON', async () => {
         const response = await POST(
             new Request('http://localhost/api/tenant/select', {
