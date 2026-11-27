@@ -29,7 +29,7 @@ test('stdio-style createMcpServer registers import_podcast_manifest', () => {
     assert.equal(names.includes('import_podcast_manifest'), true)
 })
 
-test('list tools omit unbound q/seriesId filters', () => {
+test('list schemas advertise exactly the filters the REST controllers bind', () => {
     const server = createMcpServer(stubClient())
     const tools = (server as unknown as {
         _registeredTools: Record<string, {inputSchema?: {shape?: Record<string, unknown>}}>
@@ -38,6 +38,6 @@ test('list tools omit unbound q/seriesId filters', () => {
     const episodeKeys = Object.keys(tools.list_episodes?.inputSchema?.shape ?? {})
     const mediaKeys = Object.keys(tools.list_media?.inputSchema?.shape ?? {})
     assert.deepEqual(articleKeys.sort(), ['limit', 'offset', 'sort'])
-    assert.deepEqual(episodeKeys.sort(), ['limit', 'offset', 'sort'])
+    assert.deepEqual(episodeKeys.sort(), ['limit', 'offset', 'q', 'seriesId', 'sort'])
     assert.deepEqual(mediaKeys.sort(), ['folderId', 'limit', 'offset'])
 })

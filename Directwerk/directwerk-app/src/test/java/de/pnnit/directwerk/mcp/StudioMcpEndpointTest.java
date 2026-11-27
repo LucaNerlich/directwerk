@@ -89,6 +89,8 @@ class StudioMcpEndpointTest {
                 "notify_episode",
                 "notify_preview_episode",
                 "set_episode_enclosure_enabled",
+                "bulk_set_episode_categories",
+                "bulk_set_episode_formats",
                 "rename_media",
                 "get_media_preview_url",
                 "list_media_references",
@@ -105,8 +107,9 @@ class StudioMcpEndpointTest {
                         spec -> spec.tool().name(),
                         spec -> spec.tool().inputSchema().properties().keySet()
                 ));
-        assertThat(listProps.get("list_articles")).containsExactlyInAnyOrder("limit", "offset");
-        assertThat(listProps.get("list_episodes")).containsExactlyInAnyOrder("limit", "offset");
+        assertThat(listProps.get("list_articles")).containsExactlyInAnyOrder("limit", "offset", "sort");
+        assertThat(listProps.get("list_episodes"))
+                .containsExactlyInAnyOrder("limit", "offset", "sort", "seriesId", "q");
         assertThat(listProps.get("list_media")).containsExactlyInAnyOrder("limit", "offset", "folderId");
     }
 

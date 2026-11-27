@@ -90,12 +90,13 @@ def main() -> int:
 
         items.append({
             "n": n,
+            "episodeNumber": n,
             "videoId": vid,
             "slug": slug,
             "title": title,
             "description": description,
             "publishedAt": f"{uploaded}T{args.published_time}",
-            "durationSec": info.get("duration"),
+            "durationSeconds": info.get("duration"),
             "youtubeUrl": f"https://www.youtube.com/watch?v={vid}",
             "mp3": {
                 "path": mp3_path,

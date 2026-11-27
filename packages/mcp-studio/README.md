@@ -135,6 +135,8 @@ Manifest schema (JSON on disk, paths absolute):
   "items": [
     {
       "n": 1,
+      "episodeNumber": 12,
+      "durationSeconds": 3600,
       "slug": "episode-slug",
       "title": "Episode title",
       "description": "Full show notes (HTML preferred, CommonMark OK)",
@@ -147,6 +149,11 @@ Manifest schema (JSON on disk, paths absolute):
 ```
 
 Tool arguments: `manifestPath` (required), `formatIds` (format to attach when an episode has none - publishing fails with `EPISODE_VALIDATION_FAILED: At least one format is required` otherwise), `limit`/`offset`/`onlyNumbers` for chunked, resumable runs.
+
+`n` only orders the run and selects chunks; it is **not** written to the episode. Set
+`episodeNumber` when the show uses numbers, or omit it to leave the field empty. On re-runs an
+existing episode without a number picks one up from the manifest. `durationSeconds` is written on
+create when present.
 
 Backend constraints that shape the flow:
 
@@ -171,7 +178,7 @@ Keys never grant `/api/v1/tenant/**` (billing, domains, users). Content scopes m
 Same names on API `/mcp` and this package (except stdio-only `import_podcast_manifest`):
 
 - **Articles** — CRUD, categories, publish/unpublish/schedule/`cancel_schedule_article`, archive/unarchive, notify + notify-preview, `set_article_newsletter_lists`, bulk publish/unpublish/delete
-- **Episodes** — CRUD, formats/categories, audio attach, `set_episode_enclosure_enabled`, publish/unpublish/schedule/`cancel_schedule_episode`, archive/unarchive, notify + notify-preview, bulk publish/unpublish/delete
+- **Episodes** — CRUD, formats/categories, audio attach, bulk `set_episode_categories` / `set_episode_formats` (1-100 ids, dryRun), `set_episode_enclosure_enabled`, publish/unpublish/schedule/`cancel_schedule_episode`, archive/unarchive, notify + notify-preview, bulk publish/unpublish/delete
 - **Series / categories / formats** — list + CRUD (series update includes status)
 - **Media** — list/get, upload-url + confirm, `rename_media`, `get_media_preview_url`, `list_media_references`, `get_media_limits`, `get_media_storage_summary`, delete/move, folders CRUD
 
