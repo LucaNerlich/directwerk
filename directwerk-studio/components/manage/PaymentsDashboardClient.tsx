@@ -351,6 +351,19 @@ export default function PaymentsDashboardClient(): React.JSX.Element {
                         />
                     ) : (
                         <section aria-labelledby="memberships-heading" className="flex flex-col gap-4">
+                            {dashboard.stats.totalMemberships > dashboard.memberships.length ? (
+                                <Alert>
+                                    <AlertDescription>
+                                        Diese Ansicht zeigt {dashboard.memberships.length} von{' '}
+                                        {dashboard.stats.totalMemberships} Mitgliedschaften (nach
+                                        Status sortiert); Suche und Filter gelten nur für diese
+                                        Seite.{' '}
+                                        <LocaleLink className="underline underline-offset-4" href="/manage/subscribers">
+                                            Alle Mitglieder durchsuchen
+                                        </LocaleLink>
+                                    </AlertDescription>
+                                </Alert>
+                            ) : null}
                             <SectionHeader
                                 id="memberships-heading"
                                 title={t(m.mitgliedschaften, {
