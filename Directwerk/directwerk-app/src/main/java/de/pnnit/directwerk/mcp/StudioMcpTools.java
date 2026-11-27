@@ -37,16 +37,17 @@ public class StudioMcpTools {
 
         // Articles
         tools.add(tool("list_articles", "List articles for the tenant", """
-                {"type":"object","properties":{"limit":{"type":"integer","minimum":1,"maximum":100},"offset":{"type":"integer","minimum":0}},"additionalProperties":false}
-                """, (ctx, req) -> api.get(ctx, "/api/v1/articles", queryOf(args(req), "limit", "offset"))));
+                {"type":"object","properties":{"limit":{"type":"integer","minimum":1,"maximum":100},"offset":{"type":"integer","minimum":0},"sort":{"type":"string","enum":["CREATED","PUBLISHED","UPDATED","TITLE"]}},"additionalProperties":false}
+                """, (ctx, req) -> api.get(ctx, "/api/v1/articles",
+                queryOf(args(req), "limit", "offset", "sort"))));
         tools.add(tool("get_article", "Get one article by id", """
                 {"type":"object","properties":{"articleId":{"type":"integer","minimum":1}},"required":["articleId"],"additionalProperties":false}
                 """, (ctx, req) -> api.get(ctx, "/api/v1/articles/" + longArg(args(req), "articleId"), null)));
         tools.add(tool("create_article", "Create an article", """
-                {"type":"object","properties":{"slug":{"type":"string","minLength":1,"maxLength":120},"title":{"type":"string","minLength":1,"maxLength":500},"body":{"type":"string"},"excerpt":{"type":"string"},"seoDescription":{"type":"string"},"accessPolicy":{"type":"string","enum":["FREE","PAID"]},"heroAssetId":{"type":"integer","minimum":1},"requiredLevelSortOrder":{"type":"integer"}},"required":["slug","title","accessPolicy"],"additionalProperties":false}
+                {"type":"object","properties":{"slug":{"type":"string","minLength":1,"maxLength":64},"title":{"type":"string","minLength":1,"maxLength":255},"body":{"type":"string"},"excerpt":{"type":"string"},"seoDescription":{"type":"string"},"accessPolicy":{"type":"string","enum":["FREE","PAID"]},"heroAssetId":{"type":"integer","minimum":1},"requiredLevelSortOrder":{"type":"integer"}},"required":["slug","title","accessPolicy"],"additionalProperties":false}
                 """, (ctx, req) -> api.post(ctx, "/api/v1/articles", args(req))));
         tools.add(tool("update_article", "Update an article", """
-                {"type":"object","properties":{"articleId":{"type":"integer","minimum":1},"slug":{"type":"string","minLength":1,"maxLength":120},"title":{"type":"string","minLength":1,"maxLength":500},"body":{"type":"string"},"excerpt":{"type":"string"},"seoDescription":{"type":"string"},"accessPolicy":{"type":"string","enum":["FREE","PAID"]},"heroAssetId":{"type":"integer","minimum":1},"clearHeroAsset":{"type":"boolean"},"requiredLevelSortOrder":{"type":"integer"}},"required":["articleId"],"additionalProperties":false}
+                {"type":"object","properties":{"articleId":{"type":"integer","minimum":1},"slug":{"type":"string","minLength":1,"maxLength":64},"title":{"type":"string","minLength":1,"maxLength":255},"body":{"type":"string"},"excerpt":{"type":"string"},"seoDescription":{"type":"string"},"accessPolicy":{"type":"string","enum":["FREE","PAID"]},"heroAssetId":{"type":"integer","minimum":1},"clearHeroAsset":{"type":"boolean"},"requiredLevelSortOrder":{"type":"integer"}},"required":["articleId"],"additionalProperties":false}
                 """, (ctx, req) -> {
             Map<String, Object> a = args(req);
             return api.put(ctx, "/api/v1/articles/" + longArg(a, "articleId"), withoutKeys(a, "articleId"));
@@ -142,10 +143,10 @@ public class StudioMcpTools {
                 {"type":"object","properties":{"episodeId":{"type":"integer","minimum":1}},"required":["episodeId"],"additionalProperties":false}
                 """, (ctx, req) -> api.get(ctx, "/api/v1/episodes/" + longArg(args(req), "episodeId"), null)));
         tools.add(tool("create_episode", "Create an episode (audio, duration, formats and categories can be set in one call)", """
-                {"type":"object","properties":{"seriesId":{"type":"integer","minimum":1},"slug":{"type":"string","minLength":1,"maxLength":120},"title":{"type":"string","minLength":1,"maxLength":500},"description":{"type":"string"},"accessPolicy":{"type":"string","enum":["FREE","PAID"]},"episodeNumber":{"type":"integer"},"requiredLevelSortOrder":{"type":"integer"},"coverAssetId":{"type":"integer","minimum":1},"audioAssetId":{"type":"integer","minimum":1},"durationSeconds":{"type":"integer","minimum":1},"formatIds":{"type":"array","items":{"type":"integer","minimum":1}},"categoryIds":{"type":"array","items":{"type":"integer","minimum":1}}},"required":["seriesId","slug","title","accessPolicy"],"additionalProperties":false}
+                {"type":"object","properties":{"seriesId":{"type":"integer","minimum":1},"slug":{"type":"string","minLength":1,"maxLength":64},"title":{"type":"string","minLength":1,"maxLength":255},"description":{"type":"string"},"accessPolicy":{"type":"string","enum":["FREE","PAID"]},"episodeNumber":{"type":"integer"},"requiredLevelSortOrder":{"type":"integer"},"coverAssetId":{"type":"integer","minimum":1},"audioAssetId":{"type":"integer","minimum":1},"durationSeconds":{"type":"integer","minimum":1},"formatIds":{"type":"array","items":{"type":"integer","minimum":1}},"categoryIds":{"type":"array","items":{"type":"integer","minimum":1}}},"required":["seriesId","slug","title","accessPolicy"],"additionalProperties":false}
                 """, (ctx, req) -> api.post(ctx, "/api/v1/episodes", args(req))));
         tools.add(tool("update_episode", "Update an episode (duration and clearing the episode number included)", """
-                {"type":"object","properties":{"episodeId":{"type":"integer","minimum":1},"slug":{"type":"string","minLength":1,"maxLength":120},"title":{"type":"string","minLength":1,"maxLength":500},"description":{"type":"string"},"accessPolicy":{"type":"string","enum":["FREE","PAID"]},"episodeNumber":{"type":"integer"},"clearEpisodeNumber":{"type":"boolean"},"requiredLevelSortOrder":{"type":"integer"},"coverAssetId":{"type":"integer","minimum":1},"clearCoverAsset":{"type":"boolean"},"durationSeconds":{"type":"integer","minimum":1}},"required":["episodeId"],"additionalProperties":false}
+                {"type":"object","properties":{"episodeId":{"type":"integer","minimum":1},"slug":{"type":"string","minLength":1,"maxLength":64},"title":{"type":"string","minLength":1,"maxLength":255},"description":{"type":"string"},"accessPolicy":{"type":"string","enum":["FREE","PAID"]},"episodeNumber":{"type":"integer"},"clearEpisodeNumber":{"type":"boolean"},"requiredLevelSortOrder":{"type":"integer"},"coverAssetId":{"type":"integer","minimum":1},"clearCoverAsset":{"type":"boolean"},"durationSeconds":{"type":"integer","minimum":1}},"required":["episodeId"],"additionalProperties":false}
                 """, (ctx, req) -> {
             Map<String, Object> a = args(req);
             return api.put(ctx, "/api/v1/episodes/" + longArg(a, "episodeId"), withoutKeys(a, "episodeId"));
@@ -247,11 +248,11 @@ public class StudioMcpTools {
                 """, (ctx, req) -> api.post(ctx, "/api/v1/episodes/bulk/delete", Map.of("ids", args(req).get("ids")))));
         tools.add(tool("bulk_set_episode_categories",
                 "Replace categories on up to 100 episodes; dryRun only reports the scope", """
-                {"type":"object","properties":{"episodeIds":{"type":"array","items":{"type":"integer","minimum":1},"minItems":1,"maxItems":100},"categoryIds":{"type":"array","items":{"type":"integer","minimum":1}},"dryRun":{"type":"boolean"}},"required":["episodeIds","categoryIds"],"additionalProperties":false}
+                {"type":"object","properties":{"episodeIds":{"type":"array","items":{"type":"integer","minimum":1},"minItems":1,"maxItems":100},"categoryIds":{"type":"array","items":{"type":"integer","minimum":1},"maxItems":100},"dryRun":{"type":"boolean"}},"required":["episodeIds","categoryIds"],"additionalProperties":false}
                 """, (ctx, req) -> bulkReplace(ctx, req, "categories")));
         tools.add(tool("bulk_set_episode_formats",
                 "Replace formats on up to 100 episodes; dryRun only reports the scope", """
-                {"type":"object","properties":{"episodeIds":{"type":"array","items":{"type":"integer","minimum":1},"minItems":1,"maxItems":100},"formatIds":{"type":"array","items":{"type":"integer","minimum":1}},"dryRun":{"type":"boolean"}},"required":["episodeIds","formatIds"],"additionalProperties":false}
+                {"type":"object","properties":{"episodeIds":{"type":"array","items":{"type":"integer","minimum":1},"minItems":1,"maxItems":100},"formatIds":{"type":"array","items":{"type":"integer","minimum":1},"maxItems":100},"dryRun":{"type":"boolean"}},"required":["episodeIds","formatIds"],"additionalProperties":false}
                 """, (ctx, req) -> bulkReplace(ctx, req, "formats")));
 
         // Series
@@ -262,10 +263,10 @@ public class StudioMcpTools {
                 {"type":"object","properties":{"seriesId":{"type":"integer","minimum":1}},"required":["seriesId"],"additionalProperties":false}
                 """, (ctx, req) -> api.get(ctx, "/api/v1/series/" + longArg(args(req), "seriesId"), null)));
         tools.add(tool("create_series", "Create a podcast series", """
-                {"type":"object","properties":{"slug":{"type":"string","minLength":1,"maxLength":120},"title":{"type":"string","minLength":1,"maxLength":500},"description":{"type":"string"},"coverAssetId":{"type":"integer","minimum":1},"language":{"type":"string"},"itunesCategory":{"type":"string"},"itunesExplicit":{"type":"boolean"},"defaultRequiredLevelSortOrder":{"type":"integer"}},"required":["slug","title"],"additionalProperties":false}
+                {"type":"object","properties":{"slug":{"type":"string","minLength":1,"maxLength":64},"title":{"type":"string","minLength":1,"maxLength":255},"description":{"type":"string"},"coverAssetId":{"type":"integer","minimum":1},"language":{"type":"string"},"itunesCategory":{"type":"string"},"itunesExplicit":{"type":"boolean"},"defaultRequiredLevelSortOrder":{"type":"integer"}},"required":["slug","title"],"additionalProperties":false}
                 """, (ctx, req) -> api.post(ctx, "/api/v1/series", args(req))));
         tools.add(tool("update_series", "Update a podcast series", """
-                {"type":"object","properties":{"seriesId":{"type":"integer","minimum":1},"slug":{"type":"string","minLength":1,"maxLength":120},"title":{"type":"string","minLength":1,"maxLength":500},"description":{"type":"string"},"coverAssetId":{"type":"integer","minimum":1},"language":{"type":"string"},"itunesCategory":{"type":"string"},"itunesExplicit":{"type":"boolean"},"defaultRequiredLevelSortOrder":{"type":"integer"},"status":{"type":"string","enum":["DRAFT","PUBLISHED"]}},"required":["seriesId"],"additionalProperties":false}
+                {"type":"object","properties":{"seriesId":{"type":"integer","minimum":1},"slug":{"type":"string","minLength":1,"maxLength":64},"title":{"type":"string","minLength":1,"maxLength":255},"description":{"type":"string"},"coverAssetId":{"type":"integer","minimum":1},"language":{"type":"string"},"itunesCategory":{"type":"string"},"itunesExplicit":{"type":"boolean"},"defaultRequiredLevelSortOrder":{"type":"integer"},"status":{"type":"string","enum":["DRAFT","PUBLISHED"]}},"required":["seriesId"],"additionalProperties":false}
                 """, (ctx, req) -> {
             Map<String, Object> a = args(req);
             return api.put(ctx, "/api/v1/series/" + longArg(a, "seriesId"), withoutKeys(a, "seriesId"));
@@ -385,29 +386,59 @@ public class StudioMcpTools {
             String relation
     ) {
         Map<String, Object> a = args(req);
-        List<?> ids = (List<?>) requireArg(a, "episodeIds");
+        Object rawIds = requireArg(a, "episodeIds");
+        if (!(rawIds instanceof List<?> ids)) {
+            throw new IllegalArgumentException("episodeIds must be an array of positive integers");
+        }
         String idKey = "categories".equals(relation) ? "categoryIds" : "formatIds";
-        List<?> values = (List<?>) requireArg(a, idKey);
-        if (ids.size() > 100) {
-            throw new IllegalArgumentException("At most 100 episodeIds per call");
+        Object rawValues = requireArg(a, idKey);
+        if (!(rawValues instanceof List<?> values)) {
+            throw new IllegalArgumentException(idKey + " must be an array of positive integers");
+        }
+        if (ids.isEmpty() || ids.size() > 100) {
+            throw new IllegalArgumentException("episodeIds must contain 1-100 ids");
+        }
+        if (values.size() > 100) {
+            throw new IllegalArgumentException(idKey + " must contain at most 100 ids");
+        }
+        List<Long> episodeIds = new ArrayList<>();
+        for (Object id : ids) {
+            if (!(id instanceof Number number) || number.longValue() <= 0) {
+                throw new IllegalArgumentException("invalid episodeId: " + id);
+            }
+            episodeIds.add(number.longValue());
         }
         boolean dryRun = Boolean.TRUE.equals(a.get("dryRun"));
         if (dryRun) {
-            return text("dry-run: would replace " + relation + " on " + ids.size() + " episode(s)");
+            return text("dry-run: would replace " + relation + " on " + episodeIds.size()
+                    + " episode(s) " + episodeIds);
         }
         int ok = 0;
-        int failed = 0;
-        for (Object id : ids) {
+        List<Long> failed = new ArrayList<>();
+        String firstError = null;
+        for (Long id : episodeIds) {
             McpSchema.CallToolResult result = api.put(
                     ctx, "/api/v1/episodes/" + id + "/" + relation, Map.of(idKey, values));
             if (result.isError()) {
-                failed++;
+                failed.add(id);
+                if (firstError == null) {
+                    firstError = result.content().stream()
+                            .filter(McpSchema.TextContent.class::isInstance)
+                            .map(content -> ((McpSchema.TextContent) content).text())
+                            .findFirst()
+                            .orElse("");
+                }
             } else {
                 ok++;
             }
         }
-        return text("updated " + ok + " of " + ids.size() + " episode(s)"
-                + (failed > 0 ? ", failed " + failed : ""));
+        String summary = "updated " + ok + " of " + episodeIds.size() + " episode(s)"
+                + (failed.isEmpty() ? "" : ", failed ids " + failed
+                        + (firstError.isEmpty() ? "" : ", first error: " + firstError));
+        return McpSchema.CallToolResult.builder()
+                .content(List.of(new McpSchema.TextContent(summary)))
+                .isError(!failed.isEmpty())
+                .build();
     }
 
     private static McpSchema.CallToolResult text(String value) {

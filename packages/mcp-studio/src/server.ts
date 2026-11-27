@@ -554,19 +554,23 @@ export function createMcpServer(
         dryRun: z.boolean().optional(),
     }, async ({episodeIds, categoryIds, dryRun}) => {
         if (dryRun) {
-            return toolResult({dryRun: true, episodes: episodeIds.length, categoryIds})
+            return toolResult({dryRun: true, episodes: episodeIds.length, episodeIds, categoryIds})
         }
         let ok = 0
-        const failed: number[] = []
+        const failed: Array<{episodeId: number, status?: number, error: string}> = []
         for (const episodeId of episodeIds) {
             try {
                 await api('PUT', `api/v1/episodes/${episodeId}/categories`, {categoryIds})
                 ok++
-            } catch {
-                failed.push(episodeId)
+            } catch (error) {
+                failed.push({
+                    episodeId,
+                    status: error instanceof DirectwerkApiError ? error.status : undefined,
+                    error: error instanceof Error ? error.message : String(error),
+                })
             }
         }
-        return toolResult({updated: ok, failed})
+        return {...toolResult({updated: ok, failed}), ...(failed.length > 0 ? {isError: true} : {})}
     })
 
     server.tool('bulk_set_episode_formats', 'Replace formats on up to 100 episodes; dryRun only reports the scope', {
@@ -575,19 +579,23 @@ export function createMcpServer(
         dryRun: z.boolean().optional(),
     }, async ({episodeIds, formatIds, dryRun}) => {
         if (dryRun) {
-            return toolResult({dryRun: true, episodes: episodeIds.length, formatIds})
+            return toolResult({dryRun: true, episodes: episodeIds.length, episodeIds, formatIds})
         }
         let ok = 0
-        const failed: number[] = []
+        const failed: Array<{episodeId: number, status?: number, error: string}> = []
         for (const episodeId of episodeIds) {
             try {
                 await api('PUT', `api/v1/episodes/${episodeId}/formats`, {formatIds})
                 ok++
-            } catch {
-                failed.push(episodeId)
+            } catch (error) {
+                failed.push({
+                    episodeId,
+                    status: error instanceof DirectwerkApiError ? error.status : undefined,
+                    error: error instanceof Error ? error.message : String(error),
+                })
             }
         }
-        return toolResult({updated: ok, failed})
+        return {...toolResult({updated: ok, failed}), ...(failed.length > 0 ? {isError: true} : {})}
     })
 
     // --- Series ---
@@ -980,6 +988,7 @@ export function createMcpServer(
                 items: Array<{
                     n: number
                     episodeNumber?: number
+                    durationSeconds?: number
                     slug: string
                     title: string
                     description?: string
@@ -1075,6 +1084,7 @@ export function createMcpServer(
                             description: item.description,
                             accessPolicy,
                             episodeNumber: item.episodeNumber,
+                            durationSeconds: item.durationSeconds,
                             coverAssetId,
                         }))
                         if (episode && !episode.audioAssetId && audioAssetId) {
@@ -1095,6 +1105,10 @@ export function createMcpServer(
                         if (!episode.coverAssetId && coverAssetId) {
                             await api('PUT', `api/v1/episodes/${episode.id}`, {coverAssetId})
                             missing.push('cover')
+                        }
+                        if (episode.episodeNumber == null && item.episodeNumber != null) {
+                            await api('PUT', `api/v1/episodes/${episode.id}`, {episodeNumber: item.episodeNumber})
+                            missing.push('episodeNumber')
                         }
                         summary.updated++
                         mode = 'updated'
