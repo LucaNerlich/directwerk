@@ -16,7 +16,6 @@ export function cachePublicBffByHost<T>(
 ): Promise<T> {
     return unstable_cache(load, ['public-bff', key, host], {
         revalidate: PUBLIC_BFF_REVALIDATE_SECONDS,
-        tags: [`public-bff:${key}:${host}`],
     })()
 }
 
@@ -31,6 +30,5 @@ export function cachePublicBffByHostSlug<T>(
 ): Promise<T> {
     return unstable_cache(load, ['public-bff', key, host, slug], {
         revalidate: PUBLIC_BFF_REVALIDATE_SECONDS,
-        tags: [`public-bff:${key}:${host}`],
     })()
 }
