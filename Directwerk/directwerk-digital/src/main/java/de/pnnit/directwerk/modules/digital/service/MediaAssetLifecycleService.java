@@ -145,9 +145,7 @@ public class MediaAssetLifecycleService implements MediaAssetLifecycleApi {
         if (!PublicAssetPolicy.isPublicCdnEligible(asset.getTenant().getSlug(), asset)) {
             return null;
         }
-        String s3Key = asset.getS3Key();
-        String normalized = s3Key.startsWith("/") ? s3Key.substring(1) : s3Key;
-        return publicUrlBuilder.cdnUrl(normalized);
+        return publicUrlBuilder.cdnUrl(asset.getS3Key());
     }
 
 
