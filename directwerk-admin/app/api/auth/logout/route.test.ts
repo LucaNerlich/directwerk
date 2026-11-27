@@ -55,7 +55,31 @@ describe('POST /api/auth/logout', () => {
         const response = await POST(request)
 
         expect(response.status).toBe(204)
+        // No tenant cookies on this request, so only the platform step is attempted.
         expect(revokeTenantRefreshToken).not.toHaveBeenCalled()
+    })
+
+    it('revokes both tokens concurrently', async () => {
+        let releasePlatform!: () => void
+        const platformGate = new Promise<void>((resolve) => {
+            releasePlatform = resolve
+        })
+        revokePlatformRefreshToken.mockImplementation(async () => {
+            await platformGate
+        })
+        revokeTenantRefreshToken.mockImplementation(async () => {
+            releasePlatform()
+        })
+        const request = new Request('http://localhost/api/auth/logout', {
+            method: 'POST',
+            headers: {
+                cookie: 'dw_admin_refresh=platform-rt; dw_admin_tenant_refresh=tenant-rt; dw_admin_tenant_host=acme.test',
+            },
+        })
+
+        const response = await POST(request)
+
+        expect(response.status).toBe(204)
     })
 
     it('skips tenant revoke when host cookie is missing', async () => {

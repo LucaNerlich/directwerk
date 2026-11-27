@@ -592,13 +592,12 @@ export function createLogoutRoute(
             return jsonError('A valid tenant is required.', 400)
         }
 
-        for (const step of config.revoke ?? []) {
-            try {
-                await step(request)
-            } catch {
-                // Ignore upstream failures; clear the local session regardless.
-            }
-        }
+        // Run the revokes concurrently so each waits on its own deadline, not on the previous
+        // step's: two blackholed upstreams would otherwise delay logout by their sum (#1044).
+        await Promise.allSettled((config.revoke ?? []).map(async (step) => {
+            // Ignore upstream failures; clear the local session regardless.
+            await step(request)
+        }))
 
         const headers = new Headers({'Cache-Control': 'no-store', Pragma: 'no-cache'})
         for (const cookie of config.clearCookies) {
