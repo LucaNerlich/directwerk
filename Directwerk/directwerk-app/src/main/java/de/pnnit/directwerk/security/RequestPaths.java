@@ -26,6 +26,9 @@ public final class RequestPaths {
         String path = contextPath != null && !contextPath.isEmpty() && uri.startsWith(contextPath)
                 ? uri.substring(contextPath.length())
                 : uri;
-        return UriUtils.decode(path, StandardCharsets.UTF_8);
+        String decoded = UriUtils.decode(path, StandardCharsets.UTF_8);
+        // Tomcat and Spring strip matrix parameters (;jsessionid=...) before matching; the guards
+        // must see the same path or a ';' variant bypasses every rule (#1038 review).
+        return decoded.replaceAll(";[^/]*", "");
     }
 }

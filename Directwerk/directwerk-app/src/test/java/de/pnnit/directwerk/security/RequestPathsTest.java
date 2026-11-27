@@ -15,6 +15,15 @@ class RequestPathsTest {
     }
 
     @Test
+    void stripsMatrixParametersLikeTheDispatcher() {
+        MockHttpServletRequest request =
+                new MockHttpServletRequest("POST", "/api/v1/public/newsletter-lists/weekly/subscribe;1");
+
+        assertThat(RequestPaths.of(request))
+                .isEqualTo("/api/v1/public/newsletter-lists/weekly/subscribe");
+    }
+
+    @Test
     void stripsTheContextPath() {
         MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/v1/tenant/formats");
         request.setContextPath("/api");

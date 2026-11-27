@@ -403,13 +403,13 @@ public class SecurityConfig {
     }
 
     @Bean
-    FilterRegistrationBean<JsonRequestBodySizeFilter> newsletterSubscribeRequestBodySizeFilterRegistration() {
+    FilterRegistrationBean<JsonRequestBodySizeFilter> publicRequestBodySizeFilterRegistration() {
         FilterRegistrationBean<JsonRequestBodySizeFilter> registration = new FilterRegistrationBean<>();
         registration.setFilter(new JsonRequestBodySizeFilter(
                 ContactFormLimits.MAX_REQUEST_BODY_BYTES,
-                "/api/v1/public/newsletter-lists"
+                "/api/v1/public"
         ));
-        registration.addUrlPatterns("/api/v1/public/newsletter-lists/*");
+        registration.addUrlPatterns("/api/v1/public/*");
         registration.setOrder(Ordered.HIGHEST_PRECEDENCE);
         return registration;
     }
