@@ -86,7 +86,6 @@ pnpm dlx shadcn@latest add component-name
 
 - `SiteShell`: public tenant sites and subscriber demos, with responsive header navigation.
 - `AppShell`: authenticated application areas with responsive sidebar navigation.
-- `AdminShell`: platform administration wrapper around `AppShell`, with English accessibility labels.
 - `PageHeader`: page title, context, and primary action.
 - `PageStack`: consistent vertical spacing between page sections.
 - `SectionHeader`: section title, optional description and action.

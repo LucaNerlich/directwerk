@@ -20,7 +20,7 @@ you need hooks, browser APIs, or client-side auth state.
 
 | App | Wrapper |
 |-----|---------|
-| Studio / Admin | Routed inside `AppShell` / `AdminShell` (layout.tsx) |
+| Studio / Admin | Routed inside `AppShell` (layout.tsx) |
 | Web | Routed inside `SiteHeader` → `SiteShell` (root layout) |
 
 Use shared layout primitives:
