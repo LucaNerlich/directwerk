@@ -146,8 +146,35 @@ export function usePublicationEditorWorkflow<T extends {
             event.preventDefault()
             event.returnValue = ''
         }
+        // In-app navigation never unloads the document, so the back link and side nav need their
+        // own guard while the draft is dirty (#1056 review).
+        const onClick = (event: MouseEvent): void => {
+            if (event.defaultPrevented || event.button !== 0 ||
+                event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
+                return
+            }
+            const anchor = (event.target as HTMLElement | null)?.closest?.('a')
+            if (anchor === null || anchor === undefined) {
+                return
+            }
+            const href = anchor.getAttribute('href')
+            if (href === null || href.startsWith('#') || anchor.target === '_blank') {
+                return
+            }
+            if (new URL(anchor.href, window.location.href).origin !== window.location.origin) {
+                return
+            }
+            if (!window.confirm('Ungespeicherte Änderungen verwerfen?')) {
+                event.preventDefault()
+                event.stopPropagation()
+            }
+        }
         window.addEventListener('beforeunload', guard)
-        return () => window.removeEventListener('beforeunload', guard)
+        document.addEventListener('click', onClick, true)
+        return () => {
+            window.removeEventListener('beforeunload', guard)
+            document.removeEventListener('click', onClick, true)
+        }
     }, [isDirty])
 
     useDraftAutosave({
