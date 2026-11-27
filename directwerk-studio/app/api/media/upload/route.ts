@@ -8,7 +8,7 @@ import {readBearerToken} from '@directwerk/api/proxy'
 import {jsonError, toClientResponse, parseTenantHost} from '@directwerk/api/proxy'
 import {parseJsonText} from '@directwerk/api/validation/json'
 
-import {directwerkFetch} from '@/lib/server/api'
+import {longRunningDirectwerkFetch} from '@/lib/server/api'
 
 // Idle applies to BOTH inbound spool and the later object-storage PUT: it only
 // trips when no bytes move for this window (not a wall-clock 60s cutoff). Keep
@@ -48,7 +48,7 @@ export async function POST(request: Request): Promise<Response> {
 
     const transport: MediaUploadTransport = {
         createUploadUrl: (body) =>
-            directwerkFetch({
+            longRunningDirectwerkFetch({
                 path: '/api/v1/media/upload-url',
                 tenantHost,
                 method: 'POST',
@@ -57,7 +57,7 @@ export async function POST(request: Request): Promise<Response> {
                 contentType: 'application/json',
             }),
         confirmUpload: (assetId) =>
-            directwerkFetch({
+            longRunningDirectwerkFetch({
                 path: `/api/v1/media/${assetId}/confirm`,
                 tenantHost,
                 method: 'POST',
