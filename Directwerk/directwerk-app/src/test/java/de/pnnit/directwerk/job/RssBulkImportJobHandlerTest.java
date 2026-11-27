@@ -99,7 +99,7 @@ class RssBulkImportJobHandlerTest {
 
     @Test
     void aMissingSeriesIsCountedInsteadOfAbortingTheRun() {
-        when(podcastImportService.preview("https://example.com/feed.xml")).thenReturn(preview());
+        when(podcastImportService.previewForBulk("https://example.com/feed.xml")).thenReturn(preview());
         when(podcastImportService.importEpisode(any())).thenAnswer(invocation -> {
             PodcastImportService.ImportEpisodeCommand cmd = invocation.getArgument(0);
             if ("guid-new".equals(cmd.guid())) {
