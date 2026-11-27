@@ -13,6 +13,7 @@ import de.pnnit.directwerk.modules.digital.entity.AccessPolicy;
 import de.pnnit.directwerk.modules.email.EmailTemplate;
 import de.pnnit.directwerk.modules.email.TransactionalEmailService;
 import de.pnnit.directwerk.modules.newsletter.entity.Article;
+import de.pnnit.directwerk.modules.digital.exception.CategoryNotFoundException;
 import de.pnnit.directwerk.modules.digital.exception.UploadValidationException;
 import de.pnnit.directwerk.modules.newsletter.exception.ArticleRssImportException;
 import de.pnnit.directwerk.modules.newsletter.service.ArticleImportService;
@@ -95,6 +96,38 @@ class ArticleRssBulkImportJobHandlerTest {
                 .containsEntry("importedCount", "1")
                 .containsEntry("skippedCount", "2")
                 .containsEntry("failedCount", "1");
+    }
+
+    @Test
+    void aMissingCategoryIsCountedInsteadOfAbortingTheRun() {
+        when(articleImportService.preview("https://example.com/articles.xml")).thenReturn(preview());
+        when(articleImportService.importArticle(any())).thenAnswer(invocation -> {
+            ArticleImportService.ImportArticleCommand cmd = invocation.getArgument(0);
+            if ("guid-new".equals(cmd.guid())) {
+                throw new CategoryNotFoundException(11L);
+            }
+            return new ArticleImportService.ImportedArticle(mock(Article.class), false);
+        });
+
+        handler.handle(job(new ArticleRssBulkImportPayload(
+                "https://example.com/articles.xml",
+                Set.of(),
+                AccessPolicy.FREE,
+                null,
+                true,
+                true,
+                "editor@example.com",
+                "Eddie",
+                7L
+        )));
+
+        verify(emailService).sendFromPayload(
+                any(UUID.class),
+                eq(10L),
+                eq("editor@example.com"),
+                eq(EmailTemplate.RSS_BULK_IMPORT_FINISHED),
+                any()
+        );
     }
 
     @Test

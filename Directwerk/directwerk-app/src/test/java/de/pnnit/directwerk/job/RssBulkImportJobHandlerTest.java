@@ -17,6 +17,7 @@ import de.pnnit.directwerk.modules.email.EmailTemplate;
 import de.pnnit.directwerk.modules.email.TransactionalEmailService;
 import de.pnnit.directwerk.modules.podcast.entity.Episode;
 import de.pnnit.directwerk.modules.podcast.exception.RssImportException;
+import de.pnnit.directwerk.modules.podcast.exception.SeriesNotFoundException;
 import de.pnnit.directwerk.modules.podcast.service.PodcastImportService;
 import de.pnnit.directwerk.modules.queue.JobStatus;
 import de.pnnit.directwerk.modules.queue.QueueJob;
@@ -94,6 +95,39 @@ class RssBulkImportJobHandlerTest {
                 .containsEntry("failedCount", "1")
                 .containsEntry("recipientName", "Eddie");
         assertThat(emailVars.getValue().get("failedDetails").toString()).contains("Bad Episode");
+    }
+
+    @Test
+    void aMissingSeriesIsCountedInsteadOfAbortingTheRun() {
+        when(podcastImportService.preview("https://example.com/feed.xml")).thenReturn(preview());
+        when(podcastImportService.importEpisode(any())).thenAnswer(invocation -> {
+            PodcastImportService.ImportEpisodeCommand cmd = invocation.getArgument(0);
+            if ("guid-new".equals(cmd.guid())) {
+                throw new SeriesNotFoundException(3L);
+            }
+            return new PodcastImportService.ImportedEpisode(mock(Episode.class), false);
+        });
+
+        handler.handle(job(new RssBulkImportPayload(
+                3L,
+                "https://example.com/feed.xml",
+                Set.of(),
+                AccessPolicy.FREE,
+                null,
+                true,
+                true,
+                "editor@example.com",
+                "Eddie",
+                7L
+        )));
+
+        verify(emailService).sendFromPayload(
+                any(UUID.class),
+                eq(10L),
+                eq("editor@example.com"),
+                eq(EmailTemplate.RSS_BULK_IMPORT_FINISHED),
+                any()
+        );
     }
 
     @Test
