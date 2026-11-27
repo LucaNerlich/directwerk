@@ -368,7 +368,7 @@ public class SecurityConfig {
                 "/api/v1/auth/*",
                 "/api/v1/public/contact",
                 "/api/v1/public/altcha/*",
-                "/api/v1/public/newsletter-lists/*/subscribe"
+                "/api/v1/public/newsletter-lists/*"
         );
         registration.setOrder(Ordered.HIGHEST_PRECEDENCE);
         return registration;
@@ -382,6 +382,34 @@ public class SecurityConfig {
                 "/api/v1/public/contact"
         ));
         registration.addUrlPatterns("/api/v1/public/contact");
+        registration.setOrder(Ordered.HIGHEST_PRECEDENCE);
+        return registration;
+    }
+
+    /**
+     * Caps the anonymous auth and newsletter bodies (#1038): the DTOs validate only after Jackson
+     * has allocated the full string, and these endpoints are reachable without a token.
+     */
+    @Bean
+    FilterRegistrationBean<JsonRequestBodySizeFilter> anonymousAuthRequestBodySizeFilterRegistration() {
+        FilterRegistrationBean<JsonRequestBodySizeFilter> registration = new FilterRegistrationBean<>();
+        registration.setFilter(new JsonRequestBodySizeFilter(
+                ContactFormLimits.MAX_REQUEST_BODY_BYTES,
+                "/api/v1/auth"
+        ));
+        registration.addUrlPatterns("/api/v1/auth/*");
+        registration.setOrder(Ordered.HIGHEST_PRECEDENCE);
+        return registration;
+    }
+
+    @Bean
+    FilterRegistrationBean<JsonRequestBodySizeFilter> publicRequestBodySizeFilterRegistration() {
+        FilterRegistrationBean<JsonRequestBodySizeFilter> registration = new FilterRegistrationBean<>();
+        registration.setFilter(new JsonRequestBodySizeFilter(
+                ContactFormLimits.MAX_REQUEST_BODY_BYTES,
+                "/api/v1/public"
+        ));
+        registration.addUrlPatterns("/api/v1/public/*");
         registration.setOrder(Ordered.HIGHEST_PRECEDENCE);
         return registration;
     }

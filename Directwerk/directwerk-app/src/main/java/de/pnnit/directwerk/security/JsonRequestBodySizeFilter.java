@@ -24,17 +24,19 @@ import org.springframework.web.filter.OncePerRequestFilter;
 public class JsonRequestBodySizeFilter extends OncePerRequestFilter {
 
     private final int maxBodyBytes;
-    private final String path;
+    private final String pathPrefix;
 
-    public JsonRequestBodySizeFilter(int maxBodyBytes, String path) {
+    /** @param pathPrefix an exact path or a path prefix (its subpaths are matched too) */
+    public JsonRequestBodySizeFilter(int maxBodyBytes, String pathPrefix) {
         this.maxBodyBytes = maxBodyBytes;
-        this.path = path;
+        this.pathPrefix = pathPrefix;
     }
 
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
+        String path = RequestPaths.of(request);
         return !"POST".equalsIgnoreCase(request.getMethod())
-                || !path.equals(RequestPaths.of(request));
+                || !(path.equals(pathPrefix) || path.startsWith(pathPrefix + "/"));
     }
 
     @Override
