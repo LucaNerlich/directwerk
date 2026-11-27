@@ -311,15 +311,16 @@ export default function ApiKeysClient({mcpUrl}: {mcpUrl: string}): React.JSX.Ele
             <Dialog
                 open={createOpen}
                 onOpenChange={(open) => {
-                    if (creating) return
+                    // The secret is returned once; only the deliberate "Fertig" action may
+                    // discard it, not Escape, the backdrop or the X (#1090).
+                    if (creating || created !== null) return
                     setCreateOpen(open)
                     if (!open) {
-                        setCreated(null)
                         setErrorMessage(null)
                     }
                 }}
             >
-                <DialogContent className="sm:max-w-md">
+                <DialogContent className="sm:max-w-md" showCloseButton={created === null}>
                     <DialogHeader>
                         <DialogTitle>
                             {created ? s.apiKeysCreated : s.apiKeysCreate}
