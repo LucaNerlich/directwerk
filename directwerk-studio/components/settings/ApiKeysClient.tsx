@@ -281,20 +281,24 @@ export default function ApiKeysClient({mcpUrl}: {mcpUrl: string}): React.JSX.Ele
                                 <ToggleGroupItem value="opencode">OpenCode</ToggleGroupItem>
                             </ToggleGroup>
                         </div>
-                        <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            onClick={() => {
-                                void copyMcpConfig(mcpConfig)
-                            }}
-                        >
-                            {mcpCopyState === 'copied' ? s.apiKeysCopied : s.apiKeysCopy}
-                        </Button>
+                        {mcpUrl ? (
+                            <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                    void copyMcpConfig(mcpConfig)
+                                }}
+                            >
+                                {mcpCopyState === 'copied' ? s.apiKeysCopied : s.apiKeysCopy}
+                            </Button>
+                        ) : null}
                     </div>
-                    <pre className="max-h-96 overflow-auto rounded-md border bg-muted/40 p-4 font-mono text-xs leading-relaxed">
-                        <code>{mcpConfig}</code>
-                    </pre>
+                    {mcpUrl ? (
+                        <pre className="max-h-96 overflow-auto rounded-md border bg-muted/40 p-4 font-mono text-xs leading-relaxed">
+                            <code>{mcpConfig}</code>
+                        </pre>
+                    ) : null}
                     <p className="text-xs text-muted-foreground">
                         {mcpTransport === 'remote' ? s.apiKeysMcpRemoteHint : s.apiKeysMcpHint}
                     </p>
