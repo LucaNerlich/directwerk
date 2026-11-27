@@ -7,7 +7,7 @@ import SectionHeader from '@directwerk/ui/components/section-header'
 
 import MediaLibraryPicker from '@/components/media/MediaLibraryPicker'
 import UploadProgress from '@/components/media/UploadProgress'
-import {mediaLimitLabel} from '@/lib/media/limits'
+import {mediaLimitLabelFor, type ResolvedMediaLimits} from '@/lib/media/limits'
 
 /**
  * Shared cover/hero image card for article and episode editors.
@@ -20,6 +20,7 @@ export default function CoverImageField({
     previewUrl,
     previewAlt,
     assetId,
+    limits,
     disabled,
     showLibraryPicker,
     libraryLabel,
@@ -37,6 +38,7 @@ export default function CoverImageField({
     previewUrl: string | null
     previewAlt: string
     assetId: number | null
+    limits: ResolvedMediaLimits
     disabled: boolean
     showLibraryPicker: boolean
     libraryLabel: string
@@ -73,7 +75,7 @@ export default function CoverImageField({
                         type="file"
                     />
                     <span className="text-xs font-normal text-muted-foreground">
-                        Max. {mediaLimitLabel('IMAGE')}.
+                        Max. {mediaLimitLabelFor(limits, 'IMAGE')}.
                     </span>
                 </label>
                 {uploadProgress !== null ? (

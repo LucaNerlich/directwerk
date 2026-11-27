@@ -21,7 +21,7 @@ import {useCallback, useEffect, useState} from 'react'
 import MediaLibraryPicker from '@/components/media/MediaLibraryPicker'
 import UploadProgress from '@/components/media/UploadProgress'
 import {getMediaPreviewUrl} from '@/lib/api/mediaApi'
-import {mediaLimitLabel} from '@/lib/media/limits'
+import {mediaLimitLabelFor} from '@/lib/media/limits'
 import {useCoverImageUpload} from '@/lib/media/useCoverImageUpload'
 
 import {createFormat, deactivateFormat, listFormats, updateFormat} from '@/lib/api/catalogApi'
@@ -324,7 +324,7 @@ export default function FormatEditor({formatId}: FormatEditorProps): React.JSX.E
                         type="file"
                     />
                     <span className="text-xs text-muted-foreground">
-                        Max. {mediaLimitLabel('IMAGE')}.
+                        Max. {mediaLimitLabelFor(coverUpload.limits, 'IMAGE')}.
                     </span>
                     <MediaLibraryPicker
                         assetType="IMAGE"

@@ -31,7 +31,7 @@ import type {
     SeriesStatus,
     UpdateSeriesInput,
 } from '@directwerk/api/types'
-import {mediaLimitLabel} from '@/lib/media/limits'
+import {mediaLimitLabelFor} from '@/lib/media/limits'
 import {useCoverImageUpload} from '@/lib/media/useCoverImageUpload'
 
 import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
@@ -434,7 +434,7 @@ export default function SeriesEditor({seriesId}: SeriesEditorProps): React.JSX.E
                         type="file"
                     />
                     <span className="text-xs font-normal text-muted-foreground">
-                        Max. {mediaLimitLabel('IMAGE')}.
+                        Max. {mediaLimitLabelFor(coverUpload.limits, 'IMAGE')}.
                     </span>
                     <MediaLibraryPicker
                         assetType="IMAGE"

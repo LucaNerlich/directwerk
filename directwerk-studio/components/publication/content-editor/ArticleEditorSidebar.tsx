@@ -8,12 +8,14 @@ import FormatCategoryPicker from '@/components/publication/FormatCategoryPicker'
 import NewsletterListPicker from '@/components/write/NewsletterListPicker'
 import {useDictionary} from '@/components/i18n/LocaleProvider'
 import type {CategorySummary, NewsletterListSummary} from '@directwerk/api/types'
+import type {ResolvedMediaLimits} from '@/lib/media/limits'
 
 /** Article-only sidebar fields: hero image, categories, newsletter lists. */
 export default function ArticleEditorSidebar({
     title,
     heroAssetId,
     heroPreviewUrl,
+    heroLimits,
     busy,
     readOnly,
     isSaving,
@@ -36,6 +38,7 @@ export default function ArticleEditorSidebar({
     title: string
     heroAssetId: number | null
     heroPreviewUrl: string | null
+    heroLimits: ResolvedMediaLimits
     busy: boolean
     readOnly: boolean
     isSaving: boolean
@@ -68,6 +71,7 @@ export default function ArticleEditorSidebar({
                     title.trim().length > 0 ? `Titelbild: ${title}` : 'Titelbild'
                 }
                 assetId={heroAssetId}
+                limits={heroLimits}
                 disabled={coverDisabled}
                 showLibraryPicker
                 libraryLabel={dict.podcast.titelbildMediathek}

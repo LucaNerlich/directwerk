@@ -7,7 +7,7 @@ import SectionHeader from '@directwerk/ui/components/section-header'
 import MediaLibraryPicker from '@/components/media/MediaLibraryPicker'
 import UploadProgress from '@/components/media/UploadProgress'
 import {useDictionary} from '@/components/i18n/LocaleProvider'
-import {mediaLimitLabel} from '@/lib/media/limits'
+import {mediaLimitLabelFor, type ResolvedMediaLimits} from '@/lib/media/limits'
 
 /**
  * Episode-only audio attach UI.
@@ -22,6 +22,7 @@ export default function EpisodeAudioField({
     audioPreviewError,
     audioReady,
     audioStatusKnown,
+    limits,
     controlsDisabled,
     isUploading,
     uploadProgress,
@@ -37,6 +38,7 @@ export default function EpisodeAudioField({
     audioPreviewError: string | null
     audioReady: boolean
     audioStatusKnown: boolean
+    limits: ResolvedMediaLimits
     controlsDisabled: boolean
     isUploading: boolean
     uploadProgress: {file: File; progress: number} | null
@@ -116,7 +118,7 @@ export default function EpisodeAudioField({
                         }}
                     />
                     <span className="text-xs font-normal text-muted-foreground">
-                        Max. {mediaLimitLabel('AUDIO')}.
+                        Max. {mediaLimitLabelFor(limits, 'AUDIO')}.
                     </span>
                 </label>
                 {showLibraryPicker ? (

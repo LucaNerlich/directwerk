@@ -99,6 +99,7 @@ vi.mock('@/lib/api/catalogApi', () => ({
     replaceEpisodeCategories: (...args: unknown[]) => replaceEpisodeCategories(...args),
 }))
 vi.mock('@/lib/api/mediaApi', () => ({
+    getMediaUploadLimits: vi.fn().mockResolvedValue(null),
     getMedia: vi.fn().mockResolvedValue({
         id: 10,
         status: 'READY',

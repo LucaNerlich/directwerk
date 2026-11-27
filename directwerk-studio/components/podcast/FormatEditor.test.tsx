@@ -36,6 +36,7 @@ vi.mock('@/lib/api/catalogApi', () => ({
     listFormats: vi.fn().mockResolvedValue([]),
 }))
 vi.mock('@/lib/api/mediaApi', () => ({
+    getMediaUploadLimits: vi.fn().mockResolvedValue(null),
     getMediaPreviewUrl: vi.fn(),
     listMedia: vi.fn().mockResolvedValue([]),
 }))
