@@ -86,9 +86,11 @@ export function usePublicationListPage<T extends {
     )
 
     const itemsRef = useRef(items)
-    itemsRef.current = items
     const sortRef = useRef(sort)
-    sortRef.current = sort
+    useLayoutEffect(() => {
+        itemsRef.current = items
+        sortRef.current = sort
+    }, [items, sort])
 
     const selection = usePublicationListState(itemIds)
 

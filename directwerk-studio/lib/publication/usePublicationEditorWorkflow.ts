@@ -59,10 +59,13 @@ export function usePublicationEditorWorkflow<T extends {
         publicationRef.current = publication
     }, [publication])
 
+    // DRAFT writes live columns; PUBLISHED stages a working-draft overlay. Pure so the render
+    // output never reads the layout-effect ref (#1087 review).
+    const isEditableStatus = (status: string | null | undefined): boolean =>
+        status === null || status === undefined || status === 'DRAFT' || status === 'PUBLISHED'
+
     const isEditablePublication = useCallback((): boolean => {
-        const status = publicationRef.current?.status ?? 'DRAFT'
-        // DRAFT writes live columns; PUBLISHED stages a working-draft overlay.
-        return status === 'DRAFT' || status === 'PUBLISHED'
+        return isEditableStatus(publicationRef.current?.status)
     }, [])
 
     const canAutosave = useCallback((): boolean => {
@@ -182,7 +185,7 @@ export function usePublicationEditorWorkflow<T extends {
     }, [isDirty])
 
     useDraftAutosave({
-        enabled: canAutosave(),
+        enabled: publicationId !== undefined && isEditableStatus(publication?.status),
         isDirty,
         isSaving: isSaving || autosaveBlocked,
         canSave: canAutosave,
