@@ -220,6 +220,7 @@ export default function MediaLibraryClient(): React.JSX.Element {
             if (authRedirect(error)) {
                 return
             }
+            setFailedUpload(null)
             setErrorMessage(
                 error instanceof Error
                     ? error.message
@@ -433,17 +434,25 @@ export default function MediaLibraryClient(): React.JSX.Element {
     }
 
     async function handleDelete(assetId: number): Promise<void> {
-        setFailedUpload(null)
         if (!window.confirm('Diese Datei endgültig löschen?')) {
             return
         }
+        setFailedUpload(null)
         setIsBusy(true)
         setErrorMessage(null)
         setStatusMessage(null)
         try {
             await deleteMedia( assetId)
             // Reload so folder tiles pick up fresh API assetCount (not stale optimistic list).
-            await reload()
+            try {
+                await reload()
+            } catch (error) {
+                if (authRedirect(error)) {
+                    return
+                }
+                setErrorMessage('Medium gelöscht, aber die Liste konnte nicht neu geladen werden.')
+                return
+            }
             if (!mountedRef.current) {
                 return
             }
@@ -576,7 +585,8 @@ export default function MediaLibraryClient(): React.JSX.Element {
             }
             if (rejected.length > 0) {
                 if (rejected.some(({result}) => authRedirect(result.reason))) return
-                setErrorMessage(
+                setFailedUpload(null)
+            setErrorMessage(
                     `Löschen fehlgeschlagen für Medien-IDs: ${rejected
                         .map(({asset}) => asset.id)
                         .join(', ')}.`,
@@ -588,7 +598,6 @@ export default function MediaLibraryClient(): React.JSX.Element {
     }
 
     async function handleBulkDeleteSelected(): Promise<void> {
-        setFailedUpload(null)
         const selected = visibleAssets.filter((asset) => selectedIds.has(asset.id))
         if (selected.length === 0) {
             return
@@ -718,6 +727,7 @@ export default function MediaLibraryClient(): React.JSX.Element {
                     && authRedirect((result as PromiseRejectedResult).reason))) {
                     return
                 }
+                setFailedUpload(null)
                 setFolderDialogError(
                     `Verschieben fehlgeschlagen für Medien-IDs: ${failures.join(', ')}.`,
                 )
