@@ -39,6 +39,10 @@ RUN --mount=type=cache,target=/root/.local/share/pnpm/store \
     pnpm install --frozen-lockfile --filter directwerk-studio...
 
 ENV NEXT_TELEMETRY_DISABLED=1
+# Read in the api-keys Server Component for the hosted MCP config, so it must be present at
+# build time; compose passes it as a build arg.
+ARG NEXT_PUBLIC_API_URL
+ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
 RUN mkdir -p directwerk-studio/public \
     && pnpm --filter directwerk-studio build \
     && pnpm deploy --filter=directwerk-studio --prod --legacy /deploy \

@@ -123,6 +123,9 @@ services:
         build:
             context: .
             dockerfile: directwerk-studio/Dockerfile
+            args:
+                # Read in a Server Component, so it is inlined at build time.
+                NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8080}
         ports:
             - '3003:3003'
         environment:
