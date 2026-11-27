@@ -1,6 +1,6 @@
 'use client'
 
-import {useCallback, useEffect, useRef, useState} from 'react'
+import {useEffect, useRef, useState} from 'react'
 
 import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
 import {Button} from '@directwerk/ui/components/button'
@@ -70,8 +70,6 @@ export default function MemberRightsEditor({
     useEffect(() => {
         onAuthRequiredRef.current = onAuthRequired
     }, [onAuthRequired])
-    const redirectToLogin = useCallback(() => onAuthRequiredRef.current(), [])
-
     useEffect(() => {
         if (!isEditor) {
             setIsLoading(false)
@@ -92,7 +90,7 @@ export default function MemberRightsEditor({
                     return
                 }
                 if (error instanceof Error && error.message === AUTH_REQUIRED) {
-                    redirectToLogin()
+                    onAuthRequiredRef.current()
                     return
                 }
                 setErrorMessage(
@@ -103,7 +101,7 @@ export default function MemberRightsEditor({
         return () => {
             active = false
         }
-    }, [isEditor, redirectToLogin, reloadToken, user.userId])
+    }, [isEditor, reloadToken, user.userId])
 
     if (!isEditor) {
         return (
