@@ -46,6 +46,22 @@ class ArticleRssXmlBuilderTest {
     }
 
     @Test
+    void truncationBoundsTheSanitizedTextNotTheRawHtml() {
+        // #1034 review: the observable change is applying the bound after sanitizing. 1000 emoji
+        // are 2007 raw chars but ~9007 sanitized chars, so the raw-substring version kept the
+        // whole body while the writer now bounds it.
+        Tenant tenant = tenant();
+        String body = "<p>" + "\uD83D\uDE00".repeat(1000) + "</p>";
+        Article article = article(11L, "emoji-cut", "Emoji", body, AccessPolicy.FREE);
+
+        String xml = builder.buildFeed(tenant, List.of(article), "https://alpha.example.test", null);
+
+        String description = xml.replaceAll("(?s).*<description><!\\[CDATA\\[(.*?)]]></description>.*", "$1");
+        assertThat(description.length()).isLessThanOrEqualTo(ArticleRssXmlBuilder.MAX_DESCRIPTION_CHARS);
+        assertThat(xml).doesNotContain("\uFFFD");
+    }
+
+    @Test
     void paidArticleFallsBackToExcerptInsteadOfFullBody() {
         Tenant tenant = tenant();
         Article article = article(2L, "paid-post", "Paid Post", "<p>Secret body</p>", AccessPolicy.PAID);
