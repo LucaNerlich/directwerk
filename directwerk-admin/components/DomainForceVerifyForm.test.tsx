@@ -30,7 +30,7 @@ describe('DomainForceVerifyForm', () => {
         const formData = forceVerifyDomainAction.mock.calls[0][2] as FormData
         expect(formData.get('host')).toBe('tenant.example.com')
 
-        expect(screen.getByRole('status')).toHaveTextContent(
+        expect(await screen.findByRole('status', {}, {timeout: 5_000})).toHaveTextContent(
             'tenant.example.com force-verified.'
         )
     })
