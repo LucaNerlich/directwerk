@@ -241,6 +241,7 @@ describe('EpisodeEditor RBAC', () => {
         renderWithLocale(<EpisodeEditor episodeId={1} />)
 
         await waitFor(() => expect(screen.getByPlaceholderText('Titel eingeben…')).toBeDisabled())
+        expect(screen.getByRole('spinbutton')).toBeDisabled()
         expect(
             screen.getByText(/Du kannst nur eigene Folgen bearbeiten/),
         ).toBeInTheDocument()
@@ -248,6 +249,43 @@ describe('EpisodeEditor RBAC', () => {
         expect(
             screen.queryByRole('button', {name: /Folge löschen/}),
         ).not.toBeInTheDocument()
+    })
+
+    it('sends a cleared episode number and shows the server value again', async () => {
+        const user = userEvent.setup()
+        updateEpisode.mockClear()
+        getEpisode.mockResolvedValue({...draftEpisode, episodeNumber: 3})
+        updateEpisode.mockResolvedValue({...draftEpisode, episodeNumber: 3})
+        replaceEpisodeFormats.mockResolvedValue({
+            ...draftEpisode,
+            episodeNumber: 3,
+            formats: [{id: 1, slug: 'interview', name: 'Interview'}],
+        })
+        replaceEpisodeCategories.mockResolvedValue({...draftEpisode, episodeNumber: 3})
+        renderWithLocale(<EpisodeEditor episodeId={1} />)
+
+        const spinbutton = await screen.findByRole('spinbutton')
+        await waitFor(() => expect(spinbutton).toHaveValue(3))
+        await user.clear(spinbutton)
+        expect(
+            await screen.findByText(/Eine gespeicherte Nummer bleibt erhalten/),
+        ).toBeInTheDocument()
+        await user.click(screen.getByRole('button', {name: 'Speichern'}))
+
+        await waitFor(() =>
+            expect(updateEpisode).toHaveBeenCalledWith(
+                1,
+                expect.objectContaining({episodeNumber: undefined}),
+            ),
+        )
+        await waitFor(() => expect(spinbutton).toHaveValue(3))
+        getEpisode.mockImplementation(async () => ({...draftEpisode}))
+        updateEpisode.mockResolvedValue(draftEpisode)
+        replaceEpisodeFormats.mockResolvedValue({
+            ...draftEpisode,
+            formats: [{id: 1, slug: 'interview', name: 'Interview'}],
+        })
+        replaceEpisodeCategories.mockResolvedValue({...draftEpisode, formats: [{id: 1, slug: 'interview', name: 'Interview'}]})
     })
 
     it('keeps own content editable under own-only rights', async () => {

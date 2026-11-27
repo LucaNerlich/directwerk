@@ -26,6 +26,7 @@ export default function EpisodeEditorSidebar({
     coverPreviewUrl,
     coverUploadProgress,
     episodeNumber,
+    storedEpisodeNumber,
     enclosureEnabled,
     showEnclosure,
     showClassification,
@@ -61,6 +62,7 @@ export default function EpisodeEditorSidebar({
     coverPreviewUrl: string | null
     coverUploadProgress: {file: File; progress: number} | null
     episodeNumber: string
+    storedEpisodeNumber: number | null
     enclosureEnabled: boolean
     showEnclosure: boolean
     showClassification: boolean
@@ -134,6 +136,7 @@ export default function EpisodeEditorSidebar({
                     <label className="grid gap-2 text-sm font-medium">
                         <span>Folgennummer</span>
                         <Input
+                            disabled={controlsDisabled}
                             min={1}
                             onChange={(event) => {
                                 onEpisodeNumberChange(event.target.value)
@@ -144,6 +147,12 @@ export default function EpisodeEditorSidebar({
                         <span className="text-xs font-normal text-muted-foreground">
                             Optional. Bestimmt die Reihenfolge im Feed.
                         </span>
+                        {episodeNumber.trim() === '' && storedEpisodeNumber !== null ? (
+                            <span className="text-xs font-normal text-muted-foreground">
+                                Eine gespeicherte Nummer bleibt erhalten, wenn das Feld leer
+                                gespeichert wird.
+                            </span>
+                        ) : null}
                     </label>
                     {showEnclosure ? (
                         <label className="grid gap-2 text-sm font-medium">

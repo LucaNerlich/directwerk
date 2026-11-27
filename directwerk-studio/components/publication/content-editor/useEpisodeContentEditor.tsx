@@ -220,6 +220,11 @@ export function useEpisodeContentEditor(
                 })
                 deferredCreateIdRef.current = created.id
                 setEpisode(created)
+                setEpisodeNumber(
+                    created.episodeNumber !== null
+                        ? String(created.episodeNumber)
+                        : ''
+                )
                 setSlugIndex((current) => [
                     ...current,
                     {id: created.id, slug: created.slug},
@@ -237,6 +242,13 @@ export function useEpisodeContentEditor(
             })
             const withTags = await persistTags(updated)
             setEpisode(withTags)
+            // The API treats an omitted/undefined number as "leave unchanged"; rehydrate from the
+            // response so the field never shows a value the server did not store (#1054).
+            setEpisodeNumber(
+                withTags.episodeNumber !== null
+                    ? String(withTags.episodeNumber)
+                    : ''
+            )
             setSlugIndex((current) =>
                 current.map((item) =>
                     item.id === withTags.id
@@ -666,7 +678,13 @@ export function useEpisodeContentEditor(
         formatSelected: selectedFormatIds.size > 0,
     })
     const readOnly = !desk.canEdit
-    const controlsDisabled = busy || readOnly
+    // The layout locks fields for statuses without EDIT (SCHEDULED, ARCHIVED); the sidebar must
+    // follow the same signal or it accepts edits markDirty can never persist (#1054 review).
+    const statusLocked =
+        episode !== null
+        && Array.isArray(episode.availableActions)
+        && !episode.availableActions.includes('EDIT')
+    const controlsDisabled = busy || readOnly || statusLocked
     const episodePageUrl = publicEpisodePageUrl(config.publicSiteUrl, slug)
     const publishedLinks =
         episode?.status === 'PUBLISHED'
@@ -842,6 +860,7 @@ export function useEpisodeContentEditor(
                 coverPreviewUrl={coverPreviewUrl}
                 coverUploadProgress={coverUpload.uploadProgress}
                 episodeNumber={episodeNumber}
+                storedEpisodeNumber={episode?.episodeNumber ?? null}
                 enclosureEnabled={episode?.enclosureEnabled !== false}
                 showEnclosure={episode !== null}
                 showClassification={episode !== null}
