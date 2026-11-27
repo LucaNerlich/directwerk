@@ -1040,6 +1040,7 @@
     "wizardCheckingDns": "DNS wird geprüft…",
     "wizardCheckingTitle": "Prüfung läuft",
     "wizardContinueDns": "Weiter zu DNS",
+    "wizardReload": "Erneut laden",
     "wizardCopied": "Kopiert",
     "wizardCopy": "Kopieren",
     "wizardCopyFailed": "Kopieren in die Zwischenablage ist fehlgeschlagen.",
