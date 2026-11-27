@@ -72,6 +72,11 @@ management:
             probes:
                 enabled: true
     health:
+        # The SMTP health indicator makes the full /actuator/health report DOWN when
+        # the relay does not speak STARTTLS. Disable it via env when the host cannot
+        # do STARTTLS, or point probes at /actuator/health/readiness (db only).
+        mail:
+            enabled: ${DIRECTWERK_HEALTH_MAIL_ENABLED:true}
         group:
             liveness:
                 include: ping
