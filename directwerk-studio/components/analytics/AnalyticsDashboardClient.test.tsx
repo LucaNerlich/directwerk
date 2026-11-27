@@ -244,9 +244,9 @@ describe('AnalyticsDashboardClient', () => {
         listArticlesMock.mockResolvedValue([])
         listEpisodesMock.mockResolvedValue([])
         listSeriesMock.mockResolvedValue([])
-        getBillingDashboardMock
-            .mockRejectedValueOnce(Object.assign(new Error('boom'), {status: 500}))
-            .mockResolvedValue(billingDashboard())
+        // Persistent until the retry: a once-rejection can be consumed by the
+        // double-invoked mount effect in CI before the card is asserted.
+        getBillingDashboardMock.mockRejectedValue(Object.assign(new Error('boom'), {status: 500}))
 
         renderWithLocale(
             <AnalyticsDashboardClient
@@ -263,6 +263,7 @@ describe('AnalyticsDashboardClient', () => {
         expect(
             screen.queryByText('Abo-Kennzahlen sind nur für Tenant-Admins sichtbar.'),
         ).not.toBeInTheDocument()
+        getBillingDashboardMock.mockResolvedValue(billingDashboard())
         screen.getByRole('button', {name: /Erneut/}).click()
 
         expect(await screen.findByText('Aktive Mitgliedschaften')).toBeInTheDocument()
