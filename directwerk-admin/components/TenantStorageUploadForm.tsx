@@ -1,7 +1,7 @@
 'use client'
 
 import Form from 'next/form'
-import {useActionState, useEffect, useRef} from 'react'
+import {useActionState, useEffect, useRef, useState} from 'react'
 
 import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
 import {Button} from '@directwerk/ui/components/button'
@@ -17,6 +17,7 @@ import {
 
 import {uploadTenantMediaAction} from '@/app/tenants/actions'
 import {INITIAL_UPLOAD_MEDIA_STATE} from '@/app/tenants/actionState'
+import {MAX_UPLOAD_BYTES} from '@/lib/uploadLimits'
 
 interface TenantStorageUploadFormProps {
     tenantId: string
@@ -27,6 +28,8 @@ export default function TenantStorageUploadForm({
     tenantId,
     onUploaded,
 }: TenantStorageUploadFormProps) {
+    const [fileSize, setFileSize] = useState<number | null>(null)
+    const oversize = fileSize !== null && fileSize > MAX_UPLOAD_BYTES
     const [state, formAction, isPending] = useActionState(
         uploadTenantMediaAction.bind(null, tenantId),
         INITIAL_UPLOAD_MEDIA_STATE
@@ -64,9 +67,15 @@ export default function TenantStorageUploadForm({
                         disabled={isPending}
                         id="storage-upload-file"
                         name="file"
+                        onChange={(event) => setFileSize(event.target.files?.[0]?.size ?? null)}
                         required
                         type="file"
                     />
+                    {oversize ? (
+                        <p className="text-sm text-destructive" role="alert">
+                            The file is larger than 10 MB.
+                        </p>
+                    ) : null}
                 </div>
                 <div className="space-y-2">
                     <Label htmlFor="storage-upload-type">Type</Label>
@@ -95,7 +104,7 @@ export default function TenantStorageUploadForm({
                         ))}
                     </select>
                 </div>
-                <Button className="self-end" disabled={isPending} type="submit">
+                <Button className="self-end" disabled={isPending || oversize} type="submit">
                     {isPending ? 'Uploading…' : 'Upload'}
                 </Button>
             </Form>
