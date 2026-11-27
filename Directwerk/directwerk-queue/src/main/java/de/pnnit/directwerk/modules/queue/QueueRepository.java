@@ -226,18 +226,31 @@ public class QueueRepository {
                 .stream().findFirst();
     }
 
+    /**
+     * Fails a claimed job. A coalesced follow-up may already own the single QUEUED slot for this
+     * correlation (jobs_queued_correlation_uidx), so the transition is decided in the same
+     * statement: raising 23505 here would abort the caller's transaction and the retry could not
+     * run (#1009).
+     */
     public Optional<QueueJob> fail(UUID id, String worker, String error, Duration retryDelay) {
         return jdbcTemplate.query("""
-                UPDATE jobs
-                SET status = CASE WHEN attempts >= max_attempts THEN 'FAILED'::job_status
+                UPDATE jobs j
+                SET status = CASE WHEN j.attempts >= j.max_attempts
+                                   OR EXISTS (SELECT 1 FROM jobs sibling
+                                              WHERE sibling.queue_name = j.queue_name
+                                                AND sibling.tenant_id = j.tenant_id
+                                                AND sibling.correlation_id = j.correlation_id
+                                                AND sibling.status = 'QUEUED'
+                                                AND sibling.id <> j.id)
+                                  THEN 'FAILED'::job_status
                                   ELSE 'QUEUED'::job_status END,
                     available_at = clock_timestamp() + (? * interval '1 millisecond'),
                     locked_by = NULL,
                     locked_until = NULL,
                     last_error = ?,
                     updated_at = clock_timestamp()
-                WHERE id = ? AND status = 'PROCESSING' AND locked_by = ?
-                  AND locked_until > clock_timestamp()
+                WHERE j.id = ? AND j.status = 'PROCESSING' AND j.locked_by = ?
+                  AND j.locked_until > clock_timestamp()
                 RETURNING %s
                 """.formatted(COLUMNS), this::mapJob,
                 retryDelay.toMillis(), error, id, worker).stream().findFirst();
