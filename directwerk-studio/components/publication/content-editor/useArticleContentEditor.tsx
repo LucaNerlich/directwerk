@@ -189,8 +189,15 @@ export function useArticleContentEditor(
                 ...current,
                 {id: created.id, slug: created.slug},
             ])
-            routerRef.current.replace(localize(descriptor.paths.editor(created.id)))
-            return created
+            // Relation persistence exists only on the update path before this fix, so a new
+            // article silently dropped its selected newsletter lists (#1018). Navigation must
+            // happen even when that follow-up fails: the article exists, and staying on /new
+            // would create a second one on the next save (#1018 review).
+            try {
+                return await persistTags(created)
+            } finally {
+                routerRef.current.replace(localize(descriptor.paths.editor(created.id)))
+            }
         }
 
         const updated = await updateArticle(articleId, {
@@ -512,9 +519,17 @@ export function useArticleContentEditor(
         notifyAudienceHint,
         notifyPreview,
         onRetryNotify: () => {
+            // A successful retry replaces the banner with the sent job preview.
+            setWorkflowError(null)
             void retryNotify()
                 .then(() => refreshNotifyPreview())
-                .catch(() => undefined)
+                .catch((error: unknown) =>
+                    setWorkflowError(
+                        error instanceof Error
+                            ? error.message
+                            : 'Benachrichtigung fehlgeschlagen.'
+                    )
+                )
         },
         isRetryingNotify,
         previewImageUrl: heroPreviewUrl,

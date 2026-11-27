@@ -797,7 +797,7 @@ export function useEpisodeContentEditor(
         onRetryNotify: () => {
             void retryNotify()
                 .then(() => refreshNotifyPreview())
-                .catch(() => undefined)
+                .catch(handleAuthError)
         },
         isRetryingNotify,
         previewImageUrl: coverPreviewUrl,
