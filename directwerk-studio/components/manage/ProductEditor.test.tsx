@@ -3,7 +3,7 @@ import {renderWithLocale} from '@/lib/i18n/testUtils'
 import {describe, expect, it, vi} from 'vitest'
 
 import ProductEditor from '@/components/manage/ProductEditor'
-import {createProduct} from '@/lib/api/subscriptionApi'
+import {createProduct, listProducts, updateProduct} from '@/lib/api/subscriptionApi'
 import type {SubscriptionProduct} from '@directwerk/api/types'
 
 // Stable across renders, like the real Next.js useRouter().
@@ -27,6 +27,18 @@ vi.mock('@/lib/api/subscriptionApi', () => ({
     syncProductStripe: vi.fn(),
     listPublicLevels: vi.fn().mockResolvedValue([]),
 }))
+
+describe('ProductEditor load error', () => {
+    it('shows the error screen instead of an empty form when the product cannot load', async () => {
+        vi.mocked(listProducts).mockRejectedValueOnce(new Error('nicht erreichbar'))
+        renderWithLocale(<ProductEditor productId={5} />)
+
+        expect(await screen.findByRole('alert')).toBeInTheDocument()
+        expect(screen.getByText('Zurück zur Liste')).toBeInTheDocument()
+        expect(screen.queryByLabelText('Titel')).not.toBeInTheDocument()
+        expect(updateProduct).not.toHaveBeenCalled()
+    })
+})
 
 describe('ProductEditor price validation', () => {
     it('rejects an invalid price with a German error instead of silently dropping it', async () => {
