@@ -63,7 +63,7 @@ public class SubscriberDirectoryRepository {
                 FROM tenant_memberships m
                 JOIN users u ON u.id = m.user_id
                 WHERE m.tenant_id = :tenantId
-                  AND m.roles @> '"SUBSCRIBER"'::jsonb
+                  AND CAST(m.roles AS varchar) LIKE '%"SUBSCRIBER"%'
                   AND (
                     CAST(:queryBlank AS boolean)
                     OR lower(u.email) LIKE :pattern
