@@ -19,8 +19,10 @@ import de.pnnit.directwerk.modules.podcast.importrss.RssFeedParser;
 import de.pnnit.directwerk.modules.podcast.repository.EpisodeRepository;
 import de.pnnit.directwerk.multitenancy.TenantContext;
 import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.IntStream;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -60,6 +62,65 @@ class PodcastImportServiceTest {
     @AfterEach
     void tearDown() {
         TenantContext.clear();
+    }
+
+    @Test
+    void previewCapsAtThePreviewLimitAndFlagsTruncation() throws Exception {
+        stubFeed(201);
+        when(episodeRepository.findByTenantIdAndImportIdentityIn(eq(10L), any())).thenReturn(List.of());
+
+        PodcastImportService.Preview preview = service.preview("https://example.com/feed.xml");
+
+        assertThat(preview.episodes()).hasSize(200);
+        assertThat(preview.truncated()).isTrue();
+    }
+
+    @Test
+    void previewOfExactlyTheLimitIsNotTruncated() throws Exception {
+        stubFeed(200);
+        when(episodeRepository.findByTenantIdAndImportIdentityIn(eq(10L), any())).thenReturn(List.of());
+
+        PodcastImportService.Preview preview = service.preview("https://example.com/feed.xml");
+
+        assertThat(preview.episodes()).hasSize(200);
+        assertThat(preview.truncated()).isFalse();
+    }
+
+    private void stubFeed(int itemCount) throws Exception {
+        String feedUrl = "https://example.com/feed.xml";
+        byte[] xml = "<rss/>".getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        when(remoteContentClient.get(any(java.net.URI.class), any())).thenReturn(
+                new RemoteContentClient.RemoteResponse(
+                        java.net.URI.create(feedUrl),
+                        200,
+                        "application/rss+xml",
+                        (long) xml.length,
+                        new java.io.ByteArrayInputStream(xml)
+                )
+        );
+        List<de.pnnit.directwerk.modules.podcast.importrss.ParsedRssFeed.Item> items =
+                IntStream.range(0, itemCount)
+                        .mapToObj(i -> new de.pnnit.directwerk.modules.podcast.importrss.ParsedRssFeed.Item(
+                                "guid-" + i,
+                                "Episode " + i,
+                                null,
+                                null,
+                                60,
+                                i,
+                                "https://example.com/" + i + ".mp3",
+                                "audio/mpeg",
+                                null,
+                                null
+                        ))
+                        .toList();
+        when(rssFeedParser.parse(eq(feedUrl), any())).thenReturn(
+                new de.pnnit.directwerk.modules.podcast.importrss.ParsedRssFeed(
+                        feedUrl,
+                        new de.pnnit.directwerk.modules.podcast.importrss.ParsedRssFeed.Channel(
+                                "Show", null, "de", null, null, null),
+                        items
+                )
+        );
     }
 
     @Test

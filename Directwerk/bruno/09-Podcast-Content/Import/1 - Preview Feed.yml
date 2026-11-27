@@ -34,4 +34,5 @@ settings:
 
 docs: |-
   Parses a public RSS feed and returns channel + episode metadata. Does not download audio or images.
+  Returns at most 200 episodes and sets `truncated=true` when the feed has more.
   A live public URL is required for 200; example.com is expected to fail parse/download with RSS_FEED_*.
