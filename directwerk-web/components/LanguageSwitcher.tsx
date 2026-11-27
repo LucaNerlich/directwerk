@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import {usePathname} from 'next/navigation'
+import {usePathname, useSearchParams} from 'next/navigation'
 
 import {buttonVariants} from '@directwerk/ui/components/button'
 import {writeLocaleCookie} from '@directwerk/ui/lib/i18n'
@@ -22,6 +22,11 @@ export default function LanguageSwitcher({
     layout?: 'compact' | 'row'
 }): React.JSX.Element {
     const pathname = usePathname()
+    // Keep ?returnTo / ?buy / ?setup while switching language. The router is the source of
+    // truth: the header stays mounted across client navigation, so a mount-time window read
+    // would go stale (#1093 review).
+    const searchParams = useSearchParams()
+    const search = searchParams.toString()
     const lang = useLocale()
     const dictionary = useDictionary()
 
@@ -41,7 +46,7 @@ export default function LanguageSwitcher({
                             locale === 'de'
                                 ? dictionary.nav.languageDe
                                 : dictionary.nav.languageEn
-                        const href = swapLocalePath(pathname, locale)
+                        const href = `${swapLocalePath(pathname, locale)}${search ? `?${search}` : ''}`
                         const isActive = locale === lang
                         return (
                             <Link
@@ -77,7 +82,7 @@ export default function LanguageSwitcher({
             {locales.map((locale) => {
                 const label =
                     locale === 'de' ? dictionary.nav.languageDe : dictionary.nav.languageEn
-                const href = swapLocalePath(pathname, locale)
+                const href = `${swapLocalePath(pathname, locale)}${search ? `?${search}` : ''}`
                 const isActive = locale === lang
                 return (
                     <Link
