@@ -88,9 +88,12 @@ export function createMcpServer(
         }
     })
 
+    const slugSchema = z.string().min(1).max(64)
+    const titleSchema = z.string().min(1).max(255)
+
     server.tool('create_article', 'Create an article', {
-        slug: z.string().min(1).max(64),
-        title: z.string().min(1).max(255),
+        slug: slugSchema,
+        title: titleSchema,
         body: z
             .string()
             .optional()
@@ -112,8 +115,8 @@ export function createMcpServer(
 
     server.tool('update_article', 'Update an article', {
         articleId: idSchema,
-        slug: z.string().min(1).max(64).optional(),
-        title: z.string().min(1).max(255).optional(),
+        slug: slugSchema.optional(),
+        title: titleSchema.optional(),
         body: z
             .string()
             .optional()
@@ -315,8 +318,8 @@ export function createMcpServer(
 
     server.tool('create_episode', 'Create an episode', {
         seriesId: idSchema,
-        slug: z.string().min(1).max(64),
-        title: z.string().min(1).max(255),
+        slug: slugSchema,
+        title: titleSchema,
         description: z
             .string()
             .optional()
@@ -337,8 +340,8 @@ export function createMcpServer(
 
     server.tool('update_episode', 'Update an episode', {
         episodeId: idSchema,
-        slug: z.string().min(1).max(64).optional(),
-        title: z.string().min(1).max(255).optional(),
+        slug: slugSchema.optional(),
+        title: titleSchema.optional(),
         description: z
             .string()
             .optional()
@@ -560,8 +563,8 @@ export function createMcpServer(
     })
 
     server.tool('create_series', 'Create a podcast series', {
-        slug: z.string().min(1).max(64),
-        title: z.string().min(1).max(255),
+        slug: slugSchema,
+        title: titleSchema,
         description: z.string().optional(),
         coverAssetId: idSchema.optional(),
         language: z.string().optional(),
@@ -578,8 +581,8 @@ export function createMcpServer(
 
     server.tool('update_series', 'Update a podcast series', {
         seriesId: idSchema,
-        slug: z.string().min(1).max(64).optional(),
-        title: z.string().min(1).max(255).optional(),
+        slug: slugSchema.optional(),
+        title: titleSchema.optional(),
         description: z.string().optional(),
         coverAssetId: idSchema.optional(),
         language: z.string().optional(),
@@ -605,7 +608,7 @@ export function createMcpServer(
     })
 
     server.tool('create_category', 'Create a category', {
-        slug: z.string().min(1).max(64),
+        slug: slugSchema,
         name: z.string().min(1).max(200),
         parentId: idSchema.optional(),
     }, async (args) => {
@@ -618,7 +621,7 @@ export function createMcpServer(
 
     server.tool('update_category', 'Update a category', {
         categoryId: idSchema,
-        slug: z.string().min(1).max(64).optional(),
+        slug: slugSchema.optional(),
         name: z.string().min(1).max(200).optional(),
         parentId: idSchema.optional(),
         clearParentId: z.boolean().optional(),
@@ -651,7 +654,7 @@ export function createMcpServer(
     })
 
     server.tool('create_format', 'Create a podcast format', {
-        slug: z.string().min(1).max(64),
+        slug: slugSchema,
         name: z.string().min(1).max(200),
     }, async (args) => {
         try {
@@ -663,7 +666,7 @@ export function createMcpServer(
 
     server.tool('update_format', 'Update a podcast format', {
         formatId: idSchema,
-        slug: z.string().min(1).max(64).optional(),
+        slug: slugSchema.optional(),
         name: z.string().min(1).max(200).optional(),
         active: z.boolean().optional(),
     }, async ({formatId, ...body}) => {
@@ -985,8 +988,18 @@ export function createMcpServer(
 
                     // --- media assets (reuse READY assets by filename) ---
                     let audioAssetId: number | undefined
-                    if (item.mp3?.filename && mediaByFilename.get(item.mp3.filename)?.status === 'READY') {
-                        audioAssetId = mediaByFilename.get(item.mp3.filename).id
+                    const reusedAudio = item.mp3?.filename
+                        ? mediaByFilename.get(item.mp3.filename)
+                        : undefined
+                    if (reusedAudio?.status === 'READY') {
+                        // A staged PAID item is only scheduled, and schedule does not re-check
+                        // visibility; reusing public audio would keep it CDN-free (#1048).
+                        if (accessPolicy === 'PAID' && reusedAudio.visibility === 'PUBLIC') {
+                            return fail(
+                                `asset ${reusedAudio.id} is PUBLIC; a PAID episode needs private audio`,
+                            )
+                        }
+                        audioAssetId = reusedAudio.id
                     } else if (item.mp3) {
                         audioAssetId = await uploadAsset(item.mp3, 'AUDIO')
                         mediaByFilename.set(item.mp3.filename, {id: audioAssetId, status: 'READY'})
