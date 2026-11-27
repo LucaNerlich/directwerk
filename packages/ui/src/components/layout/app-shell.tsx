@@ -83,7 +83,7 @@ export default function AppShell({
                     {skipLinkLabel}
                 </a>
                 <Sidebar collapsible="icon">
-                    <SidebarHeader className="border-b p-4 group-data-[collapsible=icon]:p-2">
+                    <SidebarHeader className="border-b p-4 group-data-[collapsible=icon]:p-2 max-md:pr-12">
                         {brand}
                     </SidebarHeader>
                     <SidebarContent className="px-2 py-3">{navigation}</SidebarContent>
