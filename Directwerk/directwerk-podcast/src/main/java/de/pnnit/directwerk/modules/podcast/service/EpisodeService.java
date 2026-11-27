@@ -102,8 +102,17 @@ public class EpisodeService {
             // Escape LIKE metacharacters so a literal % or _ does not turn the search into a wildcard.
             needle = needle.replace("!", "!!").replace("%", "!%").replace("_", "!_");
         }
-        return episodeRepository.searchByTenantId(
-                tenantId, seriesId, needle, OffsetLimitPageRequest.of(limit, offset, sort.toSort()));
+        var page = OffsetLimitPageRequest.of(limit, offset, sort.toSort());
+        List<Long> ids = episodeRepository.searchIdsByTenantId(tenantId, seriesId, needle, page);
+        if (ids.isEmpty()) {
+            return List.of();
+        }
+        Map<Long, Episode> byId = episodeRepository.findPublicByIds(tenantId, ids).stream()
+                .collect(java.util.stream.Collectors.toMap(Episode::getId, episode -> episode));
+        return ids.stream()
+                .map(byId::get)
+                .filter(java.util.Objects::nonNull)
+                .toList();
     }
 
     @Transactional(readOnly = true)

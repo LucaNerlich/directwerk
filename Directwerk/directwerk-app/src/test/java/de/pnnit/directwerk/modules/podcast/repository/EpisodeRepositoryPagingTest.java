@@ -83,21 +83,24 @@ class EpisodeRepositoryPagingTest {
         persistEpisode(b, "batman-other", "Batman: Other", NOW);
         entityManager.clear();
 
-        var bySeries = episodeRepository.searchByTenantId(
+        var bySeriesIds = episodeRepository.searchIdsByTenantId(
                 a.tenantId(), a.series().getId(), null,
                 OffsetLimitPageRequest.of(10, 0, PublicationSort.CREATED.toSort()));
-        assertThat(bySeries).extracting(Episode::getSlug)
+        assertThat(episodeRepository.findPublicByIds(a.tenantId(), bySeriesIds))
+                .extracting(Episode::getSlug)
                 .containsExactlyInAnyOrder("batman-arkham", "curses");
 
-        var byTitle = episodeRepository.searchByTenantId(
+        var byTitleIds = episodeRepository.searchIdsByTenantId(
                 a.tenantId(), null, "BATMAN",
                 OffsetLimitPageRequest.of(10, 0, PublicationSort.CREATED.toSort()));
-        assertThat(byTitle).extracting(Episode::getSlug).containsExactly("batman-arkham");
+        assertThat(episodeRepository.findPublicByIds(a.tenantId(), byTitleIds))
+                .extracting(Episode::getSlug).containsExactly("batman-arkham");
 
-        var bySlug = episodeRepository.searchByTenantId(
+        var bySlugIds = episodeRepository.searchIdsByTenantId(
                 a.tenantId(), null, "curs",
                 OffsetLimitPageRequest.of(10, 0, PublicationSort.CREATED.toSort()));
-        assertThat(bySlug).extracting(Episode::getSlug).containsExactly("curses");
+        assertThat(episodeRepository.findPublicByIds(a.tenantId(), bySlugIds))
+                .extracting(Episode::getSlug).containsExactly("curses");
     }
 
     @Test
@@ -107,10 +110,11 @@ class EpisodeRepositoryPagingTest {
         persistEpisode(fixture, "other", "Something Else", NOW);
         entityManager.clear();
 
-        var hits = episodeRepository.searchByTenantId(
+        var hits = episodeRepository.searchIdsByTenantId(
                 fixture.tenantId(), null, "50!%",
                 OffsetLimitPageRequest.of(10, 0, PublicationSort.CREATED.toSort()));
-        assertThat(hits).extracting(Episode::getSlug).containsExactly("fifty-percent");
+        assertThat(episodeRepository.findPublicByIds(fixture.tenantId(), hits))
+                .extracting(Episode::getSlug).containsExactly("fifty-percent");
     }
 
     @Test
@@ -121,10 +125,11 @@ class EpisodeRepositoryPagingTest {
         persistEpisode(b, "shared-title-b", "Batman", NOW);
         entityManager.clear();
 
-        var hits = episodeRepository.searchByTenantId(
+        var hits = episodeRepository.searchIdsByTenantId(
                 a.tenantId(), null, "batman",
                 OffsetLimitPageRequest.of(10, 0, PublicationSort.CREATED.toSort()));
-        assertThat(hits).extracting(Episode::getSlug).containsExactly("shared-title-a");
+        assertThat(episodeRepository.findPublicByIds(a.tenantId(), hits))
+                .extracting(Episode::getSlug).containsExactly("shared-title-a");
     }
 
     private Fixture persistFixture(String seriesSlug) {

@@ -49,20 +49,20 @@ public interface EpisodeRepository extends JpaRepository<Episode, Long> {
      * optional so the plain list call keeps its shape; the caller passes a
      * {@link Pageable} with the requested sort.
      */
-    @EntityGraph(attributePaths = {
-            "tenant", "series", "series.coverAsset", "coverAsset", "coverAsset.tenant",
-            "audioAsset", "audioAsset.tenant", "formats", "formats.coverAsset",
-            "categories", "categories.parent"
-    })
+    /**
+     * Id page for the studio list. Deliberately fetches no collections: with
+     * {@code firstResult/maxResults} Hibernate would apply the limit in memory once
+     * formats/categories are join-fetched (HHH000104). The service loads the graph by id.
+     */
     @Query("""
-            select e from Episode e
+            select e.id from Episode e
             where e.tenant.id = :tenantId
               and (:seriesId is null or e.series.id = :seriesId)
               and (:q is null
                    or lower(e.title) like lower(concat('%', :q, '%')) escape '!'
                    or lower(e.slug) like lower(concat('%', :q, '%')) escape '!')
             """)
-    List<Episode> searchByTenantId(
+    List<Long> searchIdsByTenantId(
             @Param("tenantId") Long tenantId,
             @Param("seriesId") Long seriesId,
             @Param("q") String q,

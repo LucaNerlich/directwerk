@@ -123,13 +123,13 @@ class EpisodeServiceTest {
 
     @Test
     void listEpisodesPassesTrueRowOffsetToRepository() {
-        when(episodeRepository.searchByTenantId(eq(TENANT_ID), isNull(), isNull(), any(Pageable.class)))
+        when(episodeRepository.searchIdsByTenantId(eq(TENANT_ID), isNull(), isNull(), any(Pageable.class)))
                 .thenReturn(List.of());
 
         episodeService.listEpisodes(TENANT_ID, 100, 50);
 
         ArgumentCaptor<Pageable> pageable = ArgumentCaptor.forClass(Pageable.class);
-        verify(episodeRepository).searchByTenantId(eq(TENANT_ID), isNull(), isNull(), pageable.capture());
+        verify(episodeRepository).searchIdsByTenantId(eq(TENANT_ID), isNull(), isNull(), pageable.capture());
         assertThat(pageable.getValue().getOffset()).isEqualTo(50);
         assertThat(pageable.getValue().getPageSize()).isEqualTo(100);
         assertThat(pageable.getValue().getSort().getOrderFor("createdAt")).isNotNull();
@@ -137,13 +137,13 @@ class EpisodeServiceTest {
 
     @Test
     void listEpisodesAppliesRequestedSort() {
-        when(episodeRepository.searchByTenantId(eq(TENANT_ID), isNull(), isNull(), any(Pageable.class)))
+        when(episodeRepository.searchIdsByTenantId(eq(TENANT_ID), isNull(), isNull(), any(Pageable.class)))
                 .thenReturn(List.of());
 
         episodeService.listEpisodes(TENANT_ID, 100, 0, PublicationSort.TITLE);
 
         ArgumentCaptor<Pageable> pageable = ArgumentCaptor.forClass(Pageable.class);
-        verify(episodeRepository).searchByTenantId(eq(TENANT_ID), isNull(), isNull(), pageable.capture());
+        verify(episodeRepository).searchIdsByTenantId(eq(TENANT_ID), isNull(), isNull(), pageable.capture());
         assertThat(pageable.getValue().getSort().getOrderFor("title")).isNotNull();
     }
 
