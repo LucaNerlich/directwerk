@@ -15,10 +15,10 @@ import type {
     SubscriberDownload,
     SubscriberFeedView,
 } from '@directwerk/api/types'
-import {createWebPublicParsers} from '@/lib/publicContent/parsers'
+import {createWebCatalogParsers} from '@/lib/publicContent/catalogParsers'
 import {authedFetch, envelopeResult, jsonInit} from './transport'
 
-const publicParsers = createWebPublicParsers()
+const publicParsers = createWebCatalogParsers()
 const parsePublicEpisodeListEnvelope = publicParsers.parsePublicEpisodeListEnvelope
 
 export async function getMe(): Promise<ApiEnvelope<Me>> {
