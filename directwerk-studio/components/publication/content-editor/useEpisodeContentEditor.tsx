@@ -41,6 +41,7 @@ import {getMediaUploadLimits} from '@/lib/api/mediaApi'
 import {resolveMediaLimits} from '@/lib/media/limits'
 import {uploadMediaFile} from '@/lib/media/upload'
 import {useCoverImageUpload} from '@/lib/media/useCoverImageUpload'
+import {useMediaUploadLimits} from '@/lib/media/useMediaUploadLimits'
 import {episodePublishBlockReason} from '@/lib/podcast/episodePreflight'
 import {publicEpisodePageUrl} from '@directwerk/api/urls/publicContentUrls'
 import {isSlugTaken, toSlugEntries, type SlugEntry} from '@/lib/publication/slugAvailability'
@@ -307,6 +308,8 @@ export function useEpisodeContentEditor(
         [authRedirect, setErrorMessage],
     )
 
+    // Same tenant caps the audio upload uses; rendered in the Max hint (#1063).
+    const audioLimits = useMediaUploadLimits()
     const coverUpload = useCoverImageUpload({
         onUploaded: (assetId) => {
             setCoverAssetId(assetId)
@@ -843,6 +846,8 @@ export function useEpisodeContentEditor(
                 audioPreviewError={audioPreviewError}
                 audioReady={audioReady}
                 audioStatusKnown={audioStatusKnown}
+                audioLimits={audioLimits}
+                coverLimits={coverUpload.limits}
                 isUploading={isUploading}
                 uploadProgress={uploadProgress}
                 coverAssetId={coverAssetId}

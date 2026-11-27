@@ -4,9 +4,8 @@ import {useCallback, useEffect, useRef, useState} from 'react'
 
 import {getClientTenantHost} from '@directwerk/api/tenant'
 
-import {getMediaUploadLimits} from '@/lib/api/mediaApi'
-import {resolveMediaLimits, type ResolvedMediaLimits} from '@/lib/media/limits'
 import {uploadMediaFile} from '@/lib/media/upload'
+import {useMediaUploadLimits} from '@/lib/media/useMediaUploadLimits'
 
 /**
  * Provides state and controls for uploading a cover image.
@@ -24,25 +23,7 @@ export function useCoverImageUpload({
 }) {
     const mountedRef = useRef(true)
     // Tenant-specific limits, not the global defaults (#1063).
-    const [limits, setLimits] = useState<ResolvedMediaLimits>(() =>
-        resolveMediaLimits(null)
-    )
-
-    useEffect(() => {
-        let active = true
-        void getMediaUploadLimits()
-            .then((remote) => {
-                if (active) {
-                    setLimits(resolveMediaLimits(remote))
-                }
-            })
-            .catch(() => {
-                // Keep the defaults; the server still enforces its own caps.
-            })
-        return () => {
-            active = false
-        }
-    }, [])
+    const limits = useMediaUploadLimits()
     const [isUploading, setIsUploading] = useState(false)
     const [uploadProgress, setUploadProgress] = useState<{file: File; progress: number} | null>(
         null,
@@ -83,8 +64,9 @@ export function useCoverImageUpload({
                 }
             }
         },
-        [onError, onUploaded],
+        // limits is a dependency: without it upload keeps the first-render defaults.
+        [limits, onError, onUploaded],
     )
 
-    return {isUploading, uploadProgress, upload}
+    return {isUploading, limits, uploadProgress, upload}
 }

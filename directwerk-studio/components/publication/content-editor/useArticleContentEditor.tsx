@@ -562,6 +562,7 @@ export function useArticleContentEditor(
                 readOnly={readOnly}
                 isSaving={isSaving}
                 isHeroUploading={heroUpload.isUploading}
+                heroLimits={heroUpload.limits}
                 heroUploadProgress={heroUpload.uploadProgress}
                 showNotify={showNotify}
                 notifySubscribers={notifySubscribers}

@@ -9,6 +9,7 @@ import EpisodeAudioField from '@/components/publication/content-editor/EpisodeAu
 import FormatCategoryPicker from '@/components/publication/FormatCategoryPicker'
 import {useDictionary} from '@/components/i18n/LocaleProvider'
 import type {CategorySummary, FormatSummary} from '@directwerk/api/types'
+import type {ResolvedMediaLimits} from '@/lib/media/limits'
 
 /** Episode-only sidebar fields: audio, cover, episode number, enclosure, tags. */
 export default function EpisodeEditorSidebar({
@@ -20,6 +21,8 @@ export default function EpisodeEditorSidebar({
     audioPreviewError,
     audioReady,
     audioStatusKnown,
+    audioLimits,
+    coverLimits,
     isUploading,
     uploadProgress,
     coverAssetId,
@@ -55,6 +58,8 @@ export default function EpisodeEditorSidebar({
     audioPreviewError: string | null
     audioReady: boolean
     audioStatusKnown: boolean
+    audioLimits: ResolvedMediaLimits
+    coverLimits: ResolvedMediaLimits
     isUploading: boolean
     uploadProgress: {file: File; progress: number} | null
     coverAssetId: number | null
@@ -97,6 +102,7 @@ export default function EpisodeEditorSidebar({
                 audioPreviewError={audioPreviewError}
                 audioReady={audioReady}
                 audioStatusKnown={audioStatusKnown}
+                limits={audioLimits}
                 controlsDisabled={controlsDisabled}
                 isUploading={isUploading}
                 uploadProgress={uploadProgress}
@@ -113,6 +119,7 @@ export default function EpisodeEditorSidebar({
                     title.trim().length > 0 ? `Cover: ${title}` : 'Folgen-Cover'
                 }
                 assetId={coverAssetId}
+                limits={coverLimits}
                 disabled={controlsDisabled}
                 showLibraryPicker={showLibraryPicker}
                 libraryLabel={dict.podcast.titelbildMediathek}
