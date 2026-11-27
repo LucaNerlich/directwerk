@@ -156,11 +156,11 @@ public class AnalyticsQueryService {
             );
         }
         if (!statsResponse.isSuccessful() || !pageviewsResponse.isSuccessful()) {
-            throw new AnalyticsQueryException(
-                    "UMAMI_UNAVAILABLE",
-                    HttpStatus.BAD_GATEWAY,
-                    "Umami returned an error."
-            );
+            // Keep the upstream statuses: this is the common failure the issue needs to
+            // diagnose (#1078 review).
+            throw unavailable(new IllegalStateException(
+                    "Umami returned HTTP " + statsResponse.status() + " (stats) / "
+                            + pageviewsResponse.status() + " (pageviews)"));
         }
 
         JsonNode stats = parseBody(statsResponse.body());
@@ -215,7 +215,7 @@ public class AnalyticsQueryService {
             );
         }
         if (!response.isSuccessful()) {
-            throw unavailable();
+            throw unavailable(new IllegalStateException("Umami returned HTTP " + response.status()));
         }
         JsonNode payload = parseBody(response.body());
         JsonNode token = payload.path("token");
@@ -236,10 +236,11 @@ public class AnalyticsQueryService {
             throw new AnalyticsQueryException(
                     "UMAMI_TIMEOUT",
                     HttpStatus.GATEWAY_TIMEOUT,
-                    "Umami request timed out."
+                    "Umami request timed out.",
+                    ex
             );
         } catch (IOException | RuntimeException ex) {
-            throw unavailable();
+            throw unavailable(ex);
         }
     }
 
@@ -252,8 +253,11 @@ public class AnalyticsQueryService {
         );
     }
 
-    private static AnalyticsQueryException unavailable() {
-        return new AnalyticsQueryException("UMAMI_UNAVAILABLE", HttpStatus.BAD_GATEWAY, "Umami is unavailable.");
+    private static AnalyticsQueryException unavailable(Throwable cause) {
+        // Preserve the cause: without it the logs cannot tell timeout, TLS, 5xx and bad payload
+        // apart (#1078).
+        return new AnalyticsQueryException(
+                "UMAMI_UNAVAILABLE", HttpStatus.BAD_GATEWAY, "Umami is unavailable.", cause);
     }
 
     private JsonNode parseBody(String body) {
