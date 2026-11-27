@@ -19,6 +19,14 @@ public class EpisodeLinkValidatorImpl implements EpisodeLinkValidator {
     private final EpisodeService episodeService;
 
     @Override
+    public boolean episodeReferencesAudioAsset(Long tenantId, Long episodeId, Long audioAssetId) {
+        if (tenantId == null || episodeId == null || audioAssetId == null) {
+            return false;
+        }
+        return episodeService.episodeReferencesAudioAsset(tenantId, episodeId, audioAssetId);
+    }
+
+    @Override
     public boolean episodeExists(Long tenantId, Long episodeId) {
         if (tenantId == null || episodeId == null) {
             return false;

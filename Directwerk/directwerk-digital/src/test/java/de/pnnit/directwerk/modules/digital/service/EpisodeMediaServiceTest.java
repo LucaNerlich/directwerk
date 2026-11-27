@@ -105,7 +105,7 @@ class EpisodeMediaServiceTest {
     void attachEpisodeRejectsAnAssetLinkedToAnotherEpisode() {
         MediaAsset asset = readyAudio(77L);
         asset.setEpisodeId(5L);
-        when(mediaAssetRepository.findById(77L)).thenReturn(Optional.of(asset));
+        when(mediaAssetRepository.findByIdForUpdate(77L)).thenReturn(Optional.of(asset));
         when(episodeLinkValidators.getIfAvailable()).thenReturn((tenantId, episodeId) -> true);
 
         assertThatThrownBy(() -> service.attachEpisode(77L, 6L))
@@ -114,9 +114,33 @@ class EpisodeMediaServiceTest {
     }
 
     @Test
+    void attachEpisodeAllowsReLinkingWhenTheOldEpisodeNoLongerReferencesTheAsset() {
+        MediaAsset asset = readyAudio(77L);
+        asset.setEpisodeId(5L);
+        when(mediaAssetRepository.findByIdForUpdate(77L)).thenReturn(Optional.of(asset));
+        when(mediaAssetRepository.save(any(MediaAsset.class))).thenAnswer(inv -> inv.getArgument(0));
+        EpisodeLinkValidator validator = new EpisodeLinkValidator() {
+            @Override
+            public boolean episodeExists(Long tenantId, Long episodeId) {
+                return true;
+            }
+
+            @Override
+            public boolean episodeReferencesAudioAsset(Long tenantId, Long episodeId, Long audioAssetId) {
+                return false;
+            }
+        };
+        when(episodeLinkValidators.getIfAvailable()).thenReturn(validator);
+
+        service.attachEpisode(77L, 6L);
+
+        assertThat(asset.getEpisodeId()).isEqualTo(6L);
+    }
+
+    @Test
     void attachEpisodeClearsThePreviousAssetOfTheEpisode() {
         MediaAsset asset = readyAudio(77L);
-        when(mediaAssetRepository.findById(77L)).thenReturn(Optional.of(asset));
+        when(mediaAssetRepository.findByIdForUpdate(77L)).thenReturn(Optional.of(asset));
         when(mediaAssetRepository.save(any(MediaAsset.class))).thenAnswer(inv -> inv.getArgument(0));
         when(episodeLinkValidators.getIfAvailable()).thenReturn((tenantId, episodeId) -> true);
 

@@ -116,6 +116,8 @@ public interface EpisodeRepository extends JpaRepository<Episode, Long> {
 
     long countByTenantId(Long tenantId);
 
+    boolean existsByTenantIdAndIdAndAudioAssetId(Long tenantId, Long id, Long audioAssetId);
+
     @EntityGraph(attributePaths = {
             "tenant", "series", "series.coverAsset", "coverAsset", "coverAsset.tenant",
             "audioAsset", "audioAsset.tenant", "formats", "formats.coverAsset",
