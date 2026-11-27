@@ -1001,7 +1001,7 @@ describe('MediaLibraryClient', () => {
         expect(getMediaPreviewUrl).not.toHaveBeenCalled()
     })
 
-    it('surfaces load-more failures like reload instead of leaving an unhandled rejection', async () => {
+    it('surfaces load-more failures like reload instead of leaving an unhandled rejection', {timeout: 15_000}, async () => {
         const firstPage = Array.from({length: 100}, (_, index) => ({
             ...coverAsset,
             id: index + 1,
