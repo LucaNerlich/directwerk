@@ -11,6 +11,14 @@ http:
       value: "{{podcastSeriesId}}"
       type: query
       disabled: true
+    - name: limit
+      value: "50"
+      type: query
+      disabled: true
+    - name: offset
+      value: "0"
+      type: query
+      disabled: true
 
 runtime:
   scripts:

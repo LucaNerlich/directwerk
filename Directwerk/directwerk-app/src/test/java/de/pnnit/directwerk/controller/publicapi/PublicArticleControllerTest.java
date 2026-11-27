@@ -1,11 +1,15 @@
 package de.pnnit.directwerk.controller.publicapi;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import de.pnnit.directwerk.api.PublicArticleViewMapper;
 import de.pnnit.directwerk.api.dto.PublicArticleView;
+import de.pnnit.directwerk.api.response.Response;
 import de.pnnit.directwerk.controller.AnalyticsClientIpResolver;
 import de.pnnit.directwerk.modules.core.entity.Tenant;
 import de.pnnit.directwerk.modules.digital.entity.AccessPolicy;
@@ -24,6 +28,8 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 @ExtendWith(MockitoExtension.class)
 class PublicArticleControllerTest {
@@ -75,6 +81,29 @@ class PublicArticleControllerTest {
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         verify(articleViewAnalyticsService)
                 .trackArticleView(10L, article, "public-view", "alpha.example.test", null, null);
+    }
+
+    @Test
+    void listArticlesDelegatesTheRequestedPage() {
+        TenantContext.setTenantId(10L);
+        Article article = freeArticle();
+        when(publicArticleQueryService.listPublishedArticles(10L, 2, 1)).thenReturn(List.of(article));
+        when(publicArticleViewMapper.toPublicView(article)).thenReturn(mock(PublicArticleView.class));
+
+        ResponseEntity<Response<List<PublicArticleView>>> response = controller().listArticles(2, 1);
+
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().data()).hasSize(1);
+        verify(publicArticleQueryService).listPublishedArticles(10L, 2, 1);
+    }
+
+    @Test
+    void listArticlesRejectsAnOutOfRangeLimit() throws Exception {
+        TenantContext.setTenantId(10L);
+        MockMvc mockMvc = MockMvcBuilders.standaloneSetup(controller()).build();
+
+        mockMvc.perform(get("/api/v1/public/articles").param("limit", "0"))
+                .andExpect(status().isBadRequest());
     }
 
     private PublicArticleController controller() {

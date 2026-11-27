@@ -71,11 +71,10 @@ public class PublicArticleController {
     ) {
         // Issue #379: fail closed on an unmatched Host instead of running tenant-less queries.
         Long tenantId = TenantContext.requireTenantId();
-        // #1036: this is an anonymous endpoint and toPublicView carries the full body; without a
-        // bound one request serialized the whole tenant corpus.
-        List<PublicArticleView> articles = publicArticleQueryService.listPublishedArticles(tenantId).stream()
-                .skip(offset)
-                .limit(limit)
+        // #1036: this is an anonymous endpoint and toPublicView carries the full body; the page
+        // is applied in SQL, not after hydrating the whole tenant corpus.
+        List<PublicArticleView> articles = publicArticleQueryService
+                .listPublishedArticles(tenantId, limit, offset).stream()
                 .map(publicArticleViewMapper::toPublicView)
                 .toList();
         return ResponseEntity.ok(Response.ok(articles));

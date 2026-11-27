@@ -67,12 +67,10 @@ public class PublicPodcastController {
     ) {
         // Issue #379: fail closed on an unmatched Host instead of running tenant-less queries.
         Long tenantId = TenantContext.requireTenantId();
-        // #1036: bound the anonymous catalog response; descriptions can reach 100k chars.
+        // #1036: bound the anonymous catalog response in SQL; descriptions can reach 100k chars.
         List<PublicEpisodeView> episodes = publicPodcastQueryService
-                .listPublishedEpisodes(tenantId, seriesId)
+                .listPublishedEpisodes(tenantId, seriesId, limit, offset)
                 .stream()
-                .skip(offset)
-                .limit(limit)
                 .map(publicEpisodeViewMapper::toPublicView)
                 .toList();
         return ResponseEntity.ok(Response.ok(episodes));

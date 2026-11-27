@@ -72,6 +72,29 @@ public interface ArticleRepository extends JpaRepository<Article, Long> {
     })
     List<Article> findByTenantIdAndStatusOrderByPublishedAtDescIdDesc(Long tenantId, ArticleStatus status);
 
+    /**
+     * Published ids in public order (#1036 review). The page is applied in SQL; the collection
+     * graph is loaded afterwards because a paged collection fetch would fall back to in-memory
+     * pagination over the whole corpus.
+     */
+    @Query("""
+            select a.id from Article a
+            where a.tenant.id = :tenantId
+              and a.status = :status
+            order by a.publishedAt desc, a.id desc
+            """)
+    List<Long> findPublishedIds(
+            @Param("tenantId") Long tenantId,
+            @Param("status") ArticleStatus status,
+            Pageable pageable
+    );
+
+    @EntityGraph(attributePaths = {
+            "tenant", "heroAsset", "heroAsset.tenant", "categories", "categories.parent", "newsletterLists"
+    })
+    @Query("select a from Article a where a.tenant.id = :tenantId and a.id in :ids")
+    List<Article> findPublicByIds(@Param("tenantId") Long tenantId, @Param("ids") Collection<Long> ids);
+
     @EntityGraph(attributePaths = {
             "tenant", "heroAsset", "heroAsset.tenant", "categories", "categories.parent", "newsletterLists"
     })
