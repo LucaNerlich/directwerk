@@ -160,6 +160,41 @@ class QueueServiceTest {
     }
 
     @Test
+    void failBacksOffExponentiallyUpToTheConfiguredCeiling() {
+        ObjectNode payload = objectMapper.createObjectNode();
+        Instant now = Instant.parse("2026-07-18T10:00:00Z");
+        UUID id = UUID.randomUUID();
+        QueueJob job = new QueueJob(
+                id, "email", payload, 0, JobStatus.QUEUED, now,
+                3, 5, null, null, null, null, null, null, now, now
+        );
+        when(repository.find(id)).thenReturn(Optional.of(job));
+        when(repository.fail(eq(id), eq("worker"), eq("err"), eq(Duration.ofSeconds(120))))
+                .thenReturn(Optional.of(job));
+
+        queueService.fail(id, "worker", "err", 30L);
+
+        verify(repository).fail(id, "worker", "err", Duration.ofSeconds(120));
+    }
+
+    @Test
+    void failClampsTheBackoffAtTheConfiguredCeiling() {
+        Instant now = Instant.parse("2026-07-18T10:00:00Z");
+        UUID id = UUID.randomUUID();
+        QueueJob job = new QueueJob(
+                id, "email", objectMapper.createObjectNode(), 0, JobStatus.QUEUED, now,
+                20, 5, null, null, null, null, null, null, now, now
+        );
+        when(repository.find(id)).thenReturn(Optional.of(job));
+        when(repository.fail(eq(id), eq("worker"), eq("err"), eq(Duration.ofSeconds(604800))))
+                .thenReturn(Optional.of(job));
+
+        queueService.fail(id, "worker", "err", 30L);
+
+        verify(repository).fail(id, "worker", "err", Duration.ofSeconds(604800));
+    }
+
+    @Test
     void listRejectsUnknownQueue() {
         assertThatThrownBy(() -> queueService.list(new JobListQuery("unknown", null, null, null, null, 0, 10)))
                 .isInstanceOf(IllegalArgumentException.class)

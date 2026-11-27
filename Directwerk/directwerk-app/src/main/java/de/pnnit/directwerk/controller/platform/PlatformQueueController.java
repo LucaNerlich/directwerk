@@ -29,6 +29,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import tools.jackson.databind.JsonNode;
+import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 
 /**
@@ -149,6 +150,7 @@ public class PlatformQueueController {
     public record FailJobRequest(
             @NotBlank @Size(max = 200) String worker,
             @NotBlank @Size(max = 10_000) String error,
+            @Schema(description = "Base retry delay in seconds; the queue doubles it per attempt up to the configured ceiling.")
             @Min(0) long retryDelaySeconds
     ) {
     }

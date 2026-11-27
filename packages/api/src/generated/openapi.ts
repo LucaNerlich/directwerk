@@ -4716,7 +4716,10 @@ export interface components {
         FailJobRequest: {
             worker: string;
             error: string;
-            /** Format: int64 */
+            /**
+             * Format: int64
+             * @description Base retry delay in seconds; the queue doubles it per attempt up to the configured ceiling.
+             */
             retryDelaySeconds?: number;
         };
         CompleteJobRequest: {

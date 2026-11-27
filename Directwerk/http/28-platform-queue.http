@@ -115,6 +115,7 @@ Accept: application/json
   "retryDelaySeconds": 30
 }
 
+// retryDelaySeconds is a base delay: the queue doubles it per attempt, capped by the ceiling.
 > {%
     client.test("Fail platform job", function() {
         client.assert(
