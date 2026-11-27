@@ -27,8 +27,6 @@ import {
     hasActiveBrowse,
     toggleId,
 } from '@/lib/catalog/catalogBrowse'
-import {findUnlockProduct, unlockHref} from '@/lib/catalog/unlock'
-import {usePublicProducts} from '@/lib/catalog/usePublicProducts'
 import {useSubscriberAuth} from '@/lib/auth/useSubscriberAuth'
 import type {PublicArticle} from '@directwerk/api/types'
 import {getWebClientTenantHost} from '@/lib/tenant/clientHost'
@@ -59,8 +57,6 @@ export default function ArticlesClient({
         loadPublic: listPublicArticles,
         initialItems: initialArticles,
     })
-    const products = usePublicProducts()
-    const unlockTarget = unlockHref(findUnlockProduct(products), lang)
     const publicArticleFeedUrl = webPublicArticleFeedUrl(siteConfig, tenantHost)
     const [visibleCount, setVisibleCount] = useState(PAGE_SIZE)
     const [query, setQuery] = useState('')
@@ -252,7 +248,6 @@ export default function ArticlesClient({
                                 ) : featured.accessPolicy === 'PAID' ? (
                                     <LockedCatalogAction
                                         isAuthenticated={isAuthenticated}
-                                        unlockHref={unlockTarget}
                                     />
                                 ) : null}
                             </div>
@@ -318,7 +313,6 @@ export default function ArticlesClient({
                                                       ) : isLocked ? (
                                                           <LockedCatalogAction
                                                               isAuthenticated={isAuthenticated}
-                                                              unlockHref={unlockTarget}
                                                           />
                                                       ) : (
                                                           <span className="text-xs text-muted-foreground">

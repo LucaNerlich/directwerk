@@ -31,8 +31,6 @@ import {
     hasActiveBrowse,
     toggleId,
 } from '@/lib/catalog/catalogBrowse'
-import {findUnlockProduct, unlockHref} from '@/lib/catalog/unlock'
-import {usePublicProducts} from '@/lib/catalog/usePublicProducts'
 import {useSubscriberAuth} from '@/lib/auth/useSubscriberAuth'
 import type {PublicEpisode} from '@directwerk/api/types'
 import {formatDuration} from '@/lib/format/content'
@@ -65,8 +63,6 @@ export default function EpisodesClient({
         loadSeries: listPublicSeries,
         initialItems: initialEpisodes,
     })
-    const products = usePublicProducts()
-    const unlockTarget = unlockHref(findUnlockProduct(products), lang)
     const publicPodcastFeedUrl = webPublicPodcastFeedUrl(siteConfig, tenantHost)
     const [visibleCount, setVisibleCount] = useState(PAGE_SIZE)
     const [query, setQuery] = useState('')
@@ -317,7 +313,6 @@ export default function EpisodesClient({
                                             ) : featured.accessPolicy === 'PAID' ? (
                                                 <LockedCatalogAction
                                                     isAuthenticated={isAuthenticated}
-                                                    unlockHref={unlockTarget}
                                                 />
                                             ) : null}
                                         </div>
@@ -398,7 +393,6 @@ export default function EpisodesClient({
                                                                           isAuthenticated={
                                                                               isAuthenticated
                                                                           }
-                                                                          unlockHref={unlockTarget}
                                                                       />
                                                                   ) : (
                                                                       <span className="text-xs text-muted-foreground">

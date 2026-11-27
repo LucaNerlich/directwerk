@@ -21,7 +21,7 @@ describe('CatalogRow', () => {
                     badge={<AccessPolicyBadge policy="PAID" />}
                     metaItems={['Kategorie A', '01.01.2026']}
                     excerpt="Kurzer Teaser."
-                    action={<LockedCatalogAction isAuthenticated unlockHref="/pricing#basis" />}
+                    action={<LockedCatalogAction isAuthenticated />}
                 />
             </ul></TestLocale>
         )
@@ -35,7 +35,7 @@ describe('CatalogRow', () => {
         expect(screen.getByText('Kurzer Teaser.')).toBeInTheDocument()
         expect(
             screen.getByRole('link', {name: 'Freischalten'}),
-        ).toHaveAttribute('href', '/pricing#basis')
+        ).toHaveAttribute('href', '/de/pricing')
     })
 
     it('sends guests to login for locked rows', () => {
@@ -47,7 +47,7 @@ describe('CatalogRow', () => {
                     badge={<AccessPolicyBadge policy="PAID" />}
                     metaItems={['serie', '02.01.2026', '10:00']}
                     action={
-                        <LockedCatalogAction isAuthenticated={false} unlockHref="/pricing" />
+                        <LockedCatalogAction isAuthenticated={false}  />
                     }
                 />
             </ul></TestLocale>
