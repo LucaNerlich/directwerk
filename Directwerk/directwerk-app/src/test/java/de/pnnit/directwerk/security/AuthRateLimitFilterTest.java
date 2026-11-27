@@ -130,6 +130,24 @@ class AuthRateLimitFilterTest {
         assertThat(second.getStatus()).isEqualTo(429);
     }
 
+    @Test
+    void rateLimitsTheEncodedForgotPasswordPath() throws Exception {
+        AuthRateLimitFilter filter = new AuthRateLimitFilter(100, 1, 100, 100, List.of());
+        FilterChain chain = mock(FilterChain.class);
+        HttpServletRequest request = mock(HttpServletRequest.class);
+        when(request.getMethod()).thenReturn("POST");
+        when(request.getRequestURI()).thenReturn("/api/v1/auth/forgot-%70assword");
+        when(request.getRemoteAddr()).thenReturn("203.0.113.5");
+
+        MockHttpServletResponse first = new MockHttpServletResponse();
+        filter.doFilter(request, first, chain);
+        MockHttpServletResponse second = new MockHttpServletResponse();
+        filter.doFilter(request, second, chain);
+
+        assertThat(first.getStatus()).isEqualTo(200);
+        assertThat(second.getStatus()).isEqualTo(429);
+    }
+
     private HttpServletRequest newsletterSubscribeRequest(String remoteAddr) {
         HttpServletRequest request = mock(HttpServletRequest.class);
         when(request.getMethod()).thenReturn("POST");
