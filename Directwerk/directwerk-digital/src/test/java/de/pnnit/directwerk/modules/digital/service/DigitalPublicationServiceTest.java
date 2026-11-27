@@ -91,6 +91,33 @@ class DigitalPublicationServiceTest {
         verify(digitalPublicationRepository, never()).save(publication);
     }
 
+    @Test
+    void publishAcceptsAPaidPublicationWithAPrivateAsset() {
+        DigitalPublication publication = publication(DigitalPublicationStatus.DRAFT);
+        publication.setAccessPolicy(AccessPolicy.PAID);
+        MediaAsset asset = new MediaAsset();
+        asset.setId(9L);
+        asset.setAssetType(AssetType.DOCUMENT);
+        asset.setStatus(AssetStatus.READY);
+        asset.setVisibility(AssetVisibility.PRIVATE);
+        Tenant tenant = new Tenant();
+        tenant.setId(7L);
+        asset.setTenant(tenant);
+        publication.setAsset(asset);
+
+        when(digitalPublicationRepository.findByIdAndTenant_Id(1L, 7L))
+                .thenReturn(Optional.of(publication));
+        when(mediaAssetQueryApi.findById(9L)).thenReturn(Optional.of(asset));
+        when(digitalPublicationRepository.save(publication)).thenReturn(publication);
+
+        DigitalPublication published = service.publish(7L, 1L);
+
+        assertThat(published.getStatus()).isEqualTo(DigitalPublicationStatus.PUBLISHED);
+        assertThat(published.getPublishedAt()).isNotNull();
+        // PAID without an explicit level defaults to the base level.
+        assertThat(published.getRequiredLevelSortOrder()).isZero();
+    }
+
     private static DigitalPublication publication(DigitalPublicationStatus status) {
         DigitalPublication publication = new DigitalPublication();
         publication.setStatus(status);
