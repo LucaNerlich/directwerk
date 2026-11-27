@@ -206,7 +206,7 @@ export default function AnalyticsDashboardClient({
     const [articles, setArticles] = useState<ArticleSummary[]>([])
     const [series, setSeries] = useState<SeriesSummary[]>([])
     const [billing, setBilling] = useState<BillingDashboard | null>(null)
-    const [billingUnavailable, setBillingUnavailable] = useState(false)
+    const [billingFailure, setBillingFailure] = useState<'forbidden' | 'failed' | null>(null)
     const [umami, setUmami] = useState<UmamiStats | null>(null)
     const [umamiRange, setUmamiRange] = useState<UmamiRange>('30d')
     const [umamiKeyMissing, setUmamiKeyMissing] = useState(false)
@@ -223,7 +223,6 @@ export default function AnalyticsDashboardClient({
 
         async function load(): Promise<void> {
             setErrorMessage(null)
-            setBillingUnavailable(false)
             setIsLoading(true)
             try {
                 const [loadedArticles, loadedEpisodes, loadedSeries] = await Promise.all([
@@ -237,22 +236,6 @@ export default function AnalyticsDashboardClient({
                 setArticles(loadedArticles)
                 setEpisodes(loadedEpisodes)
                 setSeries(loadedSeries)
-                if (subscriptionEnabled) {
-                    try {
-                        setBilling(await getBillingDashboard())
-                    } catch (billingError: unknown) {
-                        if (
-                            billingError instanceof Error &&
-                            authRedirect(billingError)
-                        ) {
-                            return
-                        }
-                        // Editors get 403 here (dashboard needs TENANT_ADMIN) —
-                        // content stats still render, audience stays hidden.
-                        setBilling(null)
-                        setBillingUnavailable(true)
-                    }
-                }
             } catch (error: unknown) {
                 if (!active) {
                     return
@@ -275,7 +258,45 @@ export default function AnalyticsDashboardClient({
         return () => {
             active = false
         }
-    }, [a.loadFailed, authRedirect, attempt, showPodcast, showWrite, subscriptionEnabled])
+    }, [a.loadFailed, authRedirect, attempt, showPodcast, showWrite])
+
+    // Billing is independent of the content desks: a subscription-only tenant has no
+    // WRITE/PODCAST desk, and the content effect returned early before fetching it (#1066).
+    useEffect(() => {
+        if (!subscriptionEnabled) {
+            return
+        }
+        let active = true
+
+        void (async () => {
+            try {
+                const loaded = await getBillingDashboard()
+                if (active) {
+                    setBilling(loaded)
+                    setBillingFailure(null)
+                }
+            } catch (billingError: unknown) {
+                if (!active) {
+                    return
+                }
+                if (billingError instanceof Error && authRedirect(billingError)) {
+                    return
+                }
+                // Only a 403 means "editors cannot see this"; a 500/timeout must not tell an
+                // admin they lack rights and must stay retryable (#1066 review).
+                setBilling(null)
+                setBillingFailure(
+                    (billingError as {status?: number} | null)?.status === 403
+                        ? 'forbidden'
+                        : 'failed',
+                )
+            }
+        })()
+
+        return () => {
+            active = false
+        }
+    }, [attempt, authRedirect, subscriptionEnabled])
 
     useEffect(() => {
         if (!umamiActive) {
@@ -481,12 +502,31 @@ export default function AnalyticsDashboardClient({
                                 hint={`+${billing.stats.newThisMonth} / −${billing.stats.canceledThisMonth} diesen Monat`}
                             />
                         </div>
-                    ) : (
+                    ) : billingFailure === 'forbidden' ? (
                         <Card>
                             <CardContent className="pt-6 text-sm text-muted-foreground">
-                                {billingUnavailable
-                                    ? 'Abo-Kennzahlen sind nur für Tenant-Admins sichtbar.'
-                                    : 'Abo-Kennzahlen konnten nicht geladen werden.'}
+                                Abo-Kennzahlen sind nur für Tenant-Admins sichtbar.
+                            </CardContent>
+                        </Card>
+                    ) : billingFailure === 'failed' ? (
+                        <Card>
+                            <CardContent className="flex flex-col items-start gap-3 pt-6 text-sm text-muted-foreground">
+                                <p>Abo-Kennzahlen konnten nicht geladen werden.</p>
+                                <Button
+                                    onClick={() => {
+                                        setAttempt((value) => value + 1)
+                                    }}
+                                    type="button"
+                                    variant="outline"
+                                >
+                                    {a.reload}
+                                </Button>
+                            </CardContent>
+                        </Card>
+                    ) : (
+                        <Card aria-busy="true">
+                            <CardContent className="pt-6 text-sm text-muted-foreground" role="status">
+                                Abo-Kennzahlen werden geladen…
                             </CardContent>
                         </Card>
                     )}
