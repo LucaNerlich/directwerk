@@ -13,11 +13,14 @@ import de.pnnit.directwerk.modules.newsletter.service.ArticleViewAnalyticsServic
 import de.pnnit.directwerk.modules.newsletter.service.PublicArticleQueryService;
 import de.pnnit.directwerk.multitenancy.TenantContext;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import java.util.List;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -62,10 +65,16 @@ public class PublicArticleController {
     }
 
     @GetMapping("/articles")
-    ResponseEntity<Response<List<PublicArticleView>>> listArticles() {
+    ResponseEntity<Response<List<PublicArticleView>>> listArticles(
+            @RequestParam(defaultValue = "50") @Min(1) @Max(200) int limit,
+            @RequestParam(defaultValue = "0") @Min(0) int offset
+    ) {
         // Issue #379: fail closed on an unmatched Host instead of running tenant-less queries.
         Long tenantId = TenantContext.requireTenantId();
-        List<PublicArticleView> articles = publicArticleQueryService.listPublishedArticles(tenantId).stream()
+        // #1036: this is an anonymous endpoint and toPublicView carries the full body; the page
+        // is applied in SQL, not after hydrating the whole tenant corpus.
+        List<PublicArticleView> articles = publicArticleQueryService
+                .listPublishedArticles(tenantId, limit, offset).stream()
                 .map(publicArticleViewMapper::toPublicView)
                 .toList();
         return ResponseEntity.ok(Response.ok(articles));

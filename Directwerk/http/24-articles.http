@@ -372,7 +372,7 @@ Accept: application/json
 ###
 
 ### @name listPublicArticles
-GET {{baseUrl}}/api/v1/public/articles
+GET {{baseUrl}}/api/v1/public/articles?limit=50&offset=0
 Host: {{tenantAHost}}
 Accept: application/json
 

@@ -67,6 +67,46 @@ public interface EpisodeRepository extends JpaRepository<Episode, Long> {
             SeriesStatus seriesStatus
     );
 
+    // #1036 review: page the ids in SQL, then load the collection graph without paging so the
+    // public catalog never hydrates the whole tenant corpus.
+    @Query("""
+            select e.id from Episode e
+            where e.tenant.id = :tenantId
+              and e.status = :status
+              and e.series.status = :seriesStatus
+            order by e.publishedAt desc, e.id desc
+            """)
+    List<Long> findPublishedIds(
+            @Param("tenantId") Long tenantId,
+            @Param("status") EpisodeStatus status,
+            @Param("seriesStatus") SeriesStatus seriesStatus,
+            Pageable pageable
+    );
+
+    @Query("""
+            select e.id from Episode e
+            where e.tenant.id = :tenantId
+              and e.series.id = :seriesId
+              and e.status = :status
+              and e.series.status = :seriesStatus
+            order by e.publishedAt desc, e.id desc
+            """)
+    List<Long> findPublishedIdsForSeries(
+            @Param("tenantId") Long tenantId,
+            @Param("seriesId") Long seriesId,
+            @Param("status") EpisodeStatus status,
+            @Param("seriesStatus") SeriesStatus seriesStatus,
+            Pageable pageable
+    );
+
+    @EntityGraph(attributePaths = {
+            "tenant", "series", "series.coverAsset", "coverAsset", "coverAsset.tenant",
+            "audioAsset", "audioAsset.tenant", "formats", "formats.coverAsset",
+            "categories", "categories.parent"
+    })
+    @Query("select e from Episode e where e.tenant.id = :tenantId and e.id in :ids")
+    List<Episode> findPublicByIds(@Param("tenantId") Long tenantId, @Param("ids") Collection<Long> ids);
+
     @EntityGraph(attributePaths = {
             "tenant", "series", "series.coverAsset", "coverAsset", "coverAsset.tenant",
             "audioAsset", "audioAsset.tenant", "formats", "formats.coverAsset",

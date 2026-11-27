@@ -2,6 +2,8 @@ package de.pnnit.directwerk.modules.podcast.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -16,8 +18,10 @@ import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Pageable;
 
 @ExtendWith(MockitoExtension.class)
 class PublicPodcastQueryServiceTest {
@@ -67,6 +71,42 @@ class PublicPodcastQueryServiceTest {
     }
 
     @Test
+    void listPublishedEpisodesPagesIdsInSqlAndKeepsTheirOrder() {
+        when(episodeRepository.findPublishedIds(any(), any(), any(), any())).thenReturn(List.of(9L, 4L));
+        when(episodeRepository.findPublicByIds(10L, List.of(9L, 4L)))
+                .thenReturn(List.of(episode(4L), episode(9L)));
+
+        List<Episode> result = publicPodcastQueryService.listPublishedEpisodes(10L, null, 2, 1);
+
+        assertThat(result).extracting(Episode::getId).containsExactly(9L, 4L);
+        ArgumentCaptor<Pageable> page = ArgumentCaptor.forClass(Pageable.class);
+        verify(episodeRepository).findPublishedIds(
+                eq(10L),
+                eq(EpisodeStatus.PUBLISHED),
+                eq(SeriesStatus.PUBLISHED),
+                page.capture()
+        );
+        assertThat(page.getValue().getOffset()).isEqualTo(1);
+        assertThat(page.getValue().getPageSize()).isEqualTo(2);
+    }
+
+    @Test
+    void listPublishedEpisodesForASeriesUsesTheSeriesScopedIdPage() {
+        when(episodeRepository.findPublishedIdsForSeries(any(), any(), any(), any(), any()))
+                .thenReturn(List.of());
+
+        publicPodcastQueryService.listPublishedEpisodes(10L, 20L, 2, 1);
+
+        verify(episodeRepository).findPublishedIdsForSeries(
+                eq(10L),
+                eq(20L),
+                eq(EpisodeStatus.PUBLISHED),
+                eq(SeriesStatus.PUBLISHED),
+                any(Pageable.class)
+        );
+    }
+
+    @Test
     void requirePublishedEpisodeReturnsMatchingEpisode() {
         Episode episode = new Episode();
         episode.setSlug("ep-1");
@@ -85,5 +125,11 @@ class PublicPodcastQueryServiceTest {
 
         assertThatThrownBy(() -> publicPodcastQueryService.requirePublishedEpisode(10L, "missing"))
                 .isInstanceOf(EpisodeNotFoundException.class);
+    }
+
+    private static Episode episode(Long id) {
+        Episode episode = new Episode();
+        episode.setId(id);
+        return episode;
     }
 }

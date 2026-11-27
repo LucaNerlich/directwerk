@@ -11118,6 +11118,8 @@ export interface operations {
         parameters: {
             query?: {
                 seriesId?: number;
+                limit?: number;
+                offset?: number;
             };
             header?: never;
             path?: never;
@@ -11200,7 +11202,10 @@ export interface operations {
     };
     listArticles_1: {
         parameters: {
-            query?: never;
+            query?: {
+                limit?: number;
+                offset?: number;
+            };
             header?: never;
             path?: never;
             cookie?: never;

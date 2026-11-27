@@ -1,6 +1,8 @@
 package de.pnnit.directwerk.controller.publicapi;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -24,6 +26,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.http.ResponseEntity;
 
 @ExtendWith(MockitoExtension.class)
@@ -77,6 +81,30 @@ class PublicPodcastControllerTest {
         assertThat(response.getBody().data()).isEqualTo(view);
         verify(publicPodcastQueryService).requirePublishedEpisode(10L, "ep-1");
         verify(publicEpisodeViewMapper).toPublicView(episode);
+    }
+
+    @Test
+    void listEpisodesPassesTheSeriesAndTheRequestedPage() throws Exception {
+        TenantContext.setTenantId(10L);
+        MockMvc mockMvc = MockMvcBuilders.standaloneSetup(controller()).build();
+        when(publicPodcastQueryService.listPublishedEpisodes(10L, 20L, 2, 1)).thenReturn(List.of());
+
+        mockMvc.perform(get("/api/v1/public/episodes")
+                        .param("seriesId", "20")
+                        .param("limit", "2")
+                        .param("offset", "1"))
+                .andExpect(status().isOk());
+
+        verify(publicPodcastQueryService).listPublishedEpisodes(10L, 20L, 2, 1);
+    }
+
+    @Test
+    void listEpisodesRejectsAnOutOfRangeLimit() throws Exception {
+        TenantContext.setTenantId(10L);
+        MockMvc mockMvc = MockMvcBuilders.standaloneSetup(controller()).build();
+
+        mockMvc.perform(get("/api/v1/public/episodes").param("limit", "0"))
+                .andExpect(status().isBadRequest());
     }
 
     private PublicPodcastController controller() {

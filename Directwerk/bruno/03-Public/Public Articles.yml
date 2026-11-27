@@ -6,6 +6,15 @@ info:
 http:
   method: GET
   url: "{{baseUrl}}/api/v1/public/articles"
+  params:
+    - name: limit
+      value: "50"
+      type: query
+      disabled: true
+    - name: offset
+      value: "0"
+      type: query
+      disabled: true
 
 runtime:
   scripts:
@@ -23,5 +32,6 @@ settings:
   forwardAuthorizationHeader: true
 
 docs: |-
-  Published articles for the tenant host. Each item may include `heroImageUrl`
-  (public CDN) when a public hero asset is attached.
+  Published articles for the tenant host, paged with `limit` (1-200, default 50)
+  and `offset`. Each item may include `heroImageUrl` (public CDN) when a public
+  hero asset is attached.

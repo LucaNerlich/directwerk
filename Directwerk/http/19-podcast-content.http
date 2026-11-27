@@ -607,7 +607,7 @@ Accept: application/json
 ###
 
 ### @name listPublicPodcastEpisodes
-GET {{baseUrl}}/api/v1/public/episodes
+GET {{baseUrl}}/api/v1/public/episodes?limit=50&offset=0
 Host: {{tenantAHost}}
 Accept: application/json
 
