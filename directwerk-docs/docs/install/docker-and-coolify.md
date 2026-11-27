@@ -20,7 +20,7 @@ docker build -t directwerk:local .
 The Dockerfile:
 
 1. **Build stage** — `./gradlew :directwerk-app:bootJar -x test` on JDK 21 Alpine
-2. **Runtime stage** — JRE 21 Alpine, non-root user, port `8080`, health check `/actuator/health` (90s start period)
+2. **Runtime stage** — JRE 21 Alpine, non-root user, port `8080`, health check `/actuator/health/liveness` (90s start period)
 
 ## Full stack in Docker Compose
 
@@ -89,7 +89,7 @@ Email and SMTP variables are required when email is enabled. Full list: [Environ
 5. Attach managed **PostgreSQL 18+**.
 6. Expose port **8080**; terminate TLS at the reverse proxy.
 7. Set `DIRECTWERK_FORWARD_HEADERS_STRATEGY=framework` when the proxy overwrites `Host`.
-8. Health check: `/actuator/health` (allow ~90s on cold start with migrations).
+8. Health check: `/actuator/health/liveness` (allow ~90s on cold start with migrations). Do not probe `/actuator/health`; the aggregate includes mail and storage and can flip on an SMTP outage.
 9. Scale horizontally as needed — set distinct `DIRECTWERK_QUEUE_WORKER_ID` per instance.
 
 Flyway runs automatically on startup.

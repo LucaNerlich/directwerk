@@ -67,11 +67,19 @@ management:
     endpoint:
         health:
             # Docker/Coolify probes must not depend on SMTP (Mailpit/Mailgun flakiness
-            # otherwise marks a running API unhealthy). Full /actuator/health still
+            # otherwise marks a running API unhealthy). The aggregate /actuator/health
             # includes mail + s3 for humans; liveness stays process-only.
             probes:
                 enabled: true
     health:
+        # The mail indicator dials SMTP on every /actuator/health call. Stage/prod
+        # require STARTTLS (application-prod.yaml, #1129), so a relay that cannot
+        # negotiate it turns the aggregate 503 even though the API is healthy.
+        # DIRECTWERK_MAIL_SMTP_STARTTLS=false does NOT clear that: required=true
+        # still fails. Fix the relay, or set this to false to keep mail out of the
+        # aggregate. Liveness/readiness probes are unaffected (ping/db only).
+        mail:
+            enabled: ${DIRECTWERK_HEALTH_MAIL_ENABLED:true}
         group:
             liveness:
                 include: ping
