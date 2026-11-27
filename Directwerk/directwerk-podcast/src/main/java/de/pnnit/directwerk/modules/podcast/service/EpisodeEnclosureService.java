@@ -1,9 +1,6 @@
 package de.pnnit.directwerk.modules.podcast.service;
 
 import de.pnnit.directwerk.modules.content.PublicSurfacePolicy;
-import de.pnnit.directwerk.modules.core.service.TenantPublicHostResolver;
-import de.pnnit.directwerk.modules.core.util.FeedUrls;
-import de.pnnit.directwerk.modules.core.util.PublicUrlBuilder;
 import de.pnnit.directwerk.modules.digital.api.EpisodeMediaApi;
 import de.pnnit.directwerk.modules.digital.entity.MediaAsset;
 import de.pnnit.directwerk.modules.podcast.entity.Episode;
@@ -31,7 +28,6 @@ public class EpisodeEnclosureService {
     private final SubscriberPlaybackService subscriberPlaybackService;
     private final PublishedPlayableEpisodeGuard publishedPlayableEpisodeGuard;
     private final EpisodeMediaApi episodeMediaApi;
-    private final TenantPublicHostResolver tenantPublicHostResolver;
 
     public record EnclosureRedirect(Episode episode, URL targetUrl) {
     }
@@ -76,57 +72,5 @@ public class EpisodeEnclosureService {
         return new EnclosureRedirect(episode, target);
     }
 
-    /**
-     * The requested hostname is used only when it is an approved verified domain;
-     * otherwise, the tenant's preferred verified domain is selected.
-     */
-    @Transactional(readOnly = true)
-    public String publicEnclosureUrl(
-            Long tenantId,
-            String scheme,
-            String requestedHostname,
-            int port,
-            String tenantSlug,
-            String episodeSlug
-    ) {
-        String host = tenantPublicHostResolver.resolve(
-                tenantId,
-                requestedHostname,
-                TenantPublicHostResolver.HostPolicy.TRUST_REQUEST
-        );
-        return FeedUrls.publicEnclosure(
-                PublicUrlBuilder.baseUrl(scheme, host, port),
-                tenantSlug,
-                episodeSlug
-        );
-    }
 
-    /**
-     * Builds a stable private enclosure URL using a verified tenant domain.
-     *
-     * @param requestedHostname the requested host when it is a verified tenant domain
-     * @return the private enclosure URL for the episode
-     */
-    @Transactional(readOnly = true)
-    public String privateEnclosureUrl(
-            Long tenantId,
-            String scheme,
-            String requestedHostname,
-            int port,
-            String tenantSlug,
-            String feedToken,
-            String episodeSlug
-    ) {
-        String host = tenantPublicHostResolver.resolve(
-                tenantId,
-                requestedHostname,
-                TenantPublicHostResolver.HostPolicy.TRUST_REQUEST
-        );
-        return FeedUrls.privateEnclosure(
-                PublicUrlBuilder.baseUrl(scheme, host, port),
-                tenantSlug,
-                feedToken,
-                episodeSlug
-        );
-    }
 }

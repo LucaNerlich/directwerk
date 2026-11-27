@@ -38,9 +38,6 @@ class EpisodeDownloadAnalyticsServiceTest {
     @Mock
     private UmamiEventClient umamiEventClient;
 
-    @Mock
-    private EpisodeEnclosureService episodeEnclosureService;
-
     @Test
     void skipsWhenAnalyticsModuleIsNotEnabled() {
         EpisodeDownloadAnalyticsService service = service(true);
@@ -208,8 +205,7 @@ class EpisodeDownloadAnalyticsServiceTest {
                 )),
                 moduleGateService,
                 tenantBrandingService,
-                umamiEventClient),
-                episodeEnclosureService
+                umamiEventClient)
         );
     }
 

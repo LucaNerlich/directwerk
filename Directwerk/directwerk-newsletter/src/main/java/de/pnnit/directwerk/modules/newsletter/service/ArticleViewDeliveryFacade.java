@@ -2,7 +2,6 @@ package de.pnnit.directwerk.modules.newsletter.service;
 
 import de.pnnit.directwerk.modules.content.PublicSurfacePolicy;
 import de.pnnit.directwerk.modules.core.service.TenantPublicHostResolver;
-import de.pnnit.directwerk.modules.core.util.FeedUrls;
 import de.pnnit.directwerk.modules.core.util.PublicUrlBuilder;
 import de.pnnit.directwerk.modules.newsletter.access.ArticleFeedAccess;
 import de.pnnit.directwerk.modules.newsletter.entity.Article;

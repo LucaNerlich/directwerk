@@ -32,15 +32,10 @@ public class EpisodeDownloadAnalyticsService {
     );
 
     private final TenantEventTracker tenantEventTracker;
-    private final EpisodeEnclosureService episodeEnclosureService;
 
     @Autowired
-    public EpisodeDownloadAnalyticsService(
-            TenantEventTracker tenantEventTracker,
-            EpisodeEnclosureService episodeEnclosureService
-    ) {
+    public EpisodeDownloadAnalyticsService(TenantEventTracker tenantEventTracker) {
         this.tenantEventTracker = tenantEventTracker;
-        this.episodeEnclosureService = episodeEnclosureService;
     }
 
     @Transactional(readOnly = true)
