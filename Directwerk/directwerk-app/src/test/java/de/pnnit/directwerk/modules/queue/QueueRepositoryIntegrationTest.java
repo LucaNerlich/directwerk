@@ -336,13 +336,13 @@ class QueueRepositoryIntegrationTest {
     void failAfterAFollowUpWasCoalescedRecordsTheFailureInsteadOfColliding() {
         ObjectNode payload = objectMapper.createObjectNode().put("tenantId", 10);
         QueueJob first = queueRepository.enqueue(
-                "mail", payload, 0, Instant.now(), 3, 10L, "requeue-collision-10", null
+                "mail", payload, 0, Instant.now().minusSeconds(5), 3, 10L, "requeue-collision-10", null
         );
         List<QueueJob> claimed = queueRepository.claim("mail", "worker-1", 1, Duration.ofSeconds(60));
         assertThat(claimed).extracting(QueueJob::id).containsExactly(first.id());
 
         QueueJob followUp = queueRepository.enqueue(
-                "mail", payload, 0, Instant.now(), 3, 10L, "requeue-collision-10", null
+                "mail", payload, 0, Instant.now().minusSeconds(5), 3, 10L, "requeue-collision-10", null
         );
 
         QueueJob failed = queueRepository.fail(first.id(), "worker-1", "boom", Duration.ofSeconds(30))
