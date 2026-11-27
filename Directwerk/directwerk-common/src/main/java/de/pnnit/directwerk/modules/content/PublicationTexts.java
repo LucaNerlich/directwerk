@@ -1,5 +1,7 @@
 package de.pnnit.directwerk.modules.content;
 
+import de.pnnit.directwerk.modules.search.SearchPlainText;
+
 /**
  * Shared HTML text handling for publication workflows (podcast episodes and newsletter
  * articles). One implementation so excerpt length, blank-detection and entity handling
@@ -15,14 +17,7 @@ public final class PublicationTexts {
 
     /** Strips tags to plain text, collapses whitespace, truncates to 280 chars with ellipsis. */
     public static String htmlExcerpt(String html) {
-        if (html == null) {
-            return "";
-        }
-        String textOnly = org.springframework.web.util.HtmlUtils.htmlUnescape(
-                        html.replaceAll("<[^>]*>", " "))
-                .replace('\u00A0', ' ')
-                .replaceAll("\\s+", " ")
-                .trim();
+        String textOnly = SearchPlainText.stripHtml(html);
         if (textOnly.length() <= EXCERPT_MAX_LENGTH) {
             return textOnly;
         }

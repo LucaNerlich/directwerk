@@ -17,16 +17,21 @@ public final class SearchPlainText {
     }
 
     public static String fromHtml(String html) {
+        String collapsed = stripHtml(html);
+        if (collapsed.length() <= MAX_CHARS) {
+            return collapsed;
+        }
+        return collapsed.substring(0, MAX_CHARS).trim();
+    }
+
+    /** Tags stripped, entities decoded, NBSP normalised, whitespace collapsed — no length cap. */
+    public static String stripHtml(String html) {
         if (html == null || html.isBlank()) {
             return "";
         }
         String withoutTags = TAGS.matcher(html).replaceAll(" ");
         String decoded = HtmlUtils.htmlUnescape(withoutTags).replace('\u00A0', ' ');
-        String collapsed = decoded.replaceAll("\\s+", " ").trim();
-        if (collapsed.length() <= MAX_CHARS) {
-            return collapsed;
-        }
-        return collapsed.substring(0, MAX_CHARS).trim();
+        return decoded.replaceAll("\\s+", " ").trim();
     }
 
     /**
