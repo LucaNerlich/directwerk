@@ -9,6 +9,7 @@ import {buttonVariants} from '@directwerk/ui/components/button'
 import CatalogMediaThumb from '@/components/CatalogMediaThumb'
 import ContentMetaLine from '@/components/ContentMetaLine'
 import {loginHref} from '@/lib/auth/loginHref'
+import {unlockHref} from '@/lib/catalog/unlock'
 import {useDictionary, useLocale} from '@/lib/i18n/LocaleProvider'
 
 /** Responsive catalog grid: 1 → 2 → 3 columns (matches downloads/pricing density). */
@@ -20,10 +21,8 @@ export const CATALOG_GRID_CLASSNAME = 'grid gap-4 sm:grid-cols-2 lg:grid-cols-3'
  */
 export function LockedCatalogAction({
     isAuthenticated,
-    unlockHref,
 }: {
     isAuthenticated: boolean
-    unlockHref: string
 }): React.JSX.Element {
     const lang = useLocale()
     const pathname = usePathname()
@@ -36,7 +35,7 @@ export function LockedCatalogAction({
         )
     }
     return (
-        <Link className={buttonVariants({size: 'sm'})} href={unlockHref}>
+        <Link className={buttonVariants({size: 'sm'})} href={unlockHref(lang)}>
             {common.unlock}
         </Link>
     )

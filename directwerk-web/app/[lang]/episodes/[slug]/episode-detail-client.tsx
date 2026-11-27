@@ -22,7 +22,6 @@ import {
 } from '@/lib/auth/tokenStore'
 import {fetchPublicEpisodeBySlug} from '@/lib/catalog/episodeDetail'
 import {useEntitledDetail} from '@/lib/catalog/useEntitledDetail'
-import {unlockHref} from '@/lib/catalog/unlock'
 import type {PublicEpisode} from '@directwerk/api/types'
 import {formatDuration} from '@/lib/format/content'
 import {formatPublishedAt} from '@/lib/format/dateTime'
@@ -61,7 +60,6 @@ export default function EpisodeDetailClient({
         readTokenServer,
     )
     const isAuthenticated = accessToken !== null
-    const unlockTarget = unlockHref(lang)
     const {item: episode, status, errorMessage, retry} = useEntitledDetail<PublicEpisode>({
         slug,
         initial: initialPublicEpisode,
@@ -116,7 +114,6 @@ export default function EpisodeDetailClient({
                       }
                     : null
             }
-            unlockHref={unlockTarget}
         >
             {episode !== null ? (
                 <article className="max-w-3xl space-y-6">
@@ -179,7 +176,6 @@ export default function EpisodeDetailClient({
                                     )
                                 }
                                 isAuthenticated={isAuthenticated}
-                                unlockHref={unlockTarget}
                             />
                         ) : (
                             <p className="text-sm text-muted-foreground">

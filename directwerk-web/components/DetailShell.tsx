@@ -12,6 +12,7 @@ import SectionHeader from '@directwerk/ui/components/section-header'
 
 import {DetailSkeleton} from '@/components/ContentLoadingSkeleton'
 import {loginHref} from '@/lib/auth/loginHref'
+import {unlockHref} from '@/lib/catalog/unlock'
 import {useDictionary, useLocale} from '@/lib/i18n/LocaleProvider'
 
 export interface DetailNotFound {
@@ -28,12 +29,10 @@ export function DetailLockedPanel({
     title,
     description,
     isAuthenticated,
-    unlockHref,
 }: {
     title: string
     description?: ReactNode
     isAuthenticated: boolean
-    unlockHref: string
 }): React.JSX.Element {
     const lang = useLocale()
     const pathname = usePathname()
@@ -52,7 +51,7 @@ export function DetailLockedPanel({
                 ) : null}
                 <Button
                     nativeButton={false}
-                    render={<Link href={unlockHref} />}
+                    render={<Link href={unlockHref(lang)} />}
                     variant={isAuthenticated ? 'default' : 'outline'}
                 >
                     {common.viewMembership}
@@ -75,7 +74,6 @@ export default function DetailShell({
     errorMessage,
     onRetry,
     notFound,
-    unlockHref,
     children,
 }: {
     backHref: string
@@ -85,7 +83,6 @@ export default function DetailShell({
     errorMessage: string | null
     onRetry: () => void
     notFound: DetailNotFound | null
-    unlockHref: string
     children?: ReactNode
 }): React.JSX.Element {
     const lang = useLocale()
@@ -127,7 +124,7 @@ export default function DetailShell({
                                 className={buttonVariants({
                                     variant: isAuthenticated ? 'default' : 'outline',
                                 })}
-                                href={unlockHref}
+                                href={unlockHref(lang)}
                             >
                                 {common.viewMembership}
                             </Link>

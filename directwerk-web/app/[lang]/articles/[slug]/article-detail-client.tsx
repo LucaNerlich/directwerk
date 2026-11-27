@@ -21,7 +21,6 @@ import {
     fetchPublicArticleBySlug,
 } from '@/lib/catalog/articleDetail'
 import {useEntitledDetail} from '@/lib/catalog/useEntitledDetail'
-import {unlockHref} from '@/lib/catalog/unlock'
 import type {PublicArticle} from '@directwerk/api/types'
 import {formatPublishedAt} from '@/lib/format/dateTime'
 import {useDictionary, useLocale} from '@/lib/i18n/LocaleProvider'
@@ -59,7 +58,6 @@ export default function ArticleDetailClient({
         readTokenServer,
     )
     const isAuthenticated = accessToken !== null
-    const unlockTarget = unlockHref(lang)
     const {item: article, status, errorMessage, retry} = useEntitledDetail<PublicArticle>({
         slug,
         initial: initialPublicArticle,
@@ -94,7 +92,6 @@ export default function ArticleDetailClient({
                       }
                     : null
             }
-            unlockHref={unlockTarget}
         >
             {article !== null ? (
                 <article className="max-w-3xl space-y-8">
@@ -152,7 +149,6 @@ export default function ArticleDetailClient({
                                 </>
                             }
                             isAuthenticated={isAuthenticated}
-                            unlockHref={unlockTarget}
                         />
                     ) : article.body !== null && article.body.length > 0 ? (
                         <div

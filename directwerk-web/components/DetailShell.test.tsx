@@ -21,7 +21,6 @@ describe('DetailShell', () => {
                 errorMessage={null}
                 onRetry={() => {}}
                 notFound={null}
-                unlockHref="/pricing"
             />,</TestLocale>
         )
 
@@ -42,7 +41,6 @@ describe('DetailShell', () => {
                     title: 'Beitrag nicht verfügbar',
                     description: 'Anmelden für bezahlte Inhalte.',
                 }}
-                unlockHref="/pricing#basis"
             /></TestLocale>,
         )
 
@@ -55,7 +53,7 @@ describe('DetailShell', () => {
         )
         expect(
             screen.getByRole('link', {name: 'Mitgliedschaft ansehen'}),
-        ).toHaveAttribute('href', '/pricing#basis')
+        ).toHaveAttribute('href', '/de/pricing')
         fireEvent.click(screen.getByRole('button', {name: 'Erneut versuchen'}))
         expect(onRetry).toHaveBeenCalledTimes(1)
     })
@@ -70,7 +68,6 @@ describe('DetailShell', () => {
                 errorMessage={null}
                 onRetry={() => {}}
                 notFound={{title: 'Folge nicht verfügbar', description: 'Gesperrt.'}}
-                unlockHref="/pricing"
             />,</TestLocale>
         )
 
@@ -91,7 +88,6 @@ describe('DetailShell', () => {
                 errorMessage="Folge konnte nicht geladen werden."
                 onRetry={onRetry}
                 notFound={null}
-                unlockHref="/pricing"
             /></TestLocale>,
         )
 
