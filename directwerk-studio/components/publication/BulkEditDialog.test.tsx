@@ -4,6 +4,13 @@ import userEvent from '@testing-library/user-event'
 import {afterEach, describe, expect, it, vi} from 'vitest'
 
 import BulkEditDialog from '@/components/publication/BulkEditDialog'
+
+vi.mock('next/navigation', () => ({useRouter: () => ({replace: vi.fn()})}))
+vi.mock('@/lib/api/subscriptionApi', () => ({
+    listPublicLevels: vi.fn().mockResolvedValue([
+        {id: 1, slug: 'fan', title: 'Fan', sortOrder: 10},
+    ]),
+}))
 import type {CategorySummary, FormatSummary} from '@directwerk/api/types'
 
 const mockFormats: FormatSummary[] = [
@@ -147,7 +154,9 @@ describe('BulkEditDialog', () => {
         )
 
         await user.click(screen.getByRole('radio', {name: 'Bezahlt'}))
-        await user.type(screen.getByLabelText(/Mindest-Level/), '10')
+        expect(screen.getByRole('button', {name: 'Anwenden'})).toBeDisabled()
+        await user.selectOptions(await screen.findByLabelText(/Mindest-Level/), '10')
+        expect(screen.getByRole('button', {name: 'Anwenden'})).toBeEnabled()
         await user.click(screen.getByRole('button', {name: 'Anwenden'}))
 
         expect(onApply).toHaveBeenCalledWith({

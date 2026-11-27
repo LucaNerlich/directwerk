@@ -14,6 +14,7 @@ import {
 import {Input} from '@directwerk/ui/components/input'
 
 import AccessPolicySelect from '@/components/publication/AccessPolicySelect'
+import LevelSelect from '@/components/studio/LevelSelect'
 import type {AccessPolicy, CategorySummary, FormatSummary} from '@directwerk/api/types'
 import {useDictionary} from '@/components/i18n/LocaleProvider'
 
@@ -54,7 +55,7 @@ export default function BulkEditDialog({
     const [selectedFormatIds, setSelectedFormatIds] = useState<number[]>([])
     const [selectedCategoryIds, setSelectedCategoryIds] = useState<number[]>([])
     const [accessPolicy, setAccessPolicy] = useState<AccessPolicy>('FREE')
-    const [levelSortOrder, setLevelSortOrder] = useState('')
+    const [levelSortOrder, setLevelSortOrder] = useState<number | null>(null)
 
     const formatOptions = formats ?? []
     const hasFormats = formatOptions.length > 0
@@ -67,7 +68,7 @@ export default function BulkEditDialog({
         setSelectedFormatIds([])
         setSelectedCategoryIds([])
         setAccessPolicy('FREE')
-        setLevelSortOrder('')
+        setLevelSortOrder(null)
         setKindChosen(false)
         setKind(
             hasFormats ? 'formats' : hasCategories ? 'categories' : 'accessPolicy',
@@ -100,8 +101,7 @@ export default function BulkEditDialog({
             : kind === 'categories'
               ? selectedCategoryIds.length > 0
               : accessPolicy === 'PAID'
-                ? Number.isSafeInteger(Number.parseInt(levelSortOrder, 10)) &&
-                  Number.parseInt(levelSortOrder, 10) >= 0
+                ? levelSortOrder !== null
                 : true)
 
     const toggleFormat = (formatId: number, checked: boolean): void => {
@@ -126,9 +126,7 @@ export default function BulkEditDialog({
                 accessPolicy,
                 kind: 'accessPolicy',
                 requiredLevelSortOrder:
-                    accessPolicy === 'PAID'
-                        ? Number.parseInt(levelSortOrder, 10)
-                        : null,
+                    accessPolicy === 'PAID' ? levelSortOrder : null,
             })
         }
     }
@@ -238,11 +236,8 @@ export default function BulkEditDialog({
                         {accessPolicy === 'PAID' ? (
                             <label className="grid gap-2 text-sm font-medium">
                                 <span>Mindest-Level</span>
-                                <Input
-                                    min={0}
-                                    onChange={(event) => setLevelSortOrder(event.target.value)}
-                                    placeholder="z. B. 10"
-                                    type="number"
+                                <LevelSelect
+                                    onChange={setLevelSortOrder}
                                     value={levelSortOrder}
                                 />
                                 <span className="text-xs font-normal text-muted-foreground">
