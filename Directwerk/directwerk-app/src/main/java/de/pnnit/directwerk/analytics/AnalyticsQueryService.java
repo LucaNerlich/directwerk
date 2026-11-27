@@ -156,11 +156,11 @@ public class AnalyticsQueryService {
             );
         }
         if (!statsResponse.isSuccessful() || !pageviewsResponse.isSuccessful()) {
-            throw new AnalyticsQueryException(
-                    "UMAMI_UNAVAILABLE",
-                    HttpStatus.BAD_GATEWAY,
-                    "Umami returned an error."
-            );
+            // Keep the upstream statuses: this is the common failure the issue needs to
+            // diagnose (#1078 review).
+            throw unavailable(new IllegalStateException(
+                    "Umami returned HTTP " + statsResponse.status() + " (stats) / "
+                            + pageviewsResponse.status() + " (pageviews)"));
         }
 
         JsonNode stats = parseBody(statsResponse.body());
@@ -236,7 +236,8 @@ public class AnalyticsQueryService {
             throw new AnalyticsQueryException(
                     "UMAMI_TIMEOUT",
                     HttpStatus.GATEWAY_TIMEOUT,
-                    "Umami request timed out."
+                    "Umami request timed out.",
+                    ex
             );
         } catch (IOException | RuntimeException ex) {
             throw unavailable(ex);
