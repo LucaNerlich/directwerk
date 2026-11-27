@@ -548,7 +548,7 @@ export function createMcpServer(
         }
     })
 
-    server.tool('bulk_set_episode_categories', 'Replace categories on up to 100 episodes; dryRun only reports the scope', {
+    server.tool('bulk_set_episode_categories', 'Replace categories on up to 100 episodes (idempotent, safe to re-run); dryRun only reports the scope', {
         episodeIds: z.array(idSchema).min(1).max(100),
         categoryIds: z.array(idSchema),
         dryRun: z.boolean().optional(),
@@ -573,7 +573,7 @@ export function createMcpServer(
         return {...toolResult({updated: ok, failed}), ...(failed.length > 0 ? {isError: true} : {})}
     })
 
-    server.tool('bulk_set_episode_formats', 'Replace formats on up to 100 episodes; dryRun only reports the scope', {
+    server.tool('bulk_set_episode_formats', 'Replace formats on up to 100 episodes (idempotent, safe to re-run); dryRun only reports the scope', {
         episodeIds: z.array(idSchema).min(1).max(100),
         formatIds: z.array(idSchema),
         dryRun: z.boolean().optional(),

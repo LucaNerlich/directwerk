@@ -248,11 +248,11 @@ public class StudioMcpTools {
                 {"type":"object","properties":{"ids":{"type":"array","items":{"type":"integer","minimum":1},"minItems":1,"maxItems":100}},"required":["ids"],"additionalProperties":false}
                 """, (ctx, req) -> api.post(ctx, "/api/v1/episodes/bulk/delete", Map.of("ids", args(req).get("ids")))));
         tools.add(tool("bulk_set_episode_categories",
-                "Replace categories on up to 100 episodes; dryRun only reports the scope", """
+                "Replace categories on up to 100 episodes (idempotent, safe to re-run); dryRun only reports the scope", """
                 {"type":"object","properties":{"episodeIds":{"type":"array","items":{"type":"integer","minimum":1},"minItems":1,"maxItems":100},"categoryIds":{"type":"array","items":{"type":"integer","minimum":1},"maxItems":100},"dryRun":{"type":"boolean"}},"required":["episodeIds","categoryIds"],"additionalProperties":false}
                 """, (ctx, req) -> bulkReplace(ctx, req, "categories")));
         tools.add(tool("bulk_set_episode_formats",
-                "Replace formats on up to 100 episodes; dryRun only reports the scope", """
+                "Replace formats on up to 100 episodes (idempotent, safe to re-run); dryRun only reports the scope", """
                 {"type":"object","properties":{"episodeIds":{"type":"array","items":{"type":"integer","minimum":1},"minItems":1,"maxItems":100},"formatIds":{"type":"array","items":{"type":"integer","minimum":1},"maxItems":100},"dryRun":{"type":"boolean"}},"required":["episodeIds","formatIds"],"additionalProperties":false}
                 """, (ctx, req) -> bulkReplace(ctx, req, "formats")));
 
