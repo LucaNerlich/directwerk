@@ -213,7 +213,7 @@ export function AudioPlayerProvider({
             duration,
             playTrack,
             togglePlay,
-                seek,
+            seek,
             dismiss,
         }),
         [
@@ -223,7 +223,7 @@ export function AudioPlayerProvider({
             duration,
             playTrack,
             togglePlay,
-                seek,
+            seek,
             dismiss,
         ],
     )
