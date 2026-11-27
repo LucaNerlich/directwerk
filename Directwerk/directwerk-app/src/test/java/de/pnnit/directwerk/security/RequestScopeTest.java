@@ -38,11 +38,14 @@ class RequestScopeTest {
     }
 
     @Test
-    void taxonomyBasesRequireEditorOrAdmin() {
-        // #1015: the controllers' GETs admit EDITOR, so the membership re-check must too.
+    void taxonomyBasesAllowEditorReadsButKeepWritesTenantAdmin() {
+        // #1015: the controllers' GETs admit EDITOR, so the membership re-check must too; the
+        // writes carry a class-level TENANT_ADMIN @PreAuthorize and must not be widened here.
         for (String base : new String[] {"/api/v1/formats", "/api/v1/categories"}) {
-            assertThat(RequestScope.of(base)).isEqualTo(RequestScope.EDITOR_CONTENT);
-            assertThat(RequestScope.of(base + "/7")).isEqualTo(RequestScope.EDITOR_CONTENT);
+            assertThat(RequestScope.of(base, "GET")).isEqualTo(RequestScope.EDITOR_CONTENT);
+            assertThat(RequestScope.of(base + "/7", "HEAD")).isEqualTo(RequestScope.EDITOR_CONTENT);
+            assertThat(RequestScope.of(base + "/7", "POST")).isEqualTo(RequestScope.TENANT_ADMIN_AREA);
+            assertThat(RequestScope.of(base, "DELETE")).isEqualTo(RequestScope.TENANT_ADMIN_AREA);
             assertThat(RequestScope.of(base).roleRequirement())
                     .isEqualTo(RequestScope.RoleRequirement.EDITOR_OR_TENANT_ADMIN);
         }

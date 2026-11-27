@@ -71,9 +71,8 @@ public enum RequestScope {
             "/api/v1/digital-publications", "/api/v1/newsletter-lists"
     };
     /**
-     * Taxonomy reads used by every editor screen. The JWT matcher keeps its wider
-     * {@code TENANT_ADMIN_OR_CONTENT_API_KEY} rule (MCP content keys write taxonomy), but the
-     * membership re-check must allow EDITOR — the controllers' GETs already do.
+     * Taxonomy path roots. Reads are used by every editor screen, so GET/HEAD/OPTIONS allow
+     * EDITOR; writes stay tenant-admin (the JWT matcher's wider content-key rule is for MCP).
      */
     private static final String[] TENANT_ADMIN_CONTENT_BASES = {
             "/api/v1/formats", "/api/v1/categories"
@@ -84,7 +83,7 @@ public enum RequestScope {
         return List.of(EDITOR_CONTENT_BASES);
     }
 
-    /** Tenant-admin-only content path roots shared with the SecurityConfig matcher table. */
+    /** Taxonomy path roots whose non-safe methods require TENANT_ADMIN. */
     public static List<String> tenantAdminContentBases() {
         return List.of(TENANT_ADMIN_CONTENT_BASES);
     }
@@ -99,6 +98,14 @@ public enum RequestScope {
      * its own prefix family; PUBLIC beats the generic {@code /api/v1/} tenant rule.
      */
     public static RequestScope of(@Nullable String path) {
+        return of(path, null);
+    }
+
+    /**
+     * Method-aware classification for callers that enforce roles. A {@code null} method is treated
+     * as safe so existing path-only callers keep the read behaviour.
+     */
+    public static RequestScope of(@Nullable String path, @Nullable String method) {
         if (path == null) {
             return PUBLIC;
         }
@@ -122,7 +129,10 @@ public enum RequestScope {
                 || path.startsWith("/api/v1/security/")) {
             return MEMBER;
         }
-        if (isEditorContent(path) || isAtOrUnderAny(path, TENANT_ADMIN_CONTENT_BASES)) {
+        if (isAtOrUnderAny(path, TENANT_ADMIN_CONTENT_BASES)) {
+            return isSafeMethod(method) ? EDITOR_CONTENT : TENANT_ADMIN_AREA;
+        }
+        if (isEditorContent(path)) {
             return EDITOR_CONTENT;
         }
         // Unknown authenticated API routes are member-scoped by default — fail closed.
@@ -134,6 +144,13 @@ public enum RequestScope {
 
     private static boolean isEditorContent(String path) {
         return isAtOrUnderAny(path, EDITOR_CONTENT_BASES);
+    }
+
+    private static boolean isSafeMethod(@Nullable String method) {
+        return method == null
+                || "GET".equalsIgnoreCase(method)
+                || "HEAD".equalsIgnoreCase(method)
+                || "OPTIONS".equalsIgnoreCase(method);
     }
 
     private static boolean isAtOrUnderAny(String path, String... bases) {
