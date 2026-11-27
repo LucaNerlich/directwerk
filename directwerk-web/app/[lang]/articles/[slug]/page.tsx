@@ -52,6 +52,7 @@ export async function generateMetadata({
             openGraph: {
                 title: article.title,
                 description,
+                url: localizedPath(lang, `/articles/${slug}`),
                 type: 'article',
                 publishedTime: article.publishedAt ?? undefined,
                 images:
