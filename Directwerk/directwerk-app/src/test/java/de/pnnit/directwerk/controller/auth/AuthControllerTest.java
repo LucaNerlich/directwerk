@@ -9,6 +9,7 @@ import de.pnnit.directwerk.modules.core.service.EmailVerificationService;
 import de.pnnit.directwerk.modules.core.service.InvitationAcceptanceService;
 import de.pnnit.directwerk.modules.core.service.PasswordResetService;
 import de.pnnit.directwerk.modules.core.service.UserAccountService;
+import de.pnnit.directwerk.modules.core.util.PasswordPolicyException;
 import de.pnnit.directwerk.multitenancy.TenantResolver;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -59,6 +60,22 @@ class AuthControllerTest {
                 controller.forgotPassword(new AuthController.ForgotPasswordRequest("user@example.com"));
 
         assertThat(response.getBody().data().devResetToken()).isNull();
+    }
+
+    @Test
+    void resetPasswordMapsAPolicyViolationToValidationError() {
+        String password = "\u00E4".repeat(40);
+        org.mockito.Mockito.doThrow(new PasswordPolicyException())
+                .when(passwordResetService).resetPassword("raw-reset-token", password);
+        AuthController controller = controller();
+
+        ResponseEntity<Response<Void>> response = controller.resetPassword(
+                new AuthController.ResetPasswordRequest("raw-reset-token", password));
+
+        assertThat(response.getStatusCode()).isEqualTo(org.springframework.http.HttpStatus.BAD_REQUEST);
+        assertThat(response.getBody().errors().getFirst().code()).isEqualTo("VALIDATION_ERROR");
+        assertThat(response.getBody().errors().getFirst().message())
+                .isEqualTo(PasswordPolicyException.MESSAGE);
     }
 
     private AuthController controller() {

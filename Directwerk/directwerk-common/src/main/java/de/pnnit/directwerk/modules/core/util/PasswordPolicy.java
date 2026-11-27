@@ -16,7 +16,7 @@ public final class PasswordPolicy {
         if (!StringUtils.hasText(password)
                 || password.length() < MIN_LENGTH
                 || password.getBytes(StandardCharsets.UTF_8).length > MAX_BYTES) {
-            throw new IllegalArgumentException("Password must be at least 8 characters and at most 72 bytes");
+            throw new PasswordPolicyException();
         }
     }
 }

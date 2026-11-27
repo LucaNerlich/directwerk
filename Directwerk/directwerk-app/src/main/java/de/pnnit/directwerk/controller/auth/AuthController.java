@@ -7,6 +7,7 @@ import de.pnnit.directwerk.modules.core.service.EmailVerificationService;
 import de.pnnit.directwerk.modules.core.service.InvitationAcceptanceService;
 import de.pnnit.directwerk.modules.core.service.PasswordResetService;
 import de.pnnit.directwerk.modules.core.service.UserAccountService;
+import de.pnnit.directwerk.modules.core.util.PasswordPolicyException;
 import de.pnnit.directwerk.multitenancy.TenantResolver;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
@@ -69,6 +70,9 @@ public class AuthController {
         try {
             var user = invitationAcceptanceService.accept(body.token(), body.password(), body.name());
             return ResponseEntity.ok(Response.ok(new AcceptInviteResponse(user.getId(), user.getEmail())));
+        } catch (PasswordPolicyException ex) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Response.error(400, "VALIDATION_ERROR", ex.getMessage()));
         } catch (IllegalArgumentException ex) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body(Response.error(400, "INVALID_INVITATION_TOKEN", ex.getMessage()));
@@ -92,6 +96,9 @@ public class AuthController {
         try {
             passwordResetService.resetPassword(body.token(), body.newPassword());
             return ResponseEntity.ok(Response.emptyOk());
+        } catch (PasswordPolicyException ex) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Response.error(400, "VALIDATION_ERROR", ex.getMessage()));
         } catch (IllegalArgumentException ex) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body(Response.error(400, "INVALID_RESET_TOKEN", ex.getMessage()));

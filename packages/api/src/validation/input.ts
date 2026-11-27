@@ -1,7 +1,10 @@
 import {isRecord, isValidEmail as matchesEmailPattern} from './primitives'
 
 const MIN_PASSWORD_LENGTH = 12
-const MAX_PASSWORD_LENGTH = 128
+/** Write-time policy: the API hashes at most 72 UTF-8 bytes (#1022). */
+const MAX_PASSWORD_LENGTH = 72
+/** Login stays lenient: accounts created before the byte policy may be longer. */
+const MAX_LOGIN_PASSWORD_LENGTH = 128
 const MAX_EMAIL_LENGTH = 254
 
 export interface LoginInput {
@@ -30,11 +33,15 @@ function parseEmail(value: unknown, normalize: boolean): string | null {
     return email
 }
 
+function isWithinPasswordByteCap(value: string): boolean {
+    return new TextEncoder().encode(value).length <= MAX_PASSWORD_LENGTH
+}
+
 function parsePassword(value: unknown): string | null {
     if (
         typeof value !== 'string' ||
         value.length < MIN_PASSWORD_LENGTH ||
-        value.length > MAX_PASSWORD_LENGTH
+        new TextEncoder().encode(value).length > MAX_PASSWORD_LENGTH
     ) {
         return null
     }
@@ -51,7 +58,7 @@ function parseLoginPassword(value: unknown): string | null {
     if (
         typeof value !== 'string' ||
         value.length === 0 ||
-        value.length > MAX_PASSWORD_LENGTH
+        value.length > MAX_LOGIN_PASSWORD_LENGTH
     ) {
         return null
     }
@@ -147,7 +154,7 @@ function parseCredentialsWithNormalizedName(value: unknown): LoginInput | null {
     if (
         typeof value.password !== 'string' ||
         value.password.length < MIN_PASSWORD_LENGTH ||
-        value.password.length > MAX_PASSWORD_LENGTH ||
+        value.password.length > MAX_LOGIN_PASSWORD_LENGTH ||
         email === null
     ) {
         return null
@@ -210,7 +217,7 @@ export function parseAcceptInviteInput(value: unknown): AcceptInviteInput | null
         token.length === 0 ||
         token.length > MAX_TOKEN_LENGTH_WEB ||
         value.password.length < MIN_PASSWORD_LENGTH ||
-        value.password.length > MAX_PASSWORD_LENGTH
+        !isWithinPasswordByteCap(value.password)
     ) {
         return null
     }
@@ -253,7 +260,7 @@ export function parseResetPasswordInput(value: unknown): ResetPasswordInput | nu
         token.length === 0 ||
         token.length > MAX_TOKEN_LENGTH_WEB ||
         value.newPassword.length < MIN_PASSWORD_LENGTH ||
-        value.newPassword.length > MAX_PASSWORD_LENGTH
+        !isWithinPasswordByteCap(value.newPassword)
     ) {
         return null
     }
