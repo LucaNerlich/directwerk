@@ -86,8 +86,8 @@ class DigitalPublicationServiceTest {
         when(mediaAssetQueryApi.findById(9L)).thenReturn(Optional.of(asset));
 
         assertThatThrownBy(() -> service.publish(7L, 1L))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("private asset");
+                .isInstanceOf(de.pnnit.directwerk.modules.digital.exception.DigitalPublicationValidationException.class)
+                .hasMessageContaining("asset 9");
         verify(digitalPublicationRepository, never()).save(publication);
     }
 
