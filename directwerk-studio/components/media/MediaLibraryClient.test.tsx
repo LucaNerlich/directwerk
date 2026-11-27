@@ -128,6 +128,33 @@ describe('MediaLibraryClient', () => {
         })
     })
 
+    it('ignores a stale load-more failure after the result set changed', async () => {
+        let rejectPage!: (error: Error) => void
+        const pendingPage = new Promise<never>((_resolve, reject) => {
+            rejectPage = reject
+        })
+        const firstPage = Array.from({length: 100}, (_, index) => ({
+            ...coverAsset,
+            id: 2_000 + index,
+            originalFilename: `cover-${index}.png`,
+        }))
+        vi.mocked(listMedia)
+            .mockResolvedValueOnce(firstPage)
+            .mockReturnValueOnce(pendingPage)
+            .mockResolvedValueOnce([])
+        renderWithLocale(<MediaLibraryClient />)
+
+        fireEvent.click(await screen.findByRole('button', {name: 'Weitere Dateien laden'}))
+        // A reload for the new result set starts while the page request is still in flight.
+        fireEvent.click(await screen.findByRole('checkbox', {name: 'Nur unverknüpfte Dateien'}))
+        await waitFor(() => expect(listMedia).toHaveBeenCalledTimes(3))
+
+        rejectPage(new Error('old page failed'))
+        await waitFor(() =>
+            expect(screen.queryByText('old page failed')).not.toBeInTheDocument(),
+        )
+    })
+
     it('shows an empty state with upload action', async () => {
         renderWithLocale(<MediaLibraryClient />)
 

@@ -220,6 +220,10 @@ export default function MediaLibraryClient(): React.JSX.Element {
             if (authRedirect(error)) {
                 return
             }
+            if (sequence !== loadSequenceRef.current) {
+                // A reload for a new result set already started; this page's failure is stale.
+                return
+            }
             setFailedUpload(null)
             setErrorMessage(
                 error instanceof Error
