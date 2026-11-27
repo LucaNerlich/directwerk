@@ -101,9 +101,12 @@ public class PublicEpisodeViewMapper {
         Map<String, Object> draft = episode.getWorkingDraft();
         boolean hasDraft = WorkingDraftMaps.isPresent(draft);
 
-        Integer episodeNumber = hasDraft && WorkingDraftMaps.containsKey(draft, WorkingDraftMaps.EPISODE_NUMBER)
-                ? WorkingDraftMaps.getInteger(draft, WorkingDraftMaps.EPISODE_NUMBER)
-                : episode.getEpisodeNumber();
+        Integer episodeNumber = hasDraft && WorkingDraftMaps.getBoolean(
+                draft, WorkingDraftMaps.CLEAR_EPISODE_NUMBER, false)
+                ? null
+                : hasDraft && WorkingDraftMaps.containsKey(draft, WorkingDraftMaps.EPISODE_NUMBER)
+                        ? WorkingDraftMaps.getInteger(draft, WorkingDraftMaps.EPISODE_NUMBER)
+                        : episode.getEpisodeNumber();
         String slug = hasDraft && WorkingDraftMaps.containsKey(draft, WorkingDraftMaps.SLUG)
                 ? WorkingDraftMaps.getString(draft, WorkingDraftMaps.SLUG)
                 : episode.getSlug();

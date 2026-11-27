@@ -34,4 +34,4 @@ settings:
   maxRedirects: 5
   forwardAuthorizationHeader: true
 
-docs: Optional `coverAssetId` on create/update (READY PUBLIC IMAGE) sets per-episode RSS artwork. Set `clearCoverAsset` to `true` on update to remove it.
+docs: Optional `coverAssetId` on create/update (READY PUBLIC IMAGE) sets per-episode RSS artwork. Set `clearCoverAsset` to `true` on update to remove it. Set `clearEpisodeNumber` to `true` to remove the episode number; it takes precedence over `episodeNumber`.

@@ -24,6 +24,7 @@ public final class WorkingDraftMaps {
     public static final String AUDIO_ASSET_ID = "audioAssetId";
     public static final String DURATION_SECONDS = "durationSeconds";
     public static final String EPISODE_NUMBER = "episodeNumber";
+    public static final String CLEAR_EPISODE_NUMBER = "clearEpisodeNumber";
     public static final String ACCESS_POLICY = "accessPolicy";
     public static final String REQUIRED_LEVEL_SORT_ORDER = "requiredLevelSortOrder";
     public static final String CATEGORY_IDS = "categoryIds";

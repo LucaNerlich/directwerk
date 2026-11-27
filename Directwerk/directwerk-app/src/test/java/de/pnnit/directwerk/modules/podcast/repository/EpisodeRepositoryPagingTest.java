@@ -74,6 +74,59 @@ class EpisodeRepositoryPagingTest {
         assertThat(byPublished).extracting(Episode::getSlug).containsExactly("sort-b", "sort-a");
     }
 
+    @Test
+    void searchFiltersBySeriesAndQuery() {
+        Fixture a = persistFixture("show-a");
+        Fixture b = persistFixture("show-b");
+        persistEpisode(a, "batman-arkham", "Batman: Arkham Asylum", NOW);
+        persistEpisode(a, "curses", "Curses", NOW);
+        persistEpisode(b, "batman-other", "Batman: Other", NOW);
+        entityManager.clear();
+
+        var bySeries = episodeRepository.searchByTenantId(
+                a.tenantId(), a.series().getId(), null,
+                OffsetLimitPageRequest.of(10, 0, PublicationSort.CREATED.toSort()));
+        assertThat(bySeries).extracting(Episode::getSlug)
+                .containsExactlyInAnyOrder("batman-arkham", "curses");
+
+        var byTitle = episodeRepository.searchByTenantId(
+                a.tenantId(), null, "BATMAN",
+                OffsetLimitPageRequest.of(10, 0, PublicationSort.CREATED.toSort()));
+        assertThat(byTitle).extracting(Episode::getSlug).containsExactly("batman-arkham");
+
+        var bySlug = episodeRepository.searchByTenantId(
+                a.tenantId(), null, "curs",
+                OffsetLimitPageRequest.of(10, 0, PublicationSort.CREATED.toSort()));
+        assertThat(bySlug).extracting(Episode::getSlug).containsExactly("curses");
+    }
+
+    @Test
+    void searchTreatsEscapedWildcardsLiterally() {
+        Fixture fixture = persistFixture("escape-show");
+        persistEpisode(fixture, "fifty-percent", "50% Off", NOW);
+        persistEpisode(fixture, "other", "Something Else", NOW);
+        entityManager.clear();
+
+        var hits = episodeRepository.searchByTenantId(
+                fixture.tenantId(), null, "50!%",
+                OffsetLimitPageRequest.of(10, 0, PublicationSort.CREATED.toSort()));
+        assertThat(hits).extracting(Episode::getSlug).containsExactly("fifty-percent");
+    }
+
+    @Test
+    void searchIsTenantScoped() {
+        Fixture a = persistFixture("tenant-a");
+        Fixture b = persistFixture("tenant-b");
+        persistEpisode(a, "shared-title-a", "Batman", NOW);
+        persistEpisode(b, "shared-title-b", "Batman", NOW);
+        entityManager.clear();
+
+        var hits = episodeRepository.searchByTenantId(
+                a.tenantId(), null, "batman",
+                OffsetLimitPageRequest.of(10, 0, PublicationSort.CREATED.toSort()));
+        assertThat(hits).extracting(Episode::getSlug).containsExactly("shared-title-a");
+    }
+
     private Fixture persistFixture(String seriesSlug) {
         Tenant tenant = new Tenant();
         tenant.setSlug(seriesSlug + "-tenant");

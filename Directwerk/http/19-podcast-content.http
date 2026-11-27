@@ -283,8 +283,9 @@ Accept: application/json
 ### @name listPodcastEpisodes
 ### Page with ?limit=1..500 (default 100) and ?offset=<rows skipped> (default 0; not pageIndex×limit).
 ### ?sort=CREATED (default) | PUBLISHED (newest first) | UPDATED (last modified) | TITLE (A–Z).
-### Optional ?seriesId=<id> scopes to one show and ?q=<text> searches title/slug (case-insensitive).
-GET {{baseUrl}}/api/v1/episodes?limit=100&offset=0&sort=PUBLISHED&seriesId={{podcastSeriesId}}&q=batman
+GET {{baseUrl}}/api/v1/episodes?limit=100&offset=0&sort=PUBLISHED
+### Optional filters, use on their own (not in this assertion-driven request):
+# GET {{baseUrl}}/api/v1/episodes?seriesId={{podcastSeriesId}}&q=Harness
 Host: {{tenantAHost}}
 Authorization: Bearer {{tenantAAccessToken}}
 Accept: application/json

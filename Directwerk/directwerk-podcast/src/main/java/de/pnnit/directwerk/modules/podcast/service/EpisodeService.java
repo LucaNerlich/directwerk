@@ -98,6 +98,10 @@ public class EpisodeService {
         if (needle != null && needle.isEmpty()) {
             needle = null;
         }
+        if (needle != null) {
+            // Escape LIKE metacharacters so a literal % or _ does not turn the search into a wildcard.
+            needle = needle.replace("!", "!!").replace("%", "!%").replace("_", "!_");
+        }
         return episodeRepository.searchByTenantId(
                 tenantId, seriesId, needle, OffsetLimitPageRequest.of(limit, offset, sort.toSort()));
     }
@@ -396,11 +400,11 @@ public class EpisodeService {
         if (!WorkingDraftMaps.isPresent(draft)) {
             return;
         }
-        if (WorkingDraftMaps.containsKey(draft, WorkingDraftMaps.EPISODE_NUMBER)) {
-            Integer draftNumber = WorkingDraftMaps.getInteger(draft, WorkingDraftMaps.EPISODE_NUMBER);
-            episode.setEpisodeNumber(draftNumber == null
-                    ? null
-                    : FieldConstraints.requirePositive(draftNumber, "episodeNumber"));
+        if (WorkingDraftMaps.getBoolean(draft, WorkingDraftMaps.CLEAR_EPISODE_NUMBER, false)) {
+            episode.setEpisodeNumber(null);
+        } else if (WorkingDraftMaps.containsKey(draft, WorkingDraftMaps.EPISODE_NUMBER)) {
+            episode.setEpisodeNumber(FieldConstraints.requirePositive(
+                    WorkingDraftMaps.getInteger(draft, WorkingDraftMaps.EPISODE_NUMBER), "episodeNumber"));
         }
         if (WorkingDraftMaps.containsKey(draft, WorkingDraftMaps.SLUG)) {
             String slug = SlugNormalizer.normalize(WorkingDraftMaps.getString(draft, WorkingDraftMaps.SLUG));
@@ -567,8 +571,12 @@ public class EpisodeService {
                 ? WorkingDraftMaps.mutableCopy(episode.getWorkingDraft())
                 : seedWorkingDraft(episode);
         if (Boolean.TRUE.equals(clearEpisodeNumber)) {
+            // The flag is authoritative: a JSON null alone would be lost if the
+            // JSON mapper ever stopped serialising null map values.
+            WorkingDraftMaps.putBoolean(draft, WorkingDraftMaps.CLEAR_EPISODE_NUMBER, true);
             WorkingDraftMaps.putInteger(draft, WorkingDraftMaps.EPISODE_NUMBER, null);
         } else if (episodeNumber != null) {
+            WorkingDraftMaps.putBoolean(draft, WorkingDraftMaps.CLEAR_EPISODE_NUMBER, false);
             WorkingDraftMaps.putInteger(
                     draft,
                     WorkingDraftMaps.EPISODE_NUMBER,
@@ -629,6 +637,7 @@ public class EpisodeService {
     private Map<String, Object> seedWorkingDraft(Episode episode) {
         Map<String, Object> draft = WorkingDraftMaps.mutableCopy(null);
         WorkingDraftMaps.putInteger(draft, WorkingDraftMaps.EPISODE_NUMBER, episode.getEpisodeNumber());
+        WorkingDraftMaps.putBoolean(draft, WorkingDraftMaps.CLEAR_EPISODE_NUMBER, false);
         WorkingDraftMaps.putString(draft, WorkingDraftMaps.SLUG, episode.getSlug());
         WorkingDraftMaps.putString(draft, WorkingDraftMaps.TITLE, episode.getTitle());
         WorkingDraftMaps.putString(draft, WorkingDraftMaps.DESCRIPTION, episode.getDescription());

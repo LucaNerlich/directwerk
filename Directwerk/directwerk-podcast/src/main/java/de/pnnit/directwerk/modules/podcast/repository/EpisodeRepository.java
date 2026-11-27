@@ -59,8 +59,8 @@ public interface EpisodeRepository extends JpaRepository<Episode, Long> {
             where e.tenant.id = :tenantId
               and (:seriesId is null or e.series.id = :seriesId)
               and (:q is null
-                   or lower(e.title) like lower(concat('%', :q, '%'))
-                   or lower(e.slug) like lower(concat('%', :q, '%')))
+                   or lower(e.title) like lower(concat('%', :q, '%')) escape '!'
+                   or lower(e.slug) like lower(concat('%', :q, '%')) escape '!')
             """)
     List<Episode> searchByTenantId(
             @Param("tenantId") Long tenantId,
