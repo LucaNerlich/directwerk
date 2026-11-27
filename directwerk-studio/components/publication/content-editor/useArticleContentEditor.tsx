@@ -519,6 +519,8 @@ export function useArticleContentEditor(
         notifyAudienceHint,
         notifyPreview,
         onRetryNotify: () => {
+            // A successful retry replaces the banner with the sent job preview.
+            setWorkflowError(null)
             void retryNotify()
                 .then(() => refreshNotifyPreview())
                 .catch((error: unknown) =>

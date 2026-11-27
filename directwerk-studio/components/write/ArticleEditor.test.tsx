@@ -56,9 +56,17 @@ const replaceArticleCategories = vi.fn().mockResolvedValue({
     requiredLevelSortOrder: null, scheduledAt: null, emailNotifiedAt: null, categories: [{id: 1, slug: 'news', name: 'News'}], newsletterLists: [],
 })
 
+const createArticle = vi.fn().mockResolvedValue({
+    id: 2, slug: 'beitrag', title: 'Ohne Titel', status: 'DRAFT', accessPolicy: 'FREE', publishedAt: null,
+    body: null, excerpt: null, seoDescription: null, heroAssetId: null,
+    heroImageUrl: null,
+    requiredLevelSortOrder: null, scheduledAt: null, emailNotifiedAt: null, categories: [], newsletterLists: [],
+})
+
 vi.mock('@/lib/api/writeApi', () => ({
     getArticle: (...args: unknown[]) => getArticle(...args),
     updateArticle: (...args: unknown[]) => updateArticle(...args),
+    createArticle: (...args: unknown[]) => createArticle(...args),
     listArticles: vi.fn().mockResolvedValue([]),
 }))
 vi.mock('@/lib/api/subscriptionApi', () => ({
@@ -124,6 +132,24 @@ describe('ArticleEditor tagging', () => {
 
         await waitFor(() =>
             expect(replaceArticleCategories).toHaveBeenCalledWith(1, [1]),
+        )
+    })
+
+    it('creates a new article and persists its tags', async () => {
+        const user = userEvent.setup()
+        createArticle.mockClear()
+        replaceArticleCategories.mockClear()
+        renderWithLocale(<ArticleEditor />)
+
+        await user.click(await screen.findByRole('button', {name: 'Speichern'}))
+
+        await waitFor(() =>
+            expect(createArticle).toHaveBeenCalledWith(
+                expect.objectContaining({slug: 'beitrag'}),
+            ),
+        )
+        await waitFor(() =>
+            expect(replaceArticleCategories).toHaveBeenCalledWith(2, []),
         )
     })
 
