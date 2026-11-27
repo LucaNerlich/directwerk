@@ -1,10 +1,6 @@
 package de.pnnit.directwerk.modules.newsletter.service;
 
-import de.pnnit.directwerk.config.DirectwerkConfig;
 import de.pnnit.directwerk.modules.core.analytics.TenantEventTracker;
-import de.pnnit.directwerk.modules.core.analytics.UmamiEventClient;
-import de.pnnit.directwerk.modules.core.service.ModuleGateService;
-import de.pnnit.directwerk.modules.core.service.TenantBrandingService;
 import de.pnnit.directwerk.modules.newsletter.entity.Article;
 import java.util.Map;
 import java.util.Set;
