@@ -190,10 +190,14 @@ export function useArticleContentEditor(
                 {id: created.id, slug: created.slug},
             ])
             // Relation persistence exists only on the update path before this fix, so a new
-            // article silently dropped its selected newsletter lists (#1018).
-            const withTags = await persistTags(created)
-            routerRef.current.replace(localize(descriptor.paths.editor(created.id)))
-            return withTags
+            // article silently dropped its selected newsletter lists (#1018). Navigation must
+            // happen even when that follow-up fails: the article exists, and staying on /new
+            // would create a second one on the next save (#1018 review).
+            try {
+                return await persistTags(created)
+            } finally {
+                routerRef.current.replace(localize(descriptor.paths.editor(created.id)))
+            }
         }
 
         const updated = await updateArticle(articleId, {
