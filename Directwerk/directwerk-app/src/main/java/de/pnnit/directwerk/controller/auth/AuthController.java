@@ -7,6 +7,7 @@ import de.pnnit.directwerk.modules.core.service.EmailVerificationService;
 import de.pnnit.directwerk.modules.core.service.InvitationAcceptanceService;
 import de.pnnit.directwerk.modules.core.service.PasswordResetService;
 import de.pnnit.directwerk.modules.core.service.UserAccountService;
+import de.pnnit.directwerk.modules.core.util.PasswordPolicyException;
 import de.pnnit.directwerk.multitenancy.TenantResolver;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
@@ -69,6 +70,9 @@ public class AuthController {
         try {
             var user = invitationAcceptanceService.accept(body.token(), body.password(), body.name());
             return ResponseEntity.ok(Response.ok(new AcceptInviteResponse(user.getId(), user.getEmail())));
+        } catch (PasswordPolicyException ex) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Response.error(400, "VALIDATION_ERROR", ex.getMessage()));
         } catch (IllegalArgumentException ex) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body(Response.error(400, "INVALID_INVITATION_TOKEN", ex.getMessage()));
@@ -92,6 +96,9 @@ public class AuthController {
         try {
             passwordResetService.resetPassword(body.token(), body.newPassword());
             return ResponseEntity.ok(Response.emptyOk());
+        } catch (PasswordPolicyException ex) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Response.error(400, "VALIDATION_ERROR", ex.getMessage()));
         } catch (IllegalArgumentException ex) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body(Response.error(400, "INVALID_RESET_TOKEN", ex.getMessage()));
@@ -111,7 +118,7 @@ public class AuthController {
 
     public record RegisterRequest(
             @NotBlank @Email String email,
-            @NotBlank @Size(min = 8, max = 128) String password,
+            @NotBlank @Size(min = 8, max = 72) String password,
             @Size(max = 255) String name
     ) {
     }
@@ -121,7 +128,7 @@ public class AuthController {
 
     public record AcceptInviteRequest(
             @NotBlank @Size(max = 512) String token,
-            @Size(min = 8, max = 128) String password,
+            @Size(min = 8, max = 72) String password,
             @Size(max = 255) String name
     ) {
     }
@@ -137,7 +144,7 @@ public class AuthController {
 
     public record ResetPasswordRequest(
             @NotBlank @Size(max = 512) String token,
-            @NotBlank @Size(min = 8, max = 128) String newPassword
+            @NotBlank @Size(min = 8, max = 72) String newPassword
     ) {
     }
 

@@ -55,7 +55,8 @@ public class UserAccountService {
 
     @Transactional
     public User register(String email, String password, String name, Long tenantId) {
-        PasswordPolicy.validate(password);
+        // Validated where a hash is written, not before ownership is verified: a legacy
+        // >72-byte password must still work for an existing account (#1102 review).
         String normalizedEmail = EmailNormalizer.normalize(email);
         Tenant tenant = tenantRepository.findById(tenantId)
                 .orElseThrow(() -> new IllegalArgumentException("Tenant not found"));
@@ -99,6 +100,7 @@ public class UserAccountService {
             return user;
         }
 
+        PasswordPolicy.validate(password);
         User user = new User();
         user.setEmail(normalizedEmail);
         user.setPasswordHash(passwordEncoder.encode(password));
@@ -165,6 +167,7 @@ public class UserAccountService {
         // proof (#947); rewriting would let a stolen session set a new password without
         // PasswordChangedEvent (and without revoking other refresh tokens).
         if (!StringUtils.hasText(user.getPasswordHash())) {
+            PasswordPolicy.validate(password);
             user.setPasswordHash(passwordEncoder.encode(password));
             eventPublisher.publishEvent(new PasswordChangedEvent(user.getEmail(), user.getId()));
         }

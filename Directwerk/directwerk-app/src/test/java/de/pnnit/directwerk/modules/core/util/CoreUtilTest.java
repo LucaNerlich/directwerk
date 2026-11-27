@@ -22,7 +22,7 @@ class CoreUtilTest {
     void passwordPolicyEnforcesLength() {
         assertThatThrownBy(() -> PasswordPolicy.validate("short"))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("8 and 128");
+                .hasMessageContaining("at most 72 bytes");
         PasswordPolicy.validate("valid-password");
     }
 

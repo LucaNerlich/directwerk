@@ -82,15 +82,15 @@ public class PlatformAdminBootstrap implements ApplicationRunner {
         if (normalizedEmail.length() > 255 || !EMAIL_PATTERN.matcher(normalizedEmail).matches()) {
             throw new IllegalStateException("Bootstrap platform admin email is invalid");
         }
-        try {
-            PasswordPolicy.validate(password);
-        } catch (IllegalArgumentException ex) {
-            throw new IllegalStateException("Bootstrap platform admin password must be between 8 and 128 characters");
-        }
-
         acquireBootstrapLock();
         if (platformAdminRepository.count() != 0) {
             return;
+        }
+        try {
+            PasswordPolicy.validate(password);
+        } catch (IllegalArgumentException ex) {
+            throw new IllegalStateException(
+                    "Bootstrap platform admin password must be at least 8 characters and at most 72 bytes");
         }
 
         User user = userRepository.findByEmailIgnoreCase(normalizedEmail).orElseGet(User::new);

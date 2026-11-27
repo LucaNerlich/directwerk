@@ -45,10 +45,14 @@ describe('parseLoginInput', () => {
         })
     })
 
-    it('still rejects an empty or over-long password', () => {
+    it('still rejects an empty password and keeps a lenient ceiling', () => {
         expect(parseLoginInput({email: 'user@example.com', password: ''})).toBeNull()
+        // 73-char passwords predate the write-time byte policy and must still sign in (#1022).
         expect(
             parseLoginInput({email: 'user@example.com', password: 'a'.repeat(PASSWORD_MAX_LENGTH + 1)}),
+        ).not.toBeNull()
+        expect(
+            parseLoginInput({email: 'user@example.com', password: 'a'.repeat(129)}),
         ).toBeNull()
     })
 
