@@ -253,10 +253,6 @@ public class AnalyticsQueryService {
         );
     }
 
-    private static AnalyticsQueryException unavailable() {
-        return unavailable(null);
-    }
-
     private static AnalyticsQueryException unavailable(Throwable cause) {
         // Preserve the cause: without it the logs cannot tell timeout, TLS, 5xx and bad payload
         // apart (#1078).
