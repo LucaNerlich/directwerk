@@ -73,6 +73,32 @@ class BillingDashboardServiceTest {
         assertThat(dashboard.memberships().getFirst().status()).isEqualTo("PAST_DUE");
     }
 
+    @Test
+    void keepsMonthlyTotalsPerCurrencyAndLeavesTheV1FieldsEmpty() {
+        Clock clock = Clock.fixed(Instant.parse("2026-08-13T12:00:00Z"), ZoneOffset.UTC);
+        BillingDashboardService service = new BillingDashboardService(
+                subscriptionService,
+                stripeConnectService,
+                clock
+        );
+        when(subscriptionService.listSubscriptionsForTenant(4L)).thenReturn(List.of(
+                subscription(1L, 10L, SubscriptionStatus.ACTIVE, SubscriptionSource.STRIPE, 990, BillingInterval.MONTH, "2026-08-02T10:00:00Z", "EUR"),
+                subscription(2L, 11L, SubscriptionStatus.ACTIVE, SubscriptionSource.STRIPE, 500, BillingInterval.MONTH, "2026-08-03T10:00:00Z", "USD")
+        ));
+        when(stripeConnectService.status(4L)).thenReturn(new StripeConnectService.StripeStatusSnapshot(
+                "CONNECTED", true, "ok", true, true, true
+        ));
+
+        BillingDashboardService.BillingDashboard dashboard = service.snapshot(4L);
+
+        assertThat(dashboard.stats().monthlyTotals()).containsExactlyInAnyOrder(
+                new BillingDashboardService.MonthlyTotal("EUR", 990),
+                new BillingDashboardService.MonthlyTotal("USD", 500)
+        );
+        assertThat(dashboard.stats().estimatedMonthlyCents()).isZero();
+        assertThat(dashboard.stats().currency()).isNull();
+    }
+
     private static Subscription subscription(
             Long id,
             Long userId,
@@ -82,6 +108,19 @@ class BillingDashboardServiceTest {
             BillingInterval interval,
             String startedAt
     ) {
+        return subscription(id, userId, status, source, priceCents, interval, startedAt, "EUR");
+    }
+
+    private static Subscription subscription(
+            Long id,
+            Long userId,
+            SubscriptionStatus status,
+            SubscriptionSource source,
+            int priceCents,
+            BillingInterval interval,
+            String startedAt,
+            String currency
+    ) {
         User user = new User();
         user.setId(userId);
         user.setEmail("user" + userId + "@example.com");
@@ -90,7 +129,7 @@ class BillingDashboardServiceTest {
         product.setSlug("p" + id);
         product.setTitle("Product " + id);
         product.setPriceCents(priceCents);
-        product.setCurrency("EUR");
+        product.setCurrency(currency);
         product.setBillingInterval(interval);
         Subscription subscription = new Subscription();
         subscription.setId(id);
