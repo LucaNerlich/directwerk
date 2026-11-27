@@ -24,9 +24,9 @@ import org.springframework.stereotype.Component;
  *
  * <p>JNDI's {@code com.sun.jndi.dns.timeout.*} properties bound each attempt per
  * nameserver, not the whole lookup - with several configured resolvers and retries a
- * single call can block for tens of seconds. Because {@link TenantDomainService#verifyDomain}
- * runs inside a DB transaction, an overall wall-clock deadline is enforced around the
- * JNDI call so the transaction can never be held open indefinitely.
+ * single call can block for tens of seconds. An overall wall-clock deadline bounds the
+ * request latency; {@link TenantDomainService#verifyDomain} deliberately holds no
+ * transaction across this lookup.
  */
 @Component
 public class DomainDnsLookup {
