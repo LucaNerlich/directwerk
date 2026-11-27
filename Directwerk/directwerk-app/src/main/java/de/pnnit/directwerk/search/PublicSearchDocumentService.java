@@ -66,9 +66,20 @@ public class PublicSearchDocumentService {
         boolean lists = moduleGateService.isModuleActive(tenantId, FeatureModuleKeys.EMAIL_NOTIFY)
                 && directwerkConfig.isEmailEnabled();
 
-        List<SearchDocument> candidates = searchDocumentRepository
-                .findByTenant_IdOrderByTitleAscIdAsc(tenantId, PageRequest.of(0, MAX_CORPUS_DOCUMENTS))
-                .stream()
+        // The cap must spend its slots on recency and only on enabled kinds: a title-ordered
+        // limit hid new content, and rows of a deactivated module could consume the window
+        // (#1041 review).
+        java.util.List<String> kinds = new java.util.ArrayList<>();
+        if (articles) kinds.add(SearchKinds.ARTICLE);
+        if (episodes) kinds.add(SearchKinds.EPISODE);
+        if (products) kinds.add(SearchKinds.PRODUCT);
+        if (lists) kinds.add(SearchKinds.NEWSLETTER_LIST);
+        List<SearchDocument> candidates = kinds.isEmpty()
+                ? List.of()
+                : searchDocumentRepository
+                        .findByTenant_IdAndKindInOrderByIdDesc(
+                                tenantId, kinds, PageRequest.of(0, MAX_CORPUS_DOCUMENTS))
+                        .stream()
                 .filter(document -> included(document.getKind(), articles, episodes, products, lists))
                 .toList();
         Set<Long> publishedEpisodeIds = publishedEpisodeIds(tenantId, candidates);

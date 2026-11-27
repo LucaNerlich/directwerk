@@ -72,7 +72,7 @@ class PublicSearchDocumentServiceTest {
         lenient().when(moduleGateService.isModuleActive(10L, FeatureModuleKeys.SUBSCRIPTION)).thenReturn(false);
         lenient().when(moduleGateService.isModuleActive(10L, FeatureModuleKeys.EMAIL_NOTIFY)).thenReturn(true);
         lenient().when(directwerkConfig.isEmailEnabled()).thenReturn(false);
-        lenient().when(searchDocumentRepository.findByTenant_IdOrderByTitleAscIdAsc(eq(10L), any())).thenReturn(List.of(
+        lenient().when(searchDocumentRepository.findByTenant_IdAndKindInOrderByIdDesc(eq(10L), any(), any())).thenReturn(List.of(
                 document("article", 7L, "PAID", "secret body words", "public teaser", "/articles/paid"),
                 document("article", 8L, "FREE", "free body words", "free teaser", "/articles/free"),
                 document("episode", 9L, "PAID", "episode secret", "episode teaser", "/episodes/paid"),
