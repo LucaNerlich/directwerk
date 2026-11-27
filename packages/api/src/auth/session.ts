@@ -54,9 +54,18 @@ export function createAuthSession(config: AuthSessionConfig) {
 
     let refreshInFlight: Promise<string> | null = null
     let currentSessionGeneration = 0
+    // The generation guard only discards the response body; the request still applies its
+    // Set-Cookie on arrival, so logout must abort it as well (#1050).
+    let currentRefreshAbort: AbortController | null = null
+
+    function abortPendingRefresh(): void {
+        currentRefreshAbort?.abort()
+        currentRefreshAbort = null
+    }
 
     function clearTokens(): void {
         currentSessionGeneration++
+        abortPendingRefresh()
         config.store.clearTokens()
     }
 
@@ -66,10 +75,12 @@ export function createAuthSession(config: AuthSessionConfig) {
      */
     function invalidatePendingRefresh(): void {
         currentSessionGeneration++
+        abortPendingRefresh()
     }
 
     async function postRefresh(sessionGeneration: number): Promise<string> {
         const abortController = new AbortController()
+        currentRefreshAbort = abortController
         const timeoutId = setTimeout(() => abortController.abort(), timeoutMs)
 
         try {
@@ -146,6 +157,10 @@ export function createAuthSession(config: AuthSessionConfig) {
                 throw new Error(AUTH_TRANSIENT)
             }
             throw error
+        } finally {
+            if (currentRefreshAbort === abortController) {
+                currentRefreshAbort = null
+            }
         }
     }
 
