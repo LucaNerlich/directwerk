@@ -27,6 +27,20 @@ public class QueueRepository {
             created_at, updated_at
             """;
 
+    private static final String INSERT_JOB = """
+            INSERT INTO jobs(
+                queue_name, payload, priority, available_at, max_attempts,
+                tenant_id, correlation_id, metadata
+            )
+            VALUES (?, ?::jsonb, ?, COALESCE(CAST(? AS timestamptz), clock_timestamp()), ?,
+                    ?, ?, ?::jsonb)
+            """;
+
+    private static final String COALESCE_ON_QUEUED = """
+            ON CONFLICT (queue_name, correlation_id, tenant_id)
+                WHERE status = 'QUEUED' AND correlation_id IS NOT NULL
+            DO NOTHING""";
+
     private final JdbcTemplate jdbcTemplate;
     private final ObjectMapper objectMapper;
 
@@ -103,26 +117,7 @@ public class QueueRepository {
             String correlationId,
             JsonNode metadata
     ) {
-        return jdbcTemplate.query("""
-                INSERT INTO jobs(
-                    queue_name, payload, priority, available_at, max_attempts,
-                    tenant_id, correlation_id, metadata
-                )
-                VALUES (?, ?::jsonb, ?, COALESCE(CAST(? AS timestamptz), clock_timestamp()), ?,
-                        ?, ?, ?::jsonb)
-                ON CONFLICT (queue_name, correlation_id, tenant_id)
-                    WHERE status = 'QUEUED' AND correlation_id IS NOT NULL
-                DO NOTHING
-                RETURNING %s
-                """.formatted(COLUMNS), this::mapJob,
-                queue,
-                payload.toString(),
-                priority,
-                availableAt == null ? null : OffsetDateTime.ofInstant(availableAt, ZoneOffset.UTC),
-                maxAttempts,
-                tenantId,
-                correlationId,
-                metadata == null ? null : metadata.toString()).stream().findFirst();
+        return insertJob(queue, payload, priority, availableAt, maxAttempts, tenantId, correlationId, metadata, true);
     }
 
     private QueueJob insert(
@@ -135,15 +130,25 @@ public class QueueRepository {
             String correlationId,
             JsonNode metadata
     ) {
-        return jdbcTemplate.queryForObject("""
-                INSERT INTO jobs(
-                    queue_name, payload, priority, available_at, max_attempts,
-                    tenant_id, correlation_id, metadata
-                )
-                VALUES (?, ?::jsonb, ?, COALESCE(CAST(? AS timestamptz), clock_timestamp()), ?,
-                        ?, ?, ?::jsonb)
-                RETURNING %s
-                """.formatted(COLUMNS), this::mapJob,
+        return insertJob(queue, payload, priority, availableAt, maxAttempts, tenantId, correlationId, metadata, false)
+                .orElseThrow(() -> new IllegalStateException("INSERT ... RETURNING produced no job row"));
+    }
+
+    private Optional<QueueJob> insertJob(
+            String queue,
+            JsonNode payload,
+            int priority,
+            Instant availableAt,
+            int maxAttempts,
+            Long tenantId,
+            String correlationId,
+            JsonNode metadata,
+            boolean skipQueuedDuplicate
+    ) {
+        String statement = (INSERT_JOB
+                + (skipQueuedDuplicate ? "\n" + COALESCE_ON_QUEUED : "")
+                + "\nRETURNING %s").formatted(COLUMNS);
+        return jdbcTemplate.query(statement, this::mapJob,
                 queue,
                 payload.toString(),
                 priority,
@@ -151,7 +156,7 @@ public class QueueRepository {
                 maxAttempts,
                 tenantId,
                 correlationId,
-                metadata == null ? null : metadata.toString());
+                metadata == null ? null : metadata.toString()).stream().findFirst();
     }
 
     /** {@code exhausted} fails leases that expired after their last allowed attempt; {@code candidates} then claims from what's left, skipping rows locked by a concurrent claim. */
