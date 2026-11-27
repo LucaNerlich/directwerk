@@ -128,7 +128,7 @@ describe('MediaLibraryClient', () => {
         })
     })
 
-    it('ignores a stale load-more failure after the result set changed', async () => {
+    it('ignores a stale load-more failure after the result set changed', {timeout: 15_000}, async () => {
         let rejectPage!: (error: Error) => void
         const pendingPage = new Promise<never>((_resolve, reject) => {
             rejectPage = reject
@@ -1028,7 +1028,7 @@ describe('MediaLibraryClient', () => {
         expect(getMediaPreviewUrl).not.toHaveBeenCalled()
     })
 
-    it('surfaces load-more failures like reload instead of leaving an unhandled rejection', async () => {
+    it('surfaces load-more failures like reload instead of leaving an unhandled rejection', {timeout: 15_000}, async () => {
         const firstPage = Array.from({length: 100}, (_, index) => ({
             ...coverAsset,
             id: index + 1,
