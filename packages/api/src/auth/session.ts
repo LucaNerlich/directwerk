@@ -76,7 +76,7 @@ export function createAuthSession(config: AuthSessionConfig) {
             // The refresh token lives in an httpOnly cookie; the refresh route
             // reads it server-side so the credential is never exposed to
             // client JS.
-            const response = await fetch(config.refreshPath, {
+            const sendRefresh = (): Promise<Response> => fetch(config.refreshPath, {
                 method: 'POST',
                 headers: {
                     Accept: 'application/json',
@@ -86,6 +86,13 @@ export function createAuthSession(config: AuthSessionConfig) {
                 body: '{}',
                 signal: abortController.signal,
             })
+            let response = await sendRefresh()
+            if (response.status === 400 || response.status === 401) {
+                // Tabs share the refresh cookie but dedupe only per tab: two tabs refreshing at
+                // once make the loser send a rotated token. The winner's cookie is in the jar
+                // now, so retry once before declaring the session dead.
+                response = await sendRefresh()
+            }
 
             clearTimeout(timeoutId)
 
