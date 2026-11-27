@@ -97,6 +97,26 @@ class StudioWorkspaceDiscoveryServiceTest {
     }
 
     @Test
+    void discoverWorkspacesStillMatchesALegacyPasswordLongerThan72Bytes() {
+        // The policy only bounds passwords that get hashed; bcrypt verifies long legacy
+        // passwords on its truncating path (#1102 review).
+        User user = activeUser();
+        Tenant tenant = activeTenant("alpha-show-a", "Alpha Show A");
+        TenantMembership membership = editorMembership(user, tenant);
+        String legacyPassword = "x".repeat(80);
+
+        when(userRepository.findByEmailIgnoreCase("editor@example.com")).thenReturn(Optional.of(user));
+        when(passwordEncoder.matches(legacyPassword, "hash")).thenReturn(true);
+        when(tenantMembershipRepository.findActiveMembershipsByUserId(1L, MembershipStatus.ACTIVE))
+                .thenReturn(List.of(membership));
+        when(tenantDomainRepository.findVerifiedByTenantIdOrderByPrimaryDescIdAsc(10L))
+                .thenReturn(List.of(verifiedDomain(tenant, "alpha-a.localhost")));
+        when(tenantBrandingRepository.findByTenantIdIn(List.of(10L))).thenReturn(List.of());
+
+        assertThat(service.discoverWorkspaces("editor@example.com", legacyPassword)).hasSize(1);
+    }
+
+    @Test
     void discoverWorkspacesRejectsInvalidCredentials() {
         when(userRepository.findByEmailIgnoreCase("missing@example.com")).thenReturn(Optional.empty());
         when(passwordEncoder.encode(anyString())).thenReturn("dummy");

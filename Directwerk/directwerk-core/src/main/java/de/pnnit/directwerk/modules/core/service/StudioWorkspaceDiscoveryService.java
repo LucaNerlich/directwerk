@@ -13,7 +13,6 @@ import de.pnnit.directwerk.modules.core.repository.TenantDomainRepository;
 import de.pnnit.directwerk.modules.core.repository.TenantMembershipRepository;
 import de.pnnit.directwerk.modules.core.repository.UserRepository;
 import de.pnnit.directwerk.modules.core.util.EmailNormalizer;
-import de.pnnit.directwerk.modules.core.util.PasswordPolicy;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -62,8 +61,8 @@ public class StudioWorkspaceDiscoveryService {
      */
     @Transactional(readOnly = true)
     public List<StudioWorkspaceView> discoverWorkspaces(String email, String password) {
-        PasswordPolicy.validate(password);
-
+        // No policy check here: this verifies an existing credential, and bcrypt still matches
+        // legacy >72-byte hashes on the truncating check path (#1102 review).
         Optional<User> user = userRepository.findByEmailIgnoreCase(EmailNormalizer.normalize(email))
                 .filter(found -> found.getStatus() == UserStatus.ACTIVE);
 

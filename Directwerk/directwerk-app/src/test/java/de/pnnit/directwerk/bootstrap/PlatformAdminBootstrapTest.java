@@ -76,6 +76,21 @@ class PlatformAdminBootstrapTest {
     }
 
     @Test
+    void ignoresAnOverlongConfiguredPasswordWhenAnAdminAlreadyExists() throws Exception {
+        // Validation must guard the encode, not startup: an unused long env value must not
+        // fail boot on an existing installation (#1102 review).
+        DirectwerkProperties.Bootstrap config =
+                new DirectwerkProperties.Bootstrap("replacement@example.com", "x".repeat(100));
+        PlatformAdminBootstrap bootstrap =
+                new PlatformAdminBootstrap(userRepository, platformAdminRepository, passwordEncoder, config);
+        when(platformAdminRepository.count()).thenReturn(1L);
+
+        bootstrap.run(new DefaultApplicationArguments());
+
+        verify(userRepository, never()).save(any());
+    }
+
+    @Test
     void rejectsPartialBootstrapConfiguration() {
         DirectwerkProperties.Bootstrap config =
                 new DirectwerkProperties.Bootstrap("first-admin@example.com", "");
