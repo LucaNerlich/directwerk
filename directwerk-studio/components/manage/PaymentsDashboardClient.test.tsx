@@ -83,6 +83,26 @@ describe('PaymentsDashboardClient', () => {
         expect(screen.getByRole('button', {name: 'Zugang beenden'})).toBeInTheDocument()
     })
 
+    it('explains the truncated list without promising the newest rows', async () => {
+        renderWithLocale(<PaymentsDashboardClient />)
+
+        const notice = await screen.findByText(/zeigt 1 von 5 Mitgliedschaften/)
+        expect(notice).toHaveTextContent(/nach\s+Status sortiert/)
+        expect(
+            screen.getByRole('link', {name: 'Alle Mitglieder durchsuchen'}),
+        ).toHaveAttribute('href', expect.stringMatching(/manage\/subscribers$/))
+    })
+
+    it('hides the truncation notice when every membership is shown', async () => {
+        vi.mocked(getBillingDashboard).mockResolvedValue(
+            dashboard({stats: {...dashboard().stats, totalMemberships: 1}}),
+        )
+        renderWithLocale(<PaymentsDashboardClient />)
+
+        await screen.findByText('member@example.com')
+        expect(screen.queryByText(/von 1 Mitgliedschaften/)).not.toBeInTheDocument()
+    })
+
     it('revokes an active membership after confirmation', async () => {
         const canceled = dashboard({
             memberships: [membership({status: 'CANCELED'})],
