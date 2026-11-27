@@ -1,6 +1,7 @@
 package de.pnnit.directwerk.job;
 
 import de.pnnit.directwerk.modules.core.exception.ContentAccessDeniedException;
+import de.pnnit.directwerk.modules.podcast.exception.FormatNotFoundException;
 import de.pnnit.directwerk.modules.podcast.exception.SeriesNotFoundException;
 import de.pnnit.directwerk.modules.digital.exception.UploadValidationException;
 import de.pnnit.directwerk.modules.email.TransactionalEmailService;
@@ -107,7 +108,8 @@ public class RssBulkImportJobHandler implements JobHandler {
                         // Permanent per-item authorization/state failures must not abort the run
                         // and lose the summary (#1042).
                         || ex instanceof ContentAccessDeniedException
-                        || ex instanceof SeriesNotFoundException,
+                        || ex instanceof SeriesNotFoundException
+                        || ex instanceof FormatNotFoundException,
                 episode -> {
                     var result = podcastImportService.importEpisode(new PodcastImportService.ImportEpisodeCommand(
                             payload.seriesId(),
