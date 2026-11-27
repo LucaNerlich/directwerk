@@ -213,6 +213,54 @@ describe('TenantProductsPanel', () => {
         expect(screen.queryByText('ALL_PODCASTS')).not.toBeInTheDocument()
     })
 
+    it('keeps the last selected product when an older rules request resolves late', async () => {
+        const user = userEvent.setup()
+        listTenantProducts.mockResolvedValue([
+            packageProduct({id: 1, slug: 'pro', title: 'Pro'}),
+            packageProduct({id: 2, slug: 'plus', title: 'Plus'}),
+        ])
+        const first = deferred<ProductAccessRule[]>()
+        const second = deferred<ProductAccessRule[]>()
+        getTenantData.mockReturnValueOnce(first.promise).mockReturnValueOnce(second.promise)
+        render(<TenantProductsPanel sessionKey={0} tenant={viewedTenant()} />)
+
+        const editButtons = await screen.findAllByRole('button', {name: 'Edit rules'})
+        await user.click(editButtons[0])
+        await user.click(editButtons[1])
+
+        second.resolve([
+            {id: 2, productId: 2, scopeType: 'PODCAST_SERIES', scopeId: 8, effect: 'ALLOW', createdAt: ''},
+        ])
+        expect(await screen.findByText('#8')).toBeInTheDocument()
+
+        first.resolve([
+            {id: 1, productId: 1, scopeType: 'PODCAST_SERIES', scopeId: 7, effect: 'ALLOW', createdAt: ''},
+        ])
+        await waitFor(() => expect(screen.queryByText('#7')).not.toBeInTheDocument())
+        expect(screen.getByText('#8')).toBeInTheDocument()
+        expect(screen.getByText('Rules for product 2')).toBeInTheDocument()
+    })
+
+    it('shows a loading state and keeps saving disabled when the rules load fails', async () => {
+        const user = userEvent.setup()
+        let reject!: (error: Error) => void
+        const pending = new Promise<ProductAccessRule[]>((_resolve, fail) => {
+            reject = fail
+        })
+        getTenantData.mockReturnValueOnce(pending)
+        render(<TenantProductsPanel sessionKey={0} tenant={viewedTenant()} />)
+
+        await user.click(await screen.findByRole('button', {name: 'Edit rules'}))
+
+        expect(screen.getByText('Loading rules…')).toBeInTheDocument()
+        expect(screen.getByRole('button', {name: 'Save rules'})).toBeDisabled()
+
+        reject(new Error('unavailable'))
+
+        expect(await screen.findByText('Could not load rules.')).toBeInTheDocument()
+        expect(screen.getByRole('button', {name: 'Save rules'})).toBeDisabled()
+    })
+
     it('blocks the panel when the active session belongs to another tenant', async () => {
         const viewed = viewedTenant({
             name: 'Beta B',
