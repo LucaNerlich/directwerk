@@ -55,7 +55,7 @@ public class AuthRateLimitFilter extends OncePerRequestFilter {
     }
 
     private RateLimitRule resolveRule(HttpServletRequest request) {
-        String path = request.getRequestURI();
+        String path = RequestPaths.of(request);
         if ("GET".equalsIgnoreCase(request.getMethod()) && "/api/v1/public/altcha/challenge".equals(path)) {
             return new RateLimitRule("contact-challenge", contactLimitPerMinute * 3);
         }

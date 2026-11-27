@@ -184,6 +184,23 @@ class TenantMembershipGuardFilterTest {
     }
 
     @Test
+    void rejectsEncodedTenantAdminContentPathForEditor() throws Exception {
+        authenticate(1L, RoleConstants.EDITOR);
+        TenantContext.setTenantId(1L);
+        when(membershipRepository.findByUserIdAndTenantId(5L, 1L))
+                .thenReturn(Optional.of(activeMembership(Role.EDITOR)));
+
+        HttpServletRequest request = mock(HttpServletRequest.class);
+        when(request.getRequestURI()).thenReturn("/api/v1/%66ormats/1");
+        // Taxonomy writes are tenant-admin only; the decoded path must classify as such.
+        when(request.getMethod()).thenReturn("POST");
+        FilterChain chain = mock(FilterChain.class);
+
+        assertThatThrownBy(() -> filter.doFilter(request, new MockHttpServletResponse(), chain))
+                .isInstanceOf(TenantMismatchException.class);
+    }
+
+    @Test
     void allowsApiKeyOnContentPathWithoutMembershipLookup() throws Exception {
         authenticateApiKey(1L, Set.of("content:write"));
         TenantContext.setTenantId(1L);
