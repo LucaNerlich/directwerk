@@ -222,7 +222,7 @@ describe('AnalyticsDashboardClient', () => {
         listArticlesMock.mockResolvedValue([])
         listEpisodesMock.mockResolvedValue([])
         listSeriesMock.mockResolvedValue([])
-        getBillingDashboardMock.mockRejectedValue(new Error('Forbidden'))
+        getBillingDashboardMock.mockRejectedValue(Object.assign(new Error('Forbidden'), {status: 403}))
 
         renderWithLocale(
             <AnalyticsDashboardClient
@@ -238,5 +238,49 @@ describe('AnalyticsDashboardClient', () => {
                 screen.getByText('Abo-Kennzahlen sind nur für Tenant-Admins sichtbar.'),
             ).toBeInTheDocument(),
         )
+    })
+
+    it('keeps a billing failure retryable instead of blaming permissions', async () => {
+        listArticlesMock.mockResolvedValue([])
+        listEpisodesMock.mockResolvedValue([])
+        listSeriesMock.mockResolvedValue([])
+        getBillingDashboardMock
+            .mockRejectedValueOnce(Object.assign(new Error('boom'), {status: 500}))
+            .mockResolvedValue(billingDashboard())
+
+        renderWithLocale(
+            <AnalyticsDashboardClient
+                analytics={null}
+                analyticsModuleEnabled={false}
+                desks={['WRITE']}
+                subscriptionEnabled={true}
+            />,
+        )
+
+        expect(
+            await screen.findByText('Abo-Kennzahlen konnten nicht geladen werden.'),
+        ).toBeInTheDocument()
+        expect(
+            screen.queryByText('Abo-Kennzahlen sind nur für Tenant-Admins sichtbar.'),
+        ).not.toBeInTheDocument()
+        screen.getByRole('button', {name: /Erneut/}).click()
+
+        expect(await screen.findByText('Aktive Mitgliedschaften')).toBeInTheDocument()
+    })
+
+    it('loads billing for a subscription-only tenant without content desks', async () => {
+        getBillingDashboardMock.mockResolvedValue(billingDashboard())
+
+        renderWithLocale(
+            <AnalyticsDashboardClient
+                analytics={null}
+                analyticsModuleEnabled={false}
+                desks={[]}
+                subscriptionEnabled={true}
+            />,
+        )
+
+        expect(await screen.findByText('Aktive Mitgliedschaften')).toBeInTheDocument()
+        expect(getBillingDashboardMock).toHaveBeenCalled()
     })
 })
