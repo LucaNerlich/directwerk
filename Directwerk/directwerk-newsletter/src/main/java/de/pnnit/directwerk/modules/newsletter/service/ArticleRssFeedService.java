@@ -3,6 +3,7 @@ package de.pnnit.directwerk.modules.newsletter.service;
 import de.pnnit.directwerk.modules.content.PublicSurfacePolicy;
 import de.pnnit.directwerk.modules.core.entity.Tenant;
 import de.pnnit.directwerk.modules.core.service.FeedTokenProtector;
+import de.pnnit.directwerk.modules.core.util.FeedUrls;
 import de.pnnit.directwerk.modules.core.util.PublicUrlBuilder;
 import de.pnnit.directwerk.modules.newsletter.access.ArticleFeedAccess;
 import de.pnnit.directwerk.modules.newsletter.entity.Article;
@@ -23,7 +24,6 @@ public class ArticleRssFeedService {
     private final PublicArticleQueryService publicArticleQueryService;
     private final ArticleFeedAccess articleFeedAccess;
     private final ArticleRssXmlBuilder articleRssXmlBuilder;
-    private final ArticleViewDeliveryFacade articleViewDeliveryFacade;
     private final FeedTokenProtector feedTokenProtector;
 
     /**
@@ -42,8 +42,8 @@ public class ArticleRssFeedService {
                 articles,
                 originBaseUrl,
                 null,
-                article -> articleViewDeliveryFacade.publicArticleViewUrl(
-                        tenant.getId(), scheme, host, port, tenant.getSlug(), article.getSlug())
+                article -> FeedUrls.publicArticleView(
+                        originBaseUrl, tenant.getSlug(), article.getSlug())
         );
     }
 
@@ -72,14 +72,11 @@ public class ArticleRssFeedService {
                 feed.getTitle(),
                 article -> {
                     if (PublicSurfacePolicy.includesInPublicRss(article.getAccessPolicy().name())) {
-                        return articleViewDeliveryFacade.publicArticleViewUrl(
-                                tenant.getId(), scheme, host, port, tenant.getSlug(), article.getSlug());
+                        return FeedUrls.publicArticleView(
+                                originBaseUrl, tenant.getSlug(), article.getSlug());
                     }
-                    return articleViewDeliveryFacade.privateArticleViewUrl(
-                            tenant.getId(),
-                            scheme,
-                            host,
-                            port,
+                    return FeedUrls.privateArticleView(
+                            originBaseUrl,
                             tenant.getSlug(),
                             feedToken,
                             article.getSlug());

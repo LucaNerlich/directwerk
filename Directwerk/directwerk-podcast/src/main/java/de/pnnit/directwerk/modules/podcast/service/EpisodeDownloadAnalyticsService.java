@@ -32,15 +32,10 @@ public class EpisodeDownloadAnalyticsService {
     );
 
     private final TenantEventTracker tenantEventTracker;
-    private final EpisodeEnclosureService episodeEnclosureService;
 
     @Autowired
-    public EpisodeDownloadAnalyticsService(
-            TenantEventTracker tenantEventTracker,
-            EpisodeEnclosureService episodeEnclosureService
-    ) {
+    public EpisodeDownloadAnalyticsService(TenantEventTracker tenantEventTracker) {
         this.tenantEventTracker = tenantEventTracker;
-        this.episodeEnclosureService = episodeEnclosureService;
     }
 
     @Transactional(readOnly = true)
@@ -102,34 +97,4 @@ public class EpisodeDownloadAnalyticsService {
         return value.length() > 200 ? value.substring(0, 200) : value;
     }
 
-    public String publicRssEnclosureUrl(
-            Long tenantId,
-            String scheme,
-            String hostname,
-            int port,
-            String tenantSlug,
-            String episodeSlug
-    ) {
-        return episodeEnclosureService.publicEnclosureUrl(tenantId, scheme, hostname, port, tenantSlug, episodeSlug);
-    }
-
-    public String privateRssEnclosureUrl(
-            Long tenantId,
-            String scheme,
-            String hostname,
-            int port,
-            String tenantSlug,
-            String feedToken,
-            String episodeSlug
-    ) {
-        return episodeEnclosureService.privateEnclosureUrl(
-                tenantId,
-                scheme,
-                hostname,
-                port,
-                tenantSlug,
-                feedToken,
-                episodeSlug
-        );
-    }
 }

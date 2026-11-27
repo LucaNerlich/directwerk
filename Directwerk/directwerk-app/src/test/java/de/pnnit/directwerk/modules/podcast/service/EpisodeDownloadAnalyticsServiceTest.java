@@ -38,9 +38,6 @@ class EpisodeDownloadAnalyticsServiceTest {
     @Mock
     private UmamiEventClient umamiEventClient;
 
-    @Mock
-    private EpisodeEnclosureService episodeEnclosureService;
-
     @Test
     void skipsWhenAnalyticsModuleIsNotEnabled() {
         EpisodeDownloadAnalyticsService service = service(true);
@@ -187,29 +184,6 @@ class EpisodeDownloadAnalyticsServiceTest {
         );
     }
 
-    @Test
-    void publicRssEnclosureUrlDelegatesSchemeHostPortToEpisodeEnclosureService() {
-        EpisodeDownloadAnalyticsService service = service(true);
-        when(episodeEnclosureService.publicEnclosureUrl(10L, "http", "alpha.example.test", 8080, "alpha", "episode-1"))
-                .thenReturn("http://alpha.example.test:8080/feeds/alpha/e/episode-1.mp3");
-
-        String url = service.publicRssEnclosureUrl(10L, "http", "alpha.example.test", 8080, "alpha", "episode-1");
-
-        assertThat(url).isEqualTo("http://alpha.example.test:8080/feeds/alpha/e/episode-1.mp3");
-    }
-
-    @Test
-    void privateRssEnclosureUrlDelegatesSchemeHostPortToEpisodeEnclosureService() {
-        EpisodeDownloadAnalyticsService service = service(true);
-        when(episodeEnclosureService.privateEnclosureUrl(
-                10L, "http", "alpha.example.test", 8080, "alpha", "tok", "episode-1"))
-                .thenReturn("http://alpha.example.test:8080/feeds/alpha/u/tok/e/episode-1.mp3");
-
-        String url = service.privateRssEnclosureUrl(10L, "http", "alpha.example.test", 8080, "alpha", "tok", "episode-1");
-
-        assertThat(url).isEqualTo("http://alpha.example.test:8080/feeds/alpha/u/tok/e/episode-1.mp3");
-    }
-
     private EpisodeDownloadAnalyticsService service(boolean analyticsEnabled) {
         // #385: the tracker is wired here (as production does) instead of via a test-only
         // constructor on the service.
@@ -231,8 +205,7 @@ class EpisodeDownloadAnalyticsServiceTest {
                 )),
                 moduleGateService,
                 tenantBrandingService,
-                umamiEventClient),
-                episodeEnclosureService
+                umamiEventClient)
         );
     }
 

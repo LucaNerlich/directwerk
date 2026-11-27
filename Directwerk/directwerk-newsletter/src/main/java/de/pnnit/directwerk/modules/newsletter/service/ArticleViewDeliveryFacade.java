@@ -2,7 +2,6 @@ package de.pnnit.directwerk.modules.newsletter.service;
 
 import de.pnnit.directwerk.modules.content.PublicSurfacePolicy;
 import de.pnnit.directwerk.modules.core.service.TenantPublicHostResolver;
-import de.pnnit.directwerk.modules.core.util.FeedUrls;
 import de.pnnit.directwerk.modules.core.util.PublicUrlBuilder;
 import de.pnnit.directwerk.modules.newsletter.access.ArticleFeedAccess;
 import de.pnnit.directwerk.modules.newsletter.entity.Article;
@@ -92,50 +91,6 @@ public class ArticleViewDeliveryFacade {
         articleViewAnalyticsService.trackArticleView(
                 tenantId, article, "private-rss", requestHost, clientUserAgent, clientIp);
         return redirect(article, tenantId, scheme, requestHost, port);
-    }
-
-    @Transactional(readOnly = true)
-    public String publicArticleViewUrl(
-            Long tenantId,
-            String scheme,
-            String requestedHostname,
-            int port,
-            String tenantSlug,
-            String articleSlug
-    ) {
-        String host = tenantPublicHostResolver.resolve(
-                tenantId,
-                requestedHostname,
-                TenantPublicHostResolver.HostPolicy.TRUST_REQUEST
-        );
-        return FeedUrls.publicArticleView(
-                PublicUrlBuilder.baseUrl(scheme, host, port),
-                tenantSlug,
-                articleSlug
-        );
-    }
-
-    @Transactional(readOnly = true)
-    public String privateArticleViewUrl(
-            Long tenantId,
-            String scheme,
-            String requestedHostname,
-            int port,
-            String tenantSlug,
-            String feedToken,
-            String articleSlug
-    ) {
-        String host = tenantPublicHostResolver.resolve(
-                tenantId,
-                requestedHostname,
-                TenantPublicHostResolver.HostPolicy.TRUST_REQUEST
-        );
-        return FeedUrls.privateArticleView(
-                PublicUrlBuilder.baseUrl(scheme, host, port),
-                tenantSlug,
-                feedToken,
-                articleSlug
-        );
     }
 
     private TrackedArticleRedirect redirect(

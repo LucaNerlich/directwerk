@@ -6,7 +6,6 @@ import static org.mockito.Mockito.when;
 
 import de.pnnit.directwerk.modules.core.entity.Tenant;
 import de.pnnit.directwerk.modules.core.entity.User;
-import de.pnnit.directwerk.modules.core.service.TenantPublicHostResolver;
 import de.pnnit.directwerk.modules.digital.api.EpisodeMediaApi;
 import de.pnnit.directwerk.modules.digital.entity.AccessPolicy;
 import de.pnnit.directwerk.modules.digital.entity.AssetScope;
@@ -48,9 +47,6 @@ class EpisodeEnclosureServiceTest {
 
     @Mock
     private SubscriberFeedAccess subscriberFeedAccess;
-
-    @Mock
-    private TenantPublicHostResolver tenantPublicHostResolver;
 
     @InjectMocks
     private EpisodeEnclosureService service;
@@ -138,58 +134,6 @@ class EpisodeEnclosureServiceTest {
 
         assertThatThrownBy(() -> service.resolvePrivateRedirect(feed, "episode-2"))
                 .isInstanceOf(EpisodeNotFoundException.class);
-    }
-
-    @Test
-    void publicEnclosureUrlUsesAllowListedVerifiedHost() {
-        when(tenantPublicHostResolver.resolve(
-                10L,
-                "Alpha.Example.Test",
-                TenantPublicHostResolver.HostPolicy.TRUST_REQUEST
-        )).thenReturn("alpha.example.test");
-
-        String url = service.publicEnclosureUrl(10L, "https", "Alpha.Example.Test", 443, "alpha", "episode-1");
-
-        assertThat(url).isEqualTo("https://alpha.example.test/feeds/alpha/e/episode-1.mp3");
-    }
-
-    @Test
-    void publicEnclosureUrlFallsBackToPrimaryVerifiedHostWhenRequestedHostUntrusted() {
-        when(tenantPublicHostResolver.resolve(
-                10L,
-                "evil.example.test",
-                TenantPublicHostResolver.HostPolicy.TRUST_REQUEST
-        )).thenReturn("primary.example.test");
-
-        String url = service.publicEnclosureUrl(10L, "https", "evil.example.test", 443, "alpha", "episode-1");
-
-        assertThat(url).isEqualTo("https://primary.example.test/feeds/alpha/e/episode-1.mp3");
-    }
-
-    @Test
-    void publicEnclosureUrlKeepsNonDefaultPortFromRequest() {
-        when(tenantPublicHostResolver.resolve(
-                10L,
-                "alpha.example.test",
-                TenantPublicHostResolver.HostPolicy.TRUST_REQUEST
-        )).thenReturn("alpha.example.test");
-
-        String url = service.publicEnclosureUrl(10L, "http", "alpha.example.test", 8080, "alpha", "episode-1");
-
-        assertThat(url).isEqualTo("http://alpha.example.test:8080/feeds/alpha/e/episode-1.mp3");
-    }
-
-    @Test
-    void privateEnclosureUrlKeepsNonDefaultPortFromRequest() {
-        when(tenantPublicHostResolver.resolve(
-                10L,
-                "alpha.example.test",
-                TenantPublicHostResolver.HostPolicy.TRUST_REQUEST
-        )).thenReturn("alpha.example.test");
-
-        String url = service.privateEnclosureUrl(10L, "http", "alpha.example.test", 8080, "alpha", "tok", "episode-1");
-
-        assertThat(url).isEqualTo("http://alpha.example.test:8080/feeds/alpha/u/tok/e/episode-1.mp3");
     }
 
     private static SubscriberFeed feed() {
