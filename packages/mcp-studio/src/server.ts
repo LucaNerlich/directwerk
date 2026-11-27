@@ -294,10 +294,12 @@ export function createMcpServer(
     })
 
     // --- Episodes ---
-    server.tool('list_episodes', 'List episodes for the tenant', {
+    server.tool('list_episodes', 'List episodes for the tenant (optional series scope, title/slug search and sort)', {
         limit: optionalLimit,
         offset: optionalOffset,
         sort: optionalSort,
+        seriesId: idSchema.optional(),
+        q: z.string().max(200).optional(),
     }, async (args) => {
         try {
             return toolResult(await api('GET', 'api/v1/episodes', undefined, args))
@@ -330,6 +332,10 @@ export function createMcpServer(
         episodeNumber: z.coerce.number().int().optional(),
         requiredLevelSortOrder: z.coerce.number().int().optional(),
         coverAssetId: idSchema.optional(),
+        audioAssetId: idSchema.optional(),
+        durationSeconds: z.coerce.number().int().min(1).optional(),
+        formatIds: z.array(idSchema).optional(),
+        categoryIds: z.array(idSchema).optional(),
     }, async (args) => {
         try {
             return toolResult(await api('POST', 'api/v1/episodes', args))
@@ -350,9 +356,11 @@ export function createMcpServer(
             ),
         accessPolicy: z.enum(['FREE', 'PAID']).optional(),
         episodeNumber: z.coerce.number().int().optional(),
+        clearEpisodeNumber: z.boolean().optional(),
         requiredLevelSortOrder: z.coerce.number().int().optional(),
         coverAssetId: idSchema.optional(),
         clearCoverAsset: z.boolean().optional(),
+        durationSeconds: z.coerce.number().int().min(1).optional(),
     }, async ({episodeId, ...body}) => {
         try {
             return toolResult(await api('PUT', `api/v1/episodes/${episodeId}`, body))
@@ -538,6 +546,48 @@ export function createMcpServer(
         } catch (error) {
             return toolError(error)
         }
+    })
+
+    server.tool('bulk_set_episode_categories', 'Replace categories on up to 100 episodes; dryRun only reports the scope', {
+        episodeIds: z.array(idSchema).min(1).max(100),
+        categoryIds: z.array(idSchema),
+        dryRun: z.boolean().optional(),
+    }, async ({episodeIds, categoryIds, dryRun}) => {
+        if (dryRun) {
+            return toolResult({dryRun: true, episodes: episodeIds.length, categoryIds})
+        }
+        let ok = 0
+        const failed: number[] = []
+        for (const episodeId of episodeIds) {
+            try {
+                await api('PUT', `api/v1/episodes/${episodeId}/categories`, {categoryIds})
+                ok++
+            } catch {
+                failed.push(episodeId)
+            }
+        }
+        return toolResult({updated: ok, failed})
+    })
+
+    server.tool('bulk_set_episode_formats', 'Replace formats on up to 100 episodes; dryRun only reports the scope', {
+        episodeIds: z.array(idSchema).min(1).max(100),
+        formatIds: z.array(idSchema),
+        dryRun: z.boolean().optional(),
+    }, async ({episodeIds, formatIds, dryRun}) => {
+        if (dryRun) {
+            return toolResult({dryRun: true, episodes: episodeIds.length, formatIds})
+        }
+        let ok = 0
+        const failed: number[] = []
+        for (const episodeId of episodeIds) {
+            try {
+                await api('PUT', `api/v1/episodes/${episodeId}/formats`, {formatIds})
+                ok++
+            } catch {
+                failed.push(episodeId)
+            }
+        }
+        return toolResult({updated: ok, failed})
     })
 
     // --- Series ---
@@ -929,6 +979,7 @@ export function createMcpServer(
                 series: {slug: string},
                 items: Array<{
                     n: number
+                    episodeNumber?: number
                     slug: string
                     title: string
                     description?: string
@@ -1023,7 +1074,7 @@ export function createMcpServer(
                             title: item.title,
                             description: item.description,
                             accessPolicy,
-                            episodeNumber: item.n,
+                            episodeNumber: item.episodeNumber,
                             coverAssetId,
                         }))
                         if (episode && !episode.audioAssetId && audioAssetId) {

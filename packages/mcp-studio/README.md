@@ -135,6 +135,7 @@ Manifest schema (JSON on disk, paths absolute):
   "items": [
     {
       "n": 1,
+      "episodeNumber": 12,
       "slug": "episode-slug",
       "title": "Episode title",
       "description": "Full show notes (HTML preferred, CommonMark OK)",
@@ -147,6 +148,9 @@ Manifest schema (JSON on disk, paths absolute):
 ```
 
 Tool arguments: `manifestPath` (required), `formatIds` (format to attach when an episode has none - publishing fails with `EPISODE_VALIDATION_FAILED: At least one format is required` otherwise), `limit`/`offset`/`onlyNumbers` for chunked, resumable runs.
+
+`n` only orders the run and selects chunks; it is **not** written to the episode. Set
+`episodeNumber` when the show uses numbers, or omit it to leave the field empty.
 
 Backend constraints that shape the flow:
 
