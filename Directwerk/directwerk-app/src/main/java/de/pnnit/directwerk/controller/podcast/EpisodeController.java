@@ -22,6 +22,7 @@ import de.pnnit.directwerk.modules.podcast.service.PublicationWorkflowService;
 import de.pnnit.directwerk.multitenancy.TenantContext;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
@@ -396,6 +397,7 @@ public class EpisodeController {
             AccessPolicy accessPolicy,
             @Min(0) Integer requiredLevelSortOrder,
             Boolean clearCoverAsset,
+            @Schema(description = "Remove the episode number; takes precedence over episodeNumber")
             Boolean clearEpisodeNumber
     ) {
     }

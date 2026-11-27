@@ -148,6 +148,16 @@ class EpisodeServiceTest {
     }
 
     @Test
+    void listEpisodesNormalisesBlankSearchToNoFilter() {
+        when(episodeRepository.searchIdsByTenantId(eq(TENANT_ID), isNull(), isNull(), any(Pageable.class)))
+                .thenReturn(List.of());
+
+        episodeService.listEpisodes(TENANT_ID, null, "   ", 100, 0, PublicationSort.CREATED);
+
+        verify(episodeRepository).searchIdsByTenantId(eq(TENANT_ID), isNull(), isNull(), any(Pageable.class));
+    }
+
+    @Test
     void deletePublishedEpisodeDeletesAndRequestsFeedRefresh() {
         Episode published = episode(EpisodeStatus.PUBLISHED);
         when(episodeRepository.findByIdAndTenantId(EPISODE_ID, TENANT_ID)).thenReturn(Optional.of(published));

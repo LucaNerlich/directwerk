@@ -125,6 +125,13 @@ class EpisodeControllerTest {
     }
 
     @Test
+    @WithMockUser(roles = "EDITOR")
+    void listRejectsAnOverlongSearchTermAs400() throws Exception {
+        mockMvc.perform(get("/api/v1/episodes").param("q", "x".repeat(201)))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
     @WithMockUser(roles = "TENANT_ADMIN")
     void deleteEpisodeReturnsNotFoundForForeignTenantItem() throws Exception {
         doThrow(new EpisodeNotFoundException(7L)).when(episodeService).deleteEpisode(10L, 7L);
