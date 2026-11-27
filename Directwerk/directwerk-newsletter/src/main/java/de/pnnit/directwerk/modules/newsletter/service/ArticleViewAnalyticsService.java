@@ -1,10 +1,6 @@
 package de.pnnit.directwerk.modules.newsletter.service;
 
-import de.pnnit.directwerk.config.DirectwerkConfig;
 import de.pnnit.directwerk.modules.core.analytics.TenantEventTracker;
-import de.pnnit.directwerk.modules.core.analytics.UmamiEventClient;
-import de.pnnit.directwerk.modules.core.service.ModuleGateService;
-import de.pnnit.directwerk.modules.core.service.TenantBrandingService;
 import de.pnnit.directwerk.modules.newsletter.entity.Article;
 import java.util.Map;
 import java.util.Set;
@@ -38,20 +34,6 @@ public class ArticleViewAnalyticsService {
     @Autowired
     public ArticleViewAnalyticsService(TenantEventTracker tenantEventTracker) {
         this.tenantEventTracker = tenantEventTracker;
-    }
-
-    /**
-     * Retained for direct instantiation by same-package unit tests; production wiring injects the
-     * shared {@link TenantEventTracker} bean instead.
-     */
-    ArticleViewAnalyticsService(
-            DirectwerkConfig directwerkConfig,
-            ModuleGateService moduleGateService,
-            TenantBrandingService tenantBrandingService,
-            UmamiEventClient umamiEventClient
-    ) {
-        this.tenantEventTracker = new TenantEventTracker(
-                directwerkConfig, moduleGateService, tenantBrandingService, umamiEventClient);
     }
 
     @Transactional(readOnly = true)

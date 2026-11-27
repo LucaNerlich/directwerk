@@ -8,6 +8,7 @@ import static org.mockito.Mockito.when;
 import de.pnnit.directwerk.config.DirectwerkConfig;
 import de.pnnit.directwerk.config.DirectwerkProperties;
 import de.pnnit.directwerk.modules.core.AnalyticsModule;
+import de.pnnit.directwerk.modules.core.analytics.TenantEventTracker;
 import de.pnnit.directwerk.modules.core.analytics.UmamiEventClient;
 import de.pnnit.directwerk.modules.core.entity.Tenant;
 import de.pnnit.directwerk.modules.core.entity.TenantBranding;
@@ -171,7 +172,7 @@ class ArticleViewAnalyticsServiceTest {
     }
 
     private ArticleViewAnalyticsService service(boolean analyticsEnabled) {
-        return new ArticleViewAnalyticsService(
+        return new ArticleViewAnalyticsService(new TenantEventTracker(
                 new DirectwerkConfig(new DirectwerkProperties(
                         null,
                         null,
@@ -190,7 +191,7 @@ class ArticleViewAnalyticsServiceTest {
                 moduleGateService,
                 tenantBrandingService,
                 umamiEventClient
-        );
+        ));
     }
 
     private static Article article() {
