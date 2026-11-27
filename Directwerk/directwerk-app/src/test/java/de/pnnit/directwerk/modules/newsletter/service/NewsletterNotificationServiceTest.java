@@ -176,7 +176,7 @@ class NewsletterNotificationServiceTest {
     }
 
     @Test
-    void nullEnqueueLeavesNoNewsletterMarker() {
+    void nullEnqueueThrowsAfterClaiming() {
         Article article = new Article();
         article.getNewsletterLists().add(newsletterList(1L, NewsletterListStatus.ACTIVE));
         when(articleRepository.findByIdAndTenantId(ARTICLE_ID, TENANT_ID)).thenReturn(Optional.of(article));
