@@ -44,10 +44,6 @@ public class PublicContentUrlResolver {
         return appendQuery(buildAbsoluteUrl(tenantId, PublicContentPaths.newsletterUnsubscribe()), "token", rawToken);
     }
 
-    public String newsletterSubscribeUrl(Long tenantId, String listSlug) {
-        return buildAbsoluteUrl(tenantId, PublicContentPaths.newsletterSubscribe(listSlug));
-    }
-
     public String buildAbsoluteUrl(Long tenantId, String path) {
         return tenantPublicHostResolver.findPrimaryVerifiedHost(tenantId)
                 .map(host -> PublicUrlBuilder.publicOrigin(host) + path)

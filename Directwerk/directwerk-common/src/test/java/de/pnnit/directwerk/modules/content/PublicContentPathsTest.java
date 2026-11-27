@@ -24,8 +24,6 @@ class PublicContentPathsTest {
                 .isEqualTo("/" + PublicContentPaths.DEFAULT_LOCALE + "/newsletter/confirm");
         assertThat(PublicContentPaths.newsletterUnsubscribe())
                 .isEqualTo("/" + PublicContentPaths.DEFAULT_LOCALE + "/newsletter/unsubscribe");
-        assertThat(PublicContentPaths.newsletterSubscribe("weekly"))
-                .isEqualTo("/" + PublicContentPaths.DEFAULT_LOCALE + "/newsletter/weekly");
     }
 
     @Test
