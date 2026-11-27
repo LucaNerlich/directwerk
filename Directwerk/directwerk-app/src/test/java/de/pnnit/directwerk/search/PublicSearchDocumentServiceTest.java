@@ -72,7 +72,9 @@ class PublicSearchDocumentServiceTest {
         lenient().when(moduleGateService.isModuleActive(10L, FeatureModuleKeys.SUBSCRIPTION)).thenReturn(false);
         lenient().when(moduleGateService.isModuleActive(10L, FeatureModuleKeys.EMAIL_NOTIFY)).thenReturn(true);
         lenient().when(directwerkConfig.isEmailEnabled()).thenReturn(false);
-        lenient().when(searchDocumentRepository.findByTenant_IdAndKindInOrderByIdDesc(eq(10L), any(), any())).thenReturn(List.of(
+        lenient().when(searchDocumentRepository.findByTenant_IdAndKindInOrderByIdDesc(
+                eq(10L), any(), eq(org.springframework.data.domain.PageRequest.of(
+                        0, PublicSearchDocumentService.MAX_CORPUS_DOCUMENTS)))).thenReturn(List.of(
                 document("article", 7L, "PAID", "secret body words", "public teaser", "/articles/paid"),
                 document("article", 8L, "FREE", "free body words", "free teaser", "/articles/free"),
                 document("episode", 9L, "PAID", "episode secret", "episode teaser", "/episodes/paid"),
@@ -81,6 +83,22 @@ class PublicSearchDocumentServiceTest {
         ));
         lenient().when(articleRepository.findByTenantIdAndIdIn(eq(10L), any())).thenReturn(List.of(paidArticle()));
         lenient().when(episodeRepository.findByTenantIdAndIdIn(eq(10L), any())).thenReturn(List.of(paidEpisode()));
+    }
+
+    @Test
+    void clipsLongPlainTextForTheAnonymousCorpus() {
+        String longText = "a".repeat(PublicSearchDocumentService.MAX_PLAIN_TEXT_CHARS + 500);
+        when(searchDocumentRepository.findByTenant_IdAndKindInOrderByIdDesc(
+                eq(10L), any(), org.mockito.ArgumentMatchers.any())).thenReturn(List.of(
+                document("article", 8L, "FREE", longText, "teaser", "/articles/free")));
+
+        String plainText = service.list(10L).stream()
+                .filter(view -> "/articles/free".equals(view.hrefPath()))
+                .findFirst()
+                .orElseThrow()
+                .plainText();
+
+        assertThat(plainText).hasSize(PublicSearchDocumentService.MAX_PLAIN_TEXT_CHARS);
     }
 
     @Test

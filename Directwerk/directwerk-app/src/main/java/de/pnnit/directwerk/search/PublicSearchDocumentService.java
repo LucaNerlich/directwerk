@@ -32,6 +32,9 @@ public class PublicSearchDocumentService {
     /** Upper bound on the client-side search corpus per tenant. */
     static final int MAX_CORPUS_DOCUMENTS = 1_000;
 
+    /** Search-sized body window; the full archive text made the capped corpus multi-MB. */
+    static final int MAX_PLAIN_TEXT_CHARS = 2_000;
+
     private final SearchDocumentRepository searchDocumentRepository;
     private final ArticleRepository articleRepository;
     private final EpisodeRepository episodeRepository;
@@ -217,10 +220,21 @@ public class PublicSearchDocumentService {
                 document.getTitle(),
                 document.getSlug(),
                 excerpt,
-                open ? stored : "",
+                open ? clip(stored) : "",
                 document.getHrefPath(),
                 document.getAccess()
         );
+    }
+
+    private static String clip(String text) {
+        if (text.length() <= MAX_PLAIN_TEXT_CHARS) {
+            return text;
+        }
+        int end = MAX_PLAIN_TEXT_CHARS;
+        if (Character.isHighSurrogate(text.charAt(end - 1))) {
+            end--;
+        }
+        return text.substring(0, end);
     }
 
     private static boolean canOpen(
