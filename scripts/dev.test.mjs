@@ -1,6 +1,10 @@
 import assert from 'node:assert/strict'
-import {existsSync, readFileSync} from 'node:fs'
+import {execFileSync} from 'node:child_process'
+import {chmodSync, existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync} from 'node:fs'
+import {tmpdir} from 'node:os'
+import path from 'node:path'
 import test from 'node:test'
+import {fileURLToPath} from 'node:url'
 
 // Issue #573: the tmux launchers listed a deleted example-fe window and kept the app list
 // duplicated across several scripts.
@@ -45,4 +49,58 @@ test('every file the Docker copy lists exists at the repo root', () => {
             )
         }
     }
+})
+
+const repoRoot = fileURLToPath(new URL('..', import.meta.url))
+
+function runCircularCheck(pnpmScript) {
+    const binDir = mkdtempSync(path.join(tmpdir(), 'dw-fake-pnpm-'))
+    const pnpmBin = path.join(binDir, 'pnpm')
+    writeFileSync(pnpmBin, pnpmScript)
+    chmodSync(pnpmBin, 0o755)
+    try {
+        return {
+            status: 0,
+            stdout: execFileSync(process.execPath, ['scripts/check-circular-deps.mjs'], {
+                cwd: repoRoot,
+                env: {...process.env, PATH: `${binDir}:${process.env.PATH}`},
+                encoding: 'utf8',
+                stdio: 'pipe',
+            }),
+        }
+    } catch (error) {
+        return {
+            status: error.status,
+            stdout: String(error.stdout ?? ''),
+            stderr: String(error.stderr ?? ''),
+        }
+    } finally {
+        rmSync(binDir, {recursive: true, force: true})
+    }
+}
+
+test('reports a cycle as a cycle, not a tool failure (#1084)', () => {
+    const result = runCircularCheck('#!/bin/sh\necho "Found 1 circular dependency"\nexit 1\n')
+
+    assert.equal(result.status, 1)
+    assert.match(result.stderr, /Circular dependencies detected/)
+    assert.doesNotMatch(result.stderr, /tool failure/)
+})
+
+test('reports a broken madge run as a tool failure (#1084)', () => {
+    const result = runCircularCheck('#!/bin/sh\necho "madge: not found" >&2\nexit 127\n')
+
+    assert.equal(result.status, 2)
+    assert.match(result.stderr, /tool failure/)
+    assert.doesNotMatch(result.stderr, /Circular dependencies detected/)
+})
+
+test('reports both when a cycle and a tool failure occur in one run (#1084)', () => {
+    const result = runCircularCheck(
+        '#!/bin/sh\nif [ -f "${0}.seen" ]; then echo "madge: not found" >&2; exit 127; fi\ntouch "${0}.seen"\necho "Found 1 circular dependency"\nexit 1\n',
+    )
+
+    assert.equal(result.status, 2)
+    assert.match(result.stderr, /Circular dependencies detected/)
+    assert.match(result.stderr, /tool failure/)
 })

@@ -117,14 +117,18 @@ if (gradleCycle) {
     console.log(`✔ No circular Gradle module dependencies (${moduleDeps.size} modules).`)
 }
 
+// Report both findings: a mixed run must not hide the part that was never audited.
 if (failed) {
     console.error('\nCircular dependencies detected.')
-    process.exit(1)
 }
 
 if (toolFailed) {
     console.error('\nCircular-dependency check could not run (tool failure, not a cycle).')
     process.exit(2)
+}
+
+if (failed) {
+    process.exit(1)
 }
 
 console.log('\nNo circular dependencies in cleanup scope.')
