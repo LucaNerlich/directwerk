@@ -41,7 +41,7 @@ async function resolveTenantSeo(lang: Locale): Promise<{
     config: PublicSiteConfig | null
 }> {
     const dictionary = await getDictionary(lang)
-    const host = await getTenantHost()
+    const host = await getTenantHost().catch(() => null)
     try {
         if (host === null) {
             throw new Error('Tenant host unresolved')
@@ -180,7 +180,7 @@ export default async function LangLayout({
     const dictionary = await getDictionary(lang)
 
     let config: PublicSiteConfig
-    const host = await getTenantHost()
+    const host = await getTenantHost().catch(() => null)
     let origin = resolveTenantOrigin(host)
     try {
         if (host === null) {
