@@ -1,3 +1,4 @@
+import {AUTH_TRANSIENT} from '../constants'
 import type {ErrorMessageCatalog} from '../envelope'
 import {extractApiErrorMessage, withApiErrorContext} from '../envelope'
 
@@ -117,6 +118,12 @@ export function createAuthedRequest(config: AuthedRequestConfig): AuthedRequestF
             await config.session.refreshAccessToken()
         } catch (error: unknown) {
             if (config.authFailureMode === 'auth-required') {
+                // Only a definitive auth failure may clear the session: a transient refresh
+                // failure (or an aborted pending refresh) must not wipe the tokens a login just
+                // stored (#1141 review).
+                if (error instanceof Error && error.message === AUTH_TRANSIENT) {
+                    throw new Error(config.transientMessage ?? invalidResponseMessage)
+                }
                 config.clearTokens()
                 throw new Error('AUTH_REQUIRED')
             }
