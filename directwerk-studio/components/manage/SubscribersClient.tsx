@@ -119,7 +119,7 @@ export default function SubscribersClient(): React.JSX.Element {
     async function handleRevoke(item: TenantSubscriberSubscription, email: string): Promise<void> {
         if (!armRevoke(item.id)) {
             setStatusMessage(
-                item.source === 'STRIPE'
+                item.externalSubscriptionId !== null
                     ? 'Nochmal bestätigen: das Stripe-Abo wird gekündigt.'
                     : 'Nochmal bestätigen: der Zugang entfällt sofort.',
             )

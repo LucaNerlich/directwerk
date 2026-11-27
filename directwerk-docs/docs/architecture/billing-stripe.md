@@ -83,7 +83,7 @@ See [`content-subscriptions-and-entitlements.md`](/operators/subscriptions-and-e
 | Checkout | `MeBillingController` → `StripeCheckoutService` | `MONTH`/`YEAR`/`ONE_TIME`; `allow_promotion_codes=true`; concurrent customer-create race handled |
 | Portal | `POST /api/v1/me/billing/portal` | Customer Portal on connected account |
 | Webhooks | `StripeWebhookController` + `StripeWebhookService` + `stripe-webhook` queue | Signature verify at ingress; async apply via `StripeWebhookJobHandler` when queue enabled; `processed_webhook_events` idempotency |
-| Revoke | `TenantSubscriptionController` | Local cancel + Stripe cancel for `source=STRIPE`; 502 `STRIPE_REQUEST_FAILED` if Stripe cancel fails |
+| Revoke | `TenantSubscriptionController` | Local cancel + Stripe cancel whenever the row has a recorded external subscription id (incl. a rebound `MANUAL` row); 502 `STRIPE_REQUEST_FAILED` if Stripe cancel fails |
 | Dashboard | `GET /api/v1/tenant/billing/dashboard` | Studio **Abos → Zahlungen** stats + filters |
 | Rate limits | `BillingRateLimitFilter` | Per IP + per authenticated user on `/me/billing/*` |
 | Studio / web | `/settings/stripe`, `/pricing`, `/account` | Live redirects; **501** only when platform `STRIPE_*` keys absent |
@@ -352,7 +352,7 @@ Local tooling: Stripe CLI forward to `localhost:8080/api/v1/webhooks/stripe`, te
 2. **Checkout body:** keep `productSlug`; optional `successUrl` / `cancelUrl`. Missing URLs are derived from the tenant primary domain (`/checkout/success`, `/checkout/cancel`). Hosts must be a tenant domain, the studio base URL, or loopback.
 3. **Price changes:** local amount/interval/currency change clears `stripe_price_id`; next sync or checkout creates a new Stripe Price and updates the pointer.
 4. **Failed payment:** `invoice.payment_failed` → `PAST_DUE`. Entitlements stay **ACTIVE-only**, so PAST_DUE cuts access (fail-secure).
-5. **Cancel MANUAL vs Stripe:** TENANT_ADMIN revoke marks the row `CANCELED`. For `source=STRIPE` with an external id, the API also cancels the Stripe subscription when keys and a Connect account exist. If Stripe cancel fails, the local revoke is not applied (`STRIPE_REQUEST_FAILED`).
+5. **Cancel MANUAL vs Stripe:** TENANT_ADMIN revoke marks the row `CANCELED`. Whenever the row has a recorded external subscription id — `source=STRIPE` or a `MANUAL` row rebound to a live subscription — the API also cancels the Stripe subscription when keys and a Connect account exist. If Stripe cancel fails, the local revoke is not applied (`STRIPE_REQUEST_FAILED`).
 6. **Promo MVP:** Checkout sets `allow_promotion_codes=true`. Codes are created in the Stripe Dashboard, not in studio.
 7. **One-time entitlement:** `billing_interval=ONE_TIME` uses Checkout `mode=payment` and a permanent grant (`endsAt=null`).
 8. **Default private feed:** first ACTIVE Stripe membership publishes `StripeMembershipActivatedEvent`; the app listener calls `ensureDefaultFeed`.

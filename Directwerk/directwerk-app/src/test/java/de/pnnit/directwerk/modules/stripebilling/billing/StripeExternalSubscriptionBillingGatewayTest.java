@@ -94,4 +94,20 @@ class StripeExternalSubscriptionBillingGatewayTest {
 
         verify(stripeOperations, never()).cancelSubscription(any(), any());
     }
+
+    @Test
+    void manualGrantWithRecordedSubscriptionCancelsAtStripe() {
+        Subscription manual = new Subscription();
+        manual.setSource(SubscriptionSource.MANUAL);
+        manual.setStatus(SubscriptionStatus.ACTIVE);
+        manual.setExternalSubscriptionId("sub_recorded");
+        TenantStripeAccount account = new TenantStripeAccount();
+        account.setStripeAccountId("acct_1");
+        when(stripeOperations.isConfigured()).thenReturn(true);
+        when(stripeConnectService.findByTenantId(1L)).thenReturn(account);
+
+        gateway.cancelExternalSubscriptionIfNeeded(1L, manual);
+
+        verify(stripeOperations).cancelSubscription("acct_1", "sub_recorded");
+    }
 }

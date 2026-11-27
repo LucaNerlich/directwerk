@@ -174,7 +174,7 @@ export default function PaymentsDashboardClient(): React.JSX.Element {
     async function handleRevoke(row: BillingMembership): Promise<void> {
         if (!armRevoke(row.id)) {
             setStatusMessage(
-                row.source === 'STRIPE'
+                row.externalSubscriptionId !== null
                     ? 'Nochmal bestätigen: das Stripe-Abo wird gekündigt und der Zugang entfällt sofort.'
                     : 'Nochmal bestätigen: der Zugang entfällt sofort.',
             )

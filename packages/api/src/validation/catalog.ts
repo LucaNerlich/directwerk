@@ -1361,7 +1361,8 @@ function parseSubscriptionGrant(value: unknown): SubscriptionGrant | null {
         !isBoundedString(value.productSlug) ||
         !isBoundedString(value.productTitle) ||
         !isBoundedString(value.status) ||
-        !isBoundedString(value.source)
+        !isBoundedString(value.source) ||
+        (value.externalSubscriptionId != null && !isBoundedString(value.externalSubscriptionId))
     ) {
         return null
     }
@@ -1375,6 +1376,8 @@ function parseSubscriptionGrant(value: unknown): SubscriptionGrant | null {
         productTitle: value.productTitle,
         status: value.status,
         source: value.source,
+        externalSubscriptionId:
+            typeof value.externalSubscriptionId === 'string' ? value.externalSubscriptionId : null,
     }
 }
 

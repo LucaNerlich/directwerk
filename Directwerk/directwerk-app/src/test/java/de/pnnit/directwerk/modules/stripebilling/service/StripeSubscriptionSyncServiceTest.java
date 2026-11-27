@@ -129,6 +129,66 @@ class StripeSubscriptionSyncServiceTest {
     }
 
     @Test
+    void rebindRefusalDoesNotCommitStatusOrPeriodEnd() {
+        User user = user();
+        when(userRepository.findById(USER_ID)).thenReturn(Optional.of(user));
+        SubscriptionProduct product = product();
+        when(subscriptionProductService.requireProduct(TENANT_ID, PRODUCT_ID)).thenReturn(product);
+
+        Subscription existing = subscription(SubscriptionSource.STRIPE, SubscriptionStatus.PAST_DUE);
+        existing.setExternalSubscriptionId("sub_old");
+        Instant periodEnd = Instant.parse("2026-12-01T00:00:00Z");
+        existing.setEndsAt(periodEnd);
+        when(subscriptionRepository.findByTenantIdAndExternalSubscriptionIdForUpdate(TENANT_ID, "sub_new"))
+                .thenReturn(Optional.empty());
+        when(subscriptionRepository.findByTenantIdAndUserIdAndProductIdForUpdate(TENANT_ID, USER_ID, PRODUCT_ID))
+                .thenReturn(Optional.of(existing));
+
+        assertThatThrownBy(() -> service.upsertStripeSubscription(
+                TENANT_ID,
+                USER_ID,
+                PRODUCT_ID,
+                "sub_new",
+                "cus_1",
+                SubscriptionStatus.ACTIVE,
+                Instant.parse("2027-01-01T00:00:00Z"),
+                null
+        )).isInstanceOf(StripeSubscriptionRebindRefusedException.class);
+
+        assertThat(existing.getStatus()).isEqualTo(SubscriptionStatus.PAST_DUE);
+        assertThat(existing.getEndsAt()).isEqualTo(periodEnd);
+        assertThat(existing.getExternalSubscriptionId()).isEqualTo("sub_old");
+    }
+
+    @Test
+    void stripeUpsertKeepsManualGrantFoundByExternalId() {
+        User user = user();
+        when(userRepository.findById(USER_ID)).thenReturn(Optional.of(user));
+        SubscriptionProduct product = product();
+        when(subscriptionProductService.requireProduct(TENANT_ID, PRODUCT_ID)).thenReturn(product);
+
+        Subscription manual = subscription(SubscriptionSource.MANUAL, SubscriptionStatus.ACTIVE);
+        manual.setExternalSubscriptionId("sub_recorded");
+        when(subscriptionRepository.findByTenantIdAndExternalSubscriptionIdForUpdate(TENANT_ID, "sub_recorded"))
+                .thenReturn(Optional.of(manual));
+
+        Subscription result = service.upsertStripeSubscription(
+                TENANT_ID,
+                USER_ID,
+                PRODUCT_ID,
+                "sub_recorded",
+                "cus_1",
+                SubscriptionStatus.PAST_DUE,
+                null,
+                null
+        );
+
+        assertThat(result).isSameAs(manual);
+        assertThat(result.getSource()).isEqualTo(SubscriptionSource.MANUAL);
+        assertThat(result.getStatus()).isEqualTo(SubscriptionStatus.ACTIVE);
+    }
+
+    @Test
     void stripeUpsertRebindsACanceledStripeRowToANewSubscription() {
         // #705: a canceled row is terminal at Stripe, so a returning customer's new
         // subscription must take the row over instead of paying into a void.

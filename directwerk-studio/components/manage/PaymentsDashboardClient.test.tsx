@@ -123,6 +123,7 @@ describe('PaymentsDashboardClient', () => {
                 productTitle: 'Supporter',
                 status: 'CANCELED',
                 source: 'STRIPE',
+                externalSubscriptionId: 'sub_123',
             }
         })
 

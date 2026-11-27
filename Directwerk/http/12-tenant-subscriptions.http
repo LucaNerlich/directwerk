@@ -98,7 +98,7 @@ Accept: application/json
 ###
 
 ### @name revokeSubscription
-### Stripe-sourced rows also cancel in Stripe when keys + Connect exist (502 STRIPE_REQUEST_FAILED otherwise).
+### Any row with a recorded external subscription id (including a rebound MANUAL row) also cancels in Stripe when keys + Connect exist (502 STRIPE_REQUEST_FAILED otherwise).
 DELETE {{baseUrl}}/api/v1/tenant/subscriptions/{{subscriberSubscriptionId}}
 Host: {{tenantAHost}}
 Authorization: Bearer {{tenantAAccessToken}}

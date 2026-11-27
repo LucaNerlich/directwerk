@@ -66,6 +66,11 @@ public class StripeSubscriptionSyncService {
                     .findByTenantIdAndExternalSubscriptionIdForUpdate(tenantId, externalSubscriptionId)
                     .orElse(null);
         }
+        if (subscription != null && subscription.getSource() == SubscriptionSource.MANUAL) {
+            // A manual grant that recorded a Stripe id keeps its source and status: the recorded
+            // subscription is only needed so a revoke can cancel it (#1027).
+            return subscription;
+        }
         if (subscription == null) {
             Subscription byUserAndProduct = subscriptionRepository
                     .findByTenantIdAndUserIdAndProductIdForUpdate(tenantId, userId, productId)
@@ -91,18 +96,12 @@ public class StripeSubscriptionSyncService {
         if (isCanceledTerminalRewrite(previousStatus, incoming)) {
             return subscription;
         }
-        subscription.setUser(user);
-        subscription.setProduct(product);
-        subscription.setSource(SubscriptionSource.STRIPE);
-        subscription.setStatus(status != null ? status : SubscriptionStatus.ACTIVE);
-        if (subscription.getStartedAt() == null) {
-            subscription.setStartedAt(Instant.now());
-        }
-        subscription.setEndsAt(endsAt);
         if (externalSubscriptionId != null && !externalSubscriptionId.isBlank()) {
             // #534: row identity is (tenant, user, product) while Stripe's is the subscription id,
             // so a second checkout used to rebind this row to the new subscription and orphan the
             // old one (still billed, no local row left to cancel it). Refuse instead of rebinding.
+            // #1011: check before any setter — the caller catches this refusal inside the
+            // transaction, so mutations made before the throw were committed by dirty checking.
             String currentExternalId = subscription.getExternalSubscriptionId();
             // A CANCELED row is terminal at Stripe: the stored id is no longer billed, so a new
             // checkout for the same product may take the row over instead of paying into a void.
@@ -119,6 +118,16 @@ public class StripeSubscriptionSyncService {
                         currentExternalId,
                         externalSubscriptionId);
             }
+        }
+        subscription.setUser(user);
+        subscription.setProduct(product);
+        subscription.setSource(SubscriptionSource.STRIPE);
+        subscription.setStatus(status != null ? status : SubscriptionStatus.ACTIVE);
+        if (subscription.getStartedAt() == null) {
+            subscription.setStartedAt(Instant.now());
+        }
+        subscription.setEndsAt(endsAt);
+        if (externalSubscriptionId != null && !externalSubscriptionId.isBlank()) {
             subscription.setExternalSubscriptionId(externalSubscriptionId);
         }
         if (stripeCustomerId != null && !stripeCustomerId.isBlank()) {
