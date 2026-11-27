@@ -7,6 +7,7 @@ import PageStack from '@directwerk/ui/components/page-stack'
 import PublicationDangerZone from '@/components/publication/PublicationDangerZone'
 import PublicationEditorLayout from '@/components/publication/PublicationEditorLayout'
 import PublishedLinksPanel from '@/components/publication/PublishedLinksPanel'
+import {scheduleValidationMessage} from '@/lib/publication/schedule'
 import type {ContentEditorModel} from '@/components/publication/content-editor/types'
 import type {PublicationAction, PublicationStatus} from '@directwerk/api/types'
 
@@ -96,7 +97,11 @@ export default function PublicationContentEditor<
             onRetryNotify={model.onRetryNotify}
             isRetryingNotify={model.isRetryingNotify}
             scheduledAt={model.scheduledAt}
-            onScheduledAtChange={model.onScheduledAtChange}
+            onScheduledAtChange={(value) => {
+                // A correction must clear the previous rejection immediately (#1055 review).
+                model.setScheduleValidationError(null)
+                model.onScheduledAtChange(value)
+            }}
             publishedAt={model.publishedAt}
             onPublishedAtChange={model.onPublishedAtChange}
             publishValidationError={model.publishValidationError}
@@ -125,14 +130,14 @@ export default function PublicationContentEditor<
             }}
             onSchedule={() => {
                 const iso = model.parseScheduledAt()
-                if (iso === null || new Date(iso).getTime() <= Date.now()) {
+                const invalid = scheduleValidationMessage(iso)
+                if (invalid !== null) {
                     // The server rejects a past instant with an untranslated 409 (#1055).
-                    const message =
-                        iso === null
-                            ? 'Bitte einen gültigen Zeitpunkt wählen.'
-                            : 'Bitte einen Zeitpunkt in der Zukunft wählen.'
-                    model.setScheduleValidationError(message)
-                    model.setErrorMessage(message)
+                    model.setScheduleValidationError(invalid)
+                    model.setErrorMessage(invalid)
+                    return
+                }
+                if (iso === null) {
                     return
                 }
                 model.setScheduleValidationError(null)
