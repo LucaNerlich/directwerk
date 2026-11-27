@@ -21,7 +21,6 @@ import {MeProvider} from '@/lib/auth/MeProvider'
 import {ensureAuthenticated, clearSessionTokens} from '@/lib/auth/session'
 import {AUTH_REQUIRED} from '@directwerk/api/constants'
 import {clearAllCachedTenantData} from '@directwerk/api/client/useCachedTenantQuery'
-import {getAccessToken} from '@/lib/auth/tokenStore'
 
 import type {Me} from '@directwerk/api/types'
 
@@ -76,13 +75,8 @@ export default function AuthGuard({children}: Readonly<{children: ReactNode}>) {
         async function verify(): Promise<void> {
             setVerifyError(null)
 
-            if (getAccessToken() === null) {
-                if (active) {
-                    router.replace(localize('/login'))
-                }
-                return
-            }
-
+            // Never treat an empty per-tab sessionStorage as signed out: the shared httpOnly
+            // refresh cookie is the session, and ensureAuthenticated() refreshes silently (#1017).
             try {
                 await ensureAuthenticated()
                 const account = await fetchMe()

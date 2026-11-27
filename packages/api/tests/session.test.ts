@@ -173,6 +173,30 @@ describe('createAuthSession', () => {
 
         await expect(session.refreshAccessToken()).rejects.toThrow(AUTH_REQUIRED)
         expect(store.getAccessToken()).toBe(null)
+        expect(fetchMock).toHaveBeenCalledTimes(2)
+
+        fetchMock.mockRestore()
+    })
+
+    it('retries once so a refresh-token rotation in another tab survives', async () => {
+        const store = memoryStore()
+        store.setTokens({access_token: 'old'})
+
+        const session = createAuthSession({
+            store,
+            refreshPath: '/api/auth/refresh',
+            parseTokens: parseTokenResponse,
+        })
+
+        const fetchMock = vi.spyOn(globalThis, 'fetch')
+            .mockResolvedValueOnce(new Response(JSON.stringify({error: 'invalid_grant'}), {status: 400}))
+            .mockResolvedValueOnce(new Response(
+                JSON.stringify({access_token: 'rotated', token_type: 'Bearer'}),
+                {status: 200},
+            ))
+
+        await expect(session.refreshAccessToken()).resolves.toBe('rotated')
+        expect(store.getAccessToken()).toBe('rotated')
 
         fetchMock.mockRestore()
     })
