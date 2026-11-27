@@ -178,15 +178,15 @@ class StripeCheckoutServiceTest {
         when(stripeConnectService.requireChargeableAccount(TENANT_ID)).thenReturn(account);
         when(stripeCustomerRepository.findByTenantIdAndUserId(TENANT_ID, USER_ID))
                 .thenReturn(Optional.of(existingCustomer));
-        when(redirectUrlValidator.defaultPublicUrl(TENANT_ID, "/checkout/success?session_id={CHECKOUT_SESSION_ID}"))
-                .thenReturn("https://podcast.example.com/checkout/success?session_id={CHECKOUT_SESSION_ID}");
+        when(redirectUrlValidator.defaultPublicUrl(TENANT_ID, "/checkout/success"))
+                .thenReturn("https://podcast.example.com/checkout/success");
         when(redirectUrlValidator.defaultPublicUrl(TENANT_ID, "/checkout/cancel"))
                 .thenReturn("https://podcast.example.com/checkout/cancel");
         when(redirectUrlValidator.requireAllowedUrl(
                 eq(TENANT_ID),
-                eq("https://podcast.example.com/checkout/success?session_id={CHECKOUT_SESSION_ID}"),
+                eq("https://podcast.example.com/checkout/success"),
                 eq("redirectUrl")
-        )).thenReturn("https://podcast.example.com/checkout/success?session_id={CHECKOUT_SESSION_ID}");
+        )).thenReturn("https://podcast.example.com/checkout/success");
         when(redirectUrlValidator.requireAllowedUrl(
                 eq(TENANT_ID),
                 eq("https://podcast.example.com/checkout/cancel"),
