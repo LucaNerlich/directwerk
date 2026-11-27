@@ -72,11 +72,13 @@ public class EpisodeController {
     ResponseEntity<Response<List<EpisodeView>>> listEpisodes(
             @RequestParam(defaultValue = "100") @Min(1) @Max(500) int limit,
             @RequestParam(defaultValue = "0") @Min(0) int offset,
-            @RequestParam(defaultValue = "CREATED") PublicationSort sort
+            @RequestParam(defaultValue = "CREATED") PublicationSort sort,
+            @RequestParam(required = false) @Min(1) Long seriesId,
+            @RequestParam(required = false) @Size(max = 200) String q
     ) {
         Long tenantId = TenantContext.requireTenantId();
         return ContentEndpointSupport.okList(
-                episodeService.listEpisodes(tenantId, limit, offset, sort),
+                episodeService.listEpisodes(tenantId, seriesId, q, limit, offset, sort),
                 publicEpisodeViewMapper::toStudioView);
     }
 
@@ -125,7 +127,8 @@ public class EpisodeController {
                 request.durationSeconds(),
                 request.accessPolicy(),
                 request.requiredLevelSortOrder(),
-                request.clearCoverAsset()
+                request.clearCoverAsset(),
+                request.clearEpisodeNumber()
         );
         return ContentEndpointSupport.ok(episode, publicEpisodeViewMapper::toStudioView);
     }
@@ -392,7 +395,8 @@ public class EpisodeController {
             @Min(1) Integer durationSeconds,
             AccessPolicy accessPolicy,
             @Min(0) Integer requiredLevelSortOrder,
-            Boolean clearCoverAsset
+            Boolean clearCoverAsset,
+            Boolean clearEpisodeNumber
     ) {
     }
 

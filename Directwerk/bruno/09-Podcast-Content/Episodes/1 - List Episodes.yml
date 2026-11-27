@@ -19,6 +19,16 @@ http:
       value: PUBLISHED
       type: query
       description: CREATED (default), PUBLISHED (newest first), UPDATED (last modified), or TITLE (A–Z).
+    - name: seriesId
+      value: ""
+      type: query
+      description: Optional series id to scope the list to one show.
+      disabled: true
+    - name: q
+      value: ""
+      type: query
+      description: Optional case-insensitive search over episode title and slug.
+      disabled: true
   auth: inherit
 
 runtime:

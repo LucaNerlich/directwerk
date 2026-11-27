@@ -44,6 +44,30 @@ public interface EpisodeRepository extends JpaRepository<Episode, Long> {
     })
     List<Episode> findByTenantId(Long tenantId, Pageable pageable);
 
+    /**
+     * Studio list with optional series scope and title/slug search. Both filters are
+     * optional so the plain list call keeps its shape; the caller passes a
+     * {@link Pageable} with the requested sort.
+     */
+    @EntityGraph(attributePaths = {
+            "tenant", "series", "series.coverAsset", "coverAsset", "coverAsset.tenant",
+            "audioAsset", "audioAsset.tenant", "formats", "formats.coverAsset",
+            "categories", "categories.parent"
+    })
+    @Query("""
+            select e from Episode e
+            where e.tenant.id = :tenantId
+              and (:seriesId is null or e.series.id = :seriesId)
+              and (:q is null
+                   or lower(e.title) like lower(concat('%', :q, '%'))
+                   or lower(e.slug) like lower(concat('%', :q, '%')))
+            """)
+    List<Episode> searchByTenantId(
+            @Param("tenantId") Long tenantId,
+            @Param("seriesId") Long seriesId,
+            @Param("q") String q,
+            Pageable pageable);
+
     @EntityGraph(attributePaths = {
             "tenant", "series", "series.coverAsset", "coverAsset", "coverAsset.tenant",
             "audioAsset", "audioAsset.tenant", "formats", "formats.coverAsset",
