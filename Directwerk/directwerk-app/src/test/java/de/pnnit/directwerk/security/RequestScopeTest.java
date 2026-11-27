@@ -38,15 +38,16 @@ class RequestScopeTest {
     }
 
     @Test
-    void tenantAdminContentBasesAreTenantAdminArea() {
-        // Formats/categories stay TENANT_ADMIN for membership re-check. SecurityConfig admits
-        // EDITOR / API_KEY_CONTENT_WRITE at the JWT layer for opaque content keys only —
-        // human editors are still stopped here by RoleRequirement.TENANT_ADMIN.
+    void taxonomyBasesAllowEditorReadsButKeepWritesTenantAdmin() {
+        // #1015: the controllers' GETs admit EDITOR, so the membership re-check must too; the
+        // writes carry a class-level TENANT_ADMIN @PreAuthorize and must not be widened here.
         for (String base : new String[] {"/api/v1/formats", "/api/v1/categories"}) {
-            assertThat(RequestScope.of(base)).isEqualTo(RequestScope.TENANT_ADMIN_AREA);
-            assertThat(RequestScope.of(base + "/7")).isEqualTo(RequestScope.TENANT_ADMIN_AREA);
+            assertThat(RequestScope.of(base, "GET")).isEqualTo(RequestScope.EDITOR_CONTENT);
+            assertThat(RequestScope.of(base + "/7", "HEAD")).isEqualTo(RequestScope.EDITOR_CONTENT);
+            assertThat(RequestScope.of(base + "/7", "POST")).isEqualTo(RequestScope.TENANT_ADMIN_AREA);
+            assertThat(RequestScope.of(base, "DELETE")).isEqualTo(RequestScope.TENANT_ADMIN_AREA);
             assertThat(RequestScope.of(base).roleRequirement())
-                    .isEqualTo(RequestScope.RoleRequirement.TENANT_ADMIN);
+                    .isEqualTo(RequestScope.RoleRequirement.EDITOR_OR_TENANT_ADMIN);
         }
     }
 

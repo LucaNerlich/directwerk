@@ -167,6 +167,28 @@ class TenantMembershipGuardFilterTest {
     }
 
     @Test
+    void rejectsEditorTaxonomyWriteButAllowsTheRead() throws Exception {
+        authenticate(1L, RoleConstants.EDITOR);
+        TenantContext.setTenantId(1L);
+        when(membershipRepository.findByUserIdAndTenantId(5L, 1L))
+                .thenReturn(Optional.of(activeMembership(Role.EDITOR)));
+        FilterChain chain = mock(FilterChain.class);
+
+        HttpServletRequest write = mock(HttpServletRequest.class);
+        when(write.getRequestURI()).thenReturn("/api/v1/formats");
+        when(write.getMethod()).thenReturn("POST");
+        assertThatThrownBy(() -> filter.doFilter(write, new MockHttpServletResponse(), chain))
+                .isInstanceOf(TenantMismatchException.class);
+
+        HttpServletRequest read = mock(HttpServletRequest.class);
+        when(read.getRequestURI()).thenReturn("/api/v1/formats");
+        when(read.getMethod()).thenReturn("GET");
+        MockHttpServletResponse response = new MockHttpServletResponse();
+        filter.doFilter(read, response, chain);
+        verify(chain).doFilter(read, response);
+    }
+
+    @Test
     void rejectsDeactivatedEditorOnContentPath() throws Exception {
         authenticate(1L, RoleConstants.EDITOR);
         TenantContext.setTenantId(1L);

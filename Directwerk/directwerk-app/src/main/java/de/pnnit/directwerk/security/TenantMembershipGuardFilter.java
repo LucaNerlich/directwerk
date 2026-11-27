@@ -41,7 +41,7 @@ public class TenantMembershipGuardFilter extends OncePerRequestFilter {
             FilterChain filterChain
     ) throws ServletException, IOException {
         String path = RequestPaths.of(request);
-        RequestScope scope = RequestScope.of(path);
+        RequestScope scope = RequestScope.of(path, request.getMethod());
         if (!SecurityUtils.isAuthenticated() || !scope.isTenantScoped()) {
             filterChain.doFilter(request, response);
             return;
