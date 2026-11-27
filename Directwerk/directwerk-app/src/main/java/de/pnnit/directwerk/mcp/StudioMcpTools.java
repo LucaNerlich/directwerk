@@ -14,6 +14,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.BiFunction;
 import org.springframework.stereotype.Component;
 
@@ -145,7 +146,7 @@ public class StudioMcpTools {
         tools.add(tool("create_episode", "Create an episode (audio, duration, formats and categories can be set in one call)", """
                 {"type":"object","properties":{"seriesId":{"type":"integer","minimum":1},"slug":{"type":"string","minLength":1,"maxLength":64},"title":{"type":"string","minLength":1,"maxLength":255},"description":{"type":"string"},"accessPolicy":{"type":"string","enum":["FREE","PAID"]},"episodeNumber":{"type":"integer"},"requiredLevelSortOrder":{"type":"integer"},"coverAssetId":{"type":"integer","minimum":1},"audioAssetId":{"type":"integer","minimum":1},"durationSeconds":{"type":"integer","minimum":1},"formatIds":{"type":"array","items":{"type":"integer","minimum":1}},"categoryIds":{"type":"array","items":{"type":"integer","minimum":1}}},"required":["seriesId","slug","title","accessPolicy"],"additionalProperties":false}
                 """, (ctx, req) -> api.post(ctx, "/api/v1/episodes", args(req))));
-        tools.add(tool("update_episode", "Update an episode (duration and clearing the episode number included)", """
+        tools.add(tool("update_episode", "Update an episode; clearEpisodeNumber wins over episodeNumber", """
                 {"type":"object","properties":{"episodeId":{"type":"integer","minimum":1},"slug":{"type":"string","minLength":1,"maxLength":64},"title":{"type":"string","minLength":1,"maxLength":255},"description":{"type":"string"},"accessPolicy":{"type":"string","enum":["FREE","PAID"]},"episodeNumber":{"type":"integer"},"clearEpisodeNumber":{"type":"boolean"},"requiredLevelSortOrder":{"type":"integer"},"coverAssetId":{"type":"integer","minimum":1},"clearCoverAsset":{"type":"boolean"},"durationSeconds":{"type":"integer","minimum":1}},"required":["episodeId"],"additionalProperties":false}
                 """, (ctx, req) -> {
             Map<String, Object> a = args(req);
@@ -462,6 +463,17 @@ public class StudioMcpTools {
                 .tool(tool)
                 .callHandler((ctx, req) -> {
                     try {
+                        // Schemas are advisory in mcp-core (no input validator), so reject
+                        // unknown keys here: a typo like formatIDs would otherwise be
+                        // silently dropped and publish would fail much later.
+                        Set<String> allowed = tool.inputSchema().properties().keySet();
+                        List<String> unknown = args(req).keySet().stream()
+                                .filter(key -> !allowed.contains(key))
+                                .toList();
+                        if (!unknown.isEmpty()) {
+                            throw new IllegalArgumentException(
+                                    "Unknown argument(s) " + unknown + "; allowed: " + allowed);
+                        }
                         return handler.apply(ctx, req);
                     } catch (RuntimeException ex) {
                         return McpSchema.CallToolResult.builder()
