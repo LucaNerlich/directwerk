@@ -278,10 +278,10 @@ class QueueRepositoryIntegrationTest {
     void enqueueWithSameCorrelationIdDoesNotCreateASecondQueuedJob() {
         ObjectNode payload = objectMapper.createObjectNode().put("tenantId", 10);
         QueueJob first = queueRepository.enqueue(
-                "mail", payload, 0, Instant.now(), 3, 10L, "podcast-rss-feed-refresh-10", null
+                "mail", payload, 0, Instant.now().minusSeconds(5), 3, 10L, "podcast-rss-feed-refresh-10", null
         );
         QueueJob second = queueRepository.enqueue(
-                "mail", payload, 0, Instant.now(), 3, 10L, "podcast-rss-feed-refresh-10", null
+                "mail", payload, 0, Instant.now().minusSeconds(5), 3, 10L, "podcast-rss-feed-refresh-10", null
         );
 
         assertThat(second.id()).isEqualTo(first.id());
@@ -296,10 +296,10 @@ class QueueRepositoryIntegrationTest {
     void enqueueWithSameCorrelationIdDifferentTenantsCreatesSeparateJobs() {
         ObjectNode payload = objectMapper.createObjectNode().put("tenantId", 10);
         QueueJob first = queueRepository.enqueue(
-                "mail", payload, 0, Instant.now(), 3, 10L, "podcast-rss-feed-refresh", null
+                "mail", payload, 0, Instant.now().minusSeconds(5), 3, 10L, "podcast-rss-feed-refresh", null
         );
         QueueJob second = queueRepository.enqueue(
-                "mail", payload, 0, Instant.now(), 3, 20L, "podcast-rss-feed-refresh", null
+                "mail", payload, 0, Instant.now().minusSeconds(5), 3, 20L, "podcast-rss-feed-refresh", null
         );
 
         assertThat(second.id()).isNotEqualTo(first.id());
@@ -314,13 +314,13 @@ class QueueRepositoryIntegrationTest {
     void enqueueAllowsAFollowUpWhileAMatchingJobIsProcessing() {
         ObjectNode payload = objectMapper.createObjectNode().put("tenantId", 10);
         QueueJob first = queueRepository.enqueue(
-                "mail", payload, 0, Instant.now(), 3, 10L, "podcast-rss-feed-refresh-10", null
+                "mail", payload, 0, Instant.now().minusSeconds(5), 3, 10L, "podcast-rss-feed-refresh-10", null
         );
         List<QueueJob> claimed = queueRepository.claim("mail", "worker-1", 1, Duration.ofSeconds(60));
         assertThat(claimed).extracting(QueueJob::id).containsExactly(first.id());
 
         QueueJob followUp = queueRepository.enqueue(
-                "mail", payload, 0, Instant.now(), 3, 10L, "podcast-rss-feed-refresh-10", null
+                "mail", payload, 0, Instant.now().minusSeconds(5), 3, 10L, "podcast-rss-feed-refresh-10", null
         );
 
         assertThat(followUp.id()).isNotEqualTo(first.id());
@@ -344,7 +344,7 @@ class QueueRepositoryIntegrationTest {
                 futures.add(executor.submit(() -> {
                     start.await(5, TimeUnit.SECONDS);
                     return queueRepository.enqueue(
-                            "mail", payload, 0, Instant.now(), 3, 10L, "podcast-rss-feed-refresh-10", null
+                            "mail", payload, 0, Instant.now().minusSeconds(5), 3, 10L, "podcast-rss-feed-refresh-10", null
                     );
                 }));
             }
@@ -380,6 +380,11 @@ class QueueRepositoryIntegrationTest {
     private QueueJob enqueue(String queue, int priority, Instant availableAt, int maxAttempts) {
         ObjectNode payload = objectMapper.createObjectNode();
         payload.put("to", "a@example.com");
-        return queueRepository.enqueue(queue, payload, priority, availableAt, maxAttempts, null, null, null);
+        // The JVM clock and Postgres clock_timestamp() can differ by a few ms; an "immediate" job
+        // created with Instant.now() may otherwise still be in the future when claim() runs.
+        Instant now = Instant.now();
+        boolean immediate = availableAt.isBefore(now.plusSeconds(2));
+        Instant available = immediate ? availableAt.minusSeconds(10) : availableAt;
+        return queueRepository.enqueue(queue, payload, priority, available, maxAttempts, null, null, null);
     }
 }

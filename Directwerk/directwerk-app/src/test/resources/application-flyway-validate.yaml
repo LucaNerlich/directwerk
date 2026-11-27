@@ -27,6 +27,18 @@ spring:
             org.quartz.threadPool.threadCount: 2
 
 directwerk:
+    email:
+        # CI runs without the local .env: keep the transport unconfigured (none) instead of
+        # failing property validation for SMTP without sender/base URLs.
+        provider: none
+        from-address: noreply@directwerk.local
+        from-name: Directwerk
+        studio-base-url: http://localhost:3004
+        admin-base-url: http://localhost:3001
+        accept-invite-path: /accept-invite
+        reset-password-path: /reset-password
+        verify-email-path: /verify-email
+        delivery-retention-days: 7
     security:
         issuer: http://localhost:8080
         audience: directwerk-api
