@@ -23,10 +23,17 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class PublicSearchDocumentService {
+
+    /** Upper bound on the client-side search corpus per tenant. */
+    static final int MAX_CORPUS_DOCUMENTS = 1_000;
+
+    /** Search-sized body window; the full archive text made the capped corpus multi-MB. */
+    static final int MAX_PLAIN_TEXT_CHARS = 2_000;
 
     private final SearchDocumentRepository searchDocumentRepository;
     private final ArticleRepository articleRepository;
@@ -53,14 +60,29 @@ public class PublicSearchDocumentService {
 
     @Transactional(readOnly = true)
     public List<PublicSearchDocumentView> list(Long tenantId) {
+        // The header search index is client-side; an unbounded corpus is a multi-MB anonymous
+        // response for a mature archive (#1041).
+
         boolean articles = moduleGateService.isModuleActive(tenantId, FeatureModuleKeys.DIGITAL_CONTENT);
         boolean episodes = moduleGateService.isModuleActive(tenantId, FeatureModuleKeys.PODCAST);
         boolean products = moduleGateService.isModuleActive(tenantId, FeatureModuleKeys.SUBSCRIPTION);
         boolean lists = moduleGateService.isModuleActive(tenantId, FeatureModuleKeys.EMAIL_NOTIFY)
                 && directwerkConfig.isEmailEnabled();
 
-        List<SearchDocument> candidates = searchDocumentRepository.findByTenant_IdOrderByTitleAscIdAsc(tenantId)
-                .stream()
+        // The cap must spend its slots on recency and only on enabled kinds: a title-ordered
+        // limit hid new content, and rows of a deactivated module could consume the window
+        // (#1041 review).
+        java.util.List<String> kinds = new java.util.ArrayList<>();
+        if (articles) kinds.add(SearchKinds.ARTICLE);
+        if (episodes) kinds.add(SearchKinds.EPISODE);
+        if (products) kinds.add(SearchKinds.PRODUCT);
+        if (lists) kinds.add(SearchKinds.NEWSLETTER_LIST);
+        List<SearchDocument> candidates = kinds.isEmpty()
+                ? List.of()
+                : searchDocumentRepository
+                        .findByTenant_IdAndKindInOrderByIdDesc(
+                                tenantId, kinds, PageRequest.of(0, MAX_CORPUS_DOCUMENTS))
+                        .stream()
                 .filter(document -> included(document.getKind(), articles, episodes, products, lists))
                 .toList();
         Set<Long> publishedEpisodeIds = publishedEpisodeIds(tenantId, candidates);
@@ -198,10 +220,21 @@ public class PublicSearchDocumentService {
                 document.getTitle(),
                 document.getSlug(),
                 excerpt,
-                open ? stored : "",
+                open ? clip(stored) : "",
                 document.getHrefPath(),
                 document.getAccess()
         );
+    }
+
+    private static String clip(String text) {
+        if (text.length() <= MAX_PLAIN_TEXT_CHARS) {
+            return text;
+        }
+        int end = MAX_PLAIN_TEXT_CHARS;
+        if (Character.isHighSurrogate(text.charAt(end - 1))) {
+            end--;
+        }
+        return text.substring(0, end);
     }
 
     private static boolean canOpen(
