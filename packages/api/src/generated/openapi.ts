@@ -5348,6 +5348,13 @@ export interface components {
             /** Format: int64 */
             totalMemberships?: number;
             monthlyTotals?: components["schemas"]["MonthlyTotal"][];
+            /**
+             * Format: int32
+             * @deprecated
+             */
+            estimatedMonthlyCents?: number;
+            /** @deprecated */
+            currency?: string;
         };
         MembershipRow: {
             /** Format: int64 */

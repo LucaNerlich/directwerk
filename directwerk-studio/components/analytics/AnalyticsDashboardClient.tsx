@@ -496,7 +496,7 @@ export default function AnalyticsDashboardClient({
                             <StatCard
                                 label={dict.analytics.geschaetzterMonatsumsatz}
                                 value={billing.stats.monthlyTotals.length === 0
-                                    ? formatMoney(0, "EUR")
+                                    ? '–'
                                     : billing.stats.monthlyTotals
                                           .map((total) => formatMoney(total.amountCents, total.currency))
                                           .join(" · ")}

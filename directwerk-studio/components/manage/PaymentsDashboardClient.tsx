@@ -305,7 +305,7 @@ export default function PaymentsDashboardClient(): React.JSX.Element {
                                 hint="Summe aller aktiven Preise, auf den Monat gerechnet"
                                 label={dict.manage.geschaetzterMonatswert}
                                 value={dashboard.stats.monthlyTotals.length === 0
-                                    ? formatMoney(0, "EUR")
+                                    ? '–'
                                     : dashboard.stats.monthlyTotals
                                           .map((total) => formatMoney(total.amountCents, total.currency))
                                           .join(" · ")}

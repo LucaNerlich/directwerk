@@ -65,6 +65,9 @@ class BillingDashboardServiceTest {
         assertThat(dashboard.stats().incompleteSubscriptions()).isEqualTo(0);
         assertThat(dashboard.stats().totalMemberships()).isEqualTo(4);
         assertThat(dashboard.stats().monthlyTotals()).containsExactly(new BillingDashboardService.MonthlyTotal("EUR", 990));
+        // Deprecated v1 fields stay populated for a single currency.
+        assertThat(dashboard.stats().estimatedMonthlyCents()).isEqualTo(990);
+        assertThat(dashboard.stats().currency()).isEqualTo("EUR");
         assertThat(dashboard.stripe().status()).isEqualTo("CONNECTED");
         assertThat(dashboard.memberships()).hasSize(4);
         assertThat(dashboard.memberships().getFirst().status()).isEqualTo("PAST_DUE");

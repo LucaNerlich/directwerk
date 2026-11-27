@@ -86,6 +86,8 @@ public class BillingDashboardService {
         List<MonthlyTotal> monthlyTotals = monthlyByCurrency.entrySet().stream()
                 .map(entry -> new MonthlyTotal(entry.getKey(), entry.getValue()))
                 .toList();
+        // Deprecated v1 fields: kept for existing clients, meaningful only for a single currency.
+        MonthlyTotal single = monthlyTotals.size() == 1 ? monthlyTotals.getFirst() : null;
 
         List<MembershipRow> memberships = subscriptions.stream()
                 .sorted(Comparator
@@ -107,7 +109,9 @@ public class BillingDashboardService {
                         pastDue,
                         incomplete,
                         subscriptions.size(),
-                        monthlyTotals
+                        monthlyTotals,
+                        single == null ? 0 : single.amountCents(),
+                        single == null ? null : single.currency()
                 ),
                 memberships
         );
@@ -188,7 +192,10 @@ public class BillingDashboardService {
             long pastDueSubscriptions,
             long incompleteSubscriptions,
             long totalMemberships,
-            List<MonthlyTotal> monthlyTotals
+            List<MonthlyTotal> monthlyTotals,
+            // Deprecated v1 fields, kept for existing clients: meaningful only for one currency.
+            @Deprecated int estimatedMonthlyCents,
+            @Deprecated String currency
     ) {
     }
 

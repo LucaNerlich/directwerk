@@ -53,8 +53,7 @@ function billingDashboard() {
             pastDueSubscriptions: 0,
             incompleteSubscriptions: 0,
             totalMemberships: 5,
-            monthlyTotals: [{ currency: "EUR", amountCents: 1980 }],
-            currency: 'EUR',
+            monthlyTotals: [{ currency: 'EUR', amountCents: 1980 }],
         },
         memberships: [],
     }
