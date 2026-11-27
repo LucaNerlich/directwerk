@@ -78,18 +78,6 @@ export function buildPodcastDeskNav(
     return {primary, secondary}
 }
 
-/** @deprecated Prefer buildWriteDeskNav — kept for callers that need a flat list. */
-export function buildWriteDeskItems(config: SiteConfig, dict: Dictionary): NavigationItem[] {
-    const nav = buildWriteDeskNav(config, dict, {collapseSecondary: false})
-    return [...nav.primary, ...nav.secondary]
-}
-
-/** @deprecated Prefer buildPodcastDeskNav — kept for callers that need a flat list. */
-export function buildPodcastDeskItems(config: SiteConfig, dict: Dictionary): NavigationItem[] {
-    const nav = buildPodcastDeskNav(config, dict, {collapseSecondary: false})
-    return [...nav.primary, ...nav.secondary]
-}
-
 /**
  * Collapsed Verwaltung: Abos, Team, Einstellungen (+ Statistik when analytics qualifies).
  * Mediathek lives in desk primary nav; only falls back here when no Write/Podcast desk
