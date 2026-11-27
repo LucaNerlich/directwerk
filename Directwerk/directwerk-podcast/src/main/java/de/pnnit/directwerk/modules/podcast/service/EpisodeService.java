@@ -88,6 +88,12 @@ public class EpisodeService {
                 .orElseThrow(() -> new EpisodeNotFoundException(episodeId));
     }
 
+    /** Whether the recorded owner still points at the asset (re-link is safe when it does not). */
+    @Transactional(readOnly = true)
+    public boolean episodeReferencesAudioAsset(Long tenantId, Long episodeId, Long audioAssetId) {
+        return episodeRepository.existsByTenantIdAndIdAndAudioAssetId(tenantId, episodeId, audioAssetId);
+    }
+
     @Transactional
     @RequiresModule(PodcastModule.KEY)
     public Episode createDraft(

@@ -1,6 +1,7 @@
 package de.pnnit.directwerk.modules.digital.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -67,6 +68,12 @@ class EpisodeMediaServiceTest {
     @Mock
     private S3Client s3Client;
 
+    @Mock
+    private ObjectProvider<de.pnnit.directwerk.modules.digital.job.MediaDeleteJobProducer> mediaDeleteJobProducerProvider;
+
+    @Mock
+    private de.pnnit.directwerk.modules.digital.job.MediaDeleteJobProducer mediaDeleteJobProducer;
+
     private EpisodeMediaService service;
     private Tenant tenant;
 
@@ -80,7 +87,8 @@ class EpisodeMediaServiceTest {
                 publicCdnUrlResolver,
                 directwerkConfig,
                 transactionManager,
-                episodeLinkValidators);
+                episodeLinkValidators,
+                mediaDeleteJobProducerProvider);
         when(transactionManager.getTransaction(any())).thenReturn(new SimpleTransactionStatus());
         tenant = new Tenant();
         tenant.setId(10L);
@@ -91,6 +99,89 @@ class EpisodeMediaServiceTest {
     @AfterEach
     void clear() {
         TenantContext.clear();
+    }
+
+    @Test
+    void attachEpisodeRejectsAnAssetLinkedToAnotherEpisode() {
+        MediaAsset asset = readyAudio(77L);
+        asset.setEpisodeId(5L);
+        when(mediaAssetRepository.findByIdForUpdate(77L)).thenReturn(Optional.of(asset));
+        when(episodeLinkValidators.getIfAvailable()).thenReturn((tenantId, episodeId) -> true);
+
+        assertThatThrownBy(() -> service.attachEpisode(77L, 6L))
+                .isInstanceOf(de.pnnit.directwerk.modules.digital.exception.UploadValidationException.class)
+                .hasMessageContaining("already attached");
+    }
+
+    @Test
+    void attachEpisodeAllowsReLinkingWhenTheOldEpisodeNoLongerReferencesTheAsset() {
+        MediaAsset asset = readyAudio(77L);
+        asset.setEpisodeId(5L);
+        when(mediaAssetRepository.findByIdForUpdate(77L)).thenReturn(Optional.of(asset));
+        when(mediaAssetRepository.save(any(MediaAsset.class))).thenAnswer(inv -> inv.getArgument(0));
+        EpisodeLinkValidator validator = new EpisodeLinkValidator() {
+            @Override
+            public boolean episodeExists(Long tenantId, Long episodeId) {
+                return true;
+            }
+
+            @Override
+            public boolean episodeReferencesAudioAsset(Long tenantId, Long episodeId, Long audioAssetId) {
+                return false;
+            }
+        };
+        when(episodeLinkValidators.getIfAvailable()).thenReturn(validator);
+
+        service.attachEpisode(77L, 6L);
+
+        assertThat(asset.getEpisodeId()).isEqualTo(6L);
+    }
+
+    @Test
+    void attachEpisodeClearsThePreviousAssetOfTheEpisode() {
+        MediaAsset asset = readyAudio(77L);
+        when(mediaAssetRepository.findByIdForUpdate(77L)).thenReturn(Optional.of(asset));
+        when(mediaAssetRepository.save(any(MediaAsset.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(episodeLinkValidators.getIfAvailable()).thenReturn((tenantId, episodeId) -> true);
+
+        service.attachEpisode(77L, 6L);
+
+        verify(mediaAssetRepository).clearOtherEpisodeLinks(10L, 6L, 77L);
+        assertThat(asset.getEpisodeId()).isEqualTo(6L);
+    }
+
+    private MediaAsset readyAudio(Long id) {
+        MediaAsset asset = new MediaAsset();
+        asset.setId(id);
+        asset.setTenant(tenant);
+        asset.setAssetType(AssetType.AUDIO);
+        asset.setStatus(AssetStatus.READY);
+        return asset;
+    }
+
+    @Test
+    void demoteToPrivateEnqueuesCleanupWhenThePublicObjectDeleteFails() {
+        when(directwerkConfig.isStorageEnabled()).thenReturn(true);
+        when(directwerkConfig.storage()).thenReturn(storageProps());
+        when(s3ClientProvider.getIfAvailable()).thenReturn(s3Client);
+        when(mediaDeleteJobProducerProvider.getIfAvailable()).thenReturn(mediaDeleteJobProducer);
+
+        MediaAsset asset = readyAudio(77L);
+        asset.setS3Key("alpha-show-a/public/audio/asset-77_ep.mp3");
+        asset.setVisibility(AssetVisibility.PUBLIC);
+        asset.setScope(AssetScope.TENANT_PUBLIC);
+        when(mediaAssetRepository.findById(77L)).thenReturn(Optional.of(asset));
+        when(mediaAssetRepository.save(any(MediaAsset.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(s3Client.deleteObject(any(DeleteObjectRequest.class)))
+                .thenThrow(software.amazon.awssdk.services.s3.model.S3Exception.builder().message("boom").build());
+
+        service.demoteToPrivate(77L);
+
+        verify(mediaDeleteJobProducer).enqueueS3Delete(
+                org.mockito.ArgumentMatchers.eq(77L),
+                org.mockito.ArgumentMatchers.eq("alpha-show-a/public/audio/asset-77_ep.mp3"),
+                org.mockito.ArgumentMatchers.isNull()
+        );
     }
 
     @Test

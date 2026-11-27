@@ -14,4 +14,15 @@ public interface EpisodeLinkValidator {
      * @return {@code true} when the episode exists in the given tenant
      */
     boolean episodeExists(Long tenantId, Long episodeId);
+
+    /**
+     * @param tenantId the tenant from the current request context
+     * @param episodeId the episode recorded as the asset's current owner
+     * @param audioAssetId the asset about to be re-linked
+     * @return {@code true} while that episode still points at the asset. Implementations that
+     * cannot answer keep the conservative one-asset guard.
+     */
+    default boolean episodeReferencesAudioAsset(Long tenantId, Long episodeId, Long audioAssetId) {
+        return true;
+    }
 }

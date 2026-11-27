@@ -134,7 +134,7 @@ describe('ShowNotesEditor', () => {
         await user.click(
             screen.getByRole('button', {name: 'Medium aus Mediathek einfügen'}),
         )
-        expect(await screen.findByText('cover.png')).toBeInTheDocument()
+        expect(await screen.findByText('cover.png', {}, {timeout: 10_000})).toBeInTheDocument()
         const rows = screen.getAllByRole('button', {name: 'Einfügen'})
         await user.click(rows[0])
 

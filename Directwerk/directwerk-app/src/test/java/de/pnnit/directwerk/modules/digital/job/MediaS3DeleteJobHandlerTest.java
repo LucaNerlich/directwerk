@@ -47,6 +47,7 @@ class MediaS3DeleteJobHandlerTest {
     @Test
     void deletesS3AndEnqueuesCdnPurgeWhenUrlPresent() {
         MediaAsset asset = pendingDeleteAsset(55L);
+        asset.setS3Key("alpha/public/images/cover.jpg");
         when(directwerkConfig.isStorageEnabled()).thenReturn(true);
         when(directwerkConfig.storage()).thenReturn(storageProps());
         when(mediaAssetRepository.findById(55L)).thenReturn(Optional.of(asset));
@@ -76,6 +77,7 @@ class MediaS3DeleteJobHandlerTest {
     @Test
     void archivesImmediatelyWhenNoCdnPurgeNeeded() {
         MediaAsset asset = pendingDeleteAsset(70L);
+        asset.setS3Key("alpha/private/audio/ep.mp3");
         when(directwerkConfig.isStorageEnabled()).thenReturn(true);
         when(directwerkConfig.storage()).thenReturn(storageProps());
         when(mediaAssetRepository.findById(70L)).thenReturn(Optional.of(asset));
@@ -95,6 +97,37 @@ class MediaS3DeleteJobHandlerTest {
         ArgumentCaptor<MediaAsset> captor = ArgumentCaptor.forClass(MediaAsset.class);
         verify(mediaAssetRepository).saveAndFlush(captor.capture());
         assertThat(captor.getValue().getStatus()).isEqualTo(AssetStatus.ARCHIVED);
+    }
+
+    @Test
+    void deletesAStalePublicKeyWithoutArchivingTheDemotedAsset() {
+        MediaAsset asset = pendingDeleteAsset(80L);
+        asset.setStatus(AssetStatus.READY);
+        asset.setS3Key("alpha/private/audio/ep.mp3");
+        when(directwerkConfig.isStorageEnabled()).thenReturn(true);
+        when(directwerkConfig.storage()).thenReturn(storageProps());
+        when(mediaAssetRepository.findById(80L)).thenReturn(Optional.of(asset));
+
+        MediaS3DeleteJobHandler handler = new MediaS3DeleteJobHandler(
+                objectMapper,
+                s3Client,
+                directwerkConfig,
+                mediaAssetRepository,
+                mediaDeleteJobProducer
+        );
+        handler.handle(job(new MediaS3DeleteJobPayload(
+                80L,
+                "alpha/public/audio/ep.mp3",
+                "https://cdn.example.test/alpha/public/audio/ep.mp3"
+        )));
+
+        ArgumentCaptor<DeleteObjectRequest> deleted = ArgumentCaptor.forClass(DeleteObjectRequest.class);
+        verify(s3Client).deleteObject(deleted.capture());
+        assertThat(deleted.getValue().key()).isEqualTo("alpha/public/audio/ep.mp3");
+        verify(mediaDeleteJobProducer).enqueueCdnPurge(80L, "https://cdn.example.test/alpha/public/audio/ep.mp3");
+        verify(mediaAssetRepository, never()).hasAttachedReferences(any());
+        verify(mediaAssetRepository, never()).saveAndFlush(any());
+        assertThat(asset.getStatus()).isEqualTo(AssetStatus.READY);
     }
 
     private QueueJob job(MediaS3DeleteJobPayload payload) {

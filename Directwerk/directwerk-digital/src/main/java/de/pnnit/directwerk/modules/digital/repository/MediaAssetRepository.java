@@ -185,6 +185,20 @@ public interface MediaAssetRepository extends JpaRepository<MediaAsset, Long> {
             """)
     int archivePendingByS3Key(@Param("tenantId") Long tenantId, @Param("s3Key") String s3Key);
 
+    /** Clears stale episode back-references when an episode's audio/cover is replaced (#1029). */
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("""
+            update MediaAsset m
+            set m.episodeId = null
+            where m.tenant.id = :tenantId
+              and m.episodeId = :episodeId
+              and m.id <> :assetId
+            """)
+    int clearOtherEpisodeLinks(
+            @Param("tenantId") Long tenantId,
+            @Param("episodeId") Long episodeId,
+            @Param("assetId") Long assetId);
+
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("""
             update MediaAsset m
