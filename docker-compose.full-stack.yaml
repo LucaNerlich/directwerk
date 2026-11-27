@@ -127,6 +127,8 @@ services:
             - '3003:3003'
         environment:
             DIRECTWERK_API_URL: http://directwerk:8080
+            # Public API origin used in the hosted MCP config (Settings → API keys).
+            NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8080}
             OAUTH_CLIENT_ID: directwerk-tenant-frontend
             OAUTH_CLIENT_SECRET: ${DIRECTWERK_TENANT_CLIENT_SECRET:?Set DIRECTWERK_TENANT_CLIENT_SECRET in Directwerk/.env}
 
@@ -139,6 +141,8 @@ services:
             - '3004:3004'
         environment:
             DIRECTWERK_API_URL: http://directwerk:8080
+            # Public API origin used in the hosted MCP config (Settings → API keys).
+            NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8080}
             OAUTH_CLIENT_ID: directwerk-tenant-frontend
             OAUTH_CLIENT_SECRET: ${DIRECTWERK_TENANT_CLIENT_SECRET:?Set DIRECTWERK_TENANT_CLIENT_SECRET in Directwerk/.env}
 
