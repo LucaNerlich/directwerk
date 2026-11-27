@@ -14,6 +14,7 @@ import de.pnnit.directwerk.modules.digital.api.MediaAssetQueryApi;
 import de.pnnit.directwerk.modules.digital.entity.AccessPolicy;
 import de.pnnit.directwerk.modules.digital.entity.AssetStatus;
 import de.pnnit.directwerk.modules.digital.entity.AssetType;
+import de.pnnit.directwerk.modules.digital.entity.AssetVisibility;
 import de.pnnit.directwerk.modules.digital.entity.DigitalPublication;
 import de.pnnit.directwerk.modules.digital.entity.DigitalPublicationStatus;
 import de.pnnit.directwerk.modules.digital.entity.MediaAsset;
@@ -147,6 +148,15 @@ public class DigitalPublicationService {
             throw new IllegalArgumentException("Unarchive before publishing a bonus file");
         }
         requireReadyDocument(tenantId, publication.getAsset().getId());
+        if (publication.getAccessPolicy() == AccessPolicy.PAID
+                && publication.getAsset().getVisibility() == AssetVisibility.PUBLIC) {
+            // A PUBLIC asset short-circuits the download resolver to the public CDN before any
+            // entitlement check, so a PAID publication over it would be free (#1031).
+            throw new de.pnnit.directwerk.modules.digital.exception.DigitalPublicationValidationException(
+                    "DIGITAL_PUBLICATION_ASSET_NOT_PRIVATE",
+                    "Paid bonus files require a private asset (asset " + publication.getAsset().getId()
+                            + "); upload the document as private");
+        }
         if (publication.getAccessPolicy() == AccessPolicy.PAID
                 && publication.getRequiredLevelSortOrder() == null) {
             publication.setRequiredLevelSortOrder(0);
