@@ -56,6 +56,8 @@ export default function ProductRulesEditor({
     const [statusMessage, setStatusMessage] = useState<string | null>(null)
     const [isLoading, setIsLoading] = useState(true)
     const [isSaving, setIsSaving] = useState(false)
+    const [loaded, setLoaded] = useState(false)
+    const [loadAttempt, setLoadAttempt] = useState(0)
 
     const handleAuthError = useCallback(
         (error: unknown) => {
@@ -69,6 +71,8 @@ export default function ProductRulesEditor({
 
     useEffect(() => {
         let active = true
+        setLoaded(false)
+        setDrafts([])
 
         Promise.all([
             listProductRules( productId),
@@ -91,6 +95,7 @@ export default function ProductRulesEditor({
                 setFormats(formatList.filter((item) => item.active))
                 setCategories(categoryList.filter((item) => item.active))
                 setDocuments(mediaList)
+                setLoaded(true)
                 setIsLoading(false)
             })
             .catch((error: unknown) => {
@@ -104,7 +109,7 @@ export default function ProductRulesEditor({
         return () => {
             active = false
         }
-    }, [handleAuthError, productId])
+    }, [handleAuthError, loadAttempt, productId])
 
     function updateDraft(index: number, patch: Partial<DraftRule>): void {
         setDrafts((current) =>
@@ -180,14 +185,27 @@ export default function ProductRulesEditor({
                 </CardDescription>
             </CardHeader>
             <CardContent className="grid gap-4">
-            {drafts.length === 0 ? (
+            {drafts.length === 0 && loaded ? (
                 <p className="text-sm text-muted-foreground">
                     Noch keine Regeln. Ein Paket ohne Regeln schaltet keine bezahlten Inhalte frei.
                 </p>
             ) : null}
             {errorMessage ? (
                 <Alert variant="destructive">
-                    <AlertDescription>{errorMessage}</AlertDescription>
+                    <AlertDescription>
+                        {errorMessage}
+                        {!loaded ? (
+                            <Button
+                                className="ml-3"
+                                onClick={() => setLoadAttempt((current) => current + 1)}
+                                size="sm"
+                                type="button"
+                                variant="outline"
+                            >
+                                Erneut versuchen
+                            </Button>
+                        ) : null}
+                    </AlertDescription>
                 </Alert>
             ) : null}
             {statusMessage ? (
@@ -336,7 +354,9 @@ export default function ProductRulesEditor({
                     Regel hinzufügen
                 </Button>
                 <Button
-                    disabled={isSaving}
+                    // Saving before the initial load replaced every rule with an empty list
+                    // (the API treats that as delete-all) (#1020).
+                    disabled={isSaving || !loaded}
                     onClick={() => void handleSave()}
                     type="button"
                 >
