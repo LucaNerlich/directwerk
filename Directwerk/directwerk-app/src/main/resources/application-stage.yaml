@@ -2,6 +2,14 @@ spring:
     docker:
         compose:
             enabled: false
+    mail:
+        properties:
+            mail:
+                smtp:
+                    starttls:
+                        # Stage is internet-reachable and sends real mail; never downgrade to
+                        # cleartext (#1039 review).
+                        required: true
     jpa:
         show-sql: false
         hibernate:
