@@ -87,6 +87,36 @@ describe('DomainVerificationWizard', () => {
         expect(onComplete).toHaveBeenCalledWith('podcast.beispiel.de')
     })
 
+    it('offers the retry only after the challenge load failed', async () => {
+        let rejectFirst!: (error: Error) => void
+        getDomainVerification
+            .mockReturnValueOnce(new Promise((_resolve, reject) => {
+                rejectFirst = reject
+            }))
+            .mockResolvedValueOnce({
+                host: 'podcast.beispiel.de',
+                token: 'abc123',
+                dnsTxtValue: 'directwerk-verify=abc123',
+                dnsNameHint: '_directwerk-challenge.podcast.beispiel.de',
+            })
+        renderWithLocale(
+            <DomainVerificationWizard
+                initialHost="podcast.beispiel.de"
+                onAuthError={() => false}
+                onCancel={vi.fn()}
+                onComplete={vi.fn()}
+            />,
+        )
+
+        expect(screen.queryByRole('button', {name: 'Erneut laden'})).not.toBeInTheDocument()
+        rejectFirst(new Error('nicht erreichbar'))
+        fireEvent.click(await screen.findByRole('button', {name: 'Erneut laden'}))
+
+        expect(
+            await screen.findByText('_directwerk-challenge.podcast.beispiel.de'),
+        ).toBeInTheDocument()
+    })
+
     it('shows waiting state when DNS is not visible yet and keeps polling', async () => {
         getDomainVerification.mockResolvedValue({
             host: 'open.beispiel.de',
