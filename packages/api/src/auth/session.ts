@@ -90,6 +90,11 @@ export function createAuthSession(config: AuthSessionConfig) {
             clearTimeout(timeoutId)
 
             if (response.status === 400 || response.status === 401) {
+                // A response from a session generation that has already been replaced (login,
+                // logout) must not clear the new session's tokens (#1141 review).
+                if (sessionGeneration !== currentSessionGeneration) {
+                    throw new Error(AUTH_TRANSIENT)
+                }
                 // Definitive auth failure from the token endpoint.
                 clearTokens()
                 throw new Error(AUTH_REQUIRED)
