@@ -14,11 +14,11 @@ import de.pnnit.directwerk.modules.core.util.TenantAssetKeys;
 import de.pnnit.directwerk.modules.digital.DigitalContentModule;
 import de.pnnit.directwerk.modules.digital.api.MediaAssetLifecycleApi;
 import de.pnnit.directwerk.modules.digital.entity.AssetStatus;
-import de.pnnit.directwerk.modules.digital.entity.AssetVisibility;
 import de.pnnit.directwerk.modules.digital.entity.MediaAsset;
 import de.pnnit.directwerk.modules.digital.exception.AssetAccessDeniedException;
 import de.pnnit.directwerk.modules.digital.exception.MediaAssetNotFoundException;
 import de.pnnit.directwerk.modules.digital.job.MediaDeleteJobProducer;
+import de.pnnit.directwerk.modules.digital.policy.PublicAssetPolicy;
 import de.pnnit.directwerk.modules.digital.repository.MediaAssetRepository;
 import de.pnnit.directwerk.modules.digital.storage.S3PublicUrlBuilder;
 import de.pnnit.directwerk.multitenancy.TenantContext;
@@ -140,20 +140,12 @@ public class MediaAssetLifecycleService implements MediaAssetLifecycleApi {
         }
     }
 
-    /** Public-CDN eligibility via {@link TenantAssetKeys#isPublicKey}. */
+    /** Public-CDN eligibility comes from the shared {@link PublicAssetPolicy}. */
     private URL resolvePublicCdnUrl(MediaAsset asset) {
-        if (asset.getVisibility() != AssetVisibility.PUBLIC) {
+        if (!PublicAssetPolicy.isPublicCdnEligible(asset.getTenant().getSlug(), asset)) {
             return null;
         }
-        String s3Key = asset.getS3Key();
-        if (s3Key == null || s3Key.isBlank()) {
-            return null;
-        }
-        String normalized = s3Key.startsWith("/") ? s3Key.substring(1) : s3Key;
-        if (!TenantAssetKeys.isPublicKey(asset.getTenant().getSlug(), normalized)) {
-            return null;
-        }
-        return publicUrlBuilder.cdnUrl(normalized);
+        return publicUrlBuilder.cdnUrl(asset.getS3Key());
     }
 
 
