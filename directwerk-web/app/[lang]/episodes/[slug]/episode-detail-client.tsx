@@ -71,6 +71,7 @@ export default function EpisodeDetailClient({
         // tier must fall back to the public payload and keep the locked panel (#1021).
         loadEntitled: async () =>
             (await listMyEpisodes()).find((item) => item.slug === slug) ??
+            initialPublicEpisode ??
             fetchPublicEpisodeBySlug(slug),
         messages,
     })

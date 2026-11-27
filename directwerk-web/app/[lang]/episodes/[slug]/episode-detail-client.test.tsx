@@ -5,8 +5,18 @@ vi.mock('next/navigation', () => ({
     usePathname: () => '/de/episodes/sichere-folge',
 }))
 
+const auth = vi.hoisted(() => ({token: null as string | null}))
+vi.mock('@/lib/auth/tokenStore', () => ({
+    getAccessToken: () => auth.token,
+    subscribeToTokenStore: () => () => {},
+}))
+vi.mock('@/lib/api/client', () => ({listMyEpisodes: vi.fn()}))
+vi.mock('@/lib/catalog/episodeDetail', () => ({fetchPublicEpisodeBySlug: vi.fn()}))
+
 import type {PublicEpisode} from '@directwerk/api/types'
 
+import {listMyEpisodes} from '@/lib/api/client'
+import {fetchPublicEpisodeBySlug} from '@/lib/catalog/episodeDetail'
 import {AudioPlayerProvider} from '@/lib/player/AudioPlayerContext'
 import {mockHtmlMedia} from '@/lib/player/mockHtmlMedia'
 import {TestLocale} from '@/lib/i18n/testWrapper'
@@ -49,7 +59,10 @@ function renderDetail(
     )
 }
 
-afterEach(cleanup)
+afterEach(() => {
+    auth.token = null
+    cleanup()
+})
 
 describe('EpisodeDetailClient content rendering', () => {
     it('renders the dedicated empty-slug message', async () => {
@@ -59,6 +72,22 @@ describe('EpisodeDetailClient content rendering', () => {
             expect(screen.getByText('Folge nicht gefunden.')).toBeInTheDocument(),
         )
         expect(screen.queryByText('Folge nicht verfügbar')).not.toBeInTheDocument()
+    })
+
+    it('falls back to the public payload when the member has no entitled row', async () => {
+        auth.token = 'token'
+        vi.mocked(listMyEpisodes).mockResolvedValue([])
+        vi.mocked(fetchPublicEpisodeBySlug).mockResolvedValue({
+            ...buildEpisode('Öffentliche Shownotes'),
+            accessPolicy: 'PAID',
+            audioCdnUrl: null,
+        })
+
+        renderDetail(<EpisodeDetailClient slug="sichere-folge" />)
+
+        expect((await screen.findAllByText('Mitgliedschaft nötig')).length).toBeGreaterThan(0)
+        expect(screen.queryByText('Folge nicht verfügbar')).not.toBeInTheDocument()
+        auth.token = null
     })
 
     it('sanitizes stored episode HTML before injecting it into the DOM', () => {
