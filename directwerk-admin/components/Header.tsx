@@ -5,7 +5,7 @@ import {usePathname, useRouter} from 'next/navigation'
 import {useEffect, useState, type ReactNode} from 'react'
 
 import {Button} from '@directwerk/ui/components/button'
-import AdminShell from '@directwerk/ui/components/layout/admin-shell'
+import AppShell from '@directwerk/ui/components/layout/app-shell'
 
 import AdminSideNav from '@/components/AdminSideNav'
 import {getAccessToken, subscribeToTokenStore} from '@/lib/auth/tokenStore'
@@ -61,7 +61,9 @@ export default function Header({children}: {children: ReactNode}) {
     }
 
     return (
-        <AdminShell
+        <AppShell
+            navigationTriggerLabel="Open navigation"
+            skipLinkLabel="Skip to content"
             footer={
                 <>
                 {hasToken ? (
@@ -114,6 +116,6 @@ export default function Header({children}: {children: ReactNode}) {
             navigation={<AdminSideNav />}
         >
             {children}
-        </AdminShell>
+        </AppShell>
     )
 }
