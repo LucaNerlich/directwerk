@@ -1,6 +1,6 @@
 'use client'
 
-import {useCallback, useEffect, useRef, useState} from 'react'
+import {useCallback, useEffect, useLayoutEffect, useRef, useState} from 'react'
 
 import {useDraftAutosave} from '@/lib/editor/useDraftAutosave'
 import type {PublicationStatus} from '@directwerk/api/types'
@@ -53,12 +53,19 @@ export function usePublicationEditorWorkflow<T extends {
     const [isDirty, setIsDirty] = useState(false)
     const [dirtyRevision, setDirtyRevision] = useState(0)
     const publicationRef = useRef(publication)
-    publicationRef.current = publication
+    // Refs are written in a layout effect, not during render: a discarded concurrent render must
+    // not publish its props, and React Compiler can then optimise the editor (#1087).
+    useLayoutEffect(() => {
+        publicationRef.current = publication
+    }, [publication])
+
+    // DRAFT writes live columns; PUBLISHED stages a working-draft overlay. Pure so the render
+    // output never reads the layout-effect ref (#1087 review).
+    const isEditableStatus = (status: string | null | undefined): boolean =>
+        status === null || status === undefined || status === 'DRAFT' || status === 'PUBLISHED'
 
     const isEditablePublication = useCallback((): boolean => {
-        const status = publicationRef.current?.status ?? 'DRAFT'
-        // DRAFT writes live columns; PUBLISHED stages a working-draft overlay.
-        return status === 'DRAFT' || status === 'PUBLISHED'
+        return isEditableStatus(publicationRef.current?.status)
     }, [])
 
     const canAutosave = useCallback((): boolean => {
@@ -178,7 +185,7 @@ export function usePublicationEditorWorkflow<T extends {
     }, [isDirty])
 
     useDraftAutosave({
-        enabled: canAutosave(),
+        enabled: publicationId !== undefined && isEditableStatus(publication?.status),
         isDirty,
         isSaving: isSaving || autosaveBlocked,
         canSave: canAutosave,

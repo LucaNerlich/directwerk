@@ -1,6 +1,6 @@
 'use client'
 
-import {useCallback, useEffect, useMemo, useRef, useState} from 'react'
+import {useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState} from 'react'
 
 import type {PublicationSort, PublicationStatus} from '@directwerk/api/types'
 import {useAuthRequired} from '@directwerk/api/auth/useAuthRequired'
@@ -60,7 +60,9 @@ export function usePublicationListPage<T extends {
 }>(config: PublicationListPageConfig<T>) {
     const authRedirect = useAuthRequired()
     const configRef = useRef(config)
-    configRef.current = config
+    useLayoutEffect(() => {
+        configRef.current = config
+    }, [config])
 
     const [items, setItems] = useState<T[]>([])
     const [isLoading, setIsLoading] = useState(true)
@@ -84,9 +86,11 @@ export function usePublicationListPage<T extends {
     )
 
     const itemsRef = useRef(items)
-    itemsRef.current = items
     const sortRef = useRef(sort)
-    sortRef.current = sort
+    useLayoutEffect(() => {
+        itemsRef.current = items
+        sortRef.current = sort
+    }, [items, sort])
 
     const selection = usePublicationListState(itemIds)
 
