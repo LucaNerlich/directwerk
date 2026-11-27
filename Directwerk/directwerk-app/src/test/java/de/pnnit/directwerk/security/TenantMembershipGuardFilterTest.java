@@ -192,6 +192,8 @@ class TenantMembershipGuardFilterTest {
 
         HttpServletRequest request = mock(HttpServletRequest.class);
         when(request.getRequestURI()).thenReturn("/api/v1/%66ormats/1");
+        // Taxonomy writes are tenant-admin only; the decoded path must classify as such.
+        when(request.getMethod()).thenReturn("POST");
         FilterChain chain = mock(FilterChain.class);
 
         assertThatThrownBy(() -> filter.doFilter(request, new MockHttpServletResponse(), chain))
