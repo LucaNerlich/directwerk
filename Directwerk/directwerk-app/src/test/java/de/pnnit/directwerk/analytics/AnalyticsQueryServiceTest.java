@@ -179,6 +179,15 @@ class AnalyticsQueryServiceTest {
         assertThatThrownBy(() -> service((uri, body, token) ->
                 new AnalyticsQueryService.HttpResult(500, "")).query(10L, AnalyticsRange.SEVEN_DAYS))
                 .isInstanceOf(AnalyticsQueryException.class)
+                .hasCauseInstanceOf(IllegalStateException.class)
+                .extracting(ex -> ((AnalyticsQueryException) ex).getCode())
+                .isEqualTo("UMAMI_UNAVAILABLE");
+
+        assertThatThrownBy(() -> service((uri, body, token) -> {
+            throw new java.net.ConnectException("connection refused");
+        }).query(10L, AnalyticsRange.SEVEN_DAYS))
+                .isInstanceOf(AnalyticsQueryException.class)
+                .hasCauseInstanceOf(java.net.ConnectException.class)
                 .extracting(ex -> ((AnalyticsQueryException) ex).getCode())
                 .isEqualTo("UMAMI_UNAVAILABLE");
     }
