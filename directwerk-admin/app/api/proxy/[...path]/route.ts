@@ -9,7 +9,10 @@ const handlers = createPlatformProxyRouteHandler({
             request,
             authorization,
         )
-        return fetch(upstreamRequest.url, upstreamRequest.init)
+        return fetch(upstreamRequest.url, {
+            ...upstreamRequest.init,
+            signal: AbortSignal.timeout(10_000),
+        })
     },
     ...PROXY_POLICIES.platform,
 })

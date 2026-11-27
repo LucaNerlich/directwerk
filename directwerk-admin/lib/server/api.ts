@@ -176,6 +176,7 @@ export async function revokePlatformRefreshToken(refreshToken: string): Promise<
         body,
         cache: 'no-store',
         redirect: 'manual',
+        signal: AbortSignal.timeout(10_000),
     })
 }
 
