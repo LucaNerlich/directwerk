@@ -143,6 +143,10 @@ public class TenantMembershipManagementService {
             throw new CannotDeactivateLastAdminException(userId);
         }
 
+        if (membership.getRoles().equals(EnumSet.of(newRole))) {
+            // A no-op "change" must not clear the editor restrictions stored for this member.
+            return toView(membership);
+        }
         membership.setRoles(EnumSet.of(newRole));
         TenantMembership saved = tenantMembershipRepository.save(membership);
         // Restriction rows only apply to editors: clear them on every role change
