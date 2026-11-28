@@ -1,62 +1,64 @@
 package de.pnnit.directwerk.modules.core.service;
 
+import de.pnnit.directwerk.modules.core.FeatureModuleKeys;
+
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
 public enum ModulePreset {
-    FREE_PODCAST("DIGITAL_CONTENT", "PODCAST", "PODCAST_RSS", "WHITELABEL"),
-    WRITER("DIGITAL_CONTENT", "ARTICLES", "SUBSCRIPTION", "ARTICLE_RSS", "BONUS_CONTENT", "EMAIL_NOTIFY", "WHITELABEL"),
+    FREE_PODCAST(FeatureModuleKeys.DIGITAL_CONTENT, FeatureModuleKeys.PODCAST, FeatureModuleKeys.PODCAST_RSS, FeatureModuleKeys.WHITELABEL),
+    WRITER(FeatureModuleKeys.DIGITAL_CONTENT, FeatureModuleKeys.ARTICLES, FeatureModuleKeys.SUBSCRIPTION, FeatureModuleKeys.ARTICLE_RSS, FeatureModuleKeys.BONUS_CONTENT, FeatureModuleKeys.EMAIL_NOTIFY, FeatureModuleKeys.WHITELABEL),
     PODCAST(
-            "DIGITAL_CONTENT",
-            "PODCAST",
-            "PODCAST_RSS",
-            "SUBSCRIPTION",
-            "BONUS_CONTENT",
-            "EMAIL_NOTIFY"
+            FeatureModuleKeys.DIGITAL_CONTENT,
+            FeatureModuleKeys.PODCAST,
+            FeatureModuleKeys.PODCAST_RSS,
+            FeatureModuleKeys.SUBSCRIPTION,
+            FeatureModuleKeys.BONUS_CONTENT,
+            FeatureModuleKeys.EMAIL_NOTIFY
     ),
     FULL(
-            "DIGITAL_CONTENT",
-            "SUBSCRIPTION",
-            "BONUS_CONTENT",
-            "EMAIL_NOTIFY",
-            "WHITELABEL",
-            "PODCAST",
-            "PODCAST_RSS"
+            FeatureModuleKeys.DIGITAL_CONTENT,
+            FeatureModuleKeys.SUBSCRIPTION,
+            FeatureModuleKeys.BONUS_CONTENT,
+            FeatureModuleKeys.EMAIL_NOTIFY,
+            FeatureModuleKeys.WHITELABEL,
+            FeatureModuleKeys.PODCAST,
+            FeatureModuleKeys.PODCAST_RSS
     ),
     PATREON_MIGRATOR(
-            "DIGITAL_CONTENT",
-            "PODCAST",
-            "PODCAST_RSS",
-            "SUBSCRIPTION",
-            "BONUS_CONTENT",
+            FeatureModuleKeys.DIGITAL_CONTENT,
+            FeatureModuleKeys.PODCAST,
+            FeatureModuleKeys.PODCAST_RSS,
+            FeatureModuleKeys.SUBSCRIPTION,
+            FeatureModuleKeys.BONUS_CONTENT,
             "PATREON_SYNC",
-            "WHITELABEL"
+            FeatureModuleKeys.WHITELABEL
     ),
     PRO(
-            "DIGITAL_CONTENT",
-            "PODCAST",
-            "PODCAST_RSS",
-            "WHITELABEL",
-            "SUBSCRIPTION",
-            "BONUS_CONTENT",
-            "FEED_BUILDER",
-            "ARTICLES",
-            "ARTICLE_RSS",
-            "ARTICLE_FEED_BUILDER",
+            FeatureModuleKeys.DIGITAL_CONTENT,
+            FeatureModuleKeys.PODCAST,
+            FeatureModuleKeys.PODCAST_RSS,
+            FeatureModuleKeys.WHITELABEL,
+            FeatureModuleKeys.SUBSCRIPTION,
+            FeatureModuleKeys.BONUS_CONTENT,
+            FeatureModuleKeys.FEED_BUILDER,
+            FeatureModuleKeys.ARTICLES,
+            FeatureModuleKeys.ARTICLE_RSS,
+            FeatureModuleKeys.ARTICLE_FEED_BUILDER,
             "STRIPE_BILLING"
     ),
     ENTERPRISE(
-            "DIGITAL_CONTENT",
-            "PODCAST",
-            "PODCAST_RSS",
-            "WHITELABEL",
-            "SUBSCRIPTION",
-            "BONUS_CONTENT",
-            "FEED_BUILDER",
-            "ARTICLES",
-            "ARTICLE_RSS",
-            "ARTICLE_FEED_BUILDER",
+            FeatureModuleKeys.DIGITAL_CONTENT,
+            FeatureModuleKeys.PODCAST,
+            FeatureModuleKeys.PODCAST_RSS,
+            FeatureModuleKeys.WHITELABEL,
+            FeatureModuleKeys.SUBSCRIPTION,
+            FeatureModuleKeys.BONUS_CONTENT,
+            FeatureModuleKeys.FEED_BUILDER,
+            FeatureModuleKeys.ARTICLES,
+            FeatureModuleKeys.ARTICLE_RSS,
+            FeatureModuleKeys.ARTICLE_FEED_BUILDER,
             "STRIPE_BILLING",
             "PATREON_SYNC",
             "STEADY_SYNC",

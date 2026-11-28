@@ -10,16 +10,13 @@ import org.springframework.stereotype.Service;
 @Service
 public class StudioNavigationService {
 
-    private static final String ARTICLES_MODULE_KEY = "ARTICLES";
-    private static final String PODCAST_MODULE_KEY = "PODCAST";
-
     public StudioNavigationView resolve(Collection<String> enabledModules) {
         Set<String> modules = Set.copyOf(enabledModules);
         List<StudioDesk> desks = new ArrayList<>(2);
-        if (modules.contains(ARTICLES_MODULE_KEY)) {
+        if (modules.contains(FeatureModuleKeys.ARTICLES)) {
             desks.add(StudioDesk.WRITE);
         }
-        if (modules.contains(PODCAST_MODULE_KEY)) {
+        if (modules.contains(FeatureModuleKeys.PODCAST)) {
             desks.add(StudioDesk.PODCAST);
         }
         return new StudioNavigationView(desks, resolveHome(modules, desks));
