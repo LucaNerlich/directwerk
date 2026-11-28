@@ -2,9 +2,8 @@ package de.pnnit.directwerk.modules.email.config;
 
 import de.pnnit.directwerk.config.DirectwerkConfig;
 import de.pnnit.directwerk.modules.email.quartz.EmailDeliveryCleanupJob;
-import org.quartz.JobBuilder;
 import org.quartz.JobDetail;
-import org.quartz.SimpleScheduleBuilder;
+import de.pnnit.directwerk.modules.queue.quartz.QuartzJobDefinitions;
 import org.quartz.Trigger;
 import org.quartz.TriggerBuilder;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -21,10 +20,7 @@ public class EmailQuartzConfig {
 
     @Bean
     JobDetail emailDeliveryCleanupJobDetail() {
-        return JobBuilder.newJob(EmailDeliveryCleanupJob.class)
-                .withIdentity(CLEANUP_JOB_IDENTITY)
-                .storeDurably()
-                .build();
+        return QuartzJobDefinitions.durableJob(EmailDeliveryCleanupJob.class, CLEANUP_JOB_IDENTITY);
     }
 
     @Bean
@@ -32,13 +28,7 @@ public class EmailQuartzConfig {
             @Qualifier("emailDeliveryCleanupJobDetail") JobDetail emailDeliveryCleanupJobDetail,
             DirectwerkConfig directwerkConfig) {
         long intervalMs = Math.max(60_000L, directwerkConfig.queue().cleanupIntervalMs());
-        return TriggerBuilder.newTrigger()
-                .forJob(emailDeliveryCleanupJobDetail)
-                .withIdentity(CLEANUP_TRIGGER_IDENTITY)
-                .withSchedule(SimpleScheduleBuilder.simpleSchedule()
-                        .withIntervalInMilliseconds(intervalMs)
-                        .repeatForever())
-                .startNow()
-                .build();
+        return QuartzJobDefinitions.repeatingTriggerMillis(
+                emailDeliveryCleanupJobDetail, CLEANUP_TRIGGER_IDENTITY, intervalMs);
     }
 }
