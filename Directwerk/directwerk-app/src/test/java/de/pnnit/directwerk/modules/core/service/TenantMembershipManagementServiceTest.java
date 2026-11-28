@@ -2,6 +2,7 @@ package de.pnnit.directwerk.modules.core.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
@@ -268,6 +269,23 @@ class TenantMembershipManagementServiceTest {
         service.updateRole(TENANT_ID, 5L, "TENANT_ADMIN");
 
         verify(membershipPermissionService).clearForMembership(TENANT_ID, membershipId);
+    }
+
+    @Test
+    void updateRoleToTheSameRoleKeepsRestrictions() {
+        Long membershipId = 7L;
+        TenantMembership membership = membership(5L, MembershipStatus.ACTIVE, Role.EDITOR);
+        membership.setId(membershipId);
+        when(tenantMembershipRepository.findByUserIdAndTenantId(5L, TENANT_ID)).thenReturn(Optional.of(membership));
+
+        TenantUserQueryService.TenantUserView updated = service.updateRole(TENANT_ID, 5L, "EDITOR");
+
+        assertThat(updated.roles()).containsExactly("EDITOR");
+        verify(tenantMembershipRepository, never()).save(membership);
+        verify(membershipPermissionService, never()).clearForMembership(TENANT_ID, membershipId);
+        verify(platformAuditService, never()).record(
+                eq(PlatformAuditActions.MEMBERSHIP_ROLE_CHANGED), eq(TENANT_ID), any()
+        );
     }
 
     @Test
