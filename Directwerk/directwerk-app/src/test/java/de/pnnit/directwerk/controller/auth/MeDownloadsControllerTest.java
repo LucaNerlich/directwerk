@@ -38,13 +38,13 @@ class MeDownloadsControllerTest {
     void listDownloadsMapsAccessResultsToViews() throws Exception {
         DirectwerkUserPrincipal principal = principal(1L, 5L);
         MediaAsset ready = asset(71L, AssetStatus.READY, "bonus.pdf");
-        when(subscriberContentAccessService.listDownloads(principal)).thenReturn(List.of(
+        when(subscriberContentAccessService.listDownloads(principal, 0, 50)).thenReturn(List.of(
                 new SubscriberPortalAccessService.AssetDownload(
                         ready,
                         URI.create("https://cdn.example.test/bonus.pdf").toURL())
         ));
 
-        ResponseEntity<Response<List<DownloadView>>> response = controller.listDownloads(principal);
+        ResponseEntity<Response<List<DownloadView>>> response = controller.listDownloads(principal, 0, 50);
 
         assertThat(response.getStatusCode().value()).isEqualTo(200);
         assertThat(response.getBody().data()).hasSize(1);
@@ -57,9 +57,9 @@ class MeDownloadsControllerTest {
     void listDownloadsReturnsEmptyListWhenNothingAccessible() {
         DirectwerkUserPrincipal principal = principal(1L, 5L);
         // Fail-closed skipping lives in the access module; the controller sees an empty list.
-        when(subscriberContentAccessService.listDownloads(principal)).thenReturn(List.of());
+        when(subscriberContentAccessService.listDownloads(principal, 0, 50)).thenReturn(List.of());
 
-        ResponseEntity<Response<List<DownloadView>>> response = controller.listDownloads(principal);
+        ResponseEntity<Response<List<DownloadView>>> response = controller.listDownloads(principal, 0, 50);
 
         assertThat(response.getBody().data()).isEmpty();
     }

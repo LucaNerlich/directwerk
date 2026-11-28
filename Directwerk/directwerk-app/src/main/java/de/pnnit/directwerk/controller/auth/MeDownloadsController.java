@@ -6,12 +6,15 @@ import de.pnnit.directwerk.modules.core.RequiresModule;
 import de.pnnit.directwerk.modules.digital.BonusContentModule;
 import de.pnnit.directwerk.security.DirectwerkUserPrincipal;
 import de.pnnit.directwerk.security.SecurityUtils;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import java.util.List;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -28,10 +31,12 @@ public class MeDownloadsController {
     @GetMapping
     @RequiresModule(BonusContentModule.KEY)
     ResponseEntity<Response<List<DownloadView>>> listDownloads(
-            @AuthenticationPrincipal DirectwerkUserPrincipal principal
+            @AuthenticationPrincipal DirectwerkUserPrincipal principal,
+            @RequestParam(defaultValue = "0") @Min(0) int offset,
+            @RequestParam(defaultValue = "50") @Min(1) @Max(50) int limit
     ) {
         DirectwerkUserPrincipal user = SecurityUtils.requireTenantPrincipal(principal);
-        List<DownloadView> downloads = subscriberContentAccessService.listDownloads(user).stream()
+        List<DownloadView> downloads = subscriberContentAccessService.listDownloads(user, offset, limit).stream()
                 .map(download -> {
                     var asset = download.asset();
                     String title = download.title() != null && !download.title().isBlank()
