@@ -16,6 +16,8 @@ import HomeHeroImage from '@/components/HomeHeroImage'
 import HomeHeroMotif from '@/components/HomeHeroMotif'
 import SubscriberContextBanner from '@/components/SubscriberContextBanner'
 import {
+    listMyArticles,
+    listMyEpisodes,
     listPublicArticles,
     listPublicEpisodes,
     listPublicProducts,
@@ -94,7 +96,10 @@ export default function HomeClient({
         const loads: Array<Promise<void>> = []
         if (showPodcast) {
             loads.push(
-                listPublicEpisodes().then((episodes) => {
+                (isAuthenticated
+                    ? listMyEpisodes().then((mine) => (mine.length > 0 ? mine : listPublicEpisodes()))
+                    : listPublicEpisodes()
+                ).then((episodes) => {
                     if (active) {
                         setLatestEpisode(episodes[0] ?? null)
                     }
@@ -103,7 +108,10 @@ export default function HomeClient({
         }
         if (showArticles) {
             loads.push(
-                listPublicArticles().then((articles) => {
+                (isAuthenticated
+                    ? listMyArticles().then((mine) => (mine.length > 0 ? mine : listPublicArticles()))
+                    : listPublicArticles()
+                ).then((articles) => {
                     if (active) {
                         setLatestArticle(articles[0] ?? null)
                     }
