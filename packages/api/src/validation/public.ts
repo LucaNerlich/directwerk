@@ -217,7 +217,7 @@ export interface PublicContentPolicy {
     sanitizeHtml: (html: string) => string
 }
 
-function parsePublicCategoryInternal(value: unknown): PublicCategory | null {
+export function parsePublicCategory(value: unknown): PublicCategory | null {
     if (
         !isRecord(value) ||
         !isPositiveSafeInteger(value.id) ||
@@ -240,7 +240,7 @@ export function parsePublicCategoryListEnvelope(
     value: unknown,
 ): ApiEnvelope<PublicCategory[]> | null {
     return parseEnvelope(value, (data) =>
-        parseBoundedArray(data, 500, parsePublicCategoryInternal),
+        parseBoundedArray(data, 500, parsePublicCategory),
     )
 }
 
@@ -287,7 +287,7 @@ export function createPublicContentParsers(policy: PublicContentPolicy) {
         const categories = parseBoundedArray(
             value.categories,
             100,
-            parsePublicCategoryInternal,
+            parsePublicCategory,
         )
         if (categories === null) {
             return null
@@ -419,7 +419,7 @@ export function createPublicContentParsers(policy: PublicContentPolicy) {
         const categories = parseBoundedArray(
             rawCategories,
             100,
-            parsePublicCategoryInternal,
+            parsePublicCategory,
         )
         if (formats === null || categories === null) {
             return null
@@ -665,7 +665,7 @@ function parseArticleFeedView(value: unknown): ArticleFeedView | null {
     const categories =
         value.categories === undefined
             ? []
-            : parseBoundedArray(value.categories, 50, parsePublicCategoryInternal)
+            : parseBoundedArray(value.categories, 50, parsePublicCategory)
     if (categoryIds === null || categories === null) {
         return null
     }

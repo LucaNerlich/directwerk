@@ -93,7 +93,7 @@ import {
     parseBoundedArray,
     parseEnvelope,
 } from './primitives'
-import {parseSiteAnalytics} from './public'
+import {parsePublicCategory, parseSiteAnalytics} from './public'
 
 // ---------------------------------------------------------------------------
 // Shared entity parsers
@@ -1965,25 +1965,6 @@ export function parseSubscriberFeedAdminEnvelope(
 // Article feed admin views (tenant scope)
 // ---------------------------------------------------------------------------
 
-function parsePublicCategoryForFeed(value: unknown): PublicCategory | null {
-    if (
-        !isRecord(value) ||
-        !isPositiveSafeInteger(value.id) ||
-        !isBoundedString(value.slug) ||
-        !isBoundedString(value.name) ||
-        !(value.parentId === null || isPositiveSafeInteger(value.parentId))
-    ) {
-        return null
-    }
-
-    return {
-        id: value.id,
-        slug: value.slug,
-        name: value.name,
-        parentId: value.parentId,
-    }
-}
-
 function parseArticleFeedAdminView(value: unknown): ArticleFeedAdminView | null {
     if (
         !isRecord(value) ||
@@ -2010,7 +1991,7 @@ function parseArticleFeedAdminView(value: unknown): ArticleFeedAdminView | null 
     const categories =
         value.categories === undefined
             ? []
-            : parseBoundedArray(value.categories, 50, parsePublicCategoryForFeed)
+            : parseBoundedArray(value.categories, 50, parsePublicCategory)
     if (categoryIds === null || categories === null) {
         return null
     }
