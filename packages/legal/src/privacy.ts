@@ -44,6 +44,7 @@ export const PRIVACY: LegalPage = {
             heading: '5. Reichweitenmessung (Umami)',
             paragraphs: [
                 'Soweit aktiviert, messen wir Reichweite mit der selbst gehosteten, cookielosen Analyse-Software Umami (Art. 6 Abs. 1 lit. f DSGVO, berechtigtes Interesse an sparsamer, datenschutzfreundlicher Statistik). Es werden keine geräteübergreifenden Profile gebildet.',
+                'Zusätzlich kann Umami Interaktionen (z. B. Klicks und Scrollverhalten) stichprobenartig aufzeichnen, um die Bedienung zu verbessern. Eingabefelder werden dabei maskiert; die Aufzeichnung ist zeitlich begrenzt und wird nicht zur Werbung oder zur Erstellung von Profilen verwendet. Rechtsgrundlage ist ebenfalls das berechtigte Interesse an einer nutzerfreundlichen Gestaltung (Art. 6 Abs. 1 lit. f DSGVO).',
             ],
         },
         {
