@@ -10,6 +10,7 @@ import de.pnnit.directwerk.modules.core.util.FieldConstraints;
 import de.pnnit.directwerk.modules.core.util.FeedUrls;
 import de.pnnit.directwerk.modules.core.util.SlugNormalizer;
 import de.pnnit.directwerk.modules.core.util.TitleNormalizer;
+import de.pnnit.directwerk.modules.digital.entity.AssetVisibility;
 import de.pnnit.directwerk.modules.digital.service.HtmlSanitizer;
 import de.pnnit.directwerk.modules.podcast.PodcastModule;
 import de.pnnit.directwerk.modules.podcast.job.RssFeedRefreshJobProducer;
@@ -243,9 +244,13 @@ public class SeriesService {
             throw new IllegalArgumentException(
                     "Invalid series status transition: " + current + " -> " + target);
         }
-        if (target == SeriesStatus.PUBLISHED && series.getCoverAsset() == null) {
+        if (target == SeriesStatus.PUBLISHED
+                && (series.getCoverAsset() == null
+                || series.getCoverAsset().getVisibility() != AssetVisibility.PUBLIC)) {
+            // Legacy rows could store a private image before the resolver checked visibility;
+            // the feed and public pages only render public covers.
             throw new IllegalArgumentException(
-                    "A cover image is required before publishing a series");
+                    "A public cover image is required before publishing a series");
         }
     }
 }
