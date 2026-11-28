@@ -154,7 +154,7 @@ function parseCredentialsWithNormalizedName(value: unknown): LoginInput | null {
     if (
         typeof value.password !== 'string' ||
         value.password.length < MIN_PASSWORD_LENGTH ||
-        value.password.length > MAX_LOGIN_PASSWORD_LENGTH ||
+        !isWithinPasswordByteCap(value.password) ||
         email === null
     ) {
         return null
