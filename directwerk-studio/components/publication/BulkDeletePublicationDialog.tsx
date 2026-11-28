@@ -40,7 +40,6 @@ export default function BulkDeletePublicationDialog({
     contentLabelPlural,
     pending,
     onConfirm,
-    errorMessage,
 }: {
     open: boolean
     onOpenChange: (open: boolean) => void
@@ -49,7 +48,6 @@ export default function BulkDeletePublicationDialog({
     contentLabelPlural: string
     pending: boolean
     onConfirm: () => void
-    errorMessage?: string | null
 }): React.JSX.Element | null {
     const [typedToken, setTypedToken] = useState('')
 
@@ -82,11 +80,6 @@ export default function BulkDeletePublicationDialog({
                 description={
                     <>
                         <span>{description}</span>
-                        {errorMessage != null && errorMessage.length > 0 ? (
-                            <span className="mt-2 block text-destructive" role="alert">
-                                {errorMessage}
-                            </span>
-                        ) : null}
                     </>
                 }
                 destructive
@@ -130,11 +123,6 @@ export default function BulkDeletePublicationDialog({
                         value={typedToken}
                     />
                 </label>
-                {errorMessage != null && errorMessage.length > 0 ? (
-                    <p className="text-sm text-destructive" role="alert">
-                        {errorMessage}
-                    </p>
-                ) : null}
                 <DialogFooter>
                     <Button
                         disabled={pending}
