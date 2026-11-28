@@ -127,6 +127,12 @@ export default function TenantUserActions({
         }
     }
 
+    // Role names arrive alphabetically sorted, so EDITOR precedes TENANT_ADMIN; prefer the
+    // highest-privilege invitable role so an untouched submit never demotes an admin.
+    const currentRole = PLATFORM_TENANT_INVITABLE_ROLES.find((role) => user.roles.includes(role))
+        ?? user.roles[0]
+        ?? ''
+
     return (
         <>
             {user.roles.length > 1 ? (
@@ -136,9 +142,9 @@ export default function TenantUserActions({
                     ).join(', ')}. Saving replaces them with one role.
                 </p>
             ) : null}
-            {isTenantInvitableRole(user.roles[0] ?? '') ? (
+            {isTenantInvitableRole(currentRole) ? (
                 <form action={roleAction} className="flex min-w-64 flex-wrap gap-2">
-                    <select className="native-select w-auto flex-1" aria-label={`Role for ${user.email}`} defaultValue={user.roles[0]} key={user.roles[0]} name="role">
+                    <select className="native-select w-auto flex-1" aria-label={`Role for ${user.email}`} defaultValue={currentRole} key={currentRole} name="role">
                         {PLATFORM_TENANT_INVITABLE_ROLES.map((role) => (
                             <option key={role} value={role}>
                                 {getTenantRoleLabel(role)}

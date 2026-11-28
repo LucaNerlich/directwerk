@@ -78,4 +78,51 @@ describe('TenantUserActions', () => {
         )
         expect(onChanged).toHaveBeenCalled()
     })
+
+    it('shows no staff role form for a subscriber', () => {
+        render(
+            <TenantUserActions
+                onChanged={vi.fn()}
+                tenantId="1"
+                user={{
+                    userId: 4,
+                    email: 'reader@example.com',
+                    name: null,
+                    roles: ['SUBSCRIBER'],
+                    status: 'ACTIVE',
+                    invitedAt: null,
+                    lastLoginAt: null,
+                }}
+            />,
+        )
+
+        expect(screen.queryByRole('combobox')).not.toBeInTheDocument()
+        expect(screen.getByText(/Reader role: SUBSCRIBER/)).toBeInTheDocument()
+    })
+
+    it('defaults a multi-role member to the highest-privilege invitable role', async () => {
+        changeTenantUserRoleAction.mockClear()
+        const user = userEvent.setup()
+        render(
+            <TenantUserActions
+                onChanged={vi.fn()}
+                tenantId="1"
+                user={{
+                    userId: 5,
+                    email: 'both@example.com',
+                    name: null,
+                    roles: ['EDITOR', 'TENANT_ADMIN'],
+                    status: 'ACTIVE',
+                    invitedAt: null,
+                    lastLoginAt: null,
+                }}
+            />,
+        )
+
+        expect(screen.getByRole('combobox', {name: 'Role for both@example.com'})).toHaveValue('TENANT_ADMIN')
+        await user.click(screen.getByRole('button', {name: /Change role/}))
+        await waitFor(() => expect(changeTenantUserRoleAction).toHaveBeenCalled())
+        const formData = changeTenantUserRoleAction.mock.calls[0][3] as FormData
+        expect(formData.get('role')).toBe('TENANT_ADMIN')
+    })
 })
