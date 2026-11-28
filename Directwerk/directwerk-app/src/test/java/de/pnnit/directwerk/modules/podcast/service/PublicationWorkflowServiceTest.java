@@ -509,6 +509,17 @@ class PublicationWorkflowServiceTest {
     }
 
     @Test
+    void scheduleRejectsAnEpisodeWithoutAudioUpFront() {
+        Episode episode = draftEpisode();
+        episode.setAudioAsset(null);
+        when(episodeService.requireEpisode(10L, 55L)).thenReturn(episode);
+
+        assertThatThrownBy(() -> publicationWorkflowService.schedule(10L, 55L, Instant.now().plusSeconds(60), false))
+                .isInstanceOf(de.pnnit.directwerk.modules.podcast.exception.EpisodeValidationException.class)
+                .hasMessageContaining("audio");
+    }
+
+    @Test
     void publishDeniedForStrangerWithOwnOnlyRestriction() {
         Episode episode = draftEpisode();
         episode.setCreatedBy(99L);

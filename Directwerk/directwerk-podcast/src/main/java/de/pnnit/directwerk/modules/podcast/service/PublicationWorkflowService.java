@@ -270,6 +270,20 @@ public class PublicationWorkflowService extends PublicationWorkflow<Episode, Epi
     @Override
     protected void beforeSchedule(Episode episode) {
         requirePublishedSeries(episode);
+        // Evaluate the cheap publish preconditions up front: otherwise the due-time publish
+        // throws, rolls back, leaves the row SCHEDULED with a past date and the worker retries
+        // it every minute forever.
+        if (episode.getTitle() == null || episode.getTitle().isBlank()) {
+            throw new EpisodeValidationException("Episode title is required");
+        }
+        MediaAsset audioAsset = episode.getAudioAsset();
+        if (audioAsset == null || audioAsset.getId() == null) {
+            throw new EpisodeValidationException("Episode audio asset is required");
+        }
+        episodeMediaApi.requireReadyAudio(audioAsset.getId());
+        if (formatService.hasActiveFormats(episode.getTenant().getId()) && episode.getFormats().isEmpty()) {
+            throw new EpisodeValidationException("At least one format is required before publishing");
+        }
     }
 
     /**
