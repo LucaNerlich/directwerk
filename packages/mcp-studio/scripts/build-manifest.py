@@ -133,6 +133,9 @@ def main() -> int:
 
     total = sum(it["mp3"]["sizeBytes"] for it in items)
     print(f"items={len(items)} mp3={total} bytes ({total / (1 << 30):.2f} GiB) -> {args.out}")
+    if not items:
+        print("no LOG entries matched — check --base and the LOG layout", file=sys.stderr)
+        return 1
     if problems:
         print("\nPROBLEMS:")
         for p in problems:
