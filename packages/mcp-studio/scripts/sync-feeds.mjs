@@ -146,15 +146,6 @@ function parseFeed(xml) {
 
 /* ------------------------------------------------------------------ helpers */
 
-function slugify(text) {
-    const ascii = text.normalize('NFKD').replace(/[\u0300-\u036f]/g, '')
-    let slug = ascii.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')
-    if (slug.length > 56) {
-        slug = slug.slice(0, 56).replace(/-[^-]*$/, '') || slug.slice(0, 56)
-    }
-    return slug || 'episode'
-}
-
 async function listTenantSlugs() {
     const slugs = new Set()
     for (let offset = 0; ; offset += 100) {
@@ -310,12 +301,7 @@ async function syncShow(show, options, tenantSlugs) {
     await mkdir(workDir, {recursive: true})
 
     for (const item of pending) {
-        let slug = slugify(item.title)
-        let suffix = 2
-        while (usedSlugs.has(slug)) {
-            slug = `${slugify(item.title).slice(0, 58)}-${suffix++}`
-        }
-        usedSlugs.add(slug)
+        const slug = allocateSlug(usedSlugs, item.title)
         const audioFile = `${slug}.mp3`
         try {
             console.log(`   + ${day(item.publishedAt)} ${item.title}`)

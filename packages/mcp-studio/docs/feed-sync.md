@@ -6,7 +6,7 @@ not in the tenant yet.
 
 Idempotent by design: an episode counts as present when **title + publish date**
 match, so re-runs and partial failures are safe. Slugs are derived from the
-title and de-duplicated inside the series. Audio assets are reused by
+title and de-duplicated across the tenant, so shows that reuse an episode title get distinct slugs. Audio assets are reused by
 `originalFilename` when a previous run uploaded before failing.
 
 ## Environment
