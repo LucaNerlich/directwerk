@@ -10,6 +10,29 @@ function jsonResponse(status: number): Response {
 }
 
 describe('createAuthedRequest fixed-message mode', () => {
+    it('reports a transient refresh failure as transient, not AUTH_REQUIRED', async () => {
+        let cleared = 0
+        const request = createAuthedRequest({
+            session: {
+                getValidAccessToken: async () => {
+                    throw new Error('AUTH_TRANSIENT')
+                },
+                refreshAccessToken: async () => 'token',
+            },
+            clearTokens: () => {
+                cleared += 1
+            },
+            authFailureMode: 'auth-required',
+            finalUnauthorized: 'clear-and-auth-required',
+            fixedErrorMessagesOnly: true,
+            fixedErrorMessage: 'REQUEST_FAILED',
+            transientMessage: 'REQUEST_FAILED',
+        })
+
+        await expect(request('/api/admin/things')).rejects.toThrow('REQUEST_FAILED')
+        expect(cleared).toBe(0)
+    })
+
     it('clears tokens and throws AUTH_REQUIRED on a retried 401', async () => {
         const fetchMock = vi.fn(async () => jsonResponse(401))
         const refreshAccessToken = vi.fn(async () => 'token')
