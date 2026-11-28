@@ -37,6 +37,8 @@ const nextConfig: NextConfig = {
     outputFileTracingRoot: monorepoRoot,
     experimental: {
         optimizePackageImports: [...extraOptimizePackageImports],
+        // Keep Next's security-upgrade nudge from aborting production builds.
+        agentUpgrade: 'security',
     },
     // Imprint is served in-app under /[lang]/imprint (DE/EN via @directwerk/legal).
     // Unprefixed /imprint is redirected by proxy.ts to /de/imprint or /en/imprint.
