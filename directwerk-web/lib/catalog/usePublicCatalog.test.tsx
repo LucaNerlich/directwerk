@@ -1,4 +1,4 @@
-import {cleanup, renderHook} from '@testing-library/react'
+import {cleanup, renderHook, waitFor} from '@testing-library/react'
 import {afterEach, describe, expect, it, vi} from 'vitest'
 
 import type {ReactNode} from 'react'
@@ -49,5 +49,30 @@ describe('usePublicCatalog', () => {
         expect(result.current.items).toEqual(initialItems)
         expect(loadPublic).not.toHaveBeenCalled()
         expect(loadMine).not.toHaveBeenCalled()
+    })
+
+    it('keeps the items when the secondary series request fails', async () => {
+        const loadPublic = vi.fn().mockResolvedValue([{id: 1}])
+        const loadSeries = vi.fn().mockRejectedValue(new Error('series down'))
+
+        const {result} = renderHook(
+            () =>
+                usePublicCatalog({
+                    tenantHost: 'tenant.example',
+                    isAuthenticated: true,
+                    authRequiredMessage: 'auth',
+                    loadErrorMessage: 'fail',
+                    loadMine: vi.fn().mockResolvedValue([{id: 1}]),
+                    loadPublic,
+                    loadSeries,
+                }),
+            {wrapper},
+        )
+
+        await waitFor(() => expect(result.current.isLoading).toBe(false))
+
+        expect(result.current.items).toEqual([{id: 1}])
+        expect(result.current.series).toEqual([])
+        expect(result.current.errorMessage).toBeNull()
     })
 })
