@@ -13,6 +13,11 @@ export function day(value) {
     return typeof value === 'string' ? value.slice(0, 10) : ''
 }
 
+/** The date an existing episode was stored under: published first, then scheduled. */
+export function storedDay(episode) {
+    return day(episode?.publishedAt ?? episode?.scheduledAt ?? null)
+}
+
 /**
  * Parses an RSS pubDate. Returns an ISO string, or null when the value is
  * missing or unparseable so the caller can skip that item.

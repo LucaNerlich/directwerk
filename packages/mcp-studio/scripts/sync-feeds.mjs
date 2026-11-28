@@ -19,7 +19,7 @@ import {join, resolve} from 'node:path'
 import {realpathSync} from 'node:fs'
 import {pathToFileURL} from 'node:url'
 
-import {audioVisibility, parseFeedDate} from './feed-utils.mjs'
+import {audioVisibility, day, parseFeedDate, storedDay} from './feed-utils.mjs'
 
 const MIME_AUDIO = 'audio/mpeg'
 const MAX_DESCRIPTION = 90000
@@ -148,10 +148,6 @@ function slugify(text) {
     return slug || 'episode'
 }
 
-function day(value) {
-    return value.slice(0, 10)
-}
-
 async function listTenantSlugs() {
     const slugs = new Set()
     for (let offset = 0; ; offset += 100) {
@@ -266,7 +262,7 @@ async function syncShow(show, options, tenantSlugs) {
     const xml = await (await fetch(show.feedUrl, {headers: {'User-Agent': 'directwerk-feed-sync/1.0'}})).text()
     const items = parseFeed(xml)
     const existingEpisodes = await listAllEpisodes(show.seriesId)
-    const seen = new Set(existingEpisodes.map(episode => `${cleanTitle(episode.title).toLowerCase()}|${day(episode.publishedAt)}`))
+    const seen = new Set(existingEpisodes.map(episode => `${cleanTitle(episode.title).toLowerCase()}|${storedDay(episode)}`))
     const usedSlugs = new Set([...tenantSlugs, ...existingEpisodes.map(episode => episode.slug)])
     let nextNumber = Math.max(0, ...existingEpisodes.map(episode => episode.episodeNumber ?? 0)) + 1
 
@@ -276,7 +272,10 @@ async function syncShow(show, options, tenantSlugs) {
         knownMedia.set(asset.originalFilename, {id: asset.id, status: asset.status, visibility: asset.visibility})
     }
 
-    let pending = items.filter(item => !seen.has(`${cleanTitle(item.title).toLowerCase()}|${day(item.publishedAt)}`))
+    let pending = items.filter(item => {
+        const keyTitle = cleanTitle(item.title).toLowerCase()
+        return !seen.has(`${keyTitle}|${day(item.publishedAt)}`) && !draftTitles.has(keyTitle)
+    })
     if (options.limit) {
         pending = pending.slice(-options.limit)
     }
