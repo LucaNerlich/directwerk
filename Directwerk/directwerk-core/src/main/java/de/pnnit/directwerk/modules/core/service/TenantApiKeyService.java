@@ -11,6 +11,7 @@ import de.pnnit.directwerk.modules.core.repository.UserRepository;
 import de.pnnit.directwerk.modules.core.util.TokenHashUtil;
 import java.security.SecureRandom;
 import java.time.Clock;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.HexFormat;
 import java.util.List;
@@ -24,6 +25,8 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @RequiredArgsConstructor
 public class TenantApiKeyService {
+
+    private static final Duration LAST_USED_RESOLUTION = Duration.ofMinutes(1);
 
     public static final String KEY_PREFIX = "dwk_";
     private static final int PREFIX_BYTES = 4;
@@ -114,8 +117,12 @@ public class TenantApiKeyService {
         if (tenant == null || tenant.getStatus() != TenantStatus.ACTIVE) {
             return Optional.empty();
         }
-        key.setLastUsedAt(now);
-        tenantApiKeyRepository.save(key);
+        // last_used_at is shown at UI granularity; writing it on every request turns each
+        // read call into a write transaction and serializes concurrent calls on the key row.
+        if (key.getLastUsedAt() == null || key.getLastUsedAt().isBefore(now.minus(LAST_USED_RESOLUTION))) {
+            key.setLastUsedAt(now);
+            tenantApiKeyRepository.save(key);
+        }
         User creator = key.getCreatedBy();
         return Optional.of(new AuthenticatedApiKey(
                 key.getId(),

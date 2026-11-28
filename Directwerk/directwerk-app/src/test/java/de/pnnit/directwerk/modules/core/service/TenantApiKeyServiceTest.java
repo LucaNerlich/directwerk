@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -107,6 +108,28 @@ class TenantApiKeyServiceTest {
         assertThat(auth.get().tenantId()).isEqualTo(10L);
         assertThat(auth.get().createdByUserId()).isEqualTo(5L);
         assertThat(key.getLastUsedAt()).isEqualTo(clock.instant());
+    }
+
+    @Test
+    void authenticateDoesNotRewriteAFreshLastUsedAt() {
+        Tenant tenant = tenant(10L);
+        User user = user(5L, "admin@example.com");
+        String raw = "dwk_abcd1234_" + TokenHashUtil.generateUrlSafeToken(32);
+        TenantApiKey key = new TenantApiKey();
+        key.setId(7L);
+        key.setTenant(tenant);
+        key.setTenantId(10L);
+        key.setCreatedBy(user);
+        key.setScopes(Set.of(TenantApiKeyScopes.CONTENT_READ));
+        key.setTokenHash(TokenHashUtil.sha256Hex(raw));
+        key.setLastUsedAt(clock.instant().minusSeconds(30));
+        when(tenantApiKeyRepository.findByTokenHashWithTenant(TokenHashUtil.sha256Hex(raw)))
+                .thenReturn(Optional.of(key));
+
+        Optional<TenantApiKeyService.AuthenticatedApiKey> auth = service.authenticate(raw);
+
+        assertThat(auth).isPresent();
+        verify(tenantApiKeyRepository, never()).save(any(TenantApiKey.class));
     }
 
     @Test
