@@ -2,6 +2,7 @@ package de.pnnit.directwerk.modules.digital.job;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -60,6 +61,29 @@ class MediaCdnPurgeJobHandlerTest {
                 .isEqualTo("https://cdn.example.test/alpha/public/images/cover.jpg");
         assertThat(asset.getStatus()).isEqualTo(AssetStatus.ARCHIVED);
         verify(mediaAssetRepository).saveAndFlush(asset);
+    }
+
+    @Test
+    void purgesCdnWithoutArchivingAStillLiveAsset() throws Exception {
+        MediaAsset asset = new MediaAsset();
+        asset.setId(56L);
+        asset.setStatus(AssetStatus.READY);
+        when(mediaAssetRepository.findById(56L)).thenReturn(Optional.of(asset));
+
+        MediaCdnPurgeJobHandler handler = new MediaCdnPurgeJobHandler(
+                objectMapper,
+                cdnPurgeClient,
+                new S3PublicUrlBuilder("https://cdn.example.test"),
+                mediaAssetRepository
+        );
+        handler.handle(job(new MediaCdnPurgeJobPayload(
+                56L,
+                "https://cdn.example.test/alpha/public/audio/stale.mp3"
+        )));
+
+        verify(cdnPurgeClient).purgeUrl(any(URL.class));
+        assertThat(asset.getStatus()).isEqualTo(AssetStatus.READY);
+        verify(mediaAssetRepository, never()).saveAndFlush(any(MediaAsset.class));
     }
 
     private QueueJob job(MediaCdnPurgeJobPayload payload) {
