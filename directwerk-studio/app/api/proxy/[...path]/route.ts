@@ -15,7 +15,10 @@ const LONG_RUNNING_PATH_PREFIXES = [
 ]
 const isLongRunning = (apiPath: string): boolean =>
     LONG_RUNNING_PATH_PREFIXES.some((prefix) => apiPath.startsWith(prefix)) ||
-    (apiPath.startsWith('/api/v1/tenant/domains/') && apiPath.endsWith('/verify'))
+    (apiPath.startsWith('/api/v1/tenant/domains/') && apiPath.endsWith('/verify')) ||
+    // Confirm copies the staged object in S3 (up to 5 GiB); the upload route already
+    // gives it the long client, so the retry path must not fall back to 10 seconds.
+    (apiPath.startsWith('/api/v1/media/') && apiPath.endsWith('/confirm'))
 
 const handlers = createTenantProxyRouteHandler({
     fetchUpstream: (request) =>
