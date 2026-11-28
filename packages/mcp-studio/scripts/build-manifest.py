@@ -122,6 +122,14 @@ def main() -> int:
         seen[base] = count + 1
 
     items.sort(key=lambda it: it["n"])
+    if problems:
+        print("\nPROBLEMS:")
+        for p in problems:
+            print(" -", p)
+        return 1
+    if not items:
+        print("no LOG entries matched — check --base and the LOG layout", file=sys.stderr)
+        return 1
     manifest = {
         "sourceDir": os.path.abspath(args.base),
         "series": {"slug": args.series_slug},
@@ -133,14 +141,6 @@ def main() -> int:
 
     total = sum(it["mp3"]["sizeBytes"] for it in items)
     print(f"items={len(items)} mp3={total} bytes ({total / (1 << 30):.2f} GiB) -> {args.out}")
-    if not items:
-        print("no LOG entries matched — check --base and the LOG layout", file=sys.stderr)
-        return 1
-    if problems:
-        print("\nPROBLEMS:")
-        for p in problems:
-            print(" -", p)
-        return 1
     print("validation OK")
     return 0
 
