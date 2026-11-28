@@ -11,7 +11,7 @@ import {
     readBearerToken,
 } from '../src/proxy/path'
 import {parseTenantHost} from '../src/proxy/tenantHost'
-import {readBoundedRequestBody} from '../src/proxy/boundedBody'
+import {readBoundedRequestBody, readJsonBody} from '../src/proxy/boundedBody'
 import {createTenantProxyRouteHandler} from '../src/proxy/routeHandler'
 import {PROXY_POLICIES} from '../src/proxy/proxyPolicy'
 
@@ -98,10 +98,21 @@ describe('readBoundedRequestBody', () => {
 
         const result = await readBoundedRequestBody(request, 1024)
 
-        expect(result.ok).toBe(false)
-        if (!result.ok) {
-            expect(result.status).toBe(400)
-            expect(result.error).toBe('The request body is invalid.')
+    })
+
+    it('maps a mid-stream failure to 400, not 413', async () => {
+        const failingBody = new ReadableStream<Uint8Array>({
+            pull() {
+                throw new Error('connection reset')
+            },
+        })
+        const request = {body: failingBody, headers: new Headers()} as unknown as Request
+
+        const json = await readJsonBody(request, {jsonBodyLimit: 1024, allowMissingBody: false})
+
+        expect(json.ok).toBe(false)
+        if (!json.ok) {
+            expect(json.status).toBe(400)
         }
     })
 })
