@@ -270,7 +270,14 @@ async function syncShow(show, options, tenantSlugs) {
     const items = parseFeed(xml)
     const existingEpisodes = await listAllEpisodes(show.seriesId)
     const seen = new Set(existingEpisodes.map(episode => `${cleanTitle(episode.title).toLowerCase()}|${storedDay(episode)}`))
-    const usedSlugs = new Set([...tenantSlugs, ...existingEpisodes.map(episode => episode.slug)])
+    // Slugs are unique per tenant, so a slug allocated for an earlier show in this
+    // run must be visible here too: share one set across the whole run.
+    for (const episode of existingEpisodes) {
+        if (episode.slug) {
+            tenantSlugs.add(episode.slug)
+        }
+    }
+    const usedSlugs = tenantSlugs
     let nextNumber = Math.max(0, ...existingEpisodes.map(episode => episode.episodeNumber ?? 0)) + 1
 
     const knownMedia = new Map()
