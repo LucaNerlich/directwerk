@@ -48,6 +48,7 @@ export function usePublicationEditorWorkflow<T extends {
     authRedirect: (error: unknown) => boolean
 }): PublicationEditorWorkflowState<T> {
     const [isSaving, setIsSaving] = useState(false)
+    const [isAutosaving, setIsAutosaving] = useState(false)
     const [errorMessage, setErrorMessage] = useState<string | null>(null)
     const [saveHint, setSaveHint] = useState<string | null>(null)
     const [isDirty, setIsDirty] = useState(false)
@@ -103,8 +104,12 @@ export function usePublicationEditorWorkflow<T extends {
                 return publicationRef.current
             }
 
-            if (!options?.fromWorkflow) {
+            const userInitiated = !options?.fromWorkflow && options?.autosave !== true
+            if (userInitiated) {
                 setIsSaving(true)
+            }
+            if (options?.autosave === true) {
+                setIsAutosaving(true)
             }
             setErrorMessage(null)
             const revisionAtStart = dirtyRevisionRef.current
@@ -135,8 +140,11 @@ export function usePublicationEditorWorkflow<T extends {
                 )
                 return null
             } finally {
-                if (!options?.fromWorkflow) {
+                if (userInitiated) {
                     setIsSaving(false)
+                }
+                if (options?.autosave === true) {
+                    setIsAutosaving(false)
                 }
             }
         },
@@ -187,7 +195,7 @@ export function usePublicationEditorWorkflow<T extends {
     useDraftAutosave({
         enabled: publicationId !== undefined && isEditableStatus(publication?.status),
         isDirty,
-        isSaving: isSaving || autosaveBlocked,
+        isSaving: isSaving || isAutosaving || autosaveBlocked,
         canSave: canAutosave,
         onSave: async () => {
             await save({autosave: true})
