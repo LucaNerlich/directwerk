@@ -51,4 +51,23 @@ public final class QuartzJobDefinitions {
                 .startNow()
                 .build();
     }
+
+    /**
+     * Millisecond variant for sub-second configurable intervals.
+     *
+     * @param jobDetail     the job to schedule
+     * @param identity      the trigger identity
+     * @param intervalMillis the repeat interval in milliseconds
+     * @return the repeating trigger
+     */
+    public static Trigger repeatingTriggerMillis(JobDetail jobDetail, String identity, long intervalMillis) {
+        return TriggerBuilder.newTrigger()
+                .forJob(jobDetail)
+                .withIdentity(identity)
+                .withSchedule(SimpleScheduleBuilder.simpleSchedule()
+                        .withIntervalInMilliseconds(intervalMillis)
+                        .repeatForever())
+                .startNow()
+                .build();
+    }
 }
