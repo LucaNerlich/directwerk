@@ -27,23 +27,16 @@ function VerifyEmailContent() {
             return
         }
         started.current = true
-        let active = true
+        // No "active" cleanup flag: React 19 no-ops state updates after unmount, and a
+        // StrictMode cleanup would otherwise leave the only in-flight promise unable to
+        // report its result (the page would stay on "verifying" forever).
         verifyEmail(tokenFromQuery)
-            .then(() => {
-                if (active) {
-                    setState('success')
-                }
-            })
-            .catch(() => {
-                // A double-invoked effect in development must not turn an
-                // already-confirmed address back into an error.
-                if (active) {
-                    setState((current) => (current === 'verifying' ? 'error' : current))
-                }
-            })
-        return () => {
-            active = false
-        }
+            .then(() => setState('success'))
+            .catch(() =>
+                // A double-invoked effect must not turn an already-confirmed address
+                // back into an error.
+                setState((current) => (current === 'verifying' ? 'error' : current)),
+            )
     }, [tokenFromQuery])
 
     if (state === 'verifying') {
