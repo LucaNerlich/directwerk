@@ -243,6 +243,36 @@ public class StripeSubscriptionSyncService {
                 });
     }
 
+    /**
+     * Cancels a subscription only when the row is still open at the moment of the write.
+     * <p>
+     * The async-payment-failed webhook can race a retry's success event: reading the status
+     * before the lock and writing CANCELED after lets the failure overwrite ACTIVE, and the
+     * next invoice.paid refuses to repair a CANCELED row. Re-check under the row lock.
+     *
+     * @param tenantId tenant owning the subscription
+     * @param externalSubscriptionId Stripe subscription id
+     */
+    @Transactional
+    public void cancelIfOpen(Long tenantId, String externalSubscriptionId) {
+        if (externalSubscriptionId == null || externalSubscriptionId.isBlank()) {
+            return;
+        }
+        subscriptionRepository.findByTenantIdAndExternalSubscriptionIdForUpdate(tenantId, externalSubscriptionId)
+                .ifPresent(subscription -> {
+                    if (subscription.getSource() == SubscriptionSource.MANUAL) {
+                        return;
+                    }
+                    if (subscription.getStatus() != SubscriptionStatus.INCOMPLETE
+                            && subscription.getStatus() != SubscriptionStatus.PAST_DUE) {
+                        return;
+                    }
+                    subscription.setStatus(SubscriptionStatus.CANCELED);
+                    subscriptionRepository.save(subscription);
+                    eventPublisher.publishEvent(new TenantEntitlementsChangedEvent(tenantId));
+                });
+    }
+
     @Transactional
     public void markInvoicePaid(Long tenantId, String externalSubscriptionId, Instant endsAt) {
         if (externalSubscriptionId == null || externalSubscriptionId.isBlank()) {
