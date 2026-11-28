@@ -76,6 +76,27 @@ class JsonRequestBodySizeFilterTest {
     }
 
     @Test
+    void allowsAMessageOfMultibyteCharactersWithinTheCharacterLimit() throws Exception {
+        JsonRequestBodySizeFilter filter =
+                new JsonRequestBodySizeFilter(ContactFormLimits.MAX_REQUEST_BODY_BYTES, "/api/v1/public/contact");
+        HttpServletRequest request = mock(HttpServletRequest.class);
+        whenContactPost(request);
+        // 5000 CJK characters are ~15 KB UTF-8: above the old one-byte-sum cap, below the new one.
+        String message = "漢".repeat(5000);
+        byte[] body = ("{\"name\":\"Jane\",\"message\":\"" + message + "\"}")
+                .getBytes(StandardCharsets.UTF_8);
+        when(request.getContentLengthLong()).thenReturn((long) body.length);
+        when(request.getInputStream()).thenReturn(new DelegatingServletInputStream(new ByteArrayInputStream(body)));
+
+        MockHttpServletResponse response = new MockHttpServletResponse();
+        FilterChain chain = mock(FilterChain.class);
+        filter.doFilter(request, response, chain);
+
+        assertThat(response.getStatus()).isEqualTo(200);
+        verify(chain).doFilter(any(), same(response));
+    }
+
+    @Test
     void rejectsOversizedStripeWebhookBodyAtItsOwnLimit() throws Exception {
         JsonRequestBodySizeFilter filter = new JsonRequestBodySizeFilter(
                 StripeWebhookLimits.MAX_REQUEST_BODY_BYTES,
