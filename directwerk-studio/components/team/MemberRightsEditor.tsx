@@ -2,6 +2,8 @@
 
 import {useEffect, useRef, useState} from 'react'
 
+import {useDictionary} from '@/components/i18n/LocaleProvider'
+
 import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
 import {Button} from '@directwerk/ui/components/button'
 
@@ -54,6 +56,7 @@ export default function MemberRightsEditor({
     user: TenantUser
     onAuthRequired: () => void
 }): React.JSX.Element {
+    const team = useDictionary().team
     const [matrix, setMatrix] = useState<AccessMatrix>({})
     const [isLoading, setIsLoading] = useState(true)
     const [loaded, setLoaded] = useState(false)
@@ -97,7 +100,7 @@ export default function MemberRightsEditor({
                     return
                 }
                 setErrorMessage(
-                    error instanceof Error ? error.message : 'Rechte konnten nicht geladen werden.',
+                    error instanceof Error ? error.message : team.rechteKonntenGeladen,
                 )
                 setIsLoading(false)
             })
@@ -110,8 +113,8 @@ export default function MemberRightsEditor({
         return (
             <p className="text-sm text-muted-foreground" role="note">
                 {user.roles.includes('TENANT_ADMIN')
-                    ? 'Tenant-Admins haben immer Vollzugriff — Einschränkungen greifen nicht.'
-                    : 'Einschränkungen gelten nur für Redakteure.'}
+                    ? team.tenantAdminsImmerVollzugriffEinschraenkungen
+                    : team.einschraenkungenGeltenRedakteure}
             </p>
         )
     }
@@ -139,7 +142,7 @@ export default function MemberRightsEditor({
                 restrictionsFromAccess(matrix),
             )
             setMatrix(matrixFromRestrictions(saved))
-            setStatusMessage('Zugriffsrechte gespeichert.')
+            setStatusMessage(team.zugriffsrechteGespeichert)
         } catch (error) {
             if (error instanceof Error && error.message === AUTH_REQUIRED) {
                 onAuthRequired()
@@ -202,7 +205,7 @@ export default function MemberRightsEditor({
             ) : null}
             <div className="flex flex-wrap gap-2">
                 <Button disabled={isSaving || !loaded} onClick={() => void handleSave()} type="button">
-                    {isSaving ? 'Speichert…' : 'Rechte speichern'}
+                    {isSaving ? 'Speichert…' : team.rechteSpeichern}
                 </Button>
                 <Button
                     disabled={isSaving}

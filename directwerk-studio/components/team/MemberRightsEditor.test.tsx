@@ -1,7 +1,8 @@
-import {fireEvent, render, screen, waitFor} from '@testing-library/react'
+import {fireEvent, screen, waitFor} from '@testing-library/react'
 import {describe, expect, it, vi} from 'vitest'
 
 import MemberRightsEditor from '@/components/team/MemberRightsEditor'
+import {renderWithLocale} from '@/lib/i18n/testUtils'
 import {listUserRestrictions, replaceUserRestrictions} from '@/lib/api/tenantSettingsApi'
 import type {TenantUser} from '@directwerk/api/types'
 
@@ -29,7 +30,7 @@ const admin: TenantUser = {
 }
 
 function renderEditor(user: TenantUser = editor) {
-    render(<MemberRightsEditor onAuthRequired={() => {}} user={user} />)
+    renderWithLocale(<MemberRightsEditor onAuthRequired={() => {}} user={user} />)
 }
 
 describe('MemberRightsEditor', () => {

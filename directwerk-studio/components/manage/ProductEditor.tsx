@@ -147,13 +147,13 @@ export default function ProductEditor({
             billingInterval: current.billingInterval,
         }),
         redirectPath: (created) => `/manage/products/${created.id}`,
-        updateSuccessMessage: 'Produkt gespeichert.',
-        deactivateSuccessMessage: 'Produkt deaktiviert.',
+        updateSuccessMessage: dict.manage.produktGespeichert,
+        deactivateSuccessMessage: dict.manage.produktDeaktiviert,
         messages: {
-            notFound: 'Produkt wurde nicht gefunden.',
-            loadFailed: 'Produkt konnte nicht geladen werden.',
-            saveFailed: 'Aktion fehlgeschlagen.',
-            deactivateFailed: 'Deaktivierung fehlgeschlagen.',
+            notFound: dict.manage.produktGefunden,
+            loadFailed: dict.manage.produktKonnteGeladen,
+            saveFailed: dict.common.errorGeneric,
+            deactivateFailed: dict.manage.deaktivierungFehlgeschlagen,
         },
     })
 
@@ -165,9 +165,9 @@ export default function ProductEditor({
             async () => {
                 const updated = await syncProductStripe( productId)
                 applyEntity(updated)
-                setStatusMessage('Produkt mit Stripe synchronisiert.')
+                setStatusMessage(dict.manage.produktStripeSynchronisiert)
             },
-            {failedMessage: 'Stripe-Synchronisation fehlgeschlagen.'},
+            {failedMessage: dict.manage.stripeSynchronisationFehlgeschlagen},
         )
     }
 
@@ -191,7 +191,7 @@ export default function ProductEditor({
             <PageStack>
                 <PageHeader
                     eyebrow={dict.nav.verwaltung.subscriptions}
-                    title={isNew ? 'Neues Produkt' : 'Produkt bearbeiten'}
+                    title={isNew ? dict.manage.neuesProdukt : dict.manage.produktBearbeiten}
                     description={dict.manage.titelTypPreisAbrechnungsintervallBestimmen}
                 />
                 <p className="text-sm text-muted-foreground" role="status">Laden…</p>
@@ -204,8 +204,8 @@ export default function ProductEditor({
         <PageStack>
             <PageHeader
                 eyebrow={dict.nav.verwaltung.subscriptions}
-                title={isNew ? 'Neues Produkt' : 'Produkt bearbeiten'}
-                description="Typ bestimmt, was das Produkt freischaltet. Abrechnungsintervall bestimmt, wie bezahlt wird."
+                title={isNew ? dict.manage.neuesProdukt : dict.manage.produktBearbeiten}
+                description={dict.manage.typBestimmtWasProduktFreischaltetAbrechnung}
                 actions={
                     <Button nativeButton={false} render={<LocaleLink href="/manage/products" />} variant="outline">
                         Zurück zur Liste
@@ -282,8 +282,8 @@ export default function ProductEditor({
                     </SelectControl>
                     <p className="text-xs text-muted-foreground" id="product-offering-help">
                         {values.offeringType === 'PACKAGE'
-                            ? 'Nach dem Speichern Regeln setzen. Ohne Regeln schaltet ein Paket nichts frei.'
-                            : 'Stufen vergleichen die Sortierzahl mit der Mindest-Stufe: Zugriff hat, wessen höchste Stufe ≥ Mindest-Stufe ist.'}
+                            ? dict.manage.speichernRegelnSetzenOhneRegelnSchaltet
+                            : dict.manage.stufenVergleichenSortierzahlMindestStufeZug}
                     </p>
                 </div>
                 <div className="grid gap-2">
