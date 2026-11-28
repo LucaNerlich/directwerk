@@ -27,6 +27,10 @@ export async function acceptInvite(input: AcceptInviteInput): Promise<void> {
     await postJson('/api/auth/accept-invite', null, input)
 }
 
+export async function verifyEmail(token: string): Promise<void> {
+    await postJson('/api/auth/verify-email', null, {token})
+}
+
 export async function forgotPassword(
     input: ForgotPasswordInput,
 ): Promise<{devResetToken: string | null}> {
