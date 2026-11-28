@@ -67,10 +67,10 @@ class PublicSearchDocumentServiceTest {
                 moduleGateService,
                 directwerkConfig
         );
-        lenient().when(moduleGateService.isModuleActive(10L, FeatureModuleKeys.DIGITAL_CONTENT)).thenReturn(true);
-        lenient().when(moduleGateService.isModuleActive(10L, FeatureModuleKeys.PODCAST)).thenReturn(true);
-        lenient().when(moduleGateService.isModuleActive(10L, FeatureModuleKeys.SUBSCRIPTION)).thenReturn(false);
-        lenient().when(moduleGateService.isModuleActive(10L, FeatureModuleKeys.EMAIL_NOTIFY)).thenReturn(true);
+        lenient().when(moduleGateService.enabledModuleKeys(10L)).thenReturn(java.util.Set.of(
+                FeatureModuleKeys.DIGITAL_CONTENT,
+                FeatureModuleKeys.PODCAST,
+                FeatureModuleKeys.EMAIL_NOTIFY));
         lenient().when(directwerkConfig.isEmailEnabled()).thenReturn(false);
         lenient().when(searchDocumentRepository.findByTenant_IdAndKindInOrderByIdDesc(
                 eq(10L), any(), eq(org.springframework.data.domain.PageRequest.of(
