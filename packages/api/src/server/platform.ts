@@ -1,7 +1,7 @@
 import 'server-only'
 
 import {ASSET_STATUSES, ASSET_TYPES, JOB_STATUSES} from '../constants'
-import {isTrustedOrigin} from '../urls/urlPolicy'
+import {isAllowedOrigin} from './originGuard'
 import {jsonError, NO_STORE_HEADERS} from '../proxy/upstreamResponse'
 
 export interface DirectwerkEnvironment {
@@ -56,15 +56,7 @@ const ISO_INSTANT =
 export function normalizeDirectwerkApiUrl(rawApiUrl: string): string {
     const apiUrl = new URL(rawApiUrl)
 
-    if (
-        // This guard predates IPv6 loopback support, so `[::1]` is not accepted.
-        !isTrustedOrigin(apiUrl, {allowLoopback: true, allowIpv6Loopback: false}) ||
-        apiUrl.username ||
-        apiUrl.password ||
-        apiUrl.search ||
-        apiUrl.hash ||
-        (apiUrl.pathname !== '/' && apiUrl.pathname !== '')
-    ) {
+    if (!isAllowedOrigin(apiUrl)) {
         throw new Error('Invalid Directwerk API URL.')
     }
 
