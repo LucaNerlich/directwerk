@@ -26,12 +26,17 @@ function invalidUpstreamResponse(response: Response): Response {
 }
 
 /** Normalizes an upstream Response for the browser client (JSON-validated, no-store). */
-export async function toClientResponse(response: Response): Promise<Response> {
+export async function toClientResponse(
+    response: Response,
+    method?: string,
+): Promise<Response> {
     if (response.status >= 500 && response.status <= 599) {
         return invalidUpstreamResponse(response)
     }
 
-    if (response.status === 204 || response.status === 205) {
+    // A HEAD reply has the GET headers but no body, so JSON.parse('') would
+    // turn a healthy 200 into a 502. Mirror the admin proxy's HEAD handling.
+    if (method === 'HEAD' || response.status === 204 || response.status === 205) {
         return new Response(null, {status: response.status, headers: {...NO_STORE_HEADERS}})
     }
 

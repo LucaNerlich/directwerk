@@ -803,6 +803,23 @@ describe('createTenantProxyRouteHandler HEAD support', () => {
         expect(seen).toEqual([{path: '/api/v1/me', method: 'HEAD', body: undefined}])
     })
 
+    it('keeps a bodyless HEAD reply a success instead of a 502', async () => {
+        const handlers = headHandlers(async () =>
+            new Response(null, {
+                status: 200,
+                headers: {'content-type': 'application/json'},
+            }),
+        )
+
+        const response = await handlers.HEAD(
+            headRequest('http://local/api/proxy/public/site-config'),
+            {params: Promise.resolve({path: ['public', 'site-config']})},
+        )
+
+        expect(response.status).toBe(200)
+        expect(await response.text()).toBe('')
+    })
+
     it('validates HEAD preview queries like GET', async () => {
         const seen: Array<{path: string; method: string; query?: string}> = []
         const handlers = headHandlers(async (request) => {
