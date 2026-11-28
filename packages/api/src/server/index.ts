@@ -1,5 +1,4 @@
 export {
-    fetchSiteConfigServer,
     fetchSiteConfigServerOptional,
     type SiteConfigFetchRequest,
     type SiteConfigServerFetcher,
