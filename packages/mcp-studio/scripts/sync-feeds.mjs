@@ -16,6 +16,7 @@ import {spawn} from 'node:child_process'
 import {readFile, mkdir, rm} from 'node:fs/promises'
 import {tmpdir} from 'node:os'
 import {join, resolve} from 'node:path'
+import {realpathSync} from 'node:fs'
 import {pathToFileURL} from 'node:url'
 
 import {audioVisibility, parseFeedDate} from './feed-utils.mjs'
@@ -406,7 +407,8 @@ async function main() {
     }
 }
 
-const isMain = process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href
+const isMain = process.argv[1]
+    && import.meta.url === pathToFileURL(realpathSync(process.argv[1])).href
 if (isMain) {
     main().catch(error => {
         console.error(error.message)

@@ -3,7 +3,7 @@
  * the CLI can be tested without its environment and network dependencies.
  */
 
-/** PAID shows keep their audio private until the publish workflow promotes it. */
+/** PAID shows keep their audio private; the publish workflow promotes only FREE audio. */
 export function audioVisibility(show) {
     return (show.accessPolicy ?? 'PAID') === 'PAID' ? 'PRIVATE' : 'PUBLIC'
 }
