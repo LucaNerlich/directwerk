@@ -30,11 +30,12 @@ describe('studio proxy client selection', () => {
         longRunningDirectwerkFetch.mockResolvedValue(new Response('{}', {status: 200}))
     })
 
-    it('uses the long-running client for import and verification paths', async () => {
+    it('uses the long-running client for import, verification and media confirm', async () => {
         await call(['podcast', 'import', 'preview'])
         await call(['tenant', 'domains', '7', 'verify'])
+        await call(['media', '7', 'confirm'])
 
-        expect(longRunningDirectwerkFetch).toHaveBeenCalledTimes(2)
+        expect(longRunningDirectwerkFetch).toHaveBeenCalledTimes(3)
         expect(directwerkFetch).not.toHaveBeenCalled()
     })
 
