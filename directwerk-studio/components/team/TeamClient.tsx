@@ -226,7 +226,13 @@ export default function TeamClient(): React.JSX.Element {
                 ...(name.length > 0 ? {name} : {}),
                 role,
             })
-            await reload()
+            // The invitation is already sent; a failed list refresh only
+            // means the table is stale, not that the invitation failed.
+            try {
+                await reload()
+            } catch (error: unknown) {
+                if (authRedirect(error)) return INITIAL_INVITE_STATE
+            }
             return {
                 error: null,
                 success: t(team.einladungGesendet, {email: response.email, role: roleLabel(response.role, team)}),
@@ -258,7 +264,14 @@ export default function TeamClient(): React.JSX.Element {
             } else {
                 await deactivateTenantUser( user.userId)
             }
-            await reload()
+            // The membership change already landed; report a failed refresh
+            // separately so the user does not retry the mutation.
+            try {
+                await reload()
+            } catch (error: unknown) {
+                if (authRedirect(error)) return
+                setActionError(team.teamKonnteGeladen)
+            }
         } catch (error: unknown) {
             if (authRedirect(error)) return
             setActionError(
