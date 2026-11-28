@@ -343,7 +343,7 @@ export default function SeriesEditor({seriesId}: SeriesEditorProps): React.JSX.E
                             onChange={(event) => setField('slug', event.target.value)}
                             required
                             pattern={HTML_SLUG_PATTERN}
-                            maxLength={63}
+                            maxLength={64}
                         />
                         <p className="text-xs font-normal text-muted-foreground">
                             Kleinbuchstaben, Zahlen und Bindestriche. Wird in Feed-URL und Links verwendet.
