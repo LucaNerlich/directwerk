@@ -144,6 +144,10 @@ export async function performMediaUpload(
         storageTimeouts,
         spoolAbort.signal,
     )
+    // The spool may fail while upload-url is still in flight; without an
+    // observer that rejection is unhandled until the later await. The later
+    // await still sees the rejection.
+    void spoolPromise.catch(() => {})
 
     const abandonSpool = async (): Promise<void> => {
         spoolAbort.abort()
