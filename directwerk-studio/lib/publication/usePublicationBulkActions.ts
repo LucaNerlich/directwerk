@@ -206,20 +206,30 @@ export function usePublicationBulkActions<T extends {
                 // otherwise fails the whole request with a 400.
                 const updated: T[] = []
                 const failures: Array<{id: number; reason: unknown}> = []
-                for (let from = 0; from < ids.length; from += BULK_ACTION_LIMIT) {
-                    const settled = await request(ids.slice(from, from + BULK_ACTION_LIMIT))
-                    updated.push(...settled.updated)
-                    failures.push(...settled.failures)
+                const applySucceeded = (): void => {
+                    const updates = new Map(updated.map((item) => [item.id, item] as const))
+                    if (updates.size > 0) {
+                        setItems((current) =>
+                            current.map((entry) => updates.get(entry.id) ?? entry),
+                        )
+                    }
+                    if (failures.length > 0) {
+                        retainSelection?.(failures.map(({id}) => id))
+                    }
                 }
-                const updates = new Map(updated.map((item) => [item.id, item] as const))
-                if (updates.size > 0) {
-                    setItems((current) =>
-                        current.map((entry) => updates.get(entry.id) ?? entry),
-                    )
+                try {
+                    for (let from = 0; from < ids.length; from += BULK_ACTION_LIMIT) {
+                        const settled = await request(ids.slice(from, from + BULK_ACTION_LIMIT))
+                        updated.push(...settled.updated)
+                        failures.push(...settled.failures)
+                    }
+                } catch (error) {
+                    // Earlier chunks committed server-side; show them instead of a bare
+                    // error that invites a retry of work already done.
+                    applySucceeded()
+                    throw error
                 }
-                if (failures.length > 0) {
-                    retainSelection?.(failures.map(({id}) => id))
-                }
+                applySucceeded()
 
                 if (failures.some(({reason}) => authRedirect(reason))) {
                     return
@@ -306,11 +316,22 @@ export function usePublicationBulkActions<T extends {
         try {
             const deletedIds: number[] = []
             const ids = selectedItems.map((item) => item.id)
-            for (let from = 0; from < ids.length; from += BULK_ACTION_LIMIT) {
-                deletedIds.push(...(await removeMany(ids.slice(from, from + BULK_ACTION_LIMIT))))
+            const applyDeleted = (): void => {
+                const deleted = new Set(deletedIds)
+                if (deleted.size === 0) {
+                    return
+                }
+                setItems((current) => current.filter((entry) => !deleted.has(entry.id)))
             }
-            const deleted = new Set(deletedIds)
-            setItems((current) => current.filter((entry) => !deleted.has(entry.id)))
+            try {
+                for (let from = 0; from < ids.length; from += BULK_ACTION_LIMIT) {
+                    deletedIds.push(...(await removeMany(ids.slice(from, from + BULK_ACTION_LIMIT))))
+                }
+            } catch (error) {
+                applyDeleted()
+                throw error
+            }
+            applyDeleted()
             if (!isActionEpoch(epoch)) {
                 return
             }
