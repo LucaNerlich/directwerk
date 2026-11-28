@@ -48,21 +48,22 @@ export default function TenantUserActions({
     }, [roleState, onChanged])
 
     async function handleToggleStatus(): Promise<void> {
-        const deactivating = user.status === 'ACTIVE'
+        // INVITED memberships can only be cancelled, not reactivated; the old
+        // non-ACTIVE fallback called /reactivate and always got a 409.
+        const activating = user.status === 'DISABLED'
         if (
-            deactivating &&
+            !activating &&
             !window.confirm(
-                `Deactivate this user (${user.email})? They will immediately lose access.`,
+                user.status === 'INVITED'
+                    ? `Cancel the pending invite for ${user.email}?`
+                    : `Deactivate this user (${user.email})? They will immediately lose access.`,
             )
         ) {
             return
         }
         setIsTogglingStatus(true)
         setStatusError(null)
-        const path =
-            user.status === 'ACTIVE'
-                ? `tenants/${tenantId}/users/${user.userId}/deactivate`
-                : `tenants/${tenantId}/users/${user.userId}/reactivate`
+        const path = `tenants/${tenantId}/users/${user.userId}/${activating ? 'reactivate' : 'deactivate'}`
 
         try {
             await postPlatformData(path, {})
@@ -184,13 +185,15 @@ export default function TenantUserActions({
                 disabled={isTogglingStatus}
                 onClick={() => void handleToggleStatus()}
                 type="button"
-                variant={user.status === 'ACTIVE' ? 'destructive' : 'outline'}
+                variant={user.status === 'DISABLED' ? 'outline' : 'destructive'}
             >
                 {isTogglingStatus
                     ? 'Working…'
-                    : user.status === 'ACTIVE'
-                      ? 'Deactivate'
-                      : 'Reactivate'}
+                    : user.status === 'DISABLED'
+                      ? 'Reactivate'
+                      : user.status === 'INVITED'
+                        ? 'Cancel invite'
+                        : 'Deactivate'}
             </Button>
             {statusError ? <Alert variant="destructive"><AlertDescription>{statusError}</AlertDescription></Alert> : null}
         </>

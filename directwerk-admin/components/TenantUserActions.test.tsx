@@ -125,4 +125,32 @@ describe('TenantUserActions', () => {
         const formData = changeTenantUserRoleAction.mock.calls[0][3] as FormData
         expect(formData.get('role')).toBe('TENANT_ADMIN')
     })
+
+    it('cancels an invited membership instead of reactivating it', async () => {
+        vi.spyOn(window, 'confirm').mockReturnValue(true)
+        postPlatformData.mockClear()
+        const user = userEvent.setup()
+        render(
+            <TenantUserActions
+                onChanged={vi.fn()}
+                tenantId="1"
+                user={{
+                    userId: 3,
+                    email: 'invitee@example.com',
+                    name: null,
+                    roles: ['EDITOR'],
+                    status: 'INVITED',
+                    invitedAt: '2026-01-01T00:00:00Z',
+                    lastLoginAt: null,
+                }}
+            />,
+        )
+
+        await user.click(screen.getByRole('button', {name: 'Cancel invite'}))
+
+        await waitFor(() =>
+            expect(postPlatformData).toHaveBeenCalledWith('tenants/1/users/3/deactivate', {}),
+        )
+        expect(postPlatformData).not.toHaveBeenCalledWith('tenants/1/users/3/reactivate', {})
+    })
 })
