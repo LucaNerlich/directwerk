@@ -1,4 +1,4 @@
-import {screen} from '@testing-library/react'
+import {fireEvent, screen, waitFor} from '@testing-library/react'
 import {renderWithLocale} from '@/lib/i18n/testUtils'
 import {describe, expect, it, vi} from 'vitest'
 
@@ -31,5 +31,17 @@ describe('ProductRulesEditor load guard', () => {
         expect(await screen.findByRole('alert')).toHaveTextContent('Regeln nicht erreichbar')
         expect(screen.getByRole('button', {name: 'Regeln speichern'})).toBeDisabled()
         expect(replaceProductRules).not.toHaveBeenCalled()
+    })
+
+    it('clears the load error when a retry succeeds', async () => {
+        listProductRules
+            .mockRejectedValueOnce(new Error('Regeln nicht erreichbar'))
+            .mockResolvedValueOnce([])
+        renderWithLocale(<ProductRulesEditor productId={5} />)
+
+        expect(await screen.findByRole('alert')).toHaveTextContent('Regeln nicht erreichbar')
+        fireEvent.click(screen.getByRole('button', {name: 'Erneut versuchen'}))
+
+        await waitFor(() => expect(screen.queryByRole('alert')).not.toBeInTheDocument())
     })
 })
