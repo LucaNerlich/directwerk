@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import {test} from 'node:test'
 
-import {audioVisibility, day, parseFeedDate, storedDay} from './feed-utils.mjs'
+import {allocateSlug, audioVisibility, day, parseFeedDate, storedDay} from './feed-utils.mjs'
 
 test('audio for a PAID show is uploaded private', () => {
     assert.equal(audioVisibility({accessPolicy: 'PAID'}), 'PRIVATE')
@@ -26,4 +26,11 @@ test('storedDay falls back to scheduledAt for scheduled and draft rows', () => {
     assert.equal(storedDay({publishedAt: '2026-11-28T10:00:00.000Z', scheduledAt: null}), '2026-11-28')
     assert.equal(storedDay({publishedAt: null, scheduledAt: '2026-12-01T09:00:00.000Z'}), '2026-12-01')
     assert.equal(storedDay({publishedAt: null, scheduledAt: null}), '')
+})
+
+test('allocateSlug makes repeated titles unique within one shared tenant set', () => {
+    const used = new Set(['existing'])
+    assert.equal(allocateSlug(used, 'Episode 1'), 'episode-1')
+    assert.equal(allocateSlug(used, 'Episode 1'), 'episode-1-2')
+    assert.equal(allocateSlug(used, 'Episode 1'), 'episode-1-3')
 })

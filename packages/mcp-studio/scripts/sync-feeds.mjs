@@ -146,15 +146,6 @@ function parseFeed(xml) {
 
 /* ------------------------------------------------------------------ helpers */
 
-function slugify(text) {
-    const ascii = text.normalize('NFKD').replace(/[\u0300-\u036f]/g, '')
-    let slug = ascii.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')
-    if (slug.length > 56) {
-        slug = slug.slice(0, 56).replace(/-[^-]*$/, '') || slug.slice(0, 56)
-    }
-    return slug || 'episode'
-}
-
 async function listTenantSlugs() {
     const slugs = new Set()
     for (let offset = 0; ; offset += 100) {
@@ -270,7 +261,14 @@ async function syncShow(show, options, tenantSlugs) {
     const items = parseFeed(xml)
     const existingEpisodes = await listAllEpisodes(show.seriesId)
     const seen = new Set(existingEpisodes.map(episode => `${cleanTitle(episode.title).toLowerCase()}|${storedDay(episode)}`))
-    const usedSlugs = new Set([...tenantSlugs, ...existingEpisodes.map(episode => episode.slug)])
+    // Slugs are unique per tenant, so a slug allocated for an earlier show in this
+    // run must be visible here too: share one set across the whole run.
+    for (const episode of existingEpisodes) {
+        if (episode.slug) {
+            tenantSlugs.add(episode.slug)
+        }
+    }
+    const usedSlugs = tenantSlugs
     let nextNumber = Math.max(0, ...existingEpisodes.map(episode => episode.episodeNumber ?? 0)) + 1
 
     const knownMedia = new Map()
@@ -303,12 +301,7 @@ async function syncShow(show, options, tenantSlugs) {
     await mkdir(workDir, {recursive: true})
 
     for (const item of pending) {
-        let slug = slugify(item.title)
-        let suffix = 2
-        while (usedSlugs.has(slug)) {
-            slug = `${slugify(item.title).slice(0, 58)}-${suffix++}`
-        }
-        usedSlugs.add(slug)
+        const slug = allocateSlug(usedSlugs, item.title)
         const audioFile = `${slug}.mp3`
         try {
             console.log(`   + ${day(item.publishedAt)} ${item.title}`)

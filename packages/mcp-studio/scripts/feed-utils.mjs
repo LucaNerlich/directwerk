@@ -29,3 +29,27 @@ export function parseFeedDate(value) {
     const parsed = new Date(value)
     return Number.isNaN(parsed.getTime()) ? null : parsed.toISOString()
 }
+
+/** ASCII slug used for episode URLs (mirrors the server's rule). */
+export function slugify(text) {
+    const ascii = text.normalize('NFKD').replace(/[\u0300-\u036f]/g, '')
+    let slug = ascii.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')
+    if (slug.length > 56) {
+        slug = slug.slice(0, 56).replace(/-[^-]*$/, '') || slug.slice(0, 56)
+    }
+    return slug || 'episode'
+}
+
+/**
+ * Reserves a slug that is unique in the shared tenant-wide set. The same set must be
+ * used for every show in a run: slugs are unique per tenant, not per series.
+ */
+export function allocateSlug(usedSlugs, title) {
+    let slug = slugify(title)
+    let suffix = 2
+    while (usedSlugs.has(slug)) {
+        slug = `${slugify(title).slice(0, 58)}-${suffix++}`
+    }
+    usedSlugs.add(slug)
+    return slug
+}
