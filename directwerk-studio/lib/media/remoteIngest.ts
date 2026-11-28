@@ -9,7 +9,10 @@ import {getIngestAsset} from '@/lib/api/podcastImportApi'
 import {jsonInit, studioMutate} from '@/lib/api/studioApiCore'
 
 const POLL_INTERVAL_MS = 500
-const MAX_POLL_ATTEMPTS = 360 // ~3 minutes at 500ms intervals
+// The backend remote-ingest budget is 15 minutes (packages/api/src/constants.ts); poll past it
+// with a small margin instead of giving up while the ingest is still running.
+const POLL_DEADLINE_MS = 16 * 60 * 1000
+const MAX_POLL_ATTEMPTS = Math.ceil(POLL_DEADLINE_MS / POLL_INTERVAL_MS)
 /**
  * Issue #337: how many consecutive poll failures to tolerate before treating the ingest as
  * failed. A single transient blip (deploy 502, dropped connection) must not abort a loop that is
