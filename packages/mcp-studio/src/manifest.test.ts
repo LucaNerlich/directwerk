@@ -186,3 +186,65 @@ test('import_podcast_manifest rejects an invalid accessPolicy instead of default
         globalThis.fetch = originalFetch
     }
 })
+
+test('import_podcast_manifest over-publishes a staged draft on a published episode', async () => {
+    const originalFetch = globalThis.fetch
+    const published: Array<{method: string; path: string}> = []
+    globalThis.fetch = (async (input: string | URL | Request, init?: RequestInit) => {
+        const url = new URL(String(input))
+        const method = init?.method ?? 'GET'
+        if (url.pathname === '/api/v1/series') {
+            return json({data: [{id: 1, slug: 'show'}]})
+        }
+        if (url.pathname === '/api/v1/episodes') {
+            return json({data: [{
+                id: 9,
+                slug: 'ep-1',
+                seriesId: 1,
+                title: 'Episode 1',
+                status: 'PUBLISHED',
+                description: '',
+                audioAssetId: 4,
+                coverAssetId: 5,
+                episodeNumber: 1,
+                publishedAt: '2026-01-01T00:00:00Z',
+            }]})
+        }
+        if (url.pathname === '/api/v1/episodes/9' && method === 'GET') {
+            return json({data: {id: 9, status: 'PUBLISHED', formats: [{id: 1}], audioAssetId: 4, coverAssetId: 5}})
+        }
+        if (url.pathname === '/api/v1/episodes/9/publish') {
+            published.push({method, path: url.pathname})
+            return json({data: {id: 9, status: 'PUBLISHED'}})
+        }
+        if (url.pathname.startsWith('/api/v1/episodes/9')) {
+            return json({data: {id: 9, status: 'PUBLISHED'}})
+        }
+        if (url.pathname === '/api/v1/media') {
+            return json({data: [{id: 4, originalFilename: 'ep.mp3', status: 'READY', visibility: 'PRIVATE'}]})
+        }
+        return json({data: {}})
+    }) as typeof fetch
+
+    try {
+        await withManifest({
+            series: {slug: 'show'},
+            items: [{
+                n: 1,
+                slug: 'ep-1',
+                title: 'Episode 1',
+                description: 'A missing description',
+                mp3: {path: '/does/not/matter.mp3', filename: 'ep.mp3', mimeType: 'audio/mpeg', sizeBytes: 5},
+            }],
+        }, async (manifestPath) => {
+            const {tools} = manifestTools()
+            const result = await tools.import_podcast_manifest.handler({manifestPath}, {})
+            const summary = JSON.parse(result.content[0].text)
+
+            assert.equal(summary.summary.updated, 1)
+            assert.deepEqual(published, [{method: 'POST', path: '/api/v1/episodes/9/publish'}])
+        })
+    } finally {
+        globalThis.fetch = originalFetch
+    }
+})
