@@ -138,6 +138,11 @@ export default function TenantUserActions({
             ) : null}
             <form action={roleAction} className="flex min-w-64 flex-wrap gap-2">
                 <select className="native-select w-auto flex-1" aria-label={`Role for ${user.email}`} defaultValue={user.roles[0] ?? 'EDITOR'} key={user.roles[0] ?? 'EDITOR'} name="role">
+                    {!isTenantInvitableRole(user.roles[0] ?? '') ? (
+                        // Reader roles are not staff roles but must be the selected default:
+                        // falling back to the first option silently promoted a subscriber.
+                        <option value={user.roles[0]}>{user.roles[0]}</option>
+                    ) : null}
                     {PLATFORM_TENANT_INVITABLE_ROLES.map((role) => (
                         <option key={role} value={role}>
                             {getTenantRoleLabel(role)}
