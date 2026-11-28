@@ -105,8 +105,6 @@ export function createAuthSession(config: AuthSessionConfig) {
                 response = await sendRefresh()
             }
 
-            clearTimeout(timeoutId)
-
             if (response.status === 400 || response.status === 401) {
                 // A response from a session generation that has already been replaced (login,
                 // logout) must not clear the new session's tokens (#1141 review).
@@ -124,6 +122,9 @@ export function createAuthSession(config: AuthSessionConfig) {
             } catch {
                 value = null
             }
+            // The abort deadline must cover the body read; otherwise a stalled body
+            // leaves the shared in-flight refresh promise unsettled forever.
+            clearTimeout(timeoutId)
             const tokens = response.ok ? config.parseTokens(value) : null
 
             if (!response.ok || tokens === null) {

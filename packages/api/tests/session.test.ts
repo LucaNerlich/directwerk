@@ -127,6 +127,34 @@ describe('createAuthSession', () => {
         fetchMock.mockRestore()
     })
 
+    it('times out a refresh whose body stalls after the headers', async () => {
+        const store = memoryStore()
+        store.setTokens({access_token: 'keep-me'})
+
+        const session = createAuthSession({
+            store,
+            refreshPath: '/api/auth/refresh',
+            parseTokens: parseTokenResponse,
+            timeoutMs: 10,
+        })
+
+        vi.spyOn(globalThis, 'fetch').mockImplementation(async (_input, init) => {
+            const body = new ReadableStream({
+                start(controller) {
+                    init?.signal?.addEventListener('abort', () => {
+                        const error = new Error('aborted')
+                        error.name = 'AbortError'
+                        controller.error(error)
+                    })
+                },
+            })
+            return new Response(body, {status: 200, headers: {'Content-Type': 'application/json'}})
+        })
+
+        await expect(session.refreshAccessToken()).rejects.toThrow(AUTH_TRANSIENT)
+        expect(store.getAccessToken()).toBe('keep-me')
+    })
+
     it('treats abort timeouts as transient and keeps tokens', async () => {
         const store = memoryStore()
         store.setTokens({access_token: 'keep-me'})
