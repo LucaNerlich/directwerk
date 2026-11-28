@@ -98,7 +98,7 @@ describe('ProductEditor price validation', () => {
                 stripePriceId: null,
                 stripeProductId: null,
                 createdAt: '2026-01-01T00:00:00Z',
-            } as SubscriptionProduct,
+            } as unknown as SubscriptionProduct,
         ])
         vi.mocked(updateProduct).mockClear()
         renderWithLocale(<ProductEditor productId={7} />)
