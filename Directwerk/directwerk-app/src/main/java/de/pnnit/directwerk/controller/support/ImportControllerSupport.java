@@ -1,5 +1,6 @@
 package de.pnnit.directwerk.controller.support;
 
+import tools.jackson.databind.ObjectMapper;
 import de.pnnit.directwerk.modules.core.util.TokenHashUtil;
 import de.pnnit.directwerk.modules.digital.entity.MediaAsset;
 import de.pnnit.directwerk.modules.digital.exception.MediaAssetNotFoundException;
@@ -19,6 +20,18 @@ public final class ImportControllerSupport {
      * @param feedUrl the resolved feed URL
      * @return the first 16 hex characters of the feed URL's SHA-256 digest
      */
+    /**
+     * Fingerprints the whole bulk-import payload so a coalesced job can only ever be an
+     * identical resubmit: options and requester identity are part of the key.
+     *
+     * @param objectMapper the application mapper
+     * @param payload      the job payload
+     * @return a 16-character digest
+     */
+    public static String payloadHash(ObjectMapper objectMapper, Object payload) {
+        return TokenHashUtil.sha256Hex(objectMapper.valueToTree(payload).toString()).substring(0, 16);
+    }
+
     public static String feedHash(String feedUrl) {
         // Issue #577: same digest as TokenHashUtil.sha256Hex, truncated to the 16-char contract.
         return TokenHashUtil.sha256Hex(feedUrl).substring(0, 16);

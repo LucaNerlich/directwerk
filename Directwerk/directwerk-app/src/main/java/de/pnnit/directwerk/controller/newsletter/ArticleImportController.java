@@ -198,7 +198,8 @@ public class ArticleImportController {
                 new JobEnqueueMetadata(
                         tenantId,
                         "article-rss-bulk-import-" + tenantId + "-"
-                                + ImportControllerSupport.feedHash(preview.feedUrl()),
+                                + ImportControllerSupport.feedHash(preview.feedUrl()) + "-"
+                                + ImportControllerSupport.payloadHash(objectMapper, payload),
                         null
                 )
         );
