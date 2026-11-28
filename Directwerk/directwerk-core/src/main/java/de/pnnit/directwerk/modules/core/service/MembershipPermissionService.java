@@ -83,20 +83,38 @@ public class MembershipPermissionService {
     }
 
     /**
-     * Job-context-safe DENY check for background paths (e.g. the Quartz-driven
+     * Job-context-safe permission check for background paths (e.g. the Quartz-driven
      * scheduled-publish executors) that have no live {@link DirectwerkUserPrincipal} to
      * pass through {@link #requireContentAccess}, which otherwise no-ops on a null
-     * principal. Looks up the content creator's own override rows directly.
+     * principal. Evaluates the creator's DENY/OWNERS_ONLY overrides plus their current
+     * role and membership status, returning {@code true} when they may no longer act.
      */
     @Transactional(readOnly = true)
     public boolean isDeniedForOwner(Long tenantId, Long ownerUserId, ContentEntityType entity, ContentOperation operation) {
         if (tenantId == null || ownerUserId == null) {
             return false;
         }
-        return overrideRepository.findByTenantIdAndUserId(tenantId, ownerUserId).stream()
+        Set<MembershipPermissionOverride> overrides = new HashSet<>(
+                overrideRepository.findByTenantIdAndUserId(tenantId, ownerUserId));
+        boolean deniedByOverride = overrides.stream()
                 .anyMatch(override -> override.getEntityType() == entity
                         && override.getOperation() == operation
                         && override.getScope() == RestrictionScope.DENY);
+        if (deniedByOverride) {
+            return true;
+        }
+        // Re-evaluate the creator's current role and membership, not just DENY rows: a creator
+        // demoted to SUBSCRIBER (or deactivated) after scheduling must not still publish.
+        Optional<DirectwerkUserPrincipal> principal = principalForMember(tenantId, ownerUserId);
+        if (principal.isEmpty()) {
+            return true;
+        }
+        try {
+            AuthorizationService.requireContentAccess(principal.get(), entity, operation, ownerUserId, overrides);
+            return false;
+        } catch (ContentAccessDeniedException ex) {
+            return true;
+        }
     }
 
     /**

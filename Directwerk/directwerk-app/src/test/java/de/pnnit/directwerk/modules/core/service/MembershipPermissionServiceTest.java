@@ -88,6 +88,42 @@ class MembershipPermissionServiceTest {
     }
 
     @Test
+    void isDeniedForOwnerRejectsACreatorDemotedToSubscriber() {
+        Tenant tenant = new Tenant();
+        tenant.setId(10L);
+        TenantMembership membership = membership(7L, tenant, EnumSet.of(Role.SUBSCRIBER));
+        de.pnnit.directwerk.modules.core.entity.User user =
+                new de.pnnit.directwerk.modules.core.entity.User();
+        user.setId(5L);
+        user.setEmail("creator@example.com");
+        membership.setUser(user);
+        when(tenantMembershipRepository.findByTenantIdAndUserId(10L, 5L))
+                .thenReturn(Optional.of(membership));
+        when(overrideRepository.findByTenantIdAndUserId(10L, 5L)).thenReturn(List.of());
+
+        assertThat(service.isDeniedForOwner(
+                10L, 5L, ContentEntityType.EPISODE, ContentOperation.PUBLISH)).isTrue();
+    }
+
+    @Test
+    void isDeniedForOwnerAllowsAnActiveEditor() {
+        Tenant tenant = new Tenant();
+        tenant.setId(10L);
+        TenantMembership membership = membership(7L, tenant, EnumSet.of(Role.EDITOR));
+        de.pnnit.directwerk.modules.core.entity.User user =
+                new de.pnnit.directwerk.modules.core.entity.User();
+        user.setId(5L);
+        user.setEmail("creator@example.com");
+        membership.setUser(user);
+        when(tenantMembershipRepository.findByTenantIdAndUserId(10L, 5L))
+                .thenReturn(Optional.of(membership));
+        when(overrideRepository.findByTenantIdAndUserId(10L, 5L)).thenReturn(List.of());
+
+        assertThat(service.isDeniedForOwner(
+                10L, 5L, ContentEntityType.EPISODE, ContentOperation.PUBLISH)).isFalse();
+    }
+
+    @Test
     void principalForMemberRejectsADisabledMembership() {
         // #748: a queued import must not run as an identity whose membership was revoked.
         Tenant tenant = new Tenant();
