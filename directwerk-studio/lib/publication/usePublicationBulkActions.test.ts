@@ -119,6 +119,45 @@ describe('usePublicationBulkActions', () => {
         expect(result.current.isBulkBusy).toBe(false)
     })
 
+    it('chunks a selection larger than the API limit and merges the results', async () => {
+        const many: BulkItem[] = Array.from({length: 101}, (_, i) => ({
+            id: i + 1,
+            title: `Draft ${i + 1}`,
+            status: 'DRAFT',
+        }))
+        const publishMany = vi
+            .fn()
+            .mockImplementation(async (ids: number[]) => ({
+                updated: ids.map((id) => ({id, title: `Draft ${id}`, status: 'PUBLISHED'})),
+                failures: [],
+            }))
+        const setItems = vi.fn()
+        const clearSelection = vi.fn()
+
+        const {result} = renderHook(() =>
+            useBulkActionsWithSharedMessages({
+                items: many,
+                selectedIds: new Set(many.map((item) => item.id)),
+                publishMany,
+                unpublishMany: vi.fn(),
+                setItems,
+                clearSelection,
+                labels,
+                authRedirect: () => false,
+            }),
+        )
+
+        await act(async () => {
+            await result.current.handleBulkPublish()
+        })
+
+        expect(publishMany).toHaveBeenCalledTimes(2)
+        expect(publishMany.mock.calls[0][0]).toHaveLength(100)
+        expect(publishMany.mock.calls[1][0]).toHaveLength(1)
+        expect(result.current.bulkStatusMessage).toBe('101 published')
+        expect(clearSelection).toHaveBeenCalled()
+    })
+
     it('bulk unpublishes published items with a single request', async () => {
         const unpublishMany = vi.fn().mockResolvedValue({
             updated: [{id: 2, title: 'Published', status: 'DRAFT'}],
