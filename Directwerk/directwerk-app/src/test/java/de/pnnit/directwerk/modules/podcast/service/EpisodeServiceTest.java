@@ -355,6 +355,23 @@ class EpisodeServiceTest {
     }
 
     @Test
+    void bulkDeleteWithAnUnknownLaterIdDemotesNothing() {
+        Episode published = episode(EpisodeStatus.PUBLISHED);
+        MediaAsset audio = new MediaAsset();
+        audio.setId(77L);
+        audio.setVisibility(AssetVisibility.PUBLIC);
+        published.setAudioAsset(audio);
+        when(episodeRepository.findByIdAndTenantId(EPISODE_ID, TENANT_ID)).thenReturn(Optional.of(published));
+        when(episodeRepository.findByIdAndTenantId(99L, TENANT_ID)).thenReturn(Optional.empty());
+        authenticate(5L, Role.TENANT_ADMIN);
+
+        assertThatThrownBy(() -> episodeService.bulkDelete(TENANT_ID, List.of(EPISODE_ID, 99L)))
+                .isInstanceOf(de.pnnit.directwerk.modules.podcast.exception.EpisodeNotFoundException.class);
+        verify(episodeMediaApi, never()).demoteToPrivate(77L);
+        verify(episodeRepository, never()).delete(published);
+    }
+
+    @Test
     void deletingAPublishedEpisodeDemotesItsPromotedAudio() {
         Episode published = episode(EpisodeStatus.PUBLISHED);
         MediaAsset audio = new MediaAsset();

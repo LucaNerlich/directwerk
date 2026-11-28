@@ -546,9 +546,13 @@ public class EpisodeService {
     @Transactional
     @RequiresModule(PodcastModule.KEY)
     public List<Long> bulkDelete(Long tenantId, List<Long> episodeIds) {
-        List<Long> deleted = new ArrayList<>();
+        // Two phases: validate every id before the first side effect. Demoting audio deletes the
+        // public S3 object immediately and is only undone by the rollback's metadata, so a later
+        // unknown/foreign id must fail before any demotion happens.
+        List<Long> ids = BulkPublication.distinctIds(episodeIds);
+        List<Episode> episodes = new ArrayList<>(ids.size());
         boolean anyVisible = false;
-        for (Long episodeId : BulkPublication.distinctIds(episodeIds)) {
+        for (Long episodeId : ids) {
             Episode episode = requireEpisode(tenantId, episodeId);
             if (episode.getTenant() == null || !tenantId.equals(episode.getTenant().getId())) {
                 throw new EpisodeNotFoundException(episodeId);
@@ -557,10 +561,14 @@ public class EpisodeService {
             anyVisible = anyVisible
                     || episode.getStatus() == EpisodeStatus.PUBLISHED
                     || episode.getStatus() == EpisodeStatus.SCHEDULED;
+            episodes.add(episode);
+        }
+        List<Long> deleted = new ArrayList<>(episodes.size());
+        for (Episode episode : episodes) {
             demoteDespublicationAudio(episode);
-            EpisodeSearchIndex.remove(searchIndex, tenantId, episodeId);
+            EpisodeSearchIndex.remove(searchIndex, tenantId, episode.getId());
             episodeRepository.delete(episode);
-            deleted.add(episodeId);
+            deleted.add(episode.getId());
         }
         if (anyVisible) {
             rssFeedRefreshScheduler.requestRefreshAfterCommit(tenantId);
