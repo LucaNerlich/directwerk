@@ -194,6 +194,9 @@ async function upload(buffer, filename, mimeType, assetType, folderId, existing,
     if (reusable?.status === 'READY' && reusable.visibility === visibility) {
         return reusable.id
     }
+    // A READY asset with the wrong visibility (typically PUBLIC audio from before the
+    // PAID fix) is re-uploaded; delete the superseded one so its public URL stops working.
+    const supersededId = reusable?.status === 'READY' ? reusable.id : null
     for (let attempt = 0; attempt < 3; attempt++) {
         const {uploadUrl, assetId} = (await api('POST', '/api/v1/media/upload-url', {
             filename,
@@ -215,6 +218,13 @@ async function upload(buffer, filename, mimeType, assetType, folderId, existing,
         try {
             await api('POST', `/api/v1/media/${assetId}/confirm`, {}, 1)
             existing.set(filename, {id: assetId, status: 'READY', visibility})
+            if (supersededId !== null) {
+                try {
+                    await api('DELETE', `/api/v1/media/${supersededId}`, {}, 1)
+                } catch (error) {
+                    console.warn(`    could not delete superseded asset ${supersededId}: ${error.message}`)
+                }
+            }
             return assetId
         } catch (error) {
             console.warn(`    confirm failed (attempt ${attempt + 1}): ${error.message}`)
