@@ -126,7 +126,11 @@ export default function ProductEditor({
         deactivate: deactivateProduct,
         initialValues: INITIAL_VALUES,
         toValues: toProductValues,
-        validate: validatePrice,
+        validate: (current): string | null =>
+            validatePrice(current) ??
+            (product !== undefined && product !== null && product.priceCents !== null && current.priceEuros.trim() === ''
+                ? dict.manage.preisKannNichtEntferntWerden
+                : null),
         buildCreate: (current) => ({
             title: current.title.trim() || 'Ohne Titel',
             slug: resolveSlug(current),
