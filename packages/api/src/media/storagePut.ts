@@ -279,24 +279,3 @@ export async function putFileToStorage(
     })
 }
 
-/**
- * Ingests the browser/proxy body to a temp file, then PUTs that file to object
- * storage. Decouples Coolify Traefik’s request-body `readTimeout` from S3
- * throughput (see {@link spoolStreamToTempFile}).
- *
- * Prefer {@link spoolStreamToTempFile} + {@link putFileToStorage} when the
- * caller can overlap spooling with `upload-url` (see `performMediaUpload`).
- */
-export async function putStreamToStorage(
-    uploadUrl: string,
-    headers: Record<string, string>,
-    body: ReadableStream<Uint8Array>,
-    timeouts: StoragePutTimeouts,
-): Promise<StoragePutResult> {
-    const spool = await spoolStreamToTempFile(body, timeouts)
-    try {
-        return await putFileToStorage(uploadUrl, headers, spool.path, timeouts)
-    } finally {
-        await spool.cleanup()
-    }
-}
