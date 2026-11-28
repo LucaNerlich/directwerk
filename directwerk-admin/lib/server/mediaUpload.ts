@@ -1,3 +1,4 @@
+import {MAX_UPLOAD_BYTES} from '@/lib/uploadLimits'
 import 'server-only'
 
 import {safeUpstreamResponse} from '@directwerk/api/server'
@@ -15,7 +16,6 @@ import {isRecord} from '@directwerk/api/validation/primitives'
 import {createConfiguredPlatformApiRequest} from '@/lib/server/api'
 import {resolvePlatformAuthorization} from '@/lib/server/platform'
 
-const MAX_UPLOAD_BYTES = 10 * 1024 * 1024
 const UPSTREAM_TIMEOUT_MS = 30_000
 const STORAGE_PUT_TIMEOUT_MS = 60_000
 const ASSET_TYPE_VALUES = new Set<string>(ASSET_TYPES)

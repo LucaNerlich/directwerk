@@ -1,5 +1,6 @@
 'use server'
 
+import {MAX_UPLOAD_BYTES} from '@/lib/uploadLimits'
 import type {MediaAsset, TenantCreationResponse, TenantDetail, TenantDomain, TenantUploadLimits, TenantUser} from '@directwerk/api/types'
 import {ASSET_VISIBILITIES} from '@directwerk/api/types'
 
@@ -30,7 +31,6 @@ import {
     type UploadMediaState,
 } from '@/app/tenants/actionState'
 
-const MAX_UPLOAD_BYTES = 10 * 1024 * 1024
 const MAX_TENANT_NAME_LENGTH = 255
 const ASSET_VISIBILITY_VALUES = new Set<string>(ASSET_VISIBILITIES)
 const SLUG_PATTERN = /^[a-z0-9](?:[a-z0-9-]{0,62}[a-z0-9])?$/
