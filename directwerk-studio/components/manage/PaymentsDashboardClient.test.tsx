@@ -144,6 +144,31 @@ describe('PaymentsDashboardClient', () => {
         expect(screen.queryByRole('button', {name: 'Zugang beenden'})).not.toBeInTheDocument()
     })
 
+    it('reports a failed refresh separately from a successful revoke', async () => {
+        vi.mocked(getBillingDashboard)
+            .mockResolvedValueOnce(dashboard())
+            .mockRejectedValueOnce(new Error('refresh down'))
+        vi.mocked(revokeSubscription).mockResolvedValue({
+            id: 9,
+            userId: 3,
+            email: 'member@example.com',
+            productId: 1,
+            productSlug: 'supporter',
+            productTitle: 'Supporter',
+            status: 'CANCELED',
+            source: 'STRIPE',
+            externalSubscriptionId: 'sub_123',
+        })
+
+        renderWithLocale(<PaymentsDashboardClient />)
+        await waitFor(() => expect(screen.getByText('member@example.com')).toBeInTheDocument())
+        fireEvent.click(screen.getByRole('button', {name: 'Zugang beenden'}))
+        fireEvent.click(await screen.findByRole('button', {name: 'Wirklich beenden'}))
+
+        expect(await screen.findByText('Zugang beendet: member@example.com')).toBeInTheDocument()
+        expect(screen.queryByText('Widerruf fehlgeschlagen.')).not.toBeInTheDocument()
+    })
+
     it('resets the revoke confirmation after a failed revoke', async () => {
         vi.mocked(revokeSubscription).mockRejectedValue(new Error('Widerruf fehlgeschlagen.'))
 
