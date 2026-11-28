@@ -115,6 +115,32 @@ class QueueWorkerTest {
     }
 
     @Test
+    void pollDrainsBatchesUntilTheQueueIsEmpty() {
+        QueueService queueService = mock(QueueService.class);
+        JobHandlerRegistry registry = mock(JobHandlerRegistry.class);
+        DirectwerkConfig config = configWithQueueEnabled(true);
+        JobHandler handler = mock(JobHandler.class);
+        when(registry.handlerFor("email")).thenReturn(handler);
+        Instant now = Instant.now();
+        List<QueueJob> fullBatch = java.util.stream.IntStream.range(0, 10)
+                .mapToObj(i -> new QueueJob(
+                        UUID.randomUUID(), "email", null, 0, JobStatus.PROCESSING, now, 1, 5,
+                        "worker", now.plusSeconds(60), null, 1L, null, null, now, now))
+                .toList();
+        List<QueueJob> tail = List.of(new QueueJob(
+                UUID.randomUUID(), "email", null, 0, JobStatus.PROCESSING, now, 1, 5,
+                "worker", now.plusSeconds(60), null, 1L, null, null, now, now));
+        when(queueService.claim(eq("email"), anyString(), anyInt(), anyLong()))
+                .thenReturn(fullBatch, tail);
+        when(queueService.resolveLeaseSeconds(eq("email"), anyLong())).thenReturn(60L);
+        when(queueService.renew(any(), anyString(), anyLong())).thenReturn(Optional.empty());
+
+        new QueueWorker(queueService, config, registry).poll("email");
+
+        verify(queueService, org.mockito.Mockito.times(2)).claim(eq("email"), anyString(), anyInt(), anyLong());
+    }
+
+    @Test
     void heartbeatReportsLeaseLossWhenRenewReturnsEmpty() {
         // Issue #583: renew signals a lost lease with Optional.empty() (never an exception), so
         // the heartbeat must check the result instead of relying on an unreachable catch.
