@@ -1044,7 +1044,11 @@ export function createMcpServer(
                     if (!slugPattern.test(item.slug)) {
                         return fail(`invalid slug: ${item.slug}`)
                     }
-                    const accessPolicy = item.accessPolicy === 'PAID' ? 'PAID' : 'FREE'
+                    const requestedPolicy = item.accessPolicy
+                    if (requestedPolicy !== undefined && requestedPolicy !== 'FREE' && requestedPolicy !== 'PAID') {
+                        return fail(`invalid accessPolicy: ${requestedPolicy} (expected FREE or PAID)`)
+                    }
+                    const accessPolicy = requestedPolicy ?? 'FREE'
 
                     // --- media assets (reuse READY assets by filename) ---
                     let audioAssetId: number | undefined
