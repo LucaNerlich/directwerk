@@ -122,11 +122,16 @@ function parseFeed(xml) {
             continue
         }
         const image = attr(block, 'itunes:image', 'href') ?? channelImage
+        const publishedAt = parseFeedDate(tag(block, 'pubDate'))
+        if (publishedAt === null) {
+            console.warn(`   skipping item without a valid pubDate: ${cleanTitle(tag(block, 'title'))}`)
+            continue
+        }
         items.push({
             title: cleanTitle(tag(block, 'title')),
             guid: tag(block, 'guid') ?? url,
             description: tag(block, 'content:encoded') ?? tag(block, 'description') ?? '',
-            publishedAt: new Date(tag(block, 'pubDate') ?? '').toISOString(),
+            publishedAt,
             url: decodeXml(url),
             durationSeconds: parseDuration(tag(block, 'itunes:duration')),
             image,
