@@ -78,11 +78,21 @@ export default function TenantSessionPanel({
     }
 
     function handleClear(): void {
-        clearTenantTokens()
-        setConnectedHost(null)
-        setStatus('Tenant session cleared.')
-        setError(null)
-        onSessionChange?.()
+        // Revoke and clear the httpOnly tenant cookies too, not just sessionStorage:
+        // otherwise /api/auth/tenant-refresh could mint a new tenant token afterwards.
+        void (async () => {
+            try {
+                await fetch('/api/auth/tenant-logout', {method: 'POST', credentials: 'same-origin'})
+            } catch {
+                // Best-effort: the local session is still cleared below; platform logout
+                // remains the fallback that revokes the tenant token.
+            }
+            clearTenantTokens()
+            setConnectedHost(null)
+            setStatus('Tenant session cleared.')
+            setError(null)
+            onSessionChange?.()
+        })()
     }
 
     return (
