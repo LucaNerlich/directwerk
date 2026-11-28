@@ -36,6 +36,9 @@ class AuthControllerTest {
     private EmailVerificationService emailVerificationService;
 
     @Mock
+    private de.pnnit.directwerk.security.PasswordResetRateLimiter passwordResetRateLimiter;
+
+    @Mock
     private DirectwerkConfig directwerkConfig;
 
     @Test
@@ -85,7 +88,8 @@ class AuthControllerTest {
                 passwordResetService,
                 invitationAcceptanceService,
                 emailVerificationService,
-                directwerkConfig
+                directwerkConfig,
+                passwordResetRateLimiter
         );
     }
 }

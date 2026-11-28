@@ -9,6 +9,7 @@ import de.pnnit.directwerk.modules.core.service.PasswordResetService;
 import de.pnnit.directwerk.modules.core.service.UserAccountService;
 import de.pnnit.directwerk.modules.core.util.PasswordPolicyException;
 import de.pnnit.directwerk.multitenancy.TenantResolver;
+import de.pnnit.directwerk.security.PasswordResetRateLimiter;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Email;
@@ -32,6 +33,7 @@ public class AuthController {
     private final InvitationAcceptanceService invitationAcceptanceService;
     private final EmailVerificationService emailVerificationService;
     private final DirectwerkConfig directwerkConfig;
+    private final PasswordResetRateLimiter passwordResetRateLimiter;
 
     public AuthController(
             UserAccountService userAccountService,
@@ -39,7 +41,8 @@ public class AuthController {
             PasswordResetService passwordResetService,
             InvitationAcceptanceService invitationAcceptanceService,
             EmailVerificationService emailVerificationService,
-            DirectwerkConfig directwerkConfig
+            DirectwerkConfig directwerkConfig,
+            PasswordResetRateLimiter passwordResetRateLimiter
     ) {
         this.userAccountService = userAccountService;
         this.tenantResolver = tenantResolver;
@@ -47,6 +50,7 @@ public class AuthController {
         this.invitationAcceptanceService = invitationAcceptanceService;
         this.emailVerificationService = emailVerificationService;
         this.directwerkConfig = directwerkConfig;
+        this.passwordResetRateLimiter = passwordResetRateLimiter;
     }
 
     /**
@@ -86,6 +90,9 @@ public class AuthController {
     ResponseEntity<Response<ForgotPasswordResponse>> forgotPassword(
             @Valid @RequestBody ForgotPasswordRequest body
     ) {
+        // Per-account ceiling on top of the per-IP filter (#523): a botnet must not be able to
+        // mail-bomb one address or keep invalidating the link the victim already holds.
+        passwordResetRateLimiter.requireWithinLimit(body.email());
         String resetToken = passwordResetService.requestReset(body.email());
         String devResetToken = directwerkConfig.isExposeDevTokens() ? resetToken : null;
         return ResponseEntity.accepted().body(Response.accepted(new ForgotPasswordResponse(devResetToken)));
