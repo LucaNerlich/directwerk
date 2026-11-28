@@ -94,10 +94,27 @@ public class MembershipPermissionService {
         if (tenantId == null || ownerUserId == null) {
             return false;
         }
-        return overrideRepository.findByTenantIdAndUserId(tenantId, ownerUserId).stream()
+        Set<MembershipPermissionOverride> overrides = new HashSet<>(
+                overrideRepository.findByTenantIdAndUserId(tenantId, ownerUserId));
+        boolean deniedByOverride = overrides.stream()
                 .anyMatch(override -> override.getEntityType() == entity
                         && override.getOperation() == operation
                         && override.getScope() == RestrictionScope.DENY);
+        if (deniedByOverride) {
+            return true;
+        }
+        // Re-evaluate the creator's current role and membership, not just DENY rows: a creator
+        // demoted to SUBSCRIBER (or deactivated) after scheduling must not still publish.
+        Optional<DirectwerkUserPrincipal> principal = principalForMember(tenantId, ownerUserId);
+        if (principal.isEmpty()) {
+            return true;
+        }
+        try {
+            AuthorizationService.requireContentAccess(principal.get(), entity, operation, ownerUserId, overrides);
+            return false;
+        } catch (ContentAccessDeniedException ex) {
+            return true;
+        }
     }
 
     /**
