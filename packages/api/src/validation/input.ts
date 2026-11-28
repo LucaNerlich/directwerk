@@ -322,6 +322,11 @@ export function parseNewsletterTokenInput(value: unknown): NewsletterTokenInput 
 
 export const PASSWORD_MIN_LENGTH = MIN_PASSWORD_LENGTH
 export const PASSWORD_MAX_LENGTH = MAX_PASSWORD_LENGTH
+/**
+ * Ceiling for signing in: an existing account may hold a password created before the
+ * 72-byte write cap, so the login surface accepts up to the wider 128-character input limit.
+ */
+export const PASSWORD_LOGIN_MAX_LENGTH = MAX_LOGIN_PASSWORD_LENGTH
 
 /** True when `value` is a syntactically valid e-mail address (trimmed). */
 export function isValidEmail(value: unknown): boolean {
