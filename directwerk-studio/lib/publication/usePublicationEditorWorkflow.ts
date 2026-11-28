@@ -49,6 +49,7 @@ export function usePublicationEditorWorkflow<T extends {
 }): PublicationEditorWorkflowState<T> {
     const [isSaving, setIsSaving] = useState(false)
     const [isAutosaving, setIsAutosaving] = useState(false)
+    const autosaveInFlightRef = useRef<Promise<unknown> | null>(null)
     const [errorMessage, setErrorMessage] = useState<string | null>(null)
     const [saveHint, setSaveHint] = useState<string | null>(null)
     const [isDirty, setIsDirty] = useState(false)
@@ -97,6 +98,12 @@ export function usePublicationEditorWorkflow<T extends {
                 return null
             }
 
+            if (options?.fromWorkflow === true && autosaveInFlightRef.current !== null) {
+                // A workflow action (publish/archive/...) must not overlap an autosave PUT that
+                // is still in flight, or the older text can land after the action.
+                await autosaveInFlightRef.current.catch(() => null)
+            }
+
             if (!isEditablePublication()) {
                 if (options?.autosave === true) {
                     setIsDirty(false)
@@ -115,7 +122,11 @@ export function usePublicationEditorWorkflow<T extends {
             const revisionAtStart = dirtyRevisionRef.current
 
             try {
-                const result = await saveImpl(options)
+                const pending = saveImpl(options)
+                if (options?.autosave === true) {
+                    autosaveInFlightRef.current = pending
+                }
+                const result = await pending
                 if (result !== null) {
                     // #557: only clear the dirty flag when nothing was typed while the request was
                     // in flight — otherwise the editor reported "Automatisch gespeichert" while the
@@ -145,6 +156,7 @@ export function usePublicationEditorWorkflow<T extends {
                 }
                 if (options?.autosave === true) {
                     setIsAutosaving(false)
+                    autosaveInFlightRef.current = null
                 }
             }
         },
