@@ -231,7 +231,8 @@ public class PodcastImportController {
                 new JobEnqueueMetadata(
                         tenantId,
                         "podcast-rss-bulk-import-" + tenantId + "-" + request.seriesId() + "-"
-                                + ImportControllerSupport.feedHash(preview.feedUrl()),
+                                + ImportControllerSupport.feedHash(preview.feedUrl()) + "-"
+                                + ImportControllerSupport.payloadHash(objectMapper, payload),
                         null
                 )
         );
