@@ -1,6 +1,7 @@
 import {
     isValidEmail,
     isValidPassword,
+    PASSWORD_LOGIN_MAX_LENGTH,
     PASSWORD_MAX_LENGTH,
     PASSWORD_MIN_LENGTH,
 } from '@directwerk/api/validation/input'
@@ -68,14 +69,18 @@ export function passwordFieldError(
         return auth.passwordRequired
     }
     // Signing in must not enforce the *registration* password policy (#301): an existing
-    // account may hold a valid 8-11 character password that the backend still accepts.
+    // account may hold a valid 8-11 character password that the backend still accepts, or a
+    // password longer than the 72-byte write cap that the login endpoint still accepts.
+    const maxLength = options.enforcePolicy === false
+        ? PASSWORD_LOGIN_MAX_LENGTH
+        : PASSWORD_MAX_LENGTH
     const valid = options.enforcePolicy === false
-        ? password.length <= PASSWORD_MAX_LENGTH
+        ? password.length <= maxLength
         : isValidPassword(password)
     if (!valid) {
         return interpolate(auth.passwordLength, {
             min: PASSWORD_MIN_LENGTH,
-            max: PASSWORD_MAX_LENGTH,
+            max: maxLength,
         })
     }
     return undefined

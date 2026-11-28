@@ -23,6 +23,13 @@ describe('authFields', () => {
         expect(passwordFieldError('a'.repeat(12), testDictionary.auth)).toBeUndefined()
     })
 
+    it('accepts a legacy long password on the lenient login path', () => {
+        const legacy = 'a'.repeat(100)
+        expect(passwordFieldError(legacy, testDictionary.auth)).toBeDefined()
+        expect(passwordFieldError(legacy, testDictionary.auth, {enforcePolicy: false})).toBeUndefined()
+        expect(passwordFieldError('a'.repeat(129), testDictionary.auth, {enforcePolicy: false})).toBeDefined()
+    })
+
     it('flags empty tokens only', () => {
         expect(tokenFieldError('   ', testDictionary.auth)).toBeDefined()
         expect(tokenFieldError('abc', testDictionary.auth)).toBeUndefined()
