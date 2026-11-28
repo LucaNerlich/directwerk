@@ -76,8 +76,11 @@ public class HtmlSanitizer {
      * TipTap documents start with a tag ({@code <p>}, {@code <h2>}, …). CommonMark
      * that embeds inline HTML mid-body must still go through Flexmark.
      */
+    private static final java.util.regex.Pattern LEADING_TAG =
+            java.util.regex.Pattern.compile("^\\s*<[a-zA-Z][a-zA-Z0-9]*[\\s>/]");
+
     static boolean looksLikeTipTapHtml(String value) {
-        return value.trim().startsWith("<");
+        return LEADING_TAG.matcher(value).find();
     }
 
     /**
