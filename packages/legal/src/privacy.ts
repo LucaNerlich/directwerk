@@ -14,7 +14,7 @@ export const PRIVACY: LegalPage = {
     title: 'Datenschutzerklärung',
     intro:
         'Wir nehmen den Schutz deiner Daten ernst. Nachfolgend erfährst du, welche Daten wir verarbeiten, wofür wir sie brauchen und welche Rechte du hast.',
-    updated: '2026-10-03',
+    updated: '2026-11-28',
     sections: [
         {
             heading: '1. Verantwortlicher',
