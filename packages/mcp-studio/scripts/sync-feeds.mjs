@@ -272,7 +272,10 @@ async function syncShow(show, options, tenantSlugs) {
         knownMedia.set(asset.originalFilename, {id: asset.id, status: asset.status, visibility: asset.visibility})
     }
 
-    let pending = items.filter(item => !seen.has(`${cleanTitle(item.title).toLowerCase()}|${day(item.publishedAt)}`))
+    let pending = items.filter(item => {
+        const keyTitle = cleanTitle(item.title).toLowerCase()
+        return !seen.has(`${keyTitle}|${day(item.publishedAt)}`) && !draftTitles.has(keyTitle)
+    })
     if (options.limit) {
         pending = pending.slice(-options.limit)
     }
