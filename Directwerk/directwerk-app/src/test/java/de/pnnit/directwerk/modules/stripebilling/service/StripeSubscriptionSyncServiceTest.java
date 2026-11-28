@@ -442,4 +442,31 @@ class StripeSubscriptionSyncServiceTest {
                 .containsExactly(StripeSubscriptionRebindRefusedException.class);
     }
 
+
+    @Test
+    void cancelIfOpenCancelsAnIncompleteRow() {
+        Subscription open = subscription(SubscriptionSource.STRIPE, SubscriptionStatus.INCOMPLETE);
+        when(subscriptionRepository.findByTenantIdAndExternalSubscriptionIdForUpdate(TENANT_ID, "sub_open"))
+                .thenReturn(Optional.of(open));
+        when(subscriptionRepository.save(open)).thenReturn(open);
+
+        service.cancelIfOpen(TENANT_ID, "sub_open");
+
+        org.assertj.core.api.Assertions.assertThat(open.getStatus())
+                .isEqualTo(SubscriptionStatus.CANCELED);
+        org.mockito.Mockito.verify(subscriptionRepository).save(open);
+    }
+
+    @Test
+    void cancelIfOpenLeavesAnActiveRowAlone() {
+        Subscription active = subscription(SubscriptionSource.STRIPE, SubscriptionStatus.ACTIVE);
+        when(subscriptionRepository.findByTenantIdAndExternalSubscriptionIdForUpdate(TENANT_ID, "sub_active"))
+                .thenReturn(Optional.of(active));
+
+        service.cancelIfOpen(TENANT_ID, "sub_active");
+
+        org.assertj.core.api.Assertions.assertThat(active.getStatus())
+                .isEqualTo(SubscriptionStatus.ACTIVE);
+        org.mockito.Mockito.verify(subscriptionRepository, org.mockito.Mockito.never()).save(active);
+    }
 }

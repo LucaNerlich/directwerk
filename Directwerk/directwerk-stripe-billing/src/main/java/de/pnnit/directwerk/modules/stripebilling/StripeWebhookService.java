@@ -342,17 +342,9 @@ public class StripeWebhookService {
         if (event.subscriptionId() == null || event.subscriptionId().isBlank()) {
             return;
         }
-        // Only an open (unsettled) row may be cancelled: a retried terminal event must not
-        // revoke a subscription that has since settled (#1107 review).
-        subscriptionRepository.findByTenantIdAndExternalSubscriptionId(tenantId, event.subscriptionId())
-                .filter(subscription -> subscription.getStatus() == SubscriptionStatus.INCOMPLETE
-                        || subscription.getStatus() == SubscriptionStatus.PAST_DUE)
-                .ifPresent(subscription -> stripeSubscriptionSyncService.syncStripeSubscriptionByExternalId(
-                        tenantId,
-                        event.subscriptionId(),
-                        SubscriptionStatus.CANCELED,
-                        null
-                ));
+        // Only an open (unsettled) row may be cancelled, and the check must run under the
+        // row lock: a concurrent success event may have settled the row since the read.
+        stripeSubscriptionSyncService.cancelIfOpen(tenantId, event.subscriptionId());
     }
 
     private void applySubscriptionCanceled(Long tenantId, StripeOperations.StripeWebhookPayload event) {
