@@ -102,8 +102,11 @@ public class EpisodeService {
             // Escape LIKE metacharacters so a literal % or _ does not turn the search into a wildcard.
             needle = needle.replace("!", "!!").replace("%", "!%").replace("_", "!_");
         }
+        // Sentinels keep every bind typed; NULL parameters break the query on PostgreSQL.
+        Long seriesFilter = seriesId == null ? 0L : seriesId;
+        String queryFilter = needle == null ? "" : needle;
         var page = OffsetLimitPageRequest.of(limit, offset, sort.toSort());
-        List<Long> ids = episodeRepository.searchIdsByTenantId(tenantId, seriesId, needle, page);
+        List<Long> ids = episodeRepository.searchIdsByTenantId(tenantId, seriesFilter, queryFilter, page);
         if (ids.isEmpty()) {
             return List.of();
         }
