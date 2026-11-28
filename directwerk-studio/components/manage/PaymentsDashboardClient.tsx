@@ -187,8 +187,15 @@ export default function PaymentsDashboardClient(): React.JSX.Element {
         try {
             const revoked = await revokeSubscription( row.id)
             resetRevoke()
-            await reloadDashboard()
             setStatusMessage(`Zugang beendet: ${revoked.email}`)
+            // The revocation already happened; a failed refresh must not be
+            // reported as a failed revocation (and must not invite a retry).
+            try {
+                await reloadDashboard()
+            } catch (error: unknown) {
+                if (authRedirect(error)) return
+                setErrorMessage(dict.manage.zahlungsuebersichtKonnteGeladen)
+            }
         } catch (error: unknown) {
             if (authRedirect(error)) return
             setErrorMessage(
