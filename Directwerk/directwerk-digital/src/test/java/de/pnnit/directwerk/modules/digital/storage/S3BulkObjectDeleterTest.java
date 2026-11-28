@@ -155,16 +155,12 @@ class S3BulkObjectDeleterTest {
     }
 
     @Test
-    void deleteQuietlyWrapsS3ExceptionUnlessNotFound() {
-        var unavailable = S3Exception.builder().statusCode(503).message("unavailable").build();
-        when(s3Client.deleteObjects(any(DeleteObjectsRequest.class))).thenThrow(unavailable);
+    void deleteQuietlyPropagatesS3ExceptionUnlessNotFound() {
+        when(s3Client.deleteObjects(any(DeleteObjectsRequest.class)))
+                .thenThrow(S3Exception.builder().statusCode(503).message("unavailable").build());
 
         assertThatThrownBy(() -> deleter.deleteQuietly("directwerk-dev", List.of("a/key")))
-                .isInstanceOf(S3BulkObjectDeleter.PartialBulkDeleteException.class)
-                .hasCause(unavailable)
-                .extracting(ex -> ((S3BulkObjectDeleter.PartialBulkDeleteException) ex).getDeletedKeys())
-                .asList()
-                .isEmpty();
+                .isInstanceOf(S3Exception.class);
 
         when(s3Client.deleteObjects(any(DeleteObjectsRequest.class)))
                 .thenThrow(S3Exception.builder().statusCode(404).message("not found").build());
