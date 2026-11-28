@@ -54,7 +54,7 @@ public class SeriesService {
         return podcastSeriesRepository.findByTenantIdOrderByTitleAscIdAsc(tenantId);
     }
 
-        /** Paged variant (#310) — see EpisodeService.listEpisodes(Long, int). */
+        /** Paged variant (#310) — mirrors EpisodeService.listEpisodes. */
     @Transactional(readOnly = true)
     public List<PodcastSeries> listSeries(Long tenantId, boolean publishedOnly, int limit) {
         PageRequest page = PageRequest.of(0, limit);

@@ -51,7 +51,7 @@ public class SubscriptionProductService {
         return subscriptionProductRepository.findByTenantIdOrderBySortOrderAscIdAsc(tenantId);
     }
 
-    /** Paged variant (#310) — see EpisodeService.listEpisodes(Long, int). */
+    /** Paged variant (#310) — mirrors EpisodeService.listEpisodes. */
     @Transactional(readOnly = true)
     public List<SubscriptionProduct> listProducts(Long tenantId, boolean activeOnly, int limit) {
         PageRequest page = PageRequest.of(0, limit);
