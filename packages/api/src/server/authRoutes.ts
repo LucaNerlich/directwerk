@@ -403,8 +403,8 @@ export function createPlatformFetchUpstream<TInput>(
 }
 
 /**
- * Builds a platform login BFF route (`/api/auth/login`,
- * `/api/auth/tenant-login`): JSON body gate → validation → upstream token
+ * Builds a platform token BFF route (`/api/auth/tenant-login`): JSON body gate →
+ * validation → upstream token
  * request → seal the refresh token into an httpOnly cookie → no-store.
  *
  * The `gate`/`preflight`/`finalize` hooks cover the tenant variant's platform
