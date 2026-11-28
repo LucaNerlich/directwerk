@@ -119,7 +119,7 @@ export function createTenantProxyRouteHandler(
                 query,
             })
 
-            return toClientResponse(response)
+            return toClientResponse(response, method)
         } catch {
             return jsonError('The upstream service is unavailable.', 502)
         }
