@@ -27,7 +27,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
@@ -57,7 +56,6 @@ public class PodcastImportService {
      * @param feedUrl the RSS feed URL to preview
      * @return the parsed feed metadata and episode previews, including identifiers for episodes already imported by the tenant
      */
-    @Transactional(readOnly = true)
     @RequiresModule(PodcastModule.KEY)
     public Preview preview(String feedUrl) {
         return buildPreview(feedUrl, MAX_PREVIEW_ITEMS);
@@ -67,7 +65,6 @@ public class PodcastImportService {
      * Full-feed enumeration for bulk import: the interactive preview is capped, but a normal
      * multi-hundred-episode show must still import completely (#1033 review).
      */
-    @Transactional(readOnly = true)
     @RequiresModule(PodcastModule.KEY)
     public Preview previewForBulk(String feedUrl) {
         return buildPreview(feedUrl, MAX_BULK_ITEMS);

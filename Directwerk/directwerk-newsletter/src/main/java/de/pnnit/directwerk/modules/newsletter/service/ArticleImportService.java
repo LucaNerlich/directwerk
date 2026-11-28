@@ -34,7 +34,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
@@ -66,7 +65,6 @@ public class ArticleImportService {
     private final ArticleService articleService;
     private final ArticleRepository articleRepository;
 
-    @Transactional(readOnly = true)
     @RequiresModule(ArticlesModule.KEY)
     public Preview preview(String feedUrl) {
         Long tenantId = TenantContext.requireTenantId();
