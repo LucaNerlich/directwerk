@@ -84,10 +84,11 @@ public class MembershipPermissionService {
     }
 
     /**
-     * Job-context-safe DENY check for background paths (e.g. the Quartz-driven
+     * Job-context-safe permission check for background paths (e.g. the Quartz-driven
      * scheduled-publish executors) that have no live {@link DirectwerkUserPrincipal} to
      * pass through {@link #requireContentAccess}, which otherwise no-ops on a null
-     * principal. Looks up the content creator's own override rows directly.
+     * principal. Evaluates the creator's DENY/OWNERS_ONLY overrides plus their current
+     * role and membership status, returning {@code true} when they may no longer act.
      */
     @Transactional(readOnly = true)
     public boolean isDeniedForOwner(Long tenantId, Long ownerUserId, ContentEntityType entity, ContentOperation operation) {
