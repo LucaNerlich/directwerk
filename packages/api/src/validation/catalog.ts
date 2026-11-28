@@ -47,7 +47,6 @@ import type {
     ProductAccessScopeType,
     PublicationAction,
     PublicationStatus,
-    PublicCategory,
     RbacEffectiveAccess,
     RbacEntityType,
     RbacOperation,
