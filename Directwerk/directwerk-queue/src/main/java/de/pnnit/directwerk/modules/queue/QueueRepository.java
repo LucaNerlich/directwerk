@@ -313,10 +313,6 @@ public class QueueRepository {
         }
     }
 
-    public void clear() {
-        jdbcTemplate.update("DELETE FROM jobs");
-    }
-
     /**
      * Deletes up to {@code limit} terminal jobs ({@code COMPLETED}/{@code FAILED})
      * whose {@code updated_at} is strictly before {@code cutoff}.

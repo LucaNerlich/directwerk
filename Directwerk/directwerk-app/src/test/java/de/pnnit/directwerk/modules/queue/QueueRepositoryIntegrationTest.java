@@ -57,7 +57,7 @@ class QueueRepositoryIntegrationTest {
 
     @BeforeEach
     void clearJobs() {
-        queueRepository.clear();
+        jdbcTemplate.update("DELETE FROM jobs");
         jdbcTemplate.update("INSERT INTO tenants (id, slug, name) VALUES (10, 'tenant-10', 'Tenant 10') ON CONFLICT (id) DO NOTHING");
         jdbcTemplate.update("INSERT INTO tenants (id, slug, name) VALUES (20, 'tenant-20', 'Tenant 20') ON CONFLICT (id) DO NOTHING");
     }
