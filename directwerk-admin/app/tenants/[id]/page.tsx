@@ -161,7 +161,18 @@ export default function TenantPage({params}: TenantPageProps) {
 
     function rightsSummary(user: TenantUser): string {
         if (!user.roles.includes('EDITOR')) {
-            return 'Rights: full access'
+            // Reader memberships (self-registration) have no editor restrictions to audit;
+            // calling that "full access" understates restrictions in the audit surface (#344).
+            if (user.roles.includes('TENANT_ADMIN')) {
+                return 'Rights: full access'
+            }
+            if (user.roles.includes('SUBSCRIBER')) {
+                return 'Rights: not applicable (subscriber)'
+            }
+            if (user.roles.includes('GUEST')) {
+                return 'Rights: not applicable (guest)'
+            }
+            return 'Rights: not applicable'
         }
         const rights = rightsByUser?.[user.userId]
         if (rights === undefined) {
