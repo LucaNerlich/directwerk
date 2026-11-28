@@ -16,6 +16,7 @@
         "start:http": "node dist/http.js",
         "typecheck": "tsc -p tsconfig.json --noEmit",
         "test": "node --import tsx --test src/*.test.ts",
+        "sync:feeds": "node scripts/sync-feeds.mjs",
         "dev": "tsx src/index.ts",
         "dev:http": "tsx src/http.ts"
     },
