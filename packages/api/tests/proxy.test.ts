@@ -30,6 +30,12 @@ describe('buildProxyPath', () => {
         expect(buildProxyPath([''])).toBeNull()
         expect(buildProxyPath(['a/b'])).toBeNull()
     })
+
+    it('rejects platform-admin paths', () => {
+        expect(buildProxyPath(['platform', 'tenants'])).toBeNull()
+        expect(buildProxyPath(['Platform', 'tenants'])).toBeNull()
+        expect(buildProxyPath(['public', 'site-config'])).toBe('/api/v1/public/site-config')
+    })
 })
 
 describe('readBearerToken', () => {
