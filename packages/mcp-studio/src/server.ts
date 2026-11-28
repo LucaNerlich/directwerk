@@ -1079,6 +1079,7 @@ export function createMcpServer(
 
                     // --- episode ---
                     let episode = bySlug.get(item.slug)
+                    const wasPublished = episode?.status === 'PUBLISHED'
                     let stagedDraft = false
                     let mode: 'created' | 'updated' | 'skipped'
                     if (!episode) {
@@ -1115,7 +1116,7 @@ export function createMcpServer(
                             await api('PUT', `api/v1/episodes/${episode.id}`, {episodeNumber: item.episodeNumber})
                             missing.push('episodeNumber')
                         }
-                        stagedDraft = missing.length > 0
+                        stagedDraft = wasPublished && missing.length > 0
                         summary.updated++
                         mode = 'updated'
                     }
