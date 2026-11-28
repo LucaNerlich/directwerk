@@ -69,6 +69,19 @@ describe('MemberRightsEditor', () => {
         expect(await screen.findByText('Zugriffsrechte gespeichert.')).toBeInTheDocument()
     })
 
+    it('keeps saving disabled when the restrictions could not be loaded', async () => {
+        vi.mocked(replaceUserRestrictions).mockClear()
+        vi.mocked(listUserRestrictions).mockRejectedValue(new Error('Netzwerkfehler'))
+        vi.mocked(replaceUserRestrictions).mockResolvedValue([])
+        renderEditor()
+
+        expect(await screen.findByText('Netzwerkfehler')).toBeInTheDocument()
+        const save = screen.getByRole('button', {name: 'Rechte speichern'})
+        expect(save).toBeDisabled()
+        fireEvent.click(save)
+        expect(replaceUserRestrictions).not.toHaveBeenCalled()
+    })
+
     it('surfaces server errors in German', async () => {
         vi.mocked(listUserRestrictions).mockResolvedValue([])
         vi.mocked(replaceUserRestrictions).mockRejectedValue(

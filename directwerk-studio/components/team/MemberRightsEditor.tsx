@@ -56,6 +56,7 @@ export default function MemberRightsEditor({
 }): React.JSX.Element {
     const [matrix, setMatrix] = useState<AccessMatrix>({})
     const [isLoading, setIsLoading] = useState(true)
+    const [loaded, setLoaded] = useState(false)
     const [isSaving, setIsSaving] = useState(false)
     const [errorMessage, setErrorMessage] = useState<string | null>(null)
     const [statusMessage, setStatusMessage] = useState<string | null>(null)
@@ -77,11 +78,13 @@ export default function MemberRightsEditor({
         }
         let active = true
         setIsLoading(true)
+        setLoaded(false)
         setErrorMessage(null)
         listUserRestrictions( user.userId)
             .then((restrictions) => {
                 if (active) {
                     setMatrix(matrixFromRestrictions(restrictions))
+                    setLoaded(true)
                     setIsLoading(false)
                 }
             })
@@ -198,7 +201,7 @@ export default function MemberRightsEditor({
                 </Alert>
             ) : null}
             <div className="flex flex-wrap gap-2">
-                <Button disabled={isSaving} onClick={() => void handleSave()} type="button">
+                <Button disabled={isSaving || !loaded} onClick={() => void handleSave()} type="button">
                     {isSaving ? 'Speichert…' : 'Rechte speichern'}
                 </Button>
                 <Button
