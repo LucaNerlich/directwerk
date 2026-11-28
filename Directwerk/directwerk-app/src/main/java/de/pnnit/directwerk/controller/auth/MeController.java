@@ -2,6 +2,7 @@ package de.pnnit.directwerk.controller.auth;
 
 import de.pnnit.directwerk.api.dto.EffectiveRightsView;
 import de.pnnit.directwerk.api.dto.LevelView;
+import de.pnnit.directwerk.api.dto.PackageView;
 import de.pnnit.directwerk.api.dto.PermissionRestrictionView;
 import de.pnnit.directwerk.api.response.Response;
 import de.pnnit.directwerk.modules.core.service.MembershipPermissionService;
@@ -147,9 +148,6 @@ public class MeController {
             List<String> roles,
             Long tenantId
     ) {
-    }
-
-    public record PackageView(Long id, String slug, String title) {
     }
 
     public record SubscriptionView(
