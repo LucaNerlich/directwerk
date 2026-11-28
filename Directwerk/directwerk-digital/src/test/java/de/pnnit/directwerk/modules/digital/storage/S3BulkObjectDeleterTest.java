@@ -167,4 +167,26 @@ class S3BulkObjectDeleterTest {
 
         deleter.deleteQuietly("directwerk-dev", List.of("a/key"));
     }
+
+    @Test
+    void deleteQuietlyKeepsTheDeletedKeysOfEarlierChunksWhenALaterChunkFails() {
+        List<String> firstChunk = IntStream.range(0, S3BulkObjectDeleter.MAX_KEYS_PER_REQUEST)
+                .mapToObj(i -> "alpha/staging/sweep-" + i + ".mp3")
+                .toList();
+        List<String> secondChunk = IntStream.range(0, 2)
+                .mapToObj(i -> "alpha/staging/tail-" + i + ".mp3")
+                .toList();
+        when(s3Client.deleteObjects(any(DeleteObjectsRequest.class)))
+                .thenReturn(DeleteObjectsResponse.builder().build())
+                .thenThrow(S3Exception.builder().statusCode(503).message("unavailable").build());
+
+        List<String> keys = new ArrayList<>(firstChunk);
+        keys.addAll(secondChunk);
+
+        assertThatThrownBy(() -> deleter.deleteQuietly("directwerk-dev", keys))
+                .isInstanceOf(S3BulkObjectDeleter.PartialBulkDeleteException.class)
+                .extracting(ex -> ((S3BulkObjectDeleter.PartialBulkDeleteException) ex).getDeletedKeys())
+                .asList()
+                .containsExactlyElementsOf(firstChunk);
+    }
 }

@@ -69,6 +69,15 @@ public class S3BulkObjectDeleter {
             } catch (PartialBulkDeleteException ex) {
                 deleted.addAll(ex.getDeletedKeys());
                 throw new PartialBulkDeleteException(List.copyOf(deleted), ex.getCause());
+            } catch (RuntimeException ex) {
+                if (deleted.isEmpty()) {
+                    // Nothing was deleted yet: keep the historical exception type so callers
+                    // that special-case SdkException (confirm's staging cleanup) still work.
+                    throw ex;
+                }
+                // An S3/network failure in a later chunk must not discard the keys
+                // earlier chunks already deleted; callers archive from getDeletedKeys().
+                throw new PartialBulkDeleteException(List.copyOf(deleted), ex);
             }
         }
         return List.copyOf(deleted);
