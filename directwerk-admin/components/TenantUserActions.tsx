@@ -136,23 +136,26 @@ export default function TenantUserActions({
                     ).join(', ')}. Saving replaces them with one role.
                 </p>
             ) : null}
-            <form action={roleAction} className="flex min-w-64 flex-wrap gap-2">
-                <select className="native-select w-auto flex-1" aria-label={`Role for ${user.email}`} defaultValue={user.roles[0] ?? 'EDITOR'} key={user.roles[0] ?? 'EDITOR'} name="role">
-                    {!isTenantInvitableRole(user.roles[0] ?? '') ? (
-                        // Reader roles are not staff roles but must be the selected default:
-                        // falling back to the first option silently promoted a subscriber.
-                        <option value={user.roles[0]}>{user.roles[0]}</option>
-                    ) : null}
-                    {PLATFORM_TENANT_INVITABLE_ROLES.map((role) => (
-                        <option key={role} value={role}>
-                            {getTenantRoleLabel(role)}
-                        </option>
-                    ))}
-                </select>
-                <Button disabled={rolePending} type="submit" variant="outline">
-                    {rolePending ? 'Saving…' : 'Change role'}
-                </Button>
-            </form>
+            {isTenantInvitableRole(user.roles[0] ?? '') ? (
+                <form action={roleAction} className="flex min-w-64 flex-wrap gap-2">
+                    <select className="native-select w-auto flex-1" aria-label={`Role for ${user.email}`} defaultValue={user.roles[0]} key={user.roles[0]} name="role">
+                        {PLATFORM_TENANT_INVITABLE_ROLES.map((role) => (
+                            <option key={role} value={role}>
+                                {getTenantRoleLabel(role)}
+                            </option>
+                        ))}
+                    </select>
+                    <Button disabled={rolePending} type="submit" variant="outline">
+                        {rolePending ? 'Saving…' : 'Change role'}
+                    </Button>
+                </form>
+            ) : (
+                // A reader role is not staff; offering staff options as the default
+                // silently escalated a subscriber, and posting the reader role is rejected.
+                <p className="text-sm text-muted-foreground" role="note">
+                    Reader role: {user.roles[0]}. Staff roles are granted by invitation.
+                </p>
+            )}
             {roleState.error ? <Alert variant="destructive"><AlertDescription>{roleState.error}</AlertDescription></Alert> : null}
             {user.status === 'INVITED' ? (
                 <Button
