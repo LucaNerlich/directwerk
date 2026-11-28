@@ -8,6 +8,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import de.pnnit.directwerk.config.DirectwerkConfig;
+import de.pnnit.directwerk.modules.core.entity.Tenant;
 import de.pnnit.directwerk.config.DirectwerkProperties;
 import de.pnnit.directwerk.modules.digital.entity.AssetStatus;
 import de.pnnit.directwerk.modules.digital.entity.MediaAsset;
@@ -155,6 +156,10 @@ class MediaS3DeleteJobHandlerTest {
     private static MediaAsset pendingDeleteAsset(Long id) {
         MediaAsset asset = new MediaAsset();
         asset.setId(id);
+        Tenant tenant = new Tenant();
+        tenant.setId(10L);
+        tenant.setSlug("alpha");
+        asset.setTenant(tenant);
         asset.setStatus(AssetStatus.PENDING_DELETE);
         asset.setS3Key("alpha/key");
         return asset;

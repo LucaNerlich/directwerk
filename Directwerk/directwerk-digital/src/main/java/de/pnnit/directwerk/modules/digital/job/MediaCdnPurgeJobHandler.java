@@ -1,5 +1,6 @@
 package de.pnnit.directwerk.modules.digital.job;
 
+import de.pnnit.directwerk.modules.core.util.TenantAssetKeys;
 import de.pnnit.directwerk.modules.digital.api.CdnPurgeClient;
 import de.pnnit.directwerk.modules.digital.entity.AssetStatus;
 import de.pnnit.directwerk.modules.digital.entity.MediaAsset;
@@ -62,20 +63,51 @@ public class MediaCdnPurgeJobHandler implements JobHandler {
         }
 
         URL cdnUrl = parseAllowedCdnUrl(payload.cdnUrl());
-        cdnPurgeClient.purgeUrl(cdnUrl);
 
         MediaAsset asset = mediaAssetRepository.findById(payload.mediaAssetId()).orElse(null);
-        if (asset == null) {
+        if (asset != null) {
+            if (job.tenantId() != null
+                    && (asset.getTenant() == null || !job.tenantId().equals(asset.getTenant().getId()))) {
+                log.warn("CDN purge job tenant {} does not own asset {} — skipping",
+                        job.tenantId(), payload.mediaAssetId());
+                return;
+            }
+            if (!hasTenantPrefix(asset, payload.cdnUrl())) {
+                log.warn("CDN purge job URL does not belong to asset {}'s tenant — skipping",
+                        payload.mediaAssetId());
+                return;
+            }
+            if (asset.getStatus() != AssetStatus.PENDING_DELETE) {
+                log.info("CDN purged for asset {} in status {} — not a delete, leaving the row live",
+                        payload.mediaAssetId(), asset.getStatus());
+                return;
+            }
+        } else {
             log.warn("CDN purge job for missing asset {} — purge already attempted", payload.mediaAssetId());
-            return;
         }
-        if (asset.getStatus() != AssetStatus.PENDING_DELETE) {
-            log.info("CDN purged for asset {} in status {} — not a delete, leaving the row live",
-                    payload.mediaAssetId(), asset.getStatus());
+
+        cdnPurgeClient.purgeUrl(cdnUrl);
+
+        if (asset == null) {
             return;
         }
         asset.setStatus(AssetStatus.ARCHIVED);
         mediaAssetRepository.saveAndFlush(asset);
+    }
+
+    private static boolean hasTenantPrefix(MediaAsset asset, String url) {
+        if (asset.getTenant() == null || asset.getTenant().getSlug() == null) {
+            return false;
+        }
+        try {
+            java.net.URI uri = java.net.URI.create(url);
+            String path = uri.getPath() == null ? "" : uri.getPath();
+            String key = path.startsWith("/") ? path.substring(1) : path;
+            TenantAssetKeys.requireTenantPrefix(asset.getTenant().getSlug(), key);
+            return true;
+        } catch (IllegalArgumentException ex) {
+            return false;
+        }
     }
 
     private URL parseAllowedCdnUrl(String cdnUrl) {

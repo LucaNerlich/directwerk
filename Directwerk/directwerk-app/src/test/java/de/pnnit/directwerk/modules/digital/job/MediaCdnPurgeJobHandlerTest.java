@@ -6,6 +6,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import de.pnnit.directwerk.modules.core.entity.Tenant;
 import de.pnnit.directwerk.modules.digital.api.CdnPurgeClient;
 import de.pnnit.directwerk.modules.digital.entity.AssetStatus;
 import de.pnnit.directwerk.modules.digital.entity.MediaAsset;
@@ -40,6 +41,10 @@ class MediaCdnPurgeJobHandlerTest {
     void purgesCdnAndArchivesAsset() throws Exception {
         MediaAsset asset = new MediaAsset();
         asset.setId(55L);
+        Tenant tenant = new Tenant();
+        tenant.setId(10L);
+        tenant.setSlug("alpha");
+        asset.setTenant(tenant);
         asset.setStatus(AssetStatus.PENDING_DELETE);
         when(mediaAssetRepository.findById(55L)).thenReturn(Optional.of(asset));
         when(mediaAssetRepository.saveAndFlush(any(MediaAsset.class))).thenAnswer(invocation -> invocation.getArgument(0));
