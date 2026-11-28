@@ -81,9 +81,9 @@ export function ThemeProvider({
     storageKey = WEB_THEME_STORAGE_KEY,
 }: ThemeProviderProps): React.JSX.Element {
     const [theme, setThemeState] = useState<Theme | null>(null)
-    const [resolvedTheme, setResolvedTheme] = useState<'light' | 'dark'>(() =>
-        resolveTheme(defaultTheme),
-    )
+    // Server and first client render must agree; the effect below applies the
+    // stored/system preference right after mount.
+    const [resolvedTheme, setResolvedTheme] = useState<'light' | 'dark'>('light')
 
     useEffect(() => {
         setThemeState(readStoredTheme(storageKey, defaultTheme))
