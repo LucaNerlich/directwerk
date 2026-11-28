@@ -11,8 +11,10 @@ public final class ContactFormLimits {
     public static final int ALTCHA_PAYLOAD_MAX = 8192;
 
     /** Upper bound for {@code POST /api/v1/public/contact} before JSON deserialization. */
+    // The field limits are characters, but the pre-deserialization gate compares UTF-8 bytes;
+    // size the text fields for the four-byte worst case so a valid CJK/emoji message fits.
     public static final int MAX_REQUEST_BODY_BYTES =
-            512 + NAME_MAX + EMAIL_MAX + MESSAGE_MAX + ALTCHA_PAYLOAD_MAX;
+            512 + 4 * (NAME_MAX + EMAIL_MAX + MESSAGE_MAX) + ALTCHA_PAYLOAD_MAX;
 
     private ContactFormLimits() {
     }
