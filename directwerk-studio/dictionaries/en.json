@@ -858,7 +858,8 @@
         "entitlementReasonDeniedLevel": "Level too low (or format minimum not met)",
         "entitlementReasonDeniedNoMatch": "No matching package rule",
         "entitlementReasonNotPublished": "Not published yet",
-        "entitlementReasonNotFound": "Content not found"
+        "entitlementReasonNotFound": "Content not found",
+        "preisKannNichtEntferntWerden": "A stored price cannot be removed. Enter a price instead."
     },
     "settings": {
         "abonnentenVersendetSobaldNeueFolgeErscheint": "Sent to subscribers when a new episode appears.",

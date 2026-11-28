@@ -81,4 +81,35 @@ describe('ProductEditor price validation', () => {
         )
         expect(mockRouter.replace).toHaveBeenCalledWith('/de/manage/products/3')
     })
+
+    it('refuses to clear an existing price instead of silently keeping it', async () => {
+        vi.mocked(listProducts).mockResolvedValue([
+            {
+                id: 7,
+                title: 'Supporter',
+                slug: 'supporter',
+                sortOrder: 1,
+                offeringType: 'LEVEL',
+                description: '',
+                priceCents: 1490,
+                currency: 'EUR',
+                billingInterval: 'MONTHLY',
+                active: true,
+                stripePriceId: null,
+                stripeProductId: null,
+                createdAt: '2026-01-01T00:00:00Z',
+            } as SubscriptionProduct,
+        ])
+        vi.mocked(updateProduct).mockClear()
+        renderWithLocale(<ProductEditor productId={7} />)
+
+        const price = await screen.findByLabelText('Preis')
+        fireEvent.change(price, {target: {value: ''}})
+        fireEvent.submit(price.closest('form') as HTMLFormElement)
+
+        expect(await screen.findByRole('alert')).toHaveTextContent(
+            'Ein hinterlegter Preis kann nicht entfernt werden',
+        )
+        expect(updateProduct).not.toHaveBeenCalled()
+    })
 })

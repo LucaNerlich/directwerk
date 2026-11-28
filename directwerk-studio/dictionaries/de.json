@@ -858,7 +858,8 @@
         "entitlementReasonDeniedLevel": "Stufe zu niedrig (oder Format-Mindeststufe nicht erreicht)",
         "entitlementReasonDeniedNoMatch": "Keine passende Paketregel",
         "entitlementReasonNotPublished": "Noch nicht veröffentlicht",
-        "entitlementReasonNotFound": "Inhalt nicht gefunden"
+        "entitlementReasonNotFound": "Inhalt nicht gefunden",
+        "preisKannNichtEntferntWerden": "Ein hinterlegter Preis kann nicht entfernt werden. Trage stattdessen einen Preis ein."
     },
     "settings": {
         "abonnentenVersendetSobaldNeueFolgeErscheint": "Wird an Abonnenten versendet, sobald eine neue Folge erscheint.",
