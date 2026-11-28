@@ -189,6 +189,38 @@ class ArticleServiceTest {
     }
 
     @Test
+    void createImportedDraftDropsAFuturePublishedAt() {
+        Tenant tenant = tenant();
+        when(articleRepository.existsByTenantIdAndSlug(TENANT_ID, "imported")).thenReturn(false);
+        when(tenantRepository.getReferenceById(TENANT_ID)).thenReturn(tenant);
+        when(categoryService.resolveActiveCategories(eq(TENANT_ID), eq(Set.of()), any())).thenReturn(Set.of());
+        when(articleRepository.save(any(Article.class))).thenAnswer(invocation -> {
+            Article article = invocation.getArgument(0);
+            article.setId(ARTICLE_ID);
+            return article;
+        });
+        when(articleRepository.findByIdAndTenantId(ARTICLE_ID, TENANT_ID)).thenReturn(Optional.of(draftArticle()));
+
+        articleService.createImportedDraft(
+                TENANT_ID,
+                "imported",
+                "Imported",
+                "<p>body</p>",
+                null,
+                null,
+                AccessPolicy.FREE,
+                null,
+                Set.of(),
+                "a".repeat(64),
+                java.time.Instant.now().plusSeconds(3600)
+        );
+
+        org.mockito.ArgumentCaptor<Article> captor = org.mockito.ArgumentCaptor.forClass(Article.class);
+        org.mockito.Mockito.verify(articleRepository).save(captor.capture());
+        assertThat(captor.getValue().getPublishedAt()).isNull();
+    }
+
+    @Test
     void createDraftRejectsDuplicateSlug() {
         when(articleRepository.existsByTenantIdAndSlug(TENANT_ID, "hello-world")).thenReturn(true);
 
