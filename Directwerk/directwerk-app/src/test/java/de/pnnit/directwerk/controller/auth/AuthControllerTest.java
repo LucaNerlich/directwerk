@@ -43,6 +43,7 @@ class AuthControllerTest {
 
     @Test
     void forgotPasswordExposesResetTokenOnlyWhenConfigured() {
+        when(passwordResetRateLimiter.tryAcquire("user@example.com")).thenReturn(true);
         when(passwordResetService.requestReset("user@example.com")).thenReturn("raw-reset-token");
         when(directwerkConfig.isExposeDevTokens()).thenReturn(true);
         AuthController controller = controller();
@@ -55,6 +56,7 @@ class AuthControllerTest {
 
     @Test
     void forgotPasswordHidesResetTokenByDefault() {
+        when(passwordResetRateLimiter.tryAcquire("user@example.com")).thenReturn(true);
         when(passwordResetService.requestReset("user@example.com")).thenReturn("raw-reset-token");
         when(directwerkConfig.isExposeDevTokens()).thenReturn(false);
         AuthController controller = controller();
@@ -63,6 +65,20 @@ class AuthControllerTest {
                 controller.forgotPassword(new AuthController.ForgotPasswordRequest("user@example.com"));
 
         assertThat(response.getBody().data().devResetToken()).isNull();
+    }
+
+    @Test
+    void forgotPasswordOverTheAccountCeilingStillAnswersAcceptedWithoutResetting() {
+        when(passwordResetRateLimiter.tryAcquire("user@example.com")).thenReturn(false);
+        AuthController controller = controller();
+
+        ResponseEntity<Response<AuthController.ForgotPasswordResponse>> response =
+                controller.forgotPassword(new AuthController.ForgotPasswordRequest("user@example.com"));
+
+        assertThat(response.getStatusCode()).isEqualTo(org.springframework.http.HttpStatus.ACCEPTED);
+        assertThat(response.getBody().data().devResetToken()).isNull();
+        org.mockito.Mockito.verify(passwordResetService, org.mockito.Mockito.never())
+                .requestReset("user@example.com");
     }
 
     @Test

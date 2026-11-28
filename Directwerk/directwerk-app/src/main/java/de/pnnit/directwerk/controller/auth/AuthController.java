@@ -91,10 +91,13 @@ public class AuthController {
             @Valid @RequestBody ForgotPasswordRequest body
     ) {
         // Per-account ceiling on top of the per-IP filter (#523): a botnet must not be able to
-        // mail-bomb one address or keep invalidating the link the victim already holds.
-        passwordResetRateLimiter.requireWithinLimit(body.email());
-        String resetToken = passwordResetService.requestReset(body.email());
-        String devResetToken = directwerkConfig.isExposeDevTokens() ? resetToken : null;
+        // mail-bomb one address or keep invalidating the link the victim already holds. Over the
+        // ceiling we still answer 202 with no token, so the response reveals nothing and the
+        // owner's existing link stays valid.
+        String resetToken = passwordResetRateLimiter.tryAcquire(body.email())
+                ? passwordResetService.requestReset(body.email())
+                : null;
+        String devResetToken = resetToken != null && directwerkConfig.isExposeDevTokens() ? resetToken : null;
         return ResponseEntity.accepted().body(Response.accepted(new ForgotPasswordResponse(devResetToken)));
     }
 

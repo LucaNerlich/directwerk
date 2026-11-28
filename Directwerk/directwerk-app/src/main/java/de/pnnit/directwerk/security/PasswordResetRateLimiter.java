@@ -1,7 +1,6 @@
 package de.pnnit.directwerk.security;
 
 import de.pnnit.directwerk.config.DirectwerkConfig;
-import de.pnnit.directwerk.modules.core.exception.RateLimitExceededException;
 import de.pnnit.directwerk.modules.core.util.EmailNormalizer;
 import org.springframework.stereotype.Component;
 
@@ -31,15 +30,15 @@ public class PasswordResetRateLimiter {
     }
 
     /**
-     * Counts one request for the account and rejects once the ceiling is reached.
+     * Counts one request for the account.
      *
      * @param email the submitted account email
-     * @throws RateLimitExceededException when the account exceeded its per-minute allowance
+     * @return {@code true} when the request is within the allowance; {@code false} when the
+     * account exceeded it. Callers must answer the normal accepted response either way, so an
+     * attacker cannot use 429s to confirm an address or keep the owner locked out.
      */
-    public void requireWithinLimit(String email) {
+    public boolean tryAcquire(String email) {
         String key = "password-reset:" + EmailNormalizer.normalize(email);
-        if (limiter.isRateLimited(key, maxAttemptsPerMinute)) {
-            throw new RateLimitExceededException();
-        }
+        return !limiter.isRateLimited(key, maxAttemptsPerMinute);
     }
 }
