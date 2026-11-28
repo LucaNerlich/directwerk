@@ -76,6 +76,44 @@ class MediaS3DeleteJobHandlerTest {
     }
 
     @Test
+    void skipsADeleteWhenTheJobTenantDoesNotOwnTheAsset() {
+        MediaAsset asset = pendingDeleteAsset(55L);
+        asset.getTenant().setId(11L);
+        when(mediaAssetRepository.findById(55L)).thenReturn(Optional.of(asset));
+
+        MediaS3DeleteJobHandler handler = new MediaS3DeleteJobHandler(
+                objectMapper,
+                s3Client,
+                directwerkConfig,
+                mediaAssetRepository,
+                mediaDeleteJobProducer
+        );
+        handler.handle(job(new MediaS3DeleteJobPayload(55L, "alpha/key", null)));
+
+        verify(s3Client, never()).deleteObject(any(DeleteObjectRequest.class));
+        verify(mediaAssetRepository, never()).saveAndFlush(any());
+        assertThat(asset.getStatus()).isEqualTo(AssetStatus.PENDING_DELETE);
+    }
+
+    @Test
+    void skipsADeleteWhenTheKeyBelongsToAnotherTenant() {
+        MediaAsset asset = pendingDeleteAsset(55L);
+        when(mediaAssetRepository.findById(55L)).thenReturn(Optional.of(asset));
+
+        MediaS3DeleteJobHandler handler = new MediaS3DeleteJobHandler(
+                objectMapper,
+                s3Client,
+                directwerkConfig,
+                mediaAssetRepository,
+                mediaDeleteJobProducer
+        );
+        handler.handle(job(new MediaS3DeleteJobPayload(55L, "beta/key", null)));
+
+        verify(s3Client, never()).deleteObject(any(DeleteObjectRequest.class));
+        verify(mediaAssetRepository, never()).saveAndFlush(any());
+    }
+
+    @Test
     void archivesImmediatelyWhenNoCdnPurgeNeeded() {
         MediaAsset asset = pendingDeleteAsset(70L);
         asset.setS3Key("alpha/private/audio/ep.mp3");

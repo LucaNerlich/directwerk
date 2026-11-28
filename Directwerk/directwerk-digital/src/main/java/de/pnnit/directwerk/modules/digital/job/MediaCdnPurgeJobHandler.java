@@ -1,5 +1,7 @@
 package de.pnnit.directwerk.modules.digital.job;
 
+import de.pnnit.directwerk.modules.core.entity.Tenant;
+import de.pnnit.directwerk.modules.core.repository.TenantRepository;
 import de.pnnit.directwerk.modules.core.util.TenantAssetKeys;
 import de.pnnit.directwerk.modules.digital.api.CdnPurgeClient;
 import de.pnnit.directwerk.modules.digital.entity.AssetStatus;
@@ -32,17 +34,20 @@ public class MediaCdnPurgeJobHandler implements JobHandler {
     private final CdnPurgeClient cdnPurgeClient;
     private final S3PublicUrlBuilder publicUrlBuilder;
     private final MediaAssetRepository mediaAssetRepository;
+    private final TenantRepository tenantRepository;
 
     public MediaCdnPurgeJobHandler(
             ObjectMapper objectMapper,
             CdnPurgeClient cdnPurgeClient,
             S3PublicUrlBuilder publicUrlBuilder,
-            MediaAssetRepository mediaAssetRepository
+            MediaAssetRepository mediaAssetRepository,
+            TenantRepository tenantRepository
     ) {
         this.objectMapper = objectMapper;
         this.cdnPurgeClient = cdnPurgeClient;
         this.publicUrlBuilder = publicUrlBuilder;
         this.mediaAssetRepository = mediaAssetRepository;
+        this.tenantRepository = tenantRepository;
     }
 
     @Override
@@ -78,6 +83,15 @@ public class MediaCdnPurgeJobHandler implements JobHandler {
                 return;
             }
         } else {
+            // The asset row may be gone (hard delete); still check the URL belongs to the
+            // job tenant before purging another tenant's cache entry.
+            if (job.tenantId() != null) {
+                Tenant tenant = tenantRepository.requireById(job.tenantId());
+                if (!hasTenantPrefix(tenant.getSlug(), payload.cdnUrl())) {
+                    log.warn("CDN purge job URL does not belong to tenant {} — skipping", job.tenantId());
+                    return;
+                }
+            }
             log.warn("CDN purge job for missing asset {} — purge already attempted", payload.mediaAssetId());
         }
 
@@ -101,11 +115,15 @@ public class MediaCdnPurgeJobHandler implements JobHandler {
         if (asset.getTenant() == null || asset.getTenant().getSlug() == null) {
             return false;
         }
+        return hasTenantPrefix(asset.getTenant().getSlug(), url);
+    }
+
+    private static boolean hasTenantPrefix(String tenantSlug, String url) {
         try {
             java.net.URI uri = java.net.URI.create(url);
             String path = uri.getPath() == null ? "" : uri.getPath();
             String key = path.startsWith("/") ? path.substring(1) : path;
-            TenantAssetKeys.requireTenantPrefix(asset.getTenant().getSlug(), key);
+            TenantAssetKeys.requireTenantPrefix(tenantSlug, key);
             return true;
         } catch (IllegalArgumentException ex) {
             return false;

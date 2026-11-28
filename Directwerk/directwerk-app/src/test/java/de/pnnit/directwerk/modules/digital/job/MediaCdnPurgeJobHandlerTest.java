@@ -37,6 +37,9 @@ class MediaCdnPurgeJobHandlerTest {
     @Mock
     private MediaAssetRepository mediaAssetRepository;
 
+    @Mock
+    private de.pnnit.directwerk.modules.core.repository.TenantRepository tenantRepository;
+
     @Test
     void purgesCdnAndArchivesAsset() throws Exception {
         MediaAsset asset = new MediaAsset();
@@ -53,7 +56,8 @@ class MediaCdnPurgeJobHandlerTest {
                 objectMapper,
                 cdnPurgeClient,
                 new S3PublicUrlBuilder("https://cdn.example.test"),
-                mediaAssetRepository
+                mediaAssetRepository,
+                tenantRepository
         );
         handler.handle(job(new MediaCdnPurgeJobPayload(
                 55L,
@@ -83,7 +87,8 @@ class MediaCdnPurgeJobHandlerTest {
                 objectMapper,
                 cdnPurgeClient,
                 new S3PublicUrlBuilder("https://cdn.example.test"),
-                mediaAssetRepository
+                mediaAssetRepository,
+                tenantRepository
         );
         handler.handle(job(new MediaCdnPurgeJobPayload(
                 56L,
@@ -110,7 +115,8 @@ class MediaCdnPurgeJobHandlerTest {
                 objectMapper,
                 cdnPurgeClient,
                 new S3PublicUrlBuilder("https://cdn.example.test"),
-                mediaAssetRepository
+                mediaAssetRepository,
+                tenantRepository
         );
         handler.handle(job(new MediaCdnPurgeJobPayload(
                 57L,
@@ -120,6 +126,30 @@ class MediaCdnPurgeJobHandlerTest {
         verify(cdnPurgeClient, never()).purgeUrl(any(URL.class));
         assertThat(asset.getStatus()).isEqualTo(AssetStatus.PENDING_DELETE);
         verify(mediaAssetRepository, never()).saveAndFlush(any(MediaAsset.class));
+    }
+
+    @Test
+    void skipsAPurgeForAMissingAssetWhenTheUrlBelongsToAnotherTenant() throws Exception {
+        when(mediaAssetRepository.findById(58L)).thenReturn(Optional.empty());
+        de.pnnit.directwerk.modules.core.entity.Tenant tenant =
+                new de.pnnit.directwerk.modules.core.entity.Tenant();
+        tenant.setId(10L);
+        tenant.setSlug("alpha");
+        when(tenantRepository.requireById(10L)).thenReturn(tenant);
+
+        MediaCdnPurgeJobHandler handler = new MediaCdnPurgeJobHandler(
+                objectMapper,
+                cdnPurgeClient,
+                new S3PublicUrlBuilder("https://cdn.example.test"),
+                mediaAssetRepository,
+                tenantRepository
+        );
+        handler.handle(job(new MediaCdnPurgeJobPayload(
+                58L,
+                "https://cdn.example.test/beta/public/images/other.jpg"
+        )));
+
+        verify(cdnPurgeClient, never()).purgeUrl(any(URL.class));
     }
 
     private QueueJob job(MediaCdnPurgeJobPayload payload) {

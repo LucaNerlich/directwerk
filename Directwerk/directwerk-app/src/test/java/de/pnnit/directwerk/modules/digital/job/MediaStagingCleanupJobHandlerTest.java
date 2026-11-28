@@ -2,6 +2,7 @@ package de.pnnit.directwerk.modules.digital.job;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -56,6 +57,24 @@ class MediaStagingCleanupJobHandlerTest {
                 "directwerk-dev",
                 "alpha/staging/sess/ep.mp3"
         );
+    }
+
+    @Test
+    void skipsAStagingKeyBelongingToAnotherTenant() {
+        Tenant tenant = new Tenant();
+        tenant.setId(10L);
+        tenant.setSlug("alpha");
+        when(tenantRepository.requireById(10L)).thenReturn(tenant);
+        MediaStagingCleanupJobHandler handler = new MediaStagingCleanupJobHandler(
+                objectMapper,
+                directwerkConfig,
+                stagingCleanupService,
+                tenantRepository
+        );
+
+        handler.handle(job(new MediaStagingCleanupJobPayload("beta/staging/sess/ep.mp3")));
+
+        verify(stagingCleanupService, never()).deleteStagingKeyAndFolder(any(), any());
     }
 
     @Test
