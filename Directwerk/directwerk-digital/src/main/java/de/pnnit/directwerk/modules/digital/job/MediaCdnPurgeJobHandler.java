@@ -18,7 +18,8 @@ import org.springframework.util.StringUtils;
 import tools.jackson.databind.ObjectMapper;
 
 /**
- * Purges a public CDN URL, then tombstones the media asset as {@link AssetStatus#ARCHIVED}.
+ * Purges a public CDN URL; tombstones the media asset as {@link AssetStatus#ARCHIVED} only when it
+ * was awaiting deletion. A stale-key purge of a still-live (demoted) asset leaves the row untouched.
  */
 @Component
 @ConditionalOnProperty(prefix = "directwerk.storage", name = "enabled", havingValue = "true")
@@ -68,7 +69,9 @@ public class MediaCdnPurgeJobHandler implements JobHandler {
             log.warn("CDN purge job for missing asset {} — purge already attempted", payload.mediaAssetId());
             return;
         }
-        if (asset.getStatus() == AssetStatus.ARCHIVED) {
+        if (asset.getStatus() != AssetStatus.PENDING_DELETE) {
+            log.info("CDN purged for asset {} in status {} — not a delete, leaving the row live",
+                    payload.mediaAssetId(), asset.getStatus());
             return;
         }
         asset.setStatus(AssetStatus.ARCHIVED);
