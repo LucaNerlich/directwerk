@@ -53,12 +53,16 @@ public interface EpisodeRepository extends JpaRepository<Episode, Long> {
      * Id page for the studio list. Deliberately fetches no collections: with
      * {@code firstResult/maxResults} Hibernate would apply the limit in memory once
      * formats/categories are join-fetched (HHH000104). The service loads the graph by id.
+     *
+     * <p>Filters use sentinels ({@code 0} / empty string) rather than NULL: PostgreSQL
+     * cannot infer the type of an untyped NULL bind in {@code :param is null}, which
+     * failed the unfiltered list with a 500 in production.
      */
     @Query("""
             select e.id from Episode e
             where e.tenant.id = :tenantId
-              and (:seriesId is null or e.series.id = :seriesId)
-              and (:q is null
+              and (:seriesId = 0 or e.series.id = :seriesId)
+              and (:q = ''
                    or lower(e.title) like lower(concat('%', :q, '%')) escape '!'
                    or lower(e.slug) like lower(concat('%', :q, '%')) escape '!')
             """)

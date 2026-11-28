@@ -84,20 +84,20 @@ class EpisodeRepositoryPagingTest {
         entityManager.clear();
 
         var bySeriesIds = episodeRepository.searchIdsByTenantId(
-                a.tenantId(), a.series().getId(), null,
+                a.tenantId(), a.series().getId(), "",
                 OffsetLimitPageRequest.of(10, 0, PublicationSort.CREATED.toSort()));
         assertThat(episodeRepository.findPublicByIds(a.tenantId(), bySeriesIds))
                 .extracting(Episode::getSlug)
                 .containsExactlyInAnyOrder("batman-arkham", "curses");
 
         var byTitleIds = episodeRepository.searchIdsByTenantId(
-                a.tenantId(), null, "BATMAN",
+                a.tenantId(), 0L, "BATMAN",
                 OffsetLimitPageRequest.of(10, 0, PublicationSort.CREATED.toSort()));
         assertThat(episodeRepository.findPublicByIds(a.tenantId(), byTitleIds))
                 .extracting(Episode::getSlug).containsExactly("batman-arkham");
 
         var bySlugIds = episodeRepository.searchIdsByTenantId(
-                a.tenantId(), null, "curs",
+                a.tenantId(), 0L, "curs",
                 OffsetLimitPageRequest.of(10, 0, PublicationSort.CREATED.toSort()));
         assertThat(episodeRepository.findPublicByIds(a.tenantId(), bySlugIds))
                 .extracting(Episode::getSlug).containsExactly("curses");
@@ -111,7 +111,7 @@ class EpisodeRepositoryPagingTest {
         entityManager.clear();
 
         var hits = episodeRepository.searchIdsByTenantId(
-                fixture.tenantId(), null, "50!%",
+                fixture.tenantId(), 0L, "50!%",
                 OffsetLimitPageRequest.of(10, 0, PublicationSort.CREATED.toSort()));
         assertThat(episodeRepository.findPublicByIds(fixture.tenantId(), hits))
                 .extracting(Episode::getSlug).containsExactly("fifty-percent");
@@ -126,7 +126,7 @@ class EpisodeRepositoryPagingTest {
         entityManager.clear();
 
         var hits = episodeRepository.searchIdsByTenantId(
-                a.tenantId(), null, "batman",
+                a.tenantId(), 0L, "batman",
                 OffsetLimitPageRequest.of(10, 0, PublicationSort.CREATED.toSort()));
         assertThat(episodeRepository.findPublicByIds(a.tenantId(), hits))
                 .extracting(Episode::getSlug).containsExactly("shared-title-a");
