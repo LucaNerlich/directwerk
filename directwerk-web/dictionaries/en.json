@@ -161,7 +161,12 @@
     "resetToLogin": "Back to sign in",
     "resetTokenLabel": "Reset token",
     "tokenLabel": "Invitation token",
-    "tokenRequired": "Please enter the token."
+    "tokenRequired": "Please enter the token.",
+    "verifyInvalid": "This confirmation link is invalid or expired. Please request a new confirmation email.",
+    "verifyMissingToken": "This link has no confirmation token. Open the link from the email again.",
+    "verifyPending": "Confirming your email address…",
+    "verifySuccess": "Email address confirmed. You can sign in now.",
+    "verifyTitle": "Confirm email"
   },
   "errors": {
     "articlesAuthRequired": "Session expired — sign in again to read unlocked articles.",

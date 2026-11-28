@@ -161,7 +161,12 @@
     "resetToLogin": "Zur Anmeldung",
     "resetTokenLabel": "Reset-Token",
     "tokenLabel": "Einladungs-Token",
-    "tokenRequired": "Bitte gib das Token ein."
+    "tokenRequired": "Bitte gib das Token ein.",
+    "verifyInvalid": "Dieser Bestätigungslink ist ungültig oder abgelaufen. Bitte fordere eine neue Bestätigungs-E-Mail an.",
+    "verifyMissingToken": "Diesem Link fehlt das Bestätigungs-Token. Öffne den Link aus der E-Mail erneut.",
+    "verifyPending": "E-Mail-Adresse wird bestätigt…",
+    "verifySuccess": "E-Mail-Adresse bestätigt. Du kannst dich jetzt anmelden.",
+    "verifyTitle": "E-Mail bestätigen"
   },
   "errors": {
     "articlesAuthRequired": "Sitzung abgelaufen — bitte erneut anmelden, um freigeschaltete Beiträge zu lesen.",
