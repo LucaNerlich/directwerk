@@ -4,6 +4,7 @@ import {
     isValidEmail,
     isValidPassword,
     parseLoginInput,
+    parseRegisterInput,
     PASSWORD_MAX_LENGTH,
     PASSWORD_MIN_LENGTH,
 } from '../src/validation/input'
@@ -58,5 +59,12 @@ describe('parseLoginInput', () => {
 
     it('keeps the registration minimum on the register parser', () => {
         expect(isValidPassword('a'.repeat(11))).toBe(false)
+    })
+
+    it('enforces the 72-byte write cap on registration', () => {
+        expect(parseRegisterInput({email: 'user@example.com', password: 'a'.repeat(72)})).not.toBeNull()
+        expect(parseRegisterInput({email: 'user@example.com', password: 'a'.repeat(73)})).toBeNull()
+        // 25 four-byte characters are 100 bytes even though the string is short.
+        expect(parseRegisterInput({email: 'user@example.com', password: '😀'.repeat(25)})).toBeNull()
     })
 })
