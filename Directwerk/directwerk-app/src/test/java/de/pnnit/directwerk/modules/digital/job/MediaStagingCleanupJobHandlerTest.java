@@ -2,11 +2,14 @@ package de.pnnit.directwerk.modules.digital.job;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import de.pnnit.directwerk.config.DirectwerkConfig;
 import de.pnnit.directwerk.config.DirectwerkProperties;
+import de.pnnit.directwerk.modules.core.entity.Tenant;
+import de.pnnit.directwerk.modules.core.repository.TenantRepository;
 import de.pnnit.directwerk.modules.digital.job.StagingCleanupService;
 import de.pnnit.directwerk.modules.queue.QueueJob;
 import java.time.Duration;
@@ -30,15 +33,23 @@ class MediaStagingCleanupJobHandlerTest {
     @Mock
     private StagingCleanupService stagingCleanupService;
 
+    @Mock
+    private TenantRepository tenantRepository;
+
     @Test
     void deletesStagingKeyAndFolderForPayloadKey() {
         when(directwerkConfig.isStorageEnabled()).thenReturn(true);
         when(directwerkConfig.storage()).thenReturn(storageProps());
 
+        Tenant tenant = new Tenant();
+        tenant.setId(10L);
+        tenant.setSlug("alpha");
+        when(tenantRepository.requireById(10L)).thenReturn(tenant);
         MediaStagingCleanupJobHandler handler = new MediaStagingCleanupJobHandler(
                 objectMapper,
                 directwerkConfig,
-                stagingCleanupService
+                stagingCleanupService,
+                tenantRepository
         );
         handler.handle(job(new MediaStagingCleanupJobPayload("alpha/staging/sess/ep.mp3")));
 
@@ -49,11 +60,30 @@ class MediaStagingCleanupJobHandlerTest {
     }
 
     @Test
+    void skipsAStagingKeyBelongingToAnotherTenant() {
+        Tenant tenant = new Tenant();
+        tenant.setId(10L);
+        tenant.setSlug("alpha");
+        when(tenantRepository.requireById(10L)).thenReturn(tenant);
+        MediaStagingCleanupJobHandler handler = new MediaStagingCleanupJobHandler(
+                objectMapper,
+                directwerkConfig,
+                stagingCleanupService,
+                tenantRepository
+        );
+
+        handler.handle(job(new MediaStagingCleanupJobPayload("beta/staging/sess/ep.mp3")));
+
+        verify(stagingCleanupService, never()).deleteStagingKeyAndFolder(any(), any());
+    }
+
+    @Test
     void rejectsInvalidPayload() {
         MediaStagingCleanupJobHandler handler = new MediaStagingCleanupJobHandler(
                 objectMapper,
                 directwerkConfig,
-                stagingCleanupService
+                stagingCleanupService,
+                tenantRepository
         );
 
         assertThatThrownBy(() -> handler.handle(job(new MediaStagingCleanupJobPayload(" "))))

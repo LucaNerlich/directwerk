@@ -8,6 +8,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import de.pnnit.directwerk.config.DirectwerkConfig;
+import de.pnnit.directwerk.modules.core.entity.Tenant;
 import de.pnnit.directwerk.config.DirectwerkProperties;
 import de.pnnit.directwerk.modules.digital.entity.AssetStatus;
 import de.pnnit.directwerk.modules.digital.entity.MediaAsset;
@@ -72,6 +73,44 @@ class MediaS3DeleteJobHandlerTest {
         );
         verify(mediaAssetRepository, never()).saveAndFlush(any());
         assertThat(asset.getStatus()).isEqualTo(AssetStatus.PENDING_DELETE);
+    }
+
+    @Test
+    void skipsADeleteWhenTheJobTenantDoesNotOwnTheAsset() {
+        MediaAsset asset = pendingDeleteAsset(55L);
+        asset.getTenant().setId(11L);
+        when(mediaAssetRepository.findById(55L)).thenReturn(Optional.of(asset));
+
+        MediaS3DeleteJobHandler handler = new MediaS3DeleteJobHandler(
+                objectMapper,
+                s3Client,
+                directwerkConfig,
+                mediaAssetRepository,
+                mediaDeleteJobProducer
+        );
+        handler.handle(job(new MediaS3DeleteJobPayload(55L, "alpha/key", null)));
+
+        verify(s3Client, never()).deleteObject(any(DeleteObjectRequest.class));
+        verify(mediaAssetRepository, never()).saveAndFlush(any());
+        assertThat(asset.getStatus()).isEqualTo(AssetStatus.PENDING_DELETE);
+    }
+
+    @Test
+    void skipsADeleteWhenTheKeyBelongsToAnotherTenant() {
+        MediaAsset asset = pendingDeleteAsset(55L);
+        when(mediaAssetRepository.findById(55L)).thenReturn(Optional.of(asset));
+
+        MediaS3DeleteJobHandler handler = new MediaS3DeleteJobHandler(
+                objectMapper,
+                s3Client,
+                directwerkConfig,
+                mediaAssetRepository,
+                mediaDeleteJobProducer
+        );
+        handler.handle(job(new MediaS3DeleteJobPayload(55L, "beta/key", null)));
+
+        verify(s3Client, never()).deleteObject(any(DeleteObjectRequest.class));
+        verify(mediaAssetRepository, never()).saveAndFlush(any());
     }
 
     @Test
@@ -155,6 +194,10 @@ class MediaS3DeleteJobHandlerTest {
     private static MediaAsset pendingDeleteAsset(Long id) {
         MediaAsset asset = new MediaAsset();
         asset.setId(id);
+        Tenant tenant = new Tenant();
+        tenant.setId(10L);
+        tenant.setSlug("alpha");
+        asset.setTenant(tenant);
         asset.setStatus(AssetStatus.PENDING_DELETE);
         asset.setS3Key("alpha/key");
         return asset;

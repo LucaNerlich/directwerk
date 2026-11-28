@@ -2,6 +2,9 @@ package de.pnnit.directwerk.modules.digital.job;
 
 import de.pnnit.directwerk.config.DirectwerkConfig;
 import de.pnnit.directwerk.config.DirectwerkProperties;
+import de.pnnit.directwerk.modules.core.entity.Tenant;
+import de.pnnit.directwerk.modules.core.repository.TenantRepository;
+import de.pnnit.directwerk.modules.core.util.TenantAssetKeys;
 import de.pnnit.directwerk.modules.digital.storage.StorageConfigs;
 import de.pnnit.directwerk.modules.queue.JobHandler;
 import de.pnnit.directwerk.modules.queue.JobHandlerSettings;
@@ -26,15 +29,18 @@ public class MediaStagingCleanupJobHandler implements JobHandler {
     private final ObjectMapper objectMapper;
     private final DirectwerkConfig directwerkConfig;
     private final StagingCleanupService stagingCleanupService;
+    private final TenantRepository tenantRepository;
 
     public MediaStagingCleanupJobHandler(
             ObjectMapper objectMapper,
             DirectwerkConfig directwerkConfig,
-            StagingCleanupService stagingCleanupService
+            StagingCleanupService stagingCleanupService,
+            TenantRepository tenantRepository
     ) {
         this.objectMapper = objectMapper;
         this.directwerkConfig = directwerkConfig;
         this.stagingCleanupService = stagingCleanupService;
+        this.tenantRepository = tenantRepository;
     }
 
     @Override
@@ -55,6 +61,17 @@ public class MediaStagingCleanupJobHandler implements JobHandler {
             throw new IllegalArgumentException("Invalid media staging cleanup job payload");
         }
 
+        if (job.tenantId() == null) {
+            throw new IllegalStateException("Staging cleanup job requires tenantId");
+        }
+        Tenant tenant = tenantRepository.requireById(job.tenantId());
+        try {
+            TenantAssetKeys.requireTenantPrefix(tenant.getSlug(), payload.stagingKey());
+        } catch (IllegalArgumentException ex) {
+            log.warn("Staging cleanup job tenant {} does not own key {} — skipping",
+                    job.tenantId(), payload.stagingKey());
+            return;
+        }
         DirectwerkProperties.Storage storage = StorageConfigs.requireEnabled(directwerkConfig);
         stagingCleanupService.deleteStagingKeyAndFolder(storage.bucket(), payload.stagingKey());
         log.debug("Staging cleanup job deleted staging key {}", payload.stagingKey());

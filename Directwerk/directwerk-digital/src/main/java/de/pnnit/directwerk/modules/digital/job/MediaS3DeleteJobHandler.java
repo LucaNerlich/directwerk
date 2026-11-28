@@ -6,6 +6,7 @@ import de.pnnit.directwerk.modules.digital.storage.StorageConfigs;
 import de.pnnit.directwerk.modules.digital.entity.AssetStatus;
 import de.pnnit.directwerk.modules.digital.entity.MediaAsset;
 import de.pnnit.directwerk.modules.digital.repository.MediaAssetRepository;
+import de.pnnit.directwerk.modules.core.util.TenantAssetKeys;
 import de.pnnit.directwerk.modules.queue.JobHandler;
 import de.pnnit.directwerk.modules.queue.JobHandlerSettings;
 import de.pnnit.directwerk.modules.queue.QueueJob;
@@ -72,6 +73,18 @@ public class MediaS3DeleteJobHandler implements JobHandler {
             log.warn("Media S3 delete job for missing asset {} — treating as complete", payload.mediaAssetId());
             return;
         }
+        if (!sameTenant(job, asset)) {
+            // Defense in depth: the repository lookup is tenant-filtered, but a poisoned queue
+            // row must never let one tenant's worker delete another tenant's object.
+            log.warn("Media S3 delete job tenant {} does not own asset {} — skipping",
+                    job.tenantId(), payload.mediaAssetId());
+            return;
+        }
+        if (!hasTenantPrefix(asset, payload.s3Key())) {
+            log.warn("Media S3 delete job key does not belong to asset {}'s tenant — skipping",
+                    payload.mediaAssetId());
+            return;
+        }
         if (asset.getStatus() == AssetStatus.ARCHIVED) {
             log.debug("Media asset {} already ARCHIVED — skipping S3 delete job", asset.getId());
             return;
@@ -126,4 +139,22 @@ public class MediaS3DeleteJobHandler implements JobHandler {
         }
     }
 
+
+    private static boolean sameTenant(QueueJob job, MediaAsset asset) {
+        return job.tenantId() != null
+                && asset.getTenant() != null
+                && job.tenantId().equals(asset.getTenant().getId());
+    }
+
+    private static boolean hasTenantPrefix(MediaAsset asset, String key) {
+        if (asset.getTenant() == null || asset.getTenant().getSlug() == null) {
+            return false;
+        }
+        try {
+            TenantAssetKeys.requireTenantPrefix(asset.getTenant().getSlug(), key);
+            return true;
+        } catch (IllegalArgumentException ex) {
+            return false;
+        }
+    }
 }
