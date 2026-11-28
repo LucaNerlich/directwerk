@@ -14,11 +14,11 @@ const POLL_INTERVAL_MS = 500
 const POLL_DEADLINE_MS = 16 * 60 * 1000
 const MAX_POLL_ATTEMPTS = Math.ceil(POLL_DEADLINE_MS / POLL_INTERVAL_MS)
 /**
- * Issue #337: how many consecutive poll failures to tolerate before treating the ingest as
- * failed. A single transient blip (deploy 502, dropped connection) must not abort a loop that is
- * still making progress, and the deadline is covered by INGEST_TIMEOUT_MESSAGE.
+ * Issue #337 / #1250: a rolling deploy or gateway blip can fail the poll for several seconds
+ * while the backend ingest keeps running, so tolerate a time window rather than a handful of
+ * attempts. Any successful poll resets it.
  */
-const MAX_CONSECUTIVE_POLL_FAILURES = 5
+const MAX_POLL_FAILURE_WINDOW_MS = 90_000
 const INGEST_FAILED_MESSAGE = 'Die Datei konnte nicht nach S3 gestreamt werden.'
 const INGEST_TIMEOUT_MESSAGE = 'Der Import dauert zu lange — bitte versuche es erneut.'
 
@@ -44,7 +44,7 @@ async function waitForRemoteIngest(
     signal: AbortSignal | undefined,
     pollAsset: (assetId: number) => Promise<MediaAsset>,
 ): Promise<MediaAsset> {
-    let consecutiveFailures = 0
+    let firstFailureAt: number | null = null
 
     for (let attempt = 0; attempt < MAX_POLL_ATTEMPTS; attempt += 1) {
         if (signal?.aborted === true) {
@@ -60,15 +60,16 @@ async function waitForRemoteIngest(
             ) {
                 throw error
             }
-            consecutiveFailures += 1
-            if (consecutiveFailures >= MAX_CONSECUTIVE_POLL_FAILURES) {
+            const now = Date.now()
+            firstFailureAt ??= now
+            if (now - firstFailureAt >= MAX_POLL_FAILURE_WINDOW_MS) {
                 throw new Error(INGEST_FAILED_MESSAGE)
             }
             await sleep(POLL_INTERVAL_MS)
             continue
         }
 
-        consecutiveFailures = 0
+        firstFailureAt = null
 
         if (asset.status === 'READY') {
             onProgress(100, asset)
