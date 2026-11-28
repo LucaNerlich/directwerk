@@ -21,6 +21,8 @@ import org.springframework.stereotype.Component;
 @Component
 public class QueueWorker {
 
+    private static final int MAX_DRAIN_ROUNDS = 10;
+
     private static final Logger log = LoggerFactory.getLogger(QueueWorker.class);
 
     private final QueueService queueService;
@@ -88,14 +90,21 @@ public class QueueWorker {
 
         var properties = directwerkConfig.queue();
         long leaseSeconds = queueService.resolveLeaseSeconds(queueName, properties.leaseSeconds());
-        List<QueueJob> claimed = queueService.claim(
-                queueName,
-                workerId,
-                properties.claimLimit(),
-                leaseSeconds
-        );
-        for (QueueJob job : claimed) {
-            process(handler, job);
+        int claimLimit = properties.claimLimit();
+        // Drain the queue in bounded rounds instead of claiming a single batch per
+        // poll tick: a large fan-out would otherwise drain at ~claimLimit per interval
+        // on one node regardless of how many app instances are running.
+        for (int round = 0; round < MAX_DRAIN_ROUNDS; round++) {
+            List<QueueJob> claimed = queueService.claim(queueName, workerId, claimLimit, leaseSeconds);
+            if (claimed.isEmpty()) {
+                return;
+            }
+            for (QueueJob job : claimed) {
+                process(handler, job);
+            }
+            if (claimed.size() < claimLimit) {
+                return;
+            }
         }
     }
 
