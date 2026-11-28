@@ -25,6 +25,7 @@ import de.pnnit.directwerk.modules.core.repository.TenantRepository;
 import de.pnnit.directwerk.modules.core.service.MembershipPermissionService;
 import de.pnnit.directwerk.modules.core.repository.MembershipPermissionOverrideRepository;
 import de.pnnit.directwerk.modules.digital.api.EpisodeMediaApi;
+import de.pnnit.directwerk.modules.digital.entity.AssetVisibility;
 import de.pnnit.directwerk.modules.digital.entity.MediaAsset;
 import de.pnnit.directwerk.modules.digital.service.CategoryService;
 import de.pnnit.directwerk.modules.digital.service.HtmlSanitizer;
@@ -351,6 +352,21 @@ class EpisodeServiceTest {
 
         verify(episodeRepository).delete(draft);
         verify(overrideRepository, never()).findByTenantIdAndUserId(anyLong(), anyLong());
+    }
+
+    @Test
+    void deletingAPublishedEpisodeDemotesItsPromotedAudio() {
+        Episode published = episode(EpisodeStatus.PUBLISHED);
+        MediaAsset audio = new MediaAsset();
+        audio.setId(77L);
+        audio.setVisibility(AssetVisibility.PUBLIC);
+        published.setAudioAsset(audio);
+        when(episodeRepository.findByIdAndTenantId(EPISODE_ID, TENANT_ID)).thenReturn(Optional.of(published));
+        authenticate(5L, Role.TENANT_ADMIN);
+
+        episodeService.deleteEpisode(TENANT_ID, EPISODE_ID);
+
+        verify(episodeMediaApi).demoteToPrivate(77L);
     }
 
     private static void authenticate(Long userId, Role... roles) {

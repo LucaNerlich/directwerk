@@ -515,10 +515,25 @@ public class EpisodeService {
         permissionService.requireEpisodeAccess(ContentOperation.DELETE, episode.getCreatedBy());
         boolean wasVisible = episode.getStatus() == EpisodeStatus.PUBLISHED
                 || episode.getStatus() == EpisodeStatus.SCHEDULED;
+        demoteDespublicationAudio(episode);
         EpisodeSearchIndex.remove(searchIndex, tenantId, episodeId);
         episodeRepository.delete(episode);
         if (wasVisible) {
             rssFeedRefreshScheduler.requestRefreshAfterCommit(tenantId);
+        }
+    }
+
+    /**
+     * Deleting a published episode must revoke the promoted public audio URL; the trigger only
+     * detaches the asset, and an already-shared CDN URL would keep serving the file.
+     */
+    private void demoteDespublicationAudio(Episode episode) {
+        MediaAsset audio = episode.getAudioAsset();
+        if (episode.getStatus() == EpisodeStatus.PUBLISHED
+                && audio != null
+                && audio.getId() != null
+                && audio.getVisibility() == AssetVisibility.PUBLIC) {
+            episodeMediaApi.demoteToPrivate(audio.getId());
         }
     }
 
@@ -542,6 +557,7 @@ public class EpisodeService {
             anyVisible = anyVisible
                     || episode.getStatus() == EpisodeStatus.PUBLISHED
                     || episode.getStatus() == EpisodeStatus.SCHEDULED;
+            demoteDespublicationAudio(episode);
             EpisodeSearchIndex.remove(searchIndex, tenantId, episodeId);
             episodeRepository.delete(episode);
             deleted.add(episodeId);
