@@ -51,6 +51,8 @@ export async function deletePlatformData<T>(path: string): Promise<T> {
  * Effective rights for several members in one request (#345). The tenant page needs a row per
  * editor; calling the single-member helper per editor cost one HTTP round trip each.
  */
+const EFFECTIVE_RIGHTS_BATCH_SIZE = 200
+
 export async function getMembersEffectiveRights(
     tenantId: string,
     userIds: number[],
@@ -58,11 +60,20 @@ export async function getMembersEffectiveRights(
     if (userIds.length === 0) {
         return []
     }
-    return platformApi.getEnvelope(
-        `tenants/${tenantId}/users/effective-rights?userIds=${userIds.join(',')}`,
-        parseEffectiveRightsListEnvelope,
-        'Invalid rights response.',
-    )
+    // The platform proxy caps the query at 200 ids; a 201st editor otherwise made the
+    // whole request 400, which the tenant page rendered as "Rights: unavailable" for all.
+    const results: EffectiveRights[] = []
+    for (let from = 0; from < userIds.length; from += EFFECTIVE_RIGHTS_BATCH_SIZE) {
+        const batch = userIds.slice(from, from + EFFECTIVE_RIGHTS_BATCH_SIZE)
+        results.push(
+            ...(await platformApi.getEnvelope(
+                `tenants/${tenantId}/users/effective-rights?userIds=${batch.join(',')}`,
+                parseEffectiveRightsListEnvelope,
+                'Invalid rights response.',
+            )),
+        )
+    }
+    return results
 }
 
 /**
