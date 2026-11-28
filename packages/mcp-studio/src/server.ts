@@ -1079,6 +1079,7 @@ export function createMcpServer(
 
                     // --- episode ---
                     let episode = bySlug.get(item.slug)
+                    let stagedDraft = false
                     let mode: 'created' | 'updated' | 'skipped'
                     if (!episode) {
                         episode = unwrap(await api('POST', 'api/v1/episodes', {
@@ -1114,6 +1115,7 @@ export function createMcpServer(
                             await api('PUT', `api/v1/episodes/${episode.id}`, {episodeNumber: item.episodeNumber})
                             missing.push('episodeNumber')
                         }
+                        stagedDraft = missing.length > 0
                         summary.updated++
                         mode = 'updated'
                     }
@@ -1123,6 +1125,12 @@ export function createMcpServer(
                     const hasFormats = Array.isArray(episodeView?.formats) && episodeView.formats.length > 0
                     if (!hasFormats && args.formatIds && args.formatIds.length > 0) {
                         await api('PUT', `api/v1/episodes/${episode.id}/formats`, {formatIds: args.formatIds})
+                    }
+
+                    // An update to a PUBLISHED episode is staged as a working draft; without
+                    // this the public row keeps the old fields while the tool reports "updated".
+                    if (stagedDraft) {
+                        await api('POST', `api/v1/episodes/${episode.id}/publish`, {notifySubscribers: false})
                     }
 
                     // --- publication ---
