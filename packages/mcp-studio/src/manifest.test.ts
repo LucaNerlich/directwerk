@@ -150,3 +150,39 @@ test('create_episode keeps the shared slug and title bounds', () => {
     assert.equal(shape.title.safeParse('a'.repeat(255)).success, true)
     assert.equal(shape.title.safeParse('a'.repeat(256)).success, false)
 })
+
+test('import_podcast_manifest rejects an invalid accessPolicy instead of defaulting to FREE', async () => {
+    const originalFetch = globalThis.fetch
+    globalThis.fetch = (async (input: string | URL | Request) => {
+        const url = new URL(String(input))
+        if (url.pathname === '/api/v1/series') {
+            return json({data: [{id: 1, slug: 'show'}]})
+        }
+        if (url.pathname === '/api/v1/episodes') {
+            return json({data: []})
+        }
+        return json({data: {}})
+    }) as typeof fetch
+
+    try {
+        await withManifest({
+            series: {slug: 'show'},
+            items: [{
+                n: 1,
+                slug: 'ep-1',
+                title: 'Episode 1',
+                accessPolicy: 'paid',
+                mp3: {path: '/does/not/matter.mp3', filename: 'ep.mp3', mimeType: 'audio/mpeg', sizeBytes: 5},
+            }],
+        }, async (manifestPath) => {
+            const {tools} = manifestTools()
+            const result = await tools.import_podcast_manifest.handler({manifestPath}, {})
+            const summary = JSON.parse(result.content[0].text)
+
+            assert.equal(summary.summary.failed, 1)
+            assert.match(summary.results[0].error, /invalid accessPolicy/)
+        })
+    } finally {
+        globalThis.fetch = originalFetch
+    }
+})
