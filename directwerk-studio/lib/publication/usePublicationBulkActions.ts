@@ -52,6 +52,8 @@ export async function runSequentialPublicationBulkAction<T>(
     return {updated, failures}
 }
 
+const BULK_ACTION_LIMIT = 100
+
 export function usePublicationBulkActions<T extends {
     id: number
     title: string
@@ -200,7 +202,15 @@ export function usePublicationBulkActions<T extends {
             clearActionMessages()
 
             try {
-                const {updated, failures} = await request(ids)
+                // The API caps a bulk body at 100 ids; a "select all" over a second page
+                // otherwise fails the whole request with a 400.
+                const updated: T[] = []
+                const failures: Array<{id: number; reason: unknown}> = []
+                for (let from = 0; from < ids.length; from += BULK_ACTION_LIMIT) {
+                    const settled = await request(ids.slice(from, from + BULK_ACTION_LIMIT))
+                    updated.push(...settled.updated)
+                    failures.push(...settled.failures)
+                }
                 const updates = new Map(updated.map((item) => [item.id, item] as const))
                 if (updates.size > 0) {
                     setItems((current) =>
@@ -294,7 +304,11 @@ export function usePublicationBulkActions<T extends {
         clearActionMessages()
 
         try {
-            const deletedIds = await removeMany(selectedItems.map((item) => item.id))
+            const deletedIds: number[] = []
+            const ids = selectedItems.map((item) => item.id)
+            for (let from = 0; from < ids.length; from += BULK_ACTION_LIMIT) {
+                deletedIds.push(...(await removeMany(ids.slice(from, from + BULK_ACTION_LIMIT))))
+            }
             const deleted = new Set(deletedIds)
             setItems((current) => current.filter((entry) => !deleted.has(entry.id)))
             if (!isActionEpoch(epoch)) {
