@@ -347,19 +347,10 @@ class StripeWebhookServiceTest {
         when(processedWebhookEventRepository.insertIfAbsent("evt_async_fail", "checkout.session.async_payment_failed", "acct_1"))
                 .thenReturn(1);
         when(stripeConnectService.findByStripeAccountId("acct_1")).thenReturn(account(7L, "acct_1"));
-        Subscription incomplete = new Subscription();
-        incomplete.setStatus(SubscriptionStatus.INCOMPLETE);
-        when(subscriptionRepository.findByTenantIdAndExternalSubscriptionId(7L, "sub_9"))
-                .thenReturn(Optional.of(incomplete));
-
         service.applyParsedEvent(service.parseAndValidate("{}", "sig"));
 
-        verify(stripeSubscriptionSyncService).syncStripeSubscriptionByExternalId(
-                eq(7L),
-                eq("sub_9"),
-                eq(SubscriptionStatus.CANCELED),
-                eq(null)
-        );
+        // The status filter now runs under the row lock inside the sync service.
+        verify(stripeSubscriptionSyncService).cancelIfOpen(7L, "sub_9");
     }
 
     @Test
