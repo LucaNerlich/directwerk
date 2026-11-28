@@ -72,6 +72,10 @@ class MediaCdnPurgeJobHandlerTest {
     void purgesCdnWithoutArchivingAStillLiveAsset() throws Exception {
         MediaAsset asset = new MediaAsset();
         asset.setId(56L);
+        Tenant tenant = new Tenant();
+        tenant.setId(10L);
+        tenant.setSlug("alpha");
+        asset.setTenant(tenant);
         asset.setStatus(AssetStatus.READY);
         when(mediaAssetRepository.findById(56L)).thenReturn(Optional.of(asset));
 
@@ -88,6 +92,33 @@ class MediaCdnPurgeJobHandlerTest {
 
         verify(cdnPurgeClient).purgeUrl(any(URL.class));
         assertThat(asset.getStatus()).isEqualTo(AssetStatus.READY);
+        verify(mediaAssetRepository, never()).saveAndFlush(any(MediaAsset.class));
+    }
+
+    @Test
+    void skipsAnotherTenantsCdnUrlBeforePurging() throws Exception {
+        MediaAsset asset = new MediaAsset();
+        asset.setId(57L);
+        Tenant tenant = new Tenant();
+        tenant.setId(10L);
+        tenant.setSlug("alpha");
+        asset.setTenant(tenant);
+        asset.setStatus(AssetStatus.PENDING_DELETE);
+        when(mediaAssetRepository.findById(57L)).thenReturn(Optional.of(asset));
+
+        MediaCdnPurgeJobHandler handler = new MediaCdnPurgeJobHandler(
+                objectMapper,
+                cdnPurgeClient,
+                new S3PublicUrlBuilder("https://cdn.example.test"),
+                mediaAssetRepository
+        );
+        handler.handle(job(new MediaCdnPurgeJobPayload(
+                57L,
+                "https://cdn.example.test/beta/public/images/other.jpg"
+        )));
+
+        verify(cdnPurgeClient, never()).purgeUrl(any(URL.class));
+        assertThat(asset.getStatus()).isEqualTo(AssetStatus.PENDING_DELETE);
         verify(mediaAssetRepository, never()).saveAndFlush(any(MediaAsset.class));
     }
 

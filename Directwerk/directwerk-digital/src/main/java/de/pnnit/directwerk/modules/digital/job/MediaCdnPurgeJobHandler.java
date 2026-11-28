@@ -77,18 +77,20 @@ public class MediaCdnPurgeJobHandler implements JobHandler {
                         payload.mediaAssetId());
                 return;
             }
-            if (asset.getStatus() != AssetStatus.PENDING_DELETE) {
-                log.info("CDN purged for asset {} in status {} — not a delete, leaving the row live",
-                        payload.mediaAssetId(), asset.getStatus());
-                return;
-            }
         } else {
             log.warn("CDN purge job for missing asset {} — purge already attempted", payload.mediaAssetId());
         }
 
+        // A stale-key purge of a still-live (demoted) asset must still purge the old URL;
+        // only a delete tombstones the row.
         cdnPurgeClient.purgeUrl(cdnUrl);
 
         if (asset == null) {
+            return;
+        }
+        if (asset.getStatus() != AssetStatus.PENDING_DELETE) {
+            log.info("CDN purged for asset {} in status {} — not a delete, leaving the row live",
+                    payload.mediaAssetId(), asset.getStatus());
             return;
         }
         asset.setStatus(AssetStatus.ARCHIVED);
@@ -130,4 +132,5 @@ public class MediaCdnPurgeJobHandler implements JobHandler {
             throw new IllegalArgumentException("cdnUrl is not a valid URL", ex);
         }
     }
+
 }
