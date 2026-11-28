@@ -23,6 +23,7 @@ import de.pnnit.directwerk.modules.digital.repository.MediaAssetRepository;
 import de.pnnit.directwerk.modules.core.entity.Tenant;
 import de.pnnit.directwerk.config.DirectwerkConfig;
 import de.pnnit.directwerk.config.DirectwerkProperties;
+import de.pnnit.directwerk.modules.digital.storage.S3BulkObjectDeleter.PartialBulkDeleteException;
 import de.pnnit.directwerk.modules.digital.storage.StorageConfigs;
 import de.pnnit.directwerk.multitenancy.TenantContext;
 import de.pnnit.directwerk.security.DirectwerkUserPrincipal;
@@ -333,7 +334,7 @@ public class UploadService implements UploadApi {
     private void cleanupStagingObject(String bucket, String stagingKey) {
         try {
             stagingCleanupService.deleteStagingKeyAndFolder(bucket, stagingKey);
-        } catch (SdkException ex) {
+        } catch (SdkException | PartialBulkDeleteException ex) {
             log.warn("Staging cleanup deferred after copy — S3 unavailable for key {}", stagingKey, ex);
             mediaDeleteJobProducer.enqueueStagingCleanup(stagingKey);
         }

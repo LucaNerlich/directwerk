@@ -1,5 +1,6 @@
 package de.pnnit.directwerk.modules.digital.service;
 
+import de.pnnit.directwerk.modules.digital.storage.S3BulkObjectDeleter;
 import static de.pnnit.directwerk.testsupport.RbacTestFixtures.override;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -492,6 +493,46 @@ class UploadServiceTest {
                 .message("Service Unavailable")
                 .build();
         org.mockito.Mockito.doThrow(s3Unavailable)
+                .when(stagingCleanupService)
+                .deleteStagingKeyAndFolder("directwerk-dev", "alpha-show-a/staging/sess/episode.mp3");
+
+        UploadApi.ConfirmUploadResult result = uploadService.confirmUpload(new UploadApi.ConfirmUploadCommand(55L));
+
+        assertThat(result.status()).isEqualTo("READY");
+        verify(mediaDeleteJobProducer).enqueueStagingCleanup("alpha-show-a/staging/sess/episode.mp3");
+    }
+
+    @Test
+    void confirmUploadEnqueuesCleanupWhenAPerKeyDeleteFails() {
+        when(directwerkConfig.isStorageEnabled()).thenReturn(true);
+        when(directwerkConfig.storage()).thenReturn(storageProps());
+        when(tenantRepository.requireById(10L)).thenReturn(tenant);
+
+        MediaAsset pending = new MediaAsset();
+        pending.setId(55L);
+        pending.setTenant(tenant);
+        pending.setS3Key("alpha-show-a/staging/sess/episode.mp3");
+        pending.setVisibility(AssetVisibility.PRIVATE);
+        pending.setScope(AssetScope.CONTENT);
+        pending.setAssetType(AssetType.AUDIO);
+        pending.setStatus(AssetStatus.PENDING);
+        pending.setMimeType("audio/mpeg");
+        pending.setSizeBytes(2048L);
+        pending.setOriginalFilename("episode.mp3");
+        when(mediaAssetRepository.findById(55L)).thenReturn(Optional.of(pending));
+        when(mediaAssetRepository.findByIdForUpdate(55L)).thenReturn(Optional.of(pending));
+        when(mediaAssetRepository.saveAndFlush(any(MediaAsset.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(s3Client.headObject(any(HeadObjectRequest.class))).thenReturn(
+                HeadObjectResponse.builder()
+                        .contentLength(2048L)
+                        .contentType("audio/mpeg")
+                        .eTag("\"abc\"")
+                        .build()
+        );
+        org.mockito.Mockito.doThrow(new S3BulkObjectDeleter.PartialBulkDeleteException(
+                        List.of(),
+                        new IllegalStateException("AccessDenied")
+                ))
                 .when(stagingCleanupService)
                 .deleteStagingKeyAndFolder("directwerk-dev", "alpha-show-a/staging/sess/episode.mp3");
 
