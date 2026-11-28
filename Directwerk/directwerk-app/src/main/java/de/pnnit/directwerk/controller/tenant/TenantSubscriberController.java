@@ -1,5 +1,7 @@
 package de.pnnit.directwerk.controller.tenant;
 
+import de.pnnit.directwerk.api.dto.LevelView;
+import de.pnnit.directwerk.api.dto.PackageView;
 import de.pnnit.directwerk.api.response.Response;
 import de.pnnit.directwerk.subscription.SubscriberEntitlementExplainService;
 import de.pnnit.directwerk.subscription.SubscriberEntitlementExplainService.ContentCheckView;
@@ -223,12 +225,6 @@ public class TenantSubscriberController {
             List<PackageView> activePackages,
             ContentCheckApiView check
     ) {
-    }
-
-    public record LevelView(Long id, String slug, String title, int sortOrder) {
-    }
-
-    public record PackageView(Long id, String slug, String title) {
     }
 
     public record ContentCheckApiView(
