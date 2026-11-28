@@ -126,7 +126,7 @@ public class TenantSubscriptionProductController {
             @Valid @RequestBody ReplaceRulesRequest request
     ) {
         Long tenantId = TenantContext.requireTenantId();
-        List<ProductAccessRuleService.RuleInput> inputs = request.rules() == null ? List.of() : request.rules().stream()
+        List<ProductAccessRuleService.RuleInput> inputs = request.rules().stream()
                 .map(rule -> new ProductAccessRuleService.RuleInput(rule.scopeType(), rule.scopeId()))
                 .toList();
         List<ProductAccessRuleView> rules = productAccessRuleService.replaceRules(tenantId, productId, inputs).stream()
