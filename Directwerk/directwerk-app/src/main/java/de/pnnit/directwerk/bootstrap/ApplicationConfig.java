@@ -9,6 +9,9 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import de.pnnit.directwerk.modules.stripebilling.StripeProperties;
 import de.pnnit.directwerk.multitenancy.TenantContextFilter;
+import de.pnnit.directwerk.security.BillingRateLimitFilter;
+import de.pnnit.directwerk.security.PlatformAdminGuardFilter;
+import de.pnnit.directwerk.security.TenantApiKeyAuthenticationFilter;
 import de.pnnit.directwerk.security.TenantMembershipGuardFilter;
 import java.time.Clock;
 
@@ -62,6 +65,49 @@ public class ApplicationConfig {
     ) {
         FilterRegistrationBean<TenantMembershipGuardFilter> registration =
                 new FilterRegistrationBean<>(tenantMembershipGuardFilter);
+        registration.setEnabled(false);
+        return registration;
+    }
+
+    /**
+     * Disables automatic registration of the billing rate-limit filter; it runs inside the
+     * security chain only. Without this Spring Boot also registers it as a servlet filter, so
+     * every billing request is counted twice.
+     */
+    @Bean
+    FilterRegistrationBean<BillingRateLimitFilter> disableBillingRateLimitFilterAutoRegistration(
+            BillingRateLimitFilter billingRateLimitFilter
+    ) {
+        FilterRegistrationBean<BillingRateLimitFilter> registration =
+                new FilterRegistrationBean<>(billingRateLimitFilter);
+        registration.setEnabled(false);
+        return registration;
+    }
+
+    /**
+     * Disables automatic registration of the tenant API-key filter; it runs inside the security
+     * chain only, so a second servlet-filter pass cannot re-authenticate or re-write the key.
+     */
+    @Bean
+    FilterRegistrationBean<TenantApiKeyAuthenticationFilter> disableTenantApiKeyFilterAutoRegistration(
+            TenantApiKeyAuthenticationFilter tenantApiKeyAuthenticationFilter
+    ) {
+        FilterRegistrationBean<TenantApiKeyAuthenticationFilter> registration =
+                new FilterRegistrationBean<>(tenantApiKeyAuthenticationFilter);
+        registration.setEnabled(false);
+        return registration;
+    }
+
+    /**
+     * Disables automatic registration of the platform-admin guard; it runs inside the security
+     * chain only.
+     */
+    @Bean
+    FilterRegistrationBean<PlatformAdminGuardFilter> disablePlatformAdminGuardAutoRegistration(
+            PlatformAdminGuardFilter platformAdminGuardFilter
+    ) {
+        FilterRegistrationBean<PlatformAdminGuardFilter> registration =
+                new FilterRegistrationBean<>(platformAdminGuardFilter);
         registration.setEnabled(false);
         return registration;
     }
