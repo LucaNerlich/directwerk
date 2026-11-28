@@ -85,6 +85,24 @@ describe('confirm-retry contract', () => {
 })
 
 describe('performMediaUpload', () => {
+    it('observes a spool failure that happens while upload-url is pending', async () => {
+        spoolMock.mockRejectedValue(new Error('spool failed'))
+        let resolveUpload!: (response: Response) => void
+        const gate = new Promise<Response>((resolve) => {
+            resolveUpload = resolve
+        })
+        const transport: MediaUploadTransport = {
+            createUploadUrl: () => gate,
+            confirmUpload: CONFIRM_OK,
+        }
+
+        const pending = performMediaUpload(options(transport))
+        await new Promise((resolve) => setTimeout(resolve, 0))
+        resolveUpload(new Response(null, {status: 502}))
+
+        await expect(pending).resolves.toMatchObject({status: 'upload-url-failed'})
+    })
+
     it('spools in parallel with upload-url, then PUTs the temp file and confirms', async () => {
         const confirmResponse = Response.json({data: {id: 7}})
         const transport: MediaUploadTransport = {
