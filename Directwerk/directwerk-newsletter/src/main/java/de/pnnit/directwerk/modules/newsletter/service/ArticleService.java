@@ -71,7 +71,7 @@ public class ArticleService {
         return articleRepository.findByTenantIdOrderByCreatedAtDescIdDesc(tenantId);
     }
 
-    /** Paged variant (#310) — see EpisodeService.listEpisodes(Long, int). */
+    /** Paged variant (#310) — mirrors EpisodeService.listEpisodes. */
     @Transactional(readOnly = true)
     public List<Article> listArticles(Long tenantId, int limit) {
         return listArticles(tenantId, limit, 0);

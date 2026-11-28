@@ -61,27 +61,6 @@ public class EpisodeService {
     private final SearchIndex searchIndex;
 
     /**
-     * Paged variant (#310): bounds the response for tenants with large episode counts, where the
-     * unbounded listing serialised every row in one response.
-     */
-    @Transactional(readOnly = true)
-    public List<Episode> listEpisodes(Long tenantId, int limit) {
-        return listEpisodes(tenantId, null, null, limit, 0, PublicationSort.CREATED);
-    }
-
-    /** Offset variant so a tenant can reach episodes past the first page (#733). */
-    @Transactional(readOnly = true)
-    public List<Episode> listEpisodes(Long tenantId, int limit, int offset) {
-        return listEpisodes(tenantId, null, null, limit, offset, PublicationSort.CREATED);
-    }
-
-    /** Offset variant with studio list ordering (published, last modified, title). */
-    @Transactional(readOnly = true)
-    public List<Episode> listEpisodes(Long tenantId, int limit, int offset, PublicationSort sort) {
-        return listEpisodes(tenantId, null, null, limit, offset, sort);
-    }
-
-    /**
      * Studio list with optional series scope and title/slug search, so clients do not
      * have to page through the whole tenant to find one show or one episode.
      */

@@ -127,7 +127,7 @@ class EpisodeServiceTest {
         when(episodeRepository.searchIdsByTenantId(eq(TENANT_ID), eq(0L), eq(""), any(Pageable.class)))
                 .thenReturn(List.of());
 
-        episodeService.listEpisodes(TENANT_ID, 100, 50);
+        episodeService.listEpisodes(TENANT_ID, null, null, 100, 50, PublicationSort.CREATED);
 
         ArgumentCaptor<Pageable> pageable = ArgumentCaptor.forClass(Pageable.class);
         verify(episodeRepository).searchIdsByTenantId(eq(TENANT_ID), eq(0L), eq(""), pageable.capture());
@@ -141,7 +141,7 @@ class EpisodeServiceTest {
         when(episodeRepository.searchIdsByTenantId(eq(TENANT_ID), eq(0L), eq(""), any(Pageable.class)))
                 .thenReturn(List.of());
 
-        episodeService.listEpisodes(TENANT_ID, 100, 0, PublicationSort.TITLE);
+        episodeService.listEpisodes(TENANT_ID, null, null, 100, 0, PublicationSort.TITLE);
 
         ArgumentCaptor<Pageable> pageable = ArgumentCaptor.forClass(Pageable.class);
         verify(episodeRepository).searchIdsByTenantId(eq(TENANT_ID), eq(0L), eq(""), pageable.capture());
