@@ -409,7 +409,10 @@ export function buildProxyPath(segments: string[]): string | null {
                 segment === '.' ||
                 segment === '..' ||
                 !SAFE_PATH_SEGMENT.test(segment),
-        )
+        ) ||
+        // The tenant proxy must never reach the platform-admin API; its only
+        // barrier would otherwise be a PLATFORM_ADMIN rule on each endpoint.
+        segments[0].toLowerCase() === 'platform'
     ) {
         return null
     }
