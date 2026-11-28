@@ -99,6 +99,11 @@ export function createAuthedRequest(config: AuthedRequestConfig): AuthedRequestF
         try {
             return await config.session.getValidAccessToken()
         } catch (error: unknown) {
+            if (error instanceof Error && error.message === AUTH_TRANSIENT) {
+                // The refresh could not complete (timeout, network, upstream
+                // 5xx). Report it as transient; the session is still intact.
+                throw new Error(config.transientMessage ?? invalidResponseMessage)
+            }
             if (config.authFailureMode === 'auth-required') {
                 // The coordinator has already cleared tokens for definitive
                 // failures; surface a stable code either way.
