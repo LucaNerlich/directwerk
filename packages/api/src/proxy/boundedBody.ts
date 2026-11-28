@@ -38,7 +38,8 @@ export async function readJsonBody(
         options.jsonBodyLimit,
     )
     if (!bounded.ok) {
-        return {ok: false, status: 413}
+        // 413 means "too large"; 400 means the stream failed mid-read.
+        return {ok: false, status: bounded.status}
     }
 
     const text = bounded.text

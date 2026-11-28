@@ -58,7 +58,8 @@ export async function readAuthJsonBody(
 
     const bounded = await readBoundedRequestBody(request, options.jsonBodyLimit)
     if (!bounded.ok) {
-        return {ok: false, response: jsonError(options.messages.tooLarge, 413)}
+        const message = bounded.status === 413 ? options.messages.tooLarge : options.messages.invalidJson
+        return {ok: false, response: jsonError(message, bounded.status)}
     }
 
     let value: unknown
