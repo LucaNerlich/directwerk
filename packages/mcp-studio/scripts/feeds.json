@@ -1,0 +1,67 @@
+{
+  "shows": [
+    {
+      "name": "No One Can Know About This",
+      "feedUrl": "https://feeds.acast.com/public/shows/672a75ea8e194291078485eb",
+      "seriesId": 7,
+      "formatId": 11,
+      "audioFolderId": 24,
+      "coverFolderId": 25,
+      "seriesCoverAssetId": 881,
+      "accessPolicy": "PAID",
+      "requiredLevelSortOrder": 1,
+      "categoryIds": [16],
+      "numbering": "sequence"
+    },
+    {
+      "name": "Hyrule Podcasters",
+      "feedUrl": "https://feeds.captivate.fm/the-hyrule-podcasters/",
+      "seriesId": 8,
+      "formatId": 12,
+      "audioFolderId": 27,
+      "coverFolderId": 28,
+      "seriesCoverAssetId": 882,
+      "accessPolicy": "PAID",
+      "requiredLevelSortOrder": 1,
+      "categoryIds": [15],
+      "numbering": "sequence"
+    },
+    {
+      "name": "Enchantment",
+      "feedUrl": "https://anchor.fm/s/b927e638/podcast/rss",
+      "seriesId": 9,
+      "formatId": 13,
+      "audioFolderId": 30,
+      "coverFolderId": 31,
+      "seriesCoverAssetId": 883,
+      "accessPolicy": "PAID",
+      "requiredLevelSortOrder": 1,
+      "categoryIds": [16],
+      "numbering": "sequence"
+    },
+    {
+      "name": "Daniel K's Let's Plays",
+      "feedUrl": "https://feeds.soundcloud.com/users/soundcloud:users:192119797/sounds.rss",
+      "seriesId": 10,
+      "formatId": 14,
+      "audioFolderId": 33,
+      "coverFolderId": 34,
+      "seriesCoverAssetId": 1776,
+      "accessPolicy": "PAID",
+      "requiredLevelSortOrder": 1,
+      "numbering": "sequence"
+    },
+    {
+      "name": "Passalong Pod",
+      "feedUrl": "https://feeds.acast.com/public/shows/63c7dbf9e4b41d00115c22f1",
+      "seriesId": 11,
+      "formatId": 15,
+      "audioFolderId": 36,
+      "coverFolderId": 37,
+      "seriesCoverAssetId": 1777,
+      "accessPolicy": "PAID",
+      "requiredLevelSortOrder": 1,
+      "numbering": "sequence"
+    }
+  ]
+}

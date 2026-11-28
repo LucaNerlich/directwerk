@@ -164,6 +164,18 @@ Backend constraints that shape the flow:
 
 A reference implementation of a downloader-to-manifest converter (channel2mp3 output: `LOG.md` + `meta/*.info.json` + `mp3/` + `thumbs/`) lives in [`scripts/build-manifest.py`](scripts/build-manifest.py).
 
+## Feed sync (upstream updates)
+
+`scripts/sync-feeds.mjs` imports only new upstream episodes for the shows listed
+in `scripts/feeds.json`. Matching is title + publish date, audio assets are
+reused by filename, and future dates are scheduled instead of published. Full
+runbook (adding shows, cron, failure handling): [`docs/feed-sync.md`](docs/feed-sync.md).
+
+```sh
+node scripts/sync-feeds.mjs --config scripts/feeds.json --dry-run
+node scripts/sync-feeds.mjs --config scripts/feeds.json --show "Hyrule Podcasters"
+```
+
 ## Develop
 
 ```sh

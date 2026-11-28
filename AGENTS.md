@@ -94,7 +94,11 @@ Editing `dist/` does not reload a running server - save the config or reconnect 
 Bulk import: `import_podcast_manifest` + [`scripts/build-manifest.py`](packages/mcp-studio/scripts/build-manifest.py);
 flow, manifest schema, and backend constraints (64-char slug limit, format required before publish,
 back-dating via publish `publishedAt`, schedule field `scheduledAt`) are documented in the package
-README. Keep MCP tools in lockstep with controller changes, same as Bruno and `http/`.
+README. Upstream feed sync for the hosted archives: `packages/mcp-studio/scripts/sync-feeds.mjs`
+(config `scripts/feeds.json`, runbook `packages/mcp-studio/docs/feed-sync.md`). It imports only
+missing episodes and is safe to re-run.
+
+Keep MCP tools in lockstep with controller changes, same as Bruno and `http/`.
 
 ## Domain Model (summary)
 
