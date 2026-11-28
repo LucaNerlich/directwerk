@@ -37,12 +37,18 @@ export default async function HomePage(): Promise<React.JSX.Element> {
     try {
         const host = await getTenantHost()
         if (host !== null && host.length > 0) {
-            const [episodes, articles, products] = await Promise.all([
+            const [allEpisodes, allArticles, products] = await Promise.all([
                 fetchPublicEpisodesServer(host),
                 fetchPublicArticlesServer(host),
                 fetchPublicProductsServer(host),
             ])
-            initialData = {episodes, articles, products}
+            // The home hero renders only the newest episode/article and first three products;
+            // passing the whole catalog hydrated megabytes of data the page never shows.
+            initialData = {
+                episodes: allEpisodes?.slice(0, 1) ?? null,
+                articles: allArticles?.slice(0, 1) ?? null,
+                products: products?.slice(0, 3) ?? null,
+            }
         }
     } catch {
         // Fall back to the client fetch; the layout already degrades gracefully.
