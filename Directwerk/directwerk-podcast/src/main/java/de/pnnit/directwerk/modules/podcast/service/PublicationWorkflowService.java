@@ -284,6 +284,10 @@ public class PublicationWorkflowService extends PublicationWorkflow<Episode, Epi
         if (formatService.hasActiveFormats(episode.getTenant().getId()) && episode.getFormats().isEmpty()) {
             throw new EpisodeValidationException("At least one format is required before publishing");
         }
+        if (episode.getFormats().stream().anyMatch(format -> !format.isActive())) {
+            throw new EpisodeValidationException(
+                    "Episode has a deactivated format assigned; update formats before publishing");
+        }
     }
 
     /**
