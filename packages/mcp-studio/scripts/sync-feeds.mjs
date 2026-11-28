@@ -19,7 +19,7 @@ import {join, resolve} from 'node:path'
 import {realpathSync} from 'node:fs'
 import {pathToFileURL} from 'node:url'
 
-import {audioVisibility, parseFeedDate} from './feed-utils.mjs'
+import {audioVisibility, day, parseFeedDate} from './feed-utils.mjs'
 
 const MIME_AUDIO = 'audio/mpeg'
 const MAX_DESCRIPTION = 90000
@@ -146,10 +146,6 @@ function slugify(text) {
         slug = slug.slice(0, 56).replace(/-[^-]*$/, '') || slug.slice(0, 56)
     }
     return slug || 'episode'
-}
-
-function day(value) {
-    return value.slice(0, 10)
 }
 
 async function listTenantSlugs() {
