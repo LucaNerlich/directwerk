@@ -51,44 +51,46 @@ const INITIAL_INVITE_STATE: InviteState = {
 
 const PAGE_SIZE = 50
 
-function roleLabel(role: string): string {
+type TeamMessages = ReturnType<typeof useDictionary>['team']
+
+function roleLabel(role: string, team: TeamMessages): string {
     switch (role) {
         case 'TENANT_ADMIN':
-            return 'Tenant-Admin'
+            return team.roleTenantAdmin
         case 'EDITOR':
-            return 'Redakteur'
+            return team.roleEditor
         case 'SUBSCRIBER':
-            return 'Abonnent'
+            return team.roleSubscriber
         case 'GUEST':
-            return 'Gast'
+            return team.roleGuest
         default:
             return role
     }
 }
 
-function statusLabel(status: string): string {
+function statusLabel(status: string, team: TeamMessages): string {
     switch (status) {
         case 'ACTIVE':
-            return 'Aktiv'
+            return team.statusActive
         case 'INVITED':
-            return 'Eingeladen'
+            return team.statusInvited
         case 'DISABLED':
-            return 'Deaktiviert'
+            return team.statusDisabled
         default:
             return status
     }
 }
 
-function roleDescription(role: string): string {
+function roleDescription(role: string, team: TeamMessages): string {
     switch (role) {
         case 'TENANT_ADMIN':
-            return 'Voller Zugriff — inkl. Einstellungen, Team und Zahlungen.'
+            return team.vollerZugriffInklEinstellungenTeamZahlungen
         case 'EDITOR':
-            return 'Erstellt und veröffentlicht Inhalte, keine Einstellungen.'
+            return team.erstelltVeroeffentlichtInhalteKeineEinstellu
         case 'SUBSCRIBER':
-            return 'Liest bezahlte Inhalte, kein Studio-Zugriff.'
+            return team.liestBezahlteInhalteKeinStudioZugriff
         case 'GUEST':
-            return 'Eingeschränkter Zugriff, nur Lesen.'
+            return team.eingeschraenkterZugriffLesen
         default:
             return ''
     }
@@ -164,7 +166,7 @@ export default function TeamClient(): React.JSX.Element {
                 setLoadError(
                     error instanceof Error
                         ? error.message
-                        : 'Team konnte nicht geladen werden.',
+                        : team.teamKonnteGeladen,
                 )
                 setIsLoading(false)
             })
@@ -193,7 +195,7 @@ export default function TeamClient(): React.JSX.Element {
                 setLoadError(
                     error instanceof Error
                         ? error.message
-                        : 'Team konnte nicht geladen werden.',
+                        : team.teamKonnteGeladen,
                 )
                 setEditorsReady(true)
             })
@@ -212,10 +214,10 @@ export default function TeamClient(): React.JSX.Element {
         const role = String(formData.get('role') ?? '').trim() as TenantInvitableRole
 
         if (!isValidEmail(email)) {
-            return {...INITIAL_INVITE_STATE, error: 'Bitte eine gültige E-Mail eingeben.'}
+            return {...INITIAL_INVITE_STATE, error: team.gueltigeEMailEingeben}
         }
         if (!(TENANT_INVITABLE_ROLES as readonly string[]).includes(role)) {
-            return {...INITIAL_INVITE_STATE, error: 'Bitte eine Rolle wählen.'}
+            return {...INITIAL_INVITE_STATE, error: team.rolleWaehlen}
         }
 
         try {
@@ -227,7 +229,7 @@ export default function TeamClient(): React.JSX.Element {
             await reload()
             return {
                 error: null,
-                success: `Einladung an ${response.email} als ${roleLabel(response.role)} gesendet.`,
+                success: t(team.einladungGesendet, {email: response.email, role: roleLabel(response.role, team)}),
                 inviteToken: response.inviteToken,
             }
         } catch (error: unknown) {
@@ -237,7 +239,7 @@ export default function TeamClient(): React.JSX.Element {
                 error:
                     error instanceof Error
                         ? error.message
-                        : 'Einladung fehlgeschlagen.',
+                        : team.einladungFehlgeschlagen,
             }
         }
     }
@@ -262,7 +264,7 @@ export default function TeamClient(): React.JSX.Element {
             setActionError(
                 error instanceof Error
                     ? error.message
-                    : 'Mitgliedschaft konnte nicht geändert werden.',
+                    : team.mitgliedschaftKonnteGeaendert,
             )
         } finally {
             setBusyUserId(null)
@@ -312,10 +314,10 @@ export default function TeamClient(): React.JSX.Element {
         return {
             id: user.userId,
             title: `${user.name ?? user.email}${isSelf ? ' (Du)' : ''}`,
-            description: `${user.email} · ${user.roles.map(roleLabel).join(', ')}`,
+            description: `${user.email} · ${user.roles.map((role) => roleLabel(role, team)).join(', ')}`,
             trailing: (
                 <Badge variant={user.status === 'ACTIVE' ? 'default' : user.status === 'DISABLED' ? 'outline' : 'secondary'}>
-                    {statusLabel(user.status)}
+                    {statusLabel(user.status, team)}
                 </Badge>
             ),
             actions:
@@ -518,15 +520,15 @@ export default function TeamClient(): React.JSX.Element {
                             >
                                 {TENANT_INVITABLE_ROLES.map((role) => (
                                     <option key={role} value={role}>
-                                        {roleLabel(role)}
+                                        {roleLabel(role, team)}
                                     </option>
                                 ))}
                             </SelectControl>
                             <ul className="grid gap-1 text-xs text-muted-foreground" id="invite-role-help">
                                 {TENANT_INVITABLE_ROLES.map((role) => (
                                     <li key={role}>
-                                        <span className="font-medium text-foreground">{roleLabel(role)}:</span>{' '}
-                                        {roleDescription(role)}
+                                        <span className="font-medium text-foreground">{roleLabel(role, team)}:</span>{' '}
+                                        {roleDescription(role, team)}
                                     </li>
                                 ))}
                             </ul>
@@ -558,7 +560,7 @@ export default function TeamClient(): React.JSX.Element {
                         ) : null}
                         <div>
                         <Button disabled={invitePending} type="submit">
-                            {invitePending ? 'Einladen…' : 'Einladung senden'}
+                            {invitePending ? 'Einladen…' : team.einladungSenden}
                         </Button>
                         </div>
                     </Form>

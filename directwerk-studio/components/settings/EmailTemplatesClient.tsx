@@ -61,7 +61,7 @@ export default function EmailTemplatesClient(): React.JSX.Element {
                 setLoadError(
                     error instanceof Error
                         ? error.message
-                        : 'E-Mail-Vorlage konnte nicht geladen werden.',
+                        : dict.settings.eMailVorlageKonnteGeladen,
                 )
                 setIsLoading(false)
             })
@@ -79,7 +79,7 @@ export default function EmailTemplatesClient(): React.JSX.Element {
         const bodyHtml = String(formData.get('bodyHtml') ?? '').trim()
         if (subjectTemplate.length === 0 || bodyHtml.length === 0) {
             return {
-                error: 'Betreff und Inhalt sind erforderlich.',
+                error: dict.settings.betreffInhaltErforderlich,
                 success: null,
             }
         }
@@ -90,14 +90,14 @@ export default function EmailTemplatesClient(): React.JSX.Element {
                 {subjectTemplate, bodyHtml},
             )
             setTemplate(updated)
-            return {error: null, success: 'Vorlage gespeichert.'}
+            return {error: null, success: dict.settings.vorlageGespeichert}
         } catch (error: unknown) {
             if (authRedirect(error)) return INITIAL_STATE
             return {
                 error:
                     error instanceof Error
                         ? error.message
-                        : 'Vorlage konnte nicht gespeichert werden.',
+                        : dict.settings.vorlageKonnteGespeichert,
                 success: null,
             }
         }
@@ -130,8 +130,8 @@ export default function EmailTemplatesClient(): React.JSX.Element {
                 </SelectControl>
                 <p className="text-xs text-muted-foreground">
                     {contentType === 'EPISODE'
-                        ? 'Wird an Abonnenten versendet, sobald eine neue Folge erscheint.'
-                        : 'Wird an Abonnenten versendet, sobald ein neuer Beitrag erscheint.'}
+                        ? dict.settings.abonnentenVersendetSobaldNeueFolgeErscheint
+                        : dict.settings.abonnentenVersendetSobaldNeuerBeitragErsche}
                 </p>
             </div>
 
@@ -151,7 +151,7 @@ export default function EmailTemplatesClient(): React.JSX.Element {
             {!isLoading && loadError === null ? (
                 <Card className="max-w-xl">
                     <CardHeader>
-                        <CardTitle>{contentType === 'EPISODE' ? 'Vorlage: Neue Folge' : 'Vorlage: Neuer Beitrag'}</CardTitle>
+                        <CardTitle>{contentType === 'EPISODE' ? dict.settings.vorlageNeueFolge : dict.settings.vorlageNeuerBeitrag}</CardTitle>
                         <CardDescription>Betreff und HTML-Inhalt der Benachrichtigungs-E-Mail.</CardDescription>
                     </CardHeader>
                     <CardContent>
