@@ -3,7 +3,6 @@ package de.pnnit.directwerk.modules.core.service;
 import de.pnnit.directwerk.modules.core.audit.PlatformAuditActions;
 import de.pnnit.directwerk.modules.core.audit.PlatformAuditService;
 import de.pnnit.directwerk.modules.core.authorization.AuthorizationService;
-import de.pnnit.directwerk.modules.core.authorization.ContentAccessGate;
 import de.pnnit.directwerk.modules.core.authorization.ContentEntityType;
 import de.pnnit.directwerk.modules.core.authorization.ContentOperation;
 import de.pnnit.directwerk.modules.core.authorization.EffectiveAccess;
@@ -101,8 +100,7 @@ public class MembershipPermissionService {
     }
 
     /**
-     * Returns a checker bound to one entity type. Services store it once
-     * instead of repeating the ambient-principal plumbing per operation.
+     * Checks one content entity for the current principal.
      *
      * <p><b>Fails closed (issue #303).</b> The gate requires an authenticated principal. It
      * previously resolved {@link SecurityUtils#currentPrincipal()}, which is {@code null} outside a
@@ -115,43 +113,41 @@ public class MembershipPermissionService {
      * {@link #requireContentAccess(DirectwerkUserPrincipal, ContentEntityType, ContentOperation,
      * Long)} overload.
      */
-    public ContentAccessGate gateFor(ContentEntityType entity) {
-        return (operation, ownerUserId) -> {
-            DirectwerkUserPrincipal principal = SecurityUtils.currentPrincipal();
-            if (principal == null) {
-                throw new ContentAccessDeniedException(
-                        ContentAccessDeniedException.OPERATION_DENIED_BY_POLICY,
-                        entity.name(),
-                        operation.name(),
-                        "Authentication is required for " + entity + " / " + operation);
-            }
-            requireContentAccess(principal, entity, operation, ownerUserId);
-        };
+    private void requireForEntity(ContentEntityType entity, ContentOperation operation, Long ownerUserId) {
+        DirectwerkUserPrincipal principal = SecurityUtils.currentPrincipal();
+        if (principal == null) {
+            throw new ContentAccessDeniedException(
+                    ContentAccessDeniedException.OPERATION_DENIED_BY_POLICY,
+                    entity.name(),
+                    operation.name(),
+                    "Authentication is required for " + entity + " / " + operation);
+        }
+        requireContentAccess(principal, entity, operation, ownerUserId);
     }
 
-    /** Convenience gates per content entity; all delegate to {@link #gateFor}. */
+    /** Convenience entries per content entity. */
     public void requireEpisodeAccess(ContentOperation operation, Long ownerUserId) {
-        gateFor(ContentEntityType.EPISODE).require(operation, ownerUserId);
+        requireForEntity(ContentEntityType.EPISODE, operation, ownerUserId);
     }
 
-    /** Convenience gates per content entity; all delegate to {@link #gateFor}. */
+    /** Convenience entries per content entity. */
     public void requireArticleAccess(ContentOperation operation, Long ownerUserId) {
-        gateFor(ContentEntityType.ARTICLE).require(operation, ownerUserId);
+        requireForEntity(ContentEntityType.ARTICLE, operation, ownerUserId);
     }
 
-    /** Convenience gates per content entity; all delegate to {@link #gateFor}. */
+    /** Convenience entries per content entity. */
     public void requireSeriesAccess(ContentOperation operation, Long ownerUserId) {
-        gateFor(ContentEntityType.SERIES).require(operation, ownerUserId);
+        requireForEntity(ContentEntityType.SERIES, operation, ownerUserId);
     }
 
-    /** Convenience gates per content entity; all delegate to {@link #gateFor}. */
+    /** Convenience entries per content entity. */
     public void requireMediaAssetAccess(ContentOperation operation, Long ownerUserId) {
-        gateFor(ContentEntityType.MEDIA_ASSET).require(operation, ownerUserId);
+        requireForEntity(ContentEntityType.MEDIA_ASSET, operation, ownerUserId);
     }
 
-    /** Convenience gates per content entity; all delegate to {@link #gateFor}. */
+    /** Convenience entries per content entity. */
     public void requireMediaFolderAccess(ContentOperation operation, Long ownerUserId) {
-        gateFor(ContentEntityType.MEDIA_FOLDER).require(operation, ownerUserId);
+        requireForEntity(ContentEntityType.MEDIA_FOLDER, operation, ownerUserId);
     }
 
     /**
