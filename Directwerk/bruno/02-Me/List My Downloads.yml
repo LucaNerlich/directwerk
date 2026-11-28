@@ -5,7 +5,7 @@ info:
 
 http:
   method: GET
-  url: "{{baseUrl}}/api/v1/me/downloads"
+  url: "{{baseUrl}}/api/v1/me/downloads?offset=0&limit=50"
   auth: inherit
 
 runtime:

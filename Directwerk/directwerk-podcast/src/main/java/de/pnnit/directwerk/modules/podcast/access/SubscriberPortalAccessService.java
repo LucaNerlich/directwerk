@@ -77,8 +77,30 @@ public class SubscriberPortalAccessService {
      * are the SAME evaluation, so a policy grant always produces a URL and a policy denial
      * never does.
      */
+    /**
+     * First page of the download library; see {@link #listDownloads(DirectwerkUserPrincipal, int, int)}.
+     *
+     * @param user the signed-in subscriber
+     * @return up to {@value #MAX_DOWNLOADS} downloads
+     */
     @Transactional(readOnly = true)
     public List<AssetDownload> listDownloads(DirectwerkUserPrincipal user) {
+        return listDownloads(user, 0, MAX_DOWNLOADS);
+    }
+
+    /**
+     * One page of the download library. Pages the candidates before resolving URLs so the
+     * tail of a large entitled library is reachable instead of being silently dropped.
+     *
+     * @param user   the signed-in subscriber
+     * @param offset zero-based offset
+     * @param limit  page size, capped at {@value #MAX_DOWNLOADS}
+     * @return the page of downloads
+     */
+    @Transactional(readOnly = true)
+    public List<AssetDownload> listDownloads(DirectwerkUserPrincipal user, int offset, int limit) {
+        int pageSize = Math.max(1, Math.min(limit, MAX_DOWNLOADS));
+        int pageOffset = Math.max(0, offset);
         moduleGateService.requireModule(BonusContentModule.KEY);
         moduleGateService.requireModule(SubscriptionModule.MODULE_KEY);
 
@@ -110,8 +132,11 @@ public class SubscriberPortalAccessService {
                     });
         }
 
-        return assetAccessApi.resolveDownloadUrls(candidates, user).stream()
-                .limit(MAX_DOWNLOADS)
+        List<MediaAsset> page = candidates.stream()
+                .skip(pageOffset)
+                .limit(pageSize)
+                .toList();
+        return assetAccessApi.resolveDownloadUrls(page, user).stream()
                 .map(resolved -> new AssetDownload(
                         resolved.asset(),
                         resolved.url(),

@@ -52,7 +52,7 @@ Accept: */*
 ###
 
 ### @name listMeDownloads
-GET {{baseUrl}}/api/v1/me/downloads
+GET {{baseUrl}}/api/v1/me/downloads?offset=0&limit=50
 Host: {{tenantAHost}}
 Authorization: Bearer {{subscriberAccessToken}}
 Accept: application/json
