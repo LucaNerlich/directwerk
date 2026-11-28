@@ -71,13 +71,6 @@ public class SubscriberPortalAccessService {
     }
 
     /**
-     * Published bonus publications (per-publication FREE/LEVEL policy) plus PACKAGE-entitled
-     * standalone assets, unified through the fail-closed gate in
-     * {@link AssetAccessApi#resolveDownloadUrls}: the publication policy and the asset gate
-     * are the SAME evaluation, so a policy grant always produces a URL and a policy denial
-     * never does.
-     */
-    /**
      * First page of the download library; see {@link #listDownloads(DirectwerkUserPrincipal, int, int)}.
      *
      * @param user the signed-in subscriber
@@ -89,8 +82,12 @@ public class SubscriberPortalAccessService {
     }
 
     /**
-     * One page of the download library. Pages the candidates before resolving URLs so the
-     * tail of a large entitled library is reachable instead of being silently dropped.
+     * Published bonus publications (per-publication FREE/LEVEL policy) plus PACKAGE-entitled
+     * standalone assets, unified through the fail-closed gate in
+     * {@link AssetAccessApi#resolveDownloadUrls}: the publication policy and the asset gate
+     * are the SAME evaluation, so a policy grant always produces a URL and a policy denial
+     * never does. Pages the candidates before resolving URLs so the tail of a large entitled
+     * library is reachable instead of being silently dropped.
      *
      * @param user   the signed-in subscriber
      * @param offset zero-based offset
