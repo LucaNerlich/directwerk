@@ -1,5 +1,6 @@
 'use client'
 
+import {SLUG_PATTERN} from '@directwerk/api/constants'
 import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
 import {Badge} from '@directwerk/ui/components/badge'
 import {Button} from '@directwerk/ui/components/button'
@@ -184,14 +185,20 @@ export default function PublicationEditorLayout({
     const writePanelId = `${tabIdPrefix}-write-panel`
     const previewPanelId = `${tabIdPrefix}-preview-panel`
 
+    const slugValue = slug?.trim() ?? ''
+    const slugInvalid = slugValue.length > 0 && !SLUG_PATTERN.test(slugValue)
     const slugBlocked =
         slug !== undefined &&
         slugTaken !== undefined &&
-        slug.trim().length > 0 &&
-        slugTaken(slug.trim())
+        slugValue.length > 0 &&
+        slugTaken(slugValue)
 
-    const publishDisabled = !canPublish || slugBlocked
-    const blockedReason = slugBlocked ? 'Slug ist bereits vergeben.' : publishBlockedReason
+    const publishDisabled = !canPublish || slugBlocked || slugInvalid
+    const blockedReason = slugInvalid
+        ? 'Slug: nur Buchstaben, Zahlen und Bindestriche (max. 64 Zeichen).'
+        : slugBlocked
+          ? 'Slug ist bereits vergeben.'
+          : publishBlockedReason
     const isDraft = status === 'DRAFT'
     const isScheduled = status === 'SCHEDULED'
     const isPublished = status === 'PUBLISHED'
