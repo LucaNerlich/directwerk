@@ -91,13 +91,21 @@ export function usePublicCatalog<T, S = never>({
         const itemsPromise = isAuthenticated ? loadMine() : loadPublic()
         const seriesPromise = loadSeries ? loadSeries() : Promise.resolve<S[]>([])
 
-        Promise.all([seriesPromise, itemsPromise])
-            .then(([seriesList, itemList]) => {
+        // Series are a secondary filter strip: a failed series call must not blank the
+        // catalog (the seeded branch already treats it as non-fatal).
+        Promise.allSettled([
+            seriesPromise.catch(() => [] as S[]),
+            itemsPromise,
+        ])
+            .then(([seriesResult, itemsResult]) => {
                 if (!active) {
                     return
                 }
-                setSeries(seriesList)
-                setItems(itemList)
+                if (itemsResult.status === 'rejected') {
+                    throw itemsResult.reason
+                }
+                setSeries(seriesResult.status === 'fulfilled' ? seriesResult.value : [])
+                setItems(itemsResult.value)
             })
             .catch((error: unknown) => {
                 if (!active) {
