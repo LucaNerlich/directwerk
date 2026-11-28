@@ -22,6 +22,7 @@ import {pathToFileURL} from 'node:url'
 import {audioVisibility, day, parseFeedDate, storedDay} from './feed-utils.mjs'
 
 const MIME_AUDIO = 'audio/mpeg'
+let skippedItems = 0
 const MAX_DESCRIPTION = 90000
 
 function env(name, fallback) {
@@ -124,6 +125,7 @@ function parseFeed(xml) {
         const image = attr(block, 'itunes:image', 'href') ?? channelImage
         const publishedAt = parseFeedDate(tag(block, 'pubDate'))
         if (publishedAt === null) {
+            skippedItems++
             console.warn(`   skipping item without a valid pubDate: ${cleanTitle(tag(block, 'title'))}`)
             continue
         }
@@ -405,8 +407,11 @@ async function main() {
             console.error(`== ${show.name}: ${error.message}`)
         }
     }
-    console.log(`\n${options.dryRun ? 'dry-run: ' : ''}${added} added, ${failed} failed`)
-    if (failed > 0) {
+    console.log(`\n${options.dryRun ? 'dry-run: ' : ''}${added} added, ${failed} failed, ${skippedItems} skipped`)
+    if (skippedItems > 0) {
+        console.warn(`${skippedItems} feed items were skipped (missing or unparseable pubDate)`)
+    }
+    if (failed > 0 || skippedItems > 0) {
         process.exitCode = 1
     }
 }
