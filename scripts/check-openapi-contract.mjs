@@ -43,7 +43,10 @@ const types = readFileSync(typesPath, 'utf8')
 // vacuous for the drift it exists to catch. Assert set membership instead.
 const schemaNames = new Set(Object.keys(JSON.parse(spec).components?.schemas ?? {}))
 const missingInSpec = REQUIRED_SCHEMAS.filter((pair) => !schemaNames.has(pair.spec)).map((pair) => pair.spec)
-const missingInTypes = REQUIRED_SCHEMAS.filter((pair) => !types.includes(pair.types)).map((pair) => pair.types)
+const declaredTypes = new Set(
+    [...types.matchAll(/export\s+(?:interface|type)\s+(\w+)/g)].map((match) => match[1]),
+)
+const missingInTypes = REQUIRED_SCHEMAS.filter((pair) => !declaredTypes.has(pair.types)).map((pair) => pair.types)
 
 if (missingInSpec.length > 0) {
     console.error('OpenAPI spec missing schemas:', missingInSpec.join(', '))
