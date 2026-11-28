@@ -1,6 +1,6 @@
 import {afterEach, describe, expect, it, vi} from 'vitest'
 
-import {getPlatformAuditPage} from './client'
+import {getMembersEffectiveRights, getPlatformAuditPage} from './client'
 
 vi.mock('../auth/session', () => ({
     clearSessionTokens: vi.fn(),
@@ -41,5 +41,33 @@ describe('getPlatformAuditPage', () => {
         await expect(getPlatformAuditPage({size: 20})).resolves.toEqual({
             content: [], totalElements: 0, page: 0, size: 20,
         })
+    })
+})
+
+describe('getMembersEffectiveRights', () => {
+    it('batches at the API limit and merges both pages', async () => {
+        const calls: string[] = []
+        vi.stubGlobal('fetch', vi.fn(async (input: string | URL | Request) => {
+            const url = String(input)
+            calls.push(url)
+            const ids = new URL(url, 'http://admin.test').searchParams.get('userIds')?.split(',') ?? []
+            return Response.json({
+                statusCode: 200,
+                statusMessage: 'OK',
+                data: ids.map((id) => ({userId: Number(id), roles: ['EDITOR'], restrictions: [], effective: {}})),
+                errors: [],
+                metadata: {},
+            })
+        }))
+
+        const rights = await getMembersEffectiveRights(
+            '7',
+            Array.from({length: 201}, (_, i) => i + 1),
+        )
+
+        expect(calls).toHaveLength(2)
+        expect(new URL(calls[0], 'http://admin.test').searchParams.get('userIds')?.split(',')).toHaveLength(200)
+        expect(new URL(calls[1], 'http://admin.test').searchParams.get('userIds')?.split(',')).toHaveLength(1)
+        expect(rights).toHaveLength(201)
     })
 })

@@ -47,12 +47,13 @@ export async function deletePlatformData<T>(path: string): Promise<T> {
     return platformApi.delete<T>(path)
 }
 
-/**
- * Effective rights for several members in one request (#345). The tenant page needs a row per
- * editor; calling the single-member helper per editor cost one HTTP round trip each.
- */
 const EFFECTIVE_RIGHTS_BATCH_SIZE = 200
 
+/**
+ * Effective rights for several members, batched at the API's 200-id cap (#345). The tenant page
+ * needs a row per editor; calling the single-member helper per editor cost one HTTP round trip
+ * each, and one query with more than 200 ids was rejected outright.
+ */
 export async function getMembersEffectiveRights(
     tenantId: string,
     userIds: number[],
