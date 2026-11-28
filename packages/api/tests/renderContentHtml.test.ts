@@ -5,7 +5,10 @@ import {looksLikeTipTapHtml, renderContentHtml} from '../src/content/renderConte
 describe('renderContentHtml', () => {
     it('detects TipTap-shaped HTML bodies', () => {
         expect(looksLikeTipTapHtml('<p>Hello</p>')).toBe(true)
+        expect(looksLikeTipTapHtml('<h2 class="x">Hi</h2>')).toBe(true)
         expect(looksLikeTipTapHtml('# Heading\n\n**bold**')).toBe(false)
+        expect(looksLikeTipTapHtml('<div>\n\n# Heading')).toBe(false)
+        expect(looksLikeTipTapHtml('<https://example.com>')).toBe(false)
         expect(
             looksLikeTipTapHtml('# Title\n\nSee <a href="https://x.test">x</a> for **y**.'),
         ).toBe(false)

@@ -2,12 +2,16 @@ import {marked} from 'marked'
 
 import {sanitizeContentHtml} from './sanitizeContentHtml'
 
+const TIPTAP_TAGS = 'p|h[1-6]|ul|ol|li|blockquote|pre|hr|table|thead|tbody|tr|td|th|figure|figcaption|img|a|strong|em|s|code|br'
+const LEADING_TAG = new RegExp(`^\\s*<(?:${TIPTAP_TAGS})\\b[^>]*>`, 'i')
+
 /**
- * TipTap documents start with a tag. CommonMark that embeds inline HTML mid-body
- * must still go through Markdown conversion.
+ * TipTap documents start with one of the tags its schema emits. A CommonMark body may
+ * start with an autolink (`<https://…>`) or a raw block such as `<div>`, which must
+ * still go through Markdown conversion.
  */
 export function looksLikeTipTapHtml(value: string): boolean {
-    return value.trim().startsWith('<')
+    return LEADING_TAG.test(value)
 }
 
 /**
