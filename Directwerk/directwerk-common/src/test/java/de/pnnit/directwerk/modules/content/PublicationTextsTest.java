@@ -29,4 +29,11 @@ class PublicationTextsTest {
         assertThat(excerpt).doesNotContain("<p>").doesNotContain("</p>");
         assertThat(excerpt.length()).isLessThanOrEqualTo(280);
     }
+
+    @Test
+    void blankHtmlTreatsEntityOnlyWhitespaceAsBlank() {
+        org.assertj.core.api.Assertions.assertThat(PublicationTexts.isBlankHtml("<p>&#160;</p>")).isTrue();
+        org.assertj.core.api.Assertions.assertThat(PublicationTexts.isBlankHtml("<p>&nbsp;&ensp;</p>")).isTrue();
+        org.assertj.core.api.Assertions.assertThat(PublicationTexts.isBlankHtml("<p>Hallo</p>")).isFalse();
+    }
 }

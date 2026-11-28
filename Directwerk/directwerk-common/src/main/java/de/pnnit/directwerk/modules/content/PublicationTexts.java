@@ -37,10 +37,6 @@ public final class PublicationTexts {
         if (sanitized == null) {
             return true;
         }
-        String textOnly = sanitized
-                .replaceAll("<[^>]*>", "")
-                .replace("&nbsp;", " ")
-                .trim();
-        return textOnly.isBlank();
+        return SearchPlainText.stripHtml(sanitized).isBlank();
     }
 }
