@@ -224,12 +224,14 @@ export default async function LangLayout({
                     primaryHex={primary}
                     secondaryHex={secondary}
                 >
-                    <AuthBootstrap>
-                        <AudioPlayerProvider>
-                            <SiteHeader>{children}</SiteHeader>
-                            <MiniPlayer />
-                        </AudioPlayerProvider>
-                    </AuthBootstrap>
+                    <AudioPlayerProvider>
+                        <SiteHeader>
+                            {/* Gate only the page content: unmounting the shell stopped
+                                playback and blanked the header on protected routes. */}
+                            <AuthBootstrap>{children}</AuthBootstrap>
+                        </SiteHeader>
+                        <MiniPlayer />
+                    </AudioPlayerProvider>
                 </BrandTheme>
             </SiteConfigProvider>
         </LocaleProvider>
