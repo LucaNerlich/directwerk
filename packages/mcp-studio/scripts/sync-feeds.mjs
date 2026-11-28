@@ -15,7 +15,10 @@
 import {spawn} from 'node:child_process'
 import {readFile, mkdir, rm} from 'node:fs/promises'
 import {tmpdir} from 'node:os'
-import {join} from 'node:path'
+import {join, resolve} from 'node:path'
+import {pathToFileURL} from 'node:url'
+
+import {audioVisibility, parseFeedDate} from './feed-utils.mjs'
 
 const MIME_AUDIO = 'audio/mpeg'
 const MAX_DESCRIPTION = 90000
@@ -186,9 +189,9 @@ async function listMedia(folderId) {
     return media
 }
 
-async function upload(buffer, filename, mimeType, assetType, folderId, existing) {
+async function upload(buffer, filename, mimeType, assetType, folderId, existing, visibility = 'PUBLIC') {
     const reusable = existing.get(filename)
-    if (reusable?.status === 'READY') {
+    if (reusable?.status === 'READY' && reusable.visibility === visibility) {
         return reusable.id
     }
     for (let attempt = 0; attempt < 3; attempt++) {
@@ -197,7 +200,7 @@ async function upload(buffer, filename, mimeType, assetType, folderId, existing)
             mimeType,
             sizeBytes: buffer.length,
             assetType,
-            intendedVisibility: 'PUBLIC',
+            intendedVisibility: visibility,
             folderId,
         })).data
         const put = await fetch(uploadUrl, {
@@ -211,7 +214,7 @@ async function upload(buffer, filename, mimeType, assetType, folderId, existing)
         }
         try {
             await api('POST', `/api/v1/media/${assetId}/confirm`, {}, 1)
-            existing.set(filename, {id: assetId, status: 'READY'})
+            existing.set(filename, {id: assetId, status: 'READY', visibility})
             return assetId
         } catch (error) {
             console.warn(`    confirm failed (attempt ${attempt + 1}): ${error.message}`)
@@ -259,7 +262,7 @@ async function syncShow(show, options, tenantSlugs) {
     const knownMedia = new Map()
     const audioExisting = await listMedia(show.audioFolderId)
     for (const asset of audioExisting) {
-        knownMedia.set(asset.originalFilename, {id: asset.id, status: asset.status})
+        knownMedia.set(asset.originalFilename, {id: asset.id, status: asset.status, visibility: asset.visibility})
     }
 
     let pending = items.filter(item => !seen.has(`${cleanTitle(item.title).toLowerCase()}|${day(item.publishedAt)}`))
@@ -297,7 +300,7 @@ async function syncShow(show, options, tenantSlugs) {
             const audio = await readFile(audioPath)
 
             const audioAssetId = await upload(audio, audioFile, item.mimeType || MIME_AUDIO, 'AUDIO',
-                show.audioFolderId, knownMedia)
+                show.audioFolderId, knownMedia, audioVisibility(show))
 
             let coverAssetId = show.seriesCoverAssetId
             if (item.image && item.image !== item.channelImage) {
@@ -393,7 +396,10 @@ async function main() {
     }
 }
 
-main().catch(error => {
-    console.error(error.message)
-    process.exit(1)
-})
+const isMain = process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href
+if (isMain) {
+    main().catch(error => {
+        console.error(error.message)
+        process.exit(1)
+    })
+}
