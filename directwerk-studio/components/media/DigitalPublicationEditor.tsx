@@ -3,6 +3,7 @@
 import {HTML_SLUG_PATTERN} from '@directwerk/api/constants'
 import {Alert, AlertDescription} from '@directwerk/ui/components/alert'
 import {Button} from '@directwerk/ui/components/button'
+import ConfirmDialog from '@directwerk/ui/components/confirm-dialog'
 import EmptyState from '@directwerk/ui/components/empty-state'
 import {Input} from '@directwerk/ui/components/input'
 import {Label} from '@directwerk/ui/components/label'
@@ -69,6 +70,7 @@ export default function DigitalPublicationEditor({
     const [requiredLevelSortOrder, setRequiredLevelSortOrder] = useState<number | null>(null)
     const [isLoading, setIsLoading] = useState(!isNew)
     const [isSaving, setIsSaving] = useState(false)
+    const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false)
     const [errorMessage, setErrorMessage] = useState<string | null>(null)
     const [statusMessage, setStatusMessage] = useState<string | null>(null)
     // RBAC desk adaptation (issue #148): bonus files reference the media
@@ -404,23 +406,7 @@ export default function DigitalPublicationEditor({
                 desk.canDelete ? (
                     <Button
                         disabled={isSaving}
-                        onClick={() => {
-                            void (async () => {
-                                setIsSaving(true)
-                                try {
-                                    await deleteDigitalPublication( publication.id)
-                                    router.replace(localize('/bonus'))
-                                } catch (error: unknown) {
-                                    if (authRedirect(error)) return
-                                    setErrorMessage(
-                                        error instanceof Error
-                                            ? error.message
-                                            : 'Löschen fehlgeschlagen.',
-                                    )
-                                    setIsSaving(false)
-                                }
-                            })()
-                        }}
+                        onClick={() => setConfirmDeleteOpen(true)}
                         type="button"
                         variant="destructive"
                     >
@@ -431,6 +417,37 @@ export default function DigitalPublicationEditor({
                     Zurück zur Liste
                 </Button>
             </div>
+            <ConfirmDialog
+                cancelLabel="Abbrechen"
+                confirmLabel="Löschen"
+                description={`„${publication?.title ?? title}“ wird endgültig gelöscht. Dieser Vorgang kann nicht rückgängig gemacht werden.`}
+                destructive
+                onConfirm={() => {
+                    if (publication === null) {
+                        return
+                    }
+                    setConfirmDeleteOpen(false)
+                    void (async () => {
+                        setIsSaving(true)
+                        try {
+                            await deleteDigitalPublication( publication.id)
+                            router.replace(localize('/bonus'))
+                        } catch (error: unknown) {
+                            if (authRedirect(error)) return
+                            setErrorMessage(
+                                error instanceof Error
+                                    ? error.message
+                                    : 'Löschen fehlgeschlagen.',
+                            )
+                            setIsSaving(false)
+                        }
+                    })()
+                }}
+                onOpenChange={setConfirmDeleteOpen}
+                open={confirmDeleteOpen}
+                pending={isSaving}
+                title="Bonusdatei löschen?"
+            />
         </PageStack>
     )
 }
