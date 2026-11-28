@@ -100,8 +100,7 @@ public class MembershipPermissionService {
     }
 
     /**
-     * Returns a checker bound to one entity type. Services store it once
-     * instead of repeating the ambient-principal plumbing per operation.
+     * Checks one content entity for the current principal.
      *
      * <p><b>Fails closed (issue #303).</b> The gate requires an authenticated principal. It
      * previously resolved {@link SecurityUtils#currentPrincipal()}, which is {@code null} outside a
