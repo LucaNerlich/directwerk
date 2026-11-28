@@ -2,6 +2,7 @@ package de.pnnit.directwerk.modules.podcast.service;
 
 import de.pnnit.directwerk.modules.digital.entity.AssetStatus;
 import de.pnnit.directwerk.modules.digital.entity.AssetType;
+import de.pnnit.directwerk.modules.digital.entity.AssetVisibility;
 import de.pnnit.directwerk.modules.digital.entity.MediaAsset;
 import de.pnnit.directwerk.modules.digital.exception.MediaAssetNotFoundException;
 import de.pnnit.directwerk.modules.digital.exception.UploadValidationException;
@@ -24,10 +25,14 @@ public class PodcastCoverAssetResolver {
         if (!tenantId.equals(asset.getTenant().getId())) {
             throw new MediaAssetNotFoundException(coverAssetId);
         }
-        if (asset.getStatus() != AssetStatus.READY || asset.getAssetType() != AssetType.IMAGE) {
+        if (asset.getStatus() != AssetStatus.READY
+                || asset.getAssetType() != AssetType.IMAGE
+                || asset.getVisibility() != AssetVisibility.PUBLIC) {
+            // Covers are rendered through the public CDN, so a private image would be
+            // accepted here and silently omitted from the feed and public pages.
             throw new UploadValidationException(
                     "UPLOAD_VALIDATION_FAILED",
-                    "Cover asset must be READY IMAGE"
+                    "Cover asset must be a READY, PUBLIC IMAGE"
             );
         }
         return asset;
