@@ -175,7 +175,9 @@ public class ArticleService {
         article.setAccessPolicy(accessPolicy != null ? accessPolicy : AccessPolicy.FREE);
         article.setRequiredLevelSortOrder(FieldConstraints.requireNonNegative(requiredLevelSortOrder, "requiredLevelSortOrder"));
         article.setStatus(ArticleStatus.DRAFT);
-        if (publishedAt != null) {
+        // A future source pubDate is not a publish instruction; storing it would make the
+        // shared publish guard reject the article (and an atomic bulk publish roll back).
+        if (publishedAt != null && !publishedAt.isAfter(Instant.now())) {
             article.setPublishedAt(publishedAt);
         }
         article.getCategories().addAll(categoryService.resolveActiveCategories(tenantId, categoryIds,
