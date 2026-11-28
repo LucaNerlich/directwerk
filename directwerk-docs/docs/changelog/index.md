@@ -10,6 +10,34 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-11-28
+
+### Added
+
+- Explicit publication state machines for articles and episodes, with working drafts that can be reviewed before publishing.
+- Studio list sorting by published date, last update or title, plus episode filters by series and title/slug search.
+- Richer Studio MCP tools: episode creation with audio, duration, formats and categories; clearing episode numbers; bulk category/format replaces with a dry run; and an upstream feed-sync script for hosted archives.
+- Light/dark theme toggle on the public site and in Studio.
+- Public catalogs with denser grids, format filters and search.
+- Configurable mail health indicator for deployments whose SMTP relay cannot do STARTTLS.
+
+### Fixed
+
+- Episode list returned 500 on PostgreSQL for the unfiltered list and for series-only filters (untyped NULL bind).
+- Production and stage SMTP now require STARTTLS instead of silently falling back to cleartext.
+- Billing and webhook races: external-id rebinds, stale downgrades and manual grants no longer revoke or duplicate entitlements.
+- Queue jobs back off exponentially after failures, and coalesced follow-ups keep their slot.
+- Newsletter recipient markers are claimed before enqueueing, and anonymous subscribe requests are throttled.
+- Uploads use the tenant's limits, manifest audio is uploaded private, and paid bonus publications require private assets.
+- Web SEO: one sitemap URL per page with hreflang, page-specific og:url, and series names instead of slugs in JSON-LD.
+- Markdown tables render in article bodies, and sanitized HTML no longer carries OWASP cosmetic entities.
+- List API offset means rows to skip, matching the documented contract.
+
+### Changed
+
+- Shared HTML-to-plain-text helper across email, search and excerpts; the sanitizer stays out of catalog bundles.
+- Public catalog and search responses are bounded; dead code and duplicated feed hooks removed.
+
 ## [0.5.1] - 2026-10-31
 
 ### Added
