@@ -340,7 +340,10 @@ export default function ShowNotesEditor({
     const [mediaDialogOpen, setMediaDialogOpen] = useState(false)
     const [mediaDialogLoaded, setMediaDialogLoaded] = useState(false)
     const onChangeRef = useRef(onChange)
-    onChangeRef.current = onChange
+    useEffect(() => {
+        // Writing the ref during render makes the React Compiler bail out (#417).
+        onChangeRef.current = onChange
+    }, [onChange])
     /** Last HTML we pushed (or accepted from props) — skips setContent feedback thrash. */
     const syncedHtmlRef = useRef(value)
     const pendingHtmlRef = useRef<string | null>(null)
