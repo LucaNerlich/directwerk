@@ -31,6 +31,7 @@ export default function UmamiAnalytics({
             <Script
                 async
                 data-do-not-track="true"
+                data-exclude-search="true"
                 data-website-id={analytics.umamiWebsiteId}
                 src={analytics.umamiScriptUrl}
                 strategy="afterInteractive"
@@ -39,6 +40,7 @@ export default function UmamiAnalytics({
             <Script
                 async
                 data-do-not-track="true"
+                data-exclude-search="true"
                 data-mask-level={maskLevel}
                 data-max-duration={maxDuration}
                 data-sample-rate={sampleRate}
