@@ -19,7 +19,7 @@ import {join, resolve} from 'node:path'
 import {realpathSync} from 'node:fs'
 import {pathToFileURL} from 'node:url'
 
-import {audioVisibility, day, parseFeedDate} from './feed-utils.mjs'
+import {audioVisibility, day, parseFeedDate, storedDay} from './feed-utils.mjs'
 
 const MIME_AUDIO = 'audio/mpeg'
 const MAX_DESCRIPTION = 90000
@@ -262,7 +262,7 @@ async function syncShow(show, options, tenantSlugs) {
     const xml = await (await fetch(show.feedUrl, {headers: {'User-Agent': 'directwerk-feed-sync/1.0'}})).text()
     const items = parseFeed(xml)
     const existingEpisodes = await listAllEpisodes(show.seriesId)
-    const seen = new Set(existingEpisodes.map(episode => `${cleanTitle(episode.title).toLowerCase()}|${day(episode.publishedAt)}`))
+    const seen = new Set(existingEpisodes.map(episode => `${cleanTitle(episode.title).toLowerCase()}|${storedDay(episode)}`))
     const usedSlugs = new Set([...tenantSlugs, ...existingEpisodes.map(episode => episode.slug)])
     let nextNumber = Math.max(0, ...existingEpisodes.map(episode => episode.episodeNumber ?? 0)) + 1
 
