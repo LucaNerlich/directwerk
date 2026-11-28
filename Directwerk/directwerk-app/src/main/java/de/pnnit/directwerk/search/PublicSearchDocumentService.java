@@ -63,10 +63,11 @@ public class PublicSearchDocumentService {
         // The header search index is client-side; an unbounded corpus is a multi-MB anonymous
         // response for a mature archive (#1041).
 
-        boolean articles = moduleGateService.isModuleActive(tenantId, FeatureModuleKeys.DIGITAL_CONTENT);
-        boolean episodes = moduleGateService.isModuleActive(tenantId, FeatureModuleKeys.PODCAST);
-        boolean products = moduleGateService.isModuleActive(tenantId, FeatureModuleKeys.SUBSCRIPTION);
-        boolean lists = moduleGateService.isModuleActive(tenantId, FeatureModuleKeys.EMAIL_NOTIFY)
+        java.util.Set<String> enabledModules = moduleGateService.enabledModuleKeys(tenantId);
+        boolean articles = enabledModules.contains(FeatureModuleKeys.DIGITAL_CONTENT);
+        boolean episodes = enabledModules.contains(FeatureModuleKeys.PODCAST);
+        boolean products = enabledModules.contains(FeatureModuleKeys.SUBSCRIPTION);
+        boolean lists = enabledModules.contains(FeatureModuleKeys.EMAIL_NOTIFY)
                 && directwerkConfig.isEmailEnabled();
 
         // The cap must spend its slots on recency and only on enabled kinds: a title-ordered
